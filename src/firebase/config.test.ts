@@ -4,9 +4,9 @@ const mockInitializeApp = vi.fn(() => 'app-instance');
 const mockGetAuth = vi.fn(() => 'auth-instance');
 const mockGetFirestore = vi.fn(() => 'firestore-instance');
 
-vi.mock('firebase/app', () => ({ initializeApp: (...args: unknown[]) => mockInitializeApp(...args) }));
-vi.mock('firebase/auth', () => ({ getAuth: (...args: unknown[]) => mockGetAuth(...args) }));
-vi.mock('firebase/firestore', () => ({ getFirestore: (...args: unknown[]) => mockGetFirestore(...args) }));
+vi.mock('firebase/app', () => ({ initializeApp: mockInitializeApp }));
+vi.mock('firebase/auth', () => ({ getAuth: mockGetAuth }));
+vi.mock('firebase/firestore', () => ({ getFirestore: mockGetFirestore }));
 
 describe('firebase config', () => {
   it('initializes the firebase app and exports auth/firestore instances', async () => {

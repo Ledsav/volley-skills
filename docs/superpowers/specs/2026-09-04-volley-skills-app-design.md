@@ -98,20 +98,38 @@ teams/{teamId}/players/{playerId}/physicalTests/{testId}
   testType: 'growth' | 'cmj' | 'approachJump' | 'broadJump' | 'sprint10m'
           | 'shuttle5105' | 'reaction' | 'strength6rm'
   date (ISO string "YYYY-MM-DD")
-  — fields present depend on testType:
-      growth:       { heightCm, bodyMassKg }
-      cmj:          { valueCm }              // countermovement jump
-      approachJump: { valueCm }
-      broadJump:    { valueCm }               // standing broad jump
-      sprint10m:    { valueSeconds }
-      shuttle5105:  { valueSeconds }
-      reaction:     { value, unit: 'cm' | 'ms' }   // ruler-drop test
-      strength6rm:  { exercise: 'squat' | 'trapBarDeadlift' | 'gobletSquat',
-                       weightKg,
-                       bodyMassRatio }        // weightKg / most recent known
-                                              // bodyMassKg at time of entry, snapshotted
-                                              // so it doesn't silently drift if a later
-                                              // growth entry changes body mass
+  — fields present depend on testType. Where a test protocol calls for multiple
+    attempts, the raw attempts are stored and the app computes the best (max, or
+    min for time-based tests) — never the coach doing that comparison by hand:
+      growth:       { heightCm, bodyMassKg }                    // single measurement
+      cmj:          { attemptsCm: [n, n, n], bestCm }           // countermovement jump,
+                                                                 // hands on hips; bestCm = max(attemptsCm)
+      approachJump: { standingReachCm,                          // measured once
+                       attemptsTouchCm: [n, n, n], bestTouchCm, // max(attemptsTouchCm)
+                       approachJumpCm }                         // bestTouchCm - standingReachCm
+      broadJump:    { attemptsCm: [n, n, n], bestCm }           // standing broad jump; bestCm = max(attemptsCm)
+      sprint10m:    { attemptsSeconds: [n, n, ...], bestSeconds } // bestSeconds = min(attemptsSeconds)
+      shuttle5105:  { rightFirstSeconds, leftFirstSeconds }     // run both directions; no
+                                                                 // combined "best" — the
+                                                                 // asymmetry between the two
+                                                                 // is itself the useful signal
+      reaction:     { attemptsCm: [n, n, n, n, n],              // 5 raw drops
+                       averageCm,                               // mean of the middle 3 after
+                                                                 // discarding the best and worst
+                       reactionTimeMs }                          // computed from averageCm via
+                                                                 // t = sqrt(2d/9.81), d in metres
+      strength:     { mode: 'weighted' | 'bodyweight',
+                       // mode: 'weighted' (gym available) —
+                       exercise: 'trapBarDeadlift' | 'squat' | 'gobletSquat',
+                       weightKg, reps6RM: 6,
+                       bodyMassRatio,                            // weightKg / most recent known
+                                                                  // bodyMassKg, snapshotted at
+                                                                  // entry time so it doesn't
+                                                                  // silently drift if a later
+                                                                  // growth entry changes body mass
+                       // mode: 'bodyweight' (no gym) — muscular-endurance fallback,
+                       // never a lower-quality invented weighted test:
+                       exercise: 'pushUps' | 'splitSquat', reps }
   notes, recordedBy, createdAt
 
 skillGuide/config                     — single global doc
@@ -120,6 +138,19 @@ skillGuide/config                     — single global doc
       ranges: [{ min, max, description }, ...],   // 1-3, 4-6, 7-8, 9-10
       howToEvaluate }
     , ... 8 entries
+  ]
+  updatedBy, updatedAt
+
+physicalTestGuide/config              — single global doc, same admin-editable-text
+                                         pattern as skillGuide/config, but for testing
+                                         protocol instead of scoring bands
+  tests: [
+    { key, label, protocol }             // protocol = free text describing how to
+                                          // administer that test (setup, attempt count,
+                                          // rest periods, equipment) — e.g. seeded from
+                                          // the coach's own written testing protocol
+    , ... 8 entries (growth, cmj, approachJump, broadJump, sprint10m,
+                      shuttle5105, reaction, strength)
   ]
   updatedBy, updatedAt
 
@@ -156,7 +187,7 @@ All authorization is enforced in **Firestore Security Rules**, reading role/memb
 5. **`teams/{teamId}/players/{playerId}/physicalTests/{testId}`**: same access as the parent player doc — team admins read/write; the linked viewer gets read-only (checked via `get()` on the parent player doc's `viewerEmails`).
 6. **`teams/{teamId}/calendar/{sessionId}`**: same as players — team admins only. Out of scope for viewers.
 7. **`exercises`, `trainings`, `counters/trainings`**: readable/writable by any user with `role == 'admin'` (club-wide shared resource, not team-scoped).
-8. **`skillGuide/config`**: readable by any signed-in user (so a viewer can see what their player's scores mean); writable by admins only.
+8. **`skillGuide/config`, `physicalTestGuide/config`**: readable by any signed-in user (so a viewer can see what their player's scores/tests mean); writable by admins only.
 9. All rules additionally validate data shape on write (e.g. `score` must be a number 1-10, required fields present) as defense in depth beyond client-side form validation.
 
 ### 6.4 Viewer invite flow — TBD
@@ -169,10 +200,10 @@ How a parent's email actually gets added to a player's `viewerEmails` (and how t
 - `/teams` — teams the signed-in admin has access to; "Create team."
 - `/teams/:teamId` — description/notes, roster overview (mirrors the spreadsheet's Overview tab: number, name, position, age, 8 skill scores, average, level), team development plan, **Calendar** tab (month view; assign a training from the shared library to a date), **Settings** tab (manage `adminUids`, edit team info).
 - `/teams/:teamId/players/:playerId` — full player card (contact info, skills with guide text shown inline, coach notes, priority flags, development plan, **Physical Testing** section). Edit mode for team admins; read-only render when accessed by that player's linked viewer.
-  - Physical Testing shows the 8 test qualities as rows, each with its latest value + date, an "Add new" action to log a fresh entry for that quality, and a "View history" action opening a paginated timeline for that one quality (cursor pagination, per Section 8).
+  - Physical Testing shows the 8 test qualities as rows, each with its latest computed value (e.g. best CMJ, approach jump height, reaction ms) + date, an "Add new" action opening a test-specific entry form (raw attempts in, computed result shown immediately), and a "View history" action opening a paginated timeline for that one quality (cursor pagination, per Section 8).
 - `/exercises` — paginated library list, filter by category, create/edit (admin only).
 - `/trainings` — paginated library list, filter by age group / business ID, create/edit with an ordered exercise picker (order + duration), admin only.
-- `/admin/skill-guide` — edit the 8 skills' range descriptions and how-to-evaluate text (admin only).
+- `/admin/guides` — two tabs: **Skill Guide** (edit the 8 skills' range descriptions and how-to-evaluate text) and **Physical Test Guide** (edit the 8 tests' protocol text). Admin only.
 - `/privacy` — public static privacy policy page.
 
 ## 8. Smart Fetching
@@ -217,7 +248,7 @@ GitHub Actions:
 ## 13. Testing Strategy
 
 - **Firestore rules tests** (`@firebase/rules-unit-testing`) are the highest priority — they verify the actual security boundary: a viewer cannot read another player, cannot write anywhere, an admin cannot access a team they're not in `adminUids` for, etc.
-- **Unit tests** (Vitest) for pure logic: skill average/level computation, training `businessId` sequence generation.
+- **Unit tests** (Vitest) for pure logic: skill average/level computation, training `businessId` sequence generation, and the physical test computations (best-of-attempts for CMJ/broad jump/sprint, approach-jump subtraction, reaction time discard-extremes-and-average plus the ms conversion formula, strength body-mass ratio).
 - **Component tests** (React Testing Library) for the critical forms: player card edit, skill guide edit, training builder (exercise picker with order/duration).
 
 ## 14. Open Items / Deferred

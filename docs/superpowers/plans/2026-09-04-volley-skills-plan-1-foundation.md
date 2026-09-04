@@ -3033,12 +3033,12 @@ And add the import: `import { PlayerSkillsSection } from './PlayerSkillsSection'
     const invalidSkills = { ...validSkills, serve: { score: 11 } };
 
     const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
-    await assertSucceeds(db.doc('teams/team-1/players/player-1').update({ skills: validSkills }));
+    await assertSucceeds(adminDb.doc('teams/team-1/players/player-1').update({ skills: validSkills }));
     await assertFails(adminDb.doc('teams/team-1/players/player-1').update({ skills: invalidSkills }));
   });
 ```
 
-(Add this as a new `it` inside the existing `describe('player rules', ...)` block; note it reuses the `adminDb` context already established by the other tests in that file — declare it the same way, `env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore()`, rather than the stray `db` reference above.)
+(Add this as a new `it` inside the existing `describe('player rules', ...)` block.)
 
 - [ ] **Step 8: Run test to verify it fails**
 

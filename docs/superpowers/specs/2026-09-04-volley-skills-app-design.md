@@ -90,6 +90,30 @@ teams/{teamId}/players/{playerId}
   consent: { given: bool, date, confirmedBy }
   createdBy, createdAt, updatedAt
 
+teams/{teamId}/players/{playerId}/physicalTests/{testId}
+  — one doc per single measurement event. Each of the 8 test qualities has its own
+    independent timeline (not a combined "battery session"), so a player can have
+    e.g. a new sprint time logged in March and a new jump height logged in June,
+    unrelated to each other.
+  testType: 'growth' | 'cmj' | 'approachJump' | 'broadJump' | 'sprint10m'
+          | 'shuttle5105' | 'reaction' | 'strength6rm'
+  date (ISO string "YYYY-MM-DD")
+  — fields present depend on testType:
+      growth:       { heightCm, bodyMassKg }
+      cmj:          { valueCm }              // countermovement jump
+      approachJump: { valueCm }
+      broadJump:    { valueCm }               // standing broad jump
+      sprint10m:    { valueSeconds }
+      shuttle5105:  { valueSeconds }
+      reaction:     { value, unit: 'cm' | 'ms' }   // ruler-drop test
+      strength6rm:  { exercise: 'squat' | 'trapBarDeadlift' | 'gobletSquat',
+                       weightKg,
+                       bodyMassRatio }        // weightKg / most recent known
+                                              // bodyMassKg at time of entry, snapshotted
+                                              // so it doesn't silently drift if a later
+                                              // growth entry changes body mass
+  notes, recordedBy, createdAt
+
 skillGuide/config                     — single global doc
   skills: [
     { key, label,
@@ -129,10 +153,11 @@ All authorization is enforced in **Firestore Security Rules**, reading role/memb
 2. **`users/{uid}`**: a user can read/write their own doc; may only write `role: 'admin'` if `adminAllowlist/{their email}` exists.
 3. **`teams/{teamId}`**: read/write only if `request.auth.uid` is in `resource.data.adminUids`.
 4. **`teams/{teamId}/players/{playerId}`**: admins of the parent team can read/write. A viewer can read a single player doc only if their auth email is in that doc's `viewerEmails` (Section 6.4).
-5. **`teams/{teamId}/calendar/{sessionId}`**: same as players — team admins only. Out of scope for viewers.
-6. **`exercises`, `trainings`, `counters/trainings`**: readable/writable by any user with `role == 'admin'` (club-wide shared resource, not team-scoped).
-7. **`skillGuide/config`**: readable by any signed-in user (so a viewer can see what their player's scores mean); writable by admins only.
-8. All rules additionally validate data shape on write (e.g. `score` must be a number 1-10, required fields present) as defense in depth beyond client-side form validation.
+5. **`teams/{teamId}/players/{playerId}/physicalTests/{testId}`**: same access as the parent player doc — team admins read/write; the linked viewer gets read-only (checked via `get()` on the parent player doc's `viewerEmails`).
+6. **`teams/{teamId}/calendar/{sessionId}`**: same as players — team admins only. Out of scope for viewers.
+7. **`exercises`, `trainings`, `counters/trainings`**: readable/writable by any user with `role == 'admin'` (club-wide shared resource, not team-scoped).
+8. **`skillGuide/config`**: readable by any signed-in user (so a viewer can see what their player's scores mean); writable by admins only.
+9. All rules additionally validate data shape on write (e.g. `score` must be a number 1-10, required fields present) as defense in depth beyond client-side form validation.
 
 ### 6.4 Viewer invite flow — TBD
 
@@ -143,7 +168,8 @@ How a parent's email actually gets added to a player's `viewerEmails` (and how t
 - `/login` — email-link sign-in.
 - `/teams` — teams the signed-in admin has access to; "Create team."
 - `/teams/:teamId` — description/notes, roster overview (mirrors the spreadsheet's Overview tab: number, name, position, age, 8 skill scores, average, level), team development plan, **Calendar** tab (month view; assign a training from the shared library to a date), **Settings** tab (manage `adminUids`, edit team info).
-- `/teams/:teamId/players/:playerId` — full player card (contact info, skills with guide text shown inline, coach notes, priority flags, development plan). Edit mode for team admins; read-only render when accessed by that player's linked viewer.
+- `/teams/:teamId/players/:playerId` — full player card (contact info, skills with guide text shown inline, coach notes, priority flags, development plan, **Physical Testing** section). Edit mode for team admins; read-only render when accessed by that player's linked viewer.
+  - Physical Testing shows the 8 test qualities as rows, each with its latest value + date, an "Add new" action to log a fresh entry for that quality, and a "View history" action opening a paginated timeline for that one quality (cursor pagination, per Section 8).
 - `/exercises` — paginated library list, filter by category, create/edit (admin only).
 - `/trainings` — paginated library list, filter by age group / business ID, create/edit with an ordered exercise picker (order + duration), admin only.
 - `/admin/skill-guide` — edit the 8 skills' range descriptions and how-to-evaluate text (admin only).
@@ -156,6 +182,7 @@ No view performs an unbounded collection read. Specifically:
 - **Exercises / Trainings libraries**: `orderBy(...).limit(25)`, with a "Load more" button using cursor pagination (`startAfter(lastVisibleDoc)`) — not offset-based paging, which Firestore doesn't support cheaply. Category/age-group/business-ID filters are `where()` clauses combined with the same limit+cursor pattern, backed by composite indexes.
 - **Team calendar**: queries only the visible date range (e.g. the current month); navigating months re-queries rather than loading full history.
 - **Teams list / team roster**: inherently small per user (a handful of teams, ~20 players per team) — fetched in full for that scope, but still capped with a defensive `limit()`.
+- **Physical Testing "latest" row per quality**: rendered via up to 8 small indexed queries (`where('testType','==',x).orderBy('date','desc').limit(1)`), one per quality — not a fetch of the whole `physicalTests` subcollection. "View history" for one quality then paginates that single `testType` with the same limit+cursor pattern.
 
 ## 9. Migration
 

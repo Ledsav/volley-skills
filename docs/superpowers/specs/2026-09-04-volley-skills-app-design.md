@@ -56,7 +56,10 @@ users/{uid}
 
 teams/{teamId}
   name, club, ageGroup, season, description, notes
-  adminUids: [uid, ...]               — who has admin access to this team (team settings)
+  adminEmails: [email, ...]           — who has admin access to this team (team settings).
+                                         Email-keyed (not uid-keyed) so granting access
+                                         never requires looking up another user's uid —
+                                         same pattern as a player's viewerEmails below.
   developmentPlan: {
     shortTermObjectives: [{ objective, targetDate, status, coachComment }],
     seasonObjectives:    [{ objective, target, status, coachComment }],
@@ -182,7 +185,7 @@ All authorization is enforced in **Firestore Security Rules**, reading role/memb
 
 1. **`adminAllowlist`**: never readable or writable by any client. Sole gate on who can become an admin.
 2. **`users/{uid}`**: a user can read/write their own doc; may only write `role: 'admin'` if `adminAllowlist/{their email}` exists.
-3. **`teams/{teamId}`**: read/write only if `request.auth.uid` is in `resource.data.adminUids`.
+3. **`teams/{teamId}`**: read/write only if `request.auth.token.email` is in `resource.data.adminEmails`.
 4. **`teams/{teamId}/players/{playerId}`**: admins of the parent team can read/write. A viewer can read a single player doc only if their auth email is in that doc's `viewerEmails` (Section 6.4).
 5. **`teams/{teamId}/players/{playerId}/physicalTests/{testId}`**: same access as the parent player doc — team admins read/write; the linked viewer gets read-only (checked via `get()` on the parent player doc's `viewerEmails`).
 6. **`teams/{teamId}/calendar/{sessionId}`**: same as players — team admins only. Out of scope for viewers.
@@ -198,7 +201,7 @@ How a parent's email actually gets added to a player's `viewerEmails` (and how t
 
 - `/login` — email-link sign-in.
 - `/teams` — teams the signed-in admin has access to; "Create team."
-- `/teams/:teamId` — description/notes, roster overview (mirrors the spreadsheet's Overview tab: number, name, position, age, 8 skill scores, average, level), team development plan, **Calendar** tab (month view; assign a training from the shared library to a date), **Settings** tab (manage `adminUids`, edit team info).
+- `/teams/:teamId` — description/notes, roster overview (mirrors the spreadsheet's Overview tab: number, name, position, age, 8 skill scores, average, level), team development plan, **Calendar** tab (month view; assign a training from the shared library to a date), **Settings** tab (manage `adminEmails`, edit team info).
 - `/teams/:teamId/players/:playerId` — full player card (contact info, skills with guide text shown inline, coach notes, priority flags, development plan, **Physical Testing** section). Edit mode for team admins; read-only render when accessed by that player's linked viewer.
   - Physical Testing shows the 8 test qualities as rows, each with its latest computed value (e.g. best CMJ, approach jump height, reaction ms) + date, an "Add new" action opening a test-specific entry form (raw attempts in, computed result shown immediately), and a "View history" action opening a paginated timeline for that one quality (cursor pagination, per Section 8).
 - `/exercises` — paginated library list, filter by category, create/edit (admin only).
@@ -247,7 +250,7 @@ GitHub Actions:
 
 ## 13. Testing Strategy
 
-- **Firestore rules tests** (`@firebase/rules-unit-testing`) are the highest priority — they verify the actual security boundary: a viewer cannot read another player, cannot write anywhere, an admin cannot access a team they're not in `adminUids` for, etc.
+- **Firestore rules tests** (`@firebase/rules-unit-testing`) are the highest priority — they verify the actual security boundary: a viewer cannot read another player, cannot write anywhere, an admin cannot access a team they're not in `adminEmails` for, etc.
 - **Unit tests** (Vitest) for pure logic: skill average/level computation, training `businessId` sequence generation, and the physical test computations (best-of-attempts for CMJ/broad jump/sprint, approach-jump subtraction, reaction time discard-extremes-and-average plus the ms conversion formula, strength body-mass ratio).
 - **Component tests** (React Testing Library) for the critical forms: player card edit, skill guide edit, training builder (exercise picker with order/duration).
 

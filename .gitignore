@@ -1,1 +1,9 @@
 .superpowers/
+node_modules
+dist
+.env
+.env.local
+serviceAccountKey.json
+.firebase
+firebase-debug.log
+firestore-debug.log

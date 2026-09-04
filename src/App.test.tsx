@@ -1,10 +1,19 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
+vi.mock('firebase/auth', () => ({
+  onAuthStateChanged: (_auth: unknown, callback: (user: null) => void) => {
+    callback(null);
+    return () => {};
+  },
+}));
+vi.mock('./firebase/config', () => ({ auth: {}, db: {} }));
+
 describe('App', () => {
-  it('renders the app title', () => {
+  it('redirects an unauthenticated visitor at "/" to the login page', async () => {
+    window.history.pushState({}, '', '/');
     render(<App />);
-    expect(screen.getByText('Volley Skills')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Email')).toBeInTheDocument();
   });
 });

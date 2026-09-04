@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
 import { FinishSignInPage } from './auth/FinishSignInPage';
+import { TeamsListPage } from './teams/TeamsListPage';
 
 export function App() {
   return (
@@ -15,7 +16,7 @@ export function App() {
             path="/teams"
             element={
               <RequireAuth>
-                <div>Signed in. Teams list coming in Task 7.</div>
+                <TeamsListPage />
               </RequireAuth>
             }
           />

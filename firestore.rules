@@ -18,5 +18,18 @@ service cloud.firestore {
         );
       allow update, delete: if false;
     }
+
+    match /teams/{teamId} {
+      allow read: if request.auth != null
+        && request.auth.token.email in resource.data.adminEmails;
+      allow create: if request.auth != null
+        && request.auth.token.email in request.resource.data.adminEmails
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null
+        && request.auth.token.email in resource.data.adminEmails
+        && request.auth.token.email in request.resource.data.adminEmails
+        && request.resource.data.adminEmails.size() > 0;
+      allow delete: if false;
+    }
   }
 }

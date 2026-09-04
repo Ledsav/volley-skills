@@ -63,4 +63,27 @@ describe('teams rules', () => {
     const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
     await assertFails(adminDb.doc('teams/team-1').update({ adminEmails: [] }));
   });
+
+  it('denies a non-admin from updating the team', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
+    });
+
+    const outsiderDb = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
+    await assertFails(outsiderDb.doc('teams/team-1').update({ name: 'Hacked' }));
+  });
+
+  it('lets an admin remove themselves when another admin remains', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc('teams/team-1')
+        .set({ name: 'U17', adminEmails: ['coach@example.com', 'assistant@example.com'] });
+    });
+
+    const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(adminDb.doc('teams/team-1').update({ adminEmails: ['assistant@example.com'] }));
+  });
 });

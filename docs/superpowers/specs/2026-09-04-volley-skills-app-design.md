@@ -1,0 +1,199 @@
+# Volley Skills App — Design Spec
+
+Date: 2026-09-04
+Status: Approved for planning
+
+## 1. Purpose
+
+Replace the `VCB_U17_PlayerCards_2026-27.xlsx` spreadsheet with a web application for Volley Club Belair (VCB) to manage teams, player profiles (skills + development plans), a shared exercise/training library, and per-team training calendars. Single club, not multi-tenant.
+
+## 2. Source Data (reference)
+
+`reference/VCB_U17_PlayerCards_2026-27.xlsx` contains, per U17 2026-27 team:
+- An **Overview** sheet: roster with per-player skill scores, average, and level, auto-aggregated.
+- A **Skills Guide** sheet: for each of 8 fixed skills, a text description of what a 1-3 / 4-6 / 7-8 / 9-10 score means, plus "how to evaluate" notes.
+- One **player sheet** per player: contact & registration (name, DOB, nationality, license #, position, phone, guardians' name/phone/email), 8 skill scores (1-10) with coach notes and a priority flag, an auto-computed average and level label, and a development plan (short-term objectives, season-long objectives, general notes).
+
+The 20 existing players are migrated into the app as seed data (Section 9).
+
+Players are minors (ages 13-15) and the data includes parental contact details — this drives the legal/compliance requirements in Section 7.
+
+## 3. Scope Decisions
+
+- **Single club** — no multi-tenant organization concept. Any admin can create teams within this one club.
+- **Fixed skill list** — the 8 skills and 1-10 scale are hardcoded in the app. Admins can only edit the guide *text* per score range, not the skill set itself.
+- **Two roles**: `admin` (can create/manage teams, players, the skill guide, and the exercise/training library) and `viewer` (read-only access to exactly one player card — their own child's). Viewer-to-player linking mechanism is a known TBD (Section 6.4).
+- **Admin provisioning**: manual allowlist of emails maintained by the club owner (via Firebase console/admin script), not self-serve signup.
+
+## 4. Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Frontend | React + TypeScript + Vite |
+| Routing | React Router, `BrowserRouter` (clean URLs — see Section 8) |
+| Styling | Tailwind CSS |
+| Auth | Firebase Auth, Email Link (passwordless) sign-in |
+| Database | Firestore |
+| Authorization | Firestore Security Rules only — no Cloud Functions, stays on Firebase's free Spark plan |
+| Hosting | Firebase Hosting |
+| CI/CD | GitHub Actions → Firebase Hosting on merge to `main` |
+| Testing | Vitest, React Testing Library, `@firebase/rules-unit-testing` |
+
+### Why Firebase Hosting instead of GitHub Pages
+
+The original plan was GitHub Pages, but plain GitHub Pages can't do server-side rewrites, so clean URLs (`/teams/123` instead of `/#/teams/123`) require either hash routing or a 404-redirect hack. Since the app already depends on Firebase for Auth + Firestore, Firebase Hosting gives real SPA rewrites, free HTTPS/CDN, and one platform/console to manage — so GitHub Pages is dropped entirely. GitHub remains the source-control host and CI runner.
+
+## 5. Data Model (Firestore)
+
+```
+adminAllowlist/{email}                — allowed admin emails. No client access at all (read/write: false).
+                                          Managed only via Firebase console or an admin script.
+
+users/{uid}
+  email, role: 'admin' | 'viewer'
+  — created on first sign-in. A user may only set role='admin' on their own doc if
+    their email exists in adminAllowlist (checked in rules); otherwise role='viewer'.
+
+teams/{teamId}
+  name, club, ageGroup, season, description, notes
+  adminUids: [uid, ...]               — who has admin access to this team (team settings)
+  developmentPlan: {
+    shortTermObjectives: [{ objective, targetDate, status, coachComment }],
+    seasonObjectives:    [{ objective, target, status, coachComment }],
+    generalNotes
+  }
+  createdBy, createdAt
+
+teams/{teamId}/players/{playerId}
+  number, fullName, dob, nationality, licenseNumber, position (free text — source
+    spreadsheet uses inconsistent values like "OH", "OH/OP", "Beginner", "All-round
+    (developing)", so this is not a fixed enum), playerPhone
+  guardians: [{ relation, name, phone, email }]
+  viewerEmails: []                    — reserved; invite flow TBD (Section 6.4)
+  teamName, ageGroup, season           — denormalized from the parent team so a viewer
+                                          never needs read access to the team doc
+  skills: {
+    serve:     { score, notes, priority },
+    attack:    { score, notes, priority },
+    set:       { score, notes, priority },
+    defence:   { score, notes, priority },
+    reception: { score, notes, priority },
+    jump:      { score, notes, priority },
+    speed:     { score, notes, priority },
+    iq:        { score, notes, priority }
+  }
+  avgScore, level                     — computed on write: avgScore = mean of the 8
+    skill scores (blank/unset skills excluded); level = 'Beginner' if avgScore < 4,
+    'Developing' if < 6, 'Advanced' if < 8, else 'Elite' (matches the spreadsheet's
+    existing formula)
+  developmentPlan: { same shape as team's developmentPlan }
+  consent: { given: bool, date, confirmedBy }
+  createdBy, createdAt, updatedAt
+
+skillGuide/config                     — single global doc
+  skills: [
+    { key, label,
+      ranges: [{ min, max, description }, ...],   // 1-3, 4-6, 7-8, 9-10
+      howToEvaluate }
+    , ... 8 entries
+  ]
+  updatedBy, updatedAt
+
+exercises/{exerciseId}                — global shared library
+  name, description
+  category: 'warmup' | 'physical' | 'service' | 'setting' | 'defense'
+          | 'reception' | 'attack' | 'compound' | 'game'
+  createdBy, createdAt
+
+trainings/{trainingId}                — global shared library
+  businessId                          — e.g. "TR-0007", auto-generated (see counters/trainings)
+  name, description, ageGroupTarget
+  exercises: [{ exerciseId, order, durationMinutes }]
+  createdBy, createdAt
+
+counters/trainings                    — { lastSequence: number }
+  — incremented inside a Firestore transaction on training creation to produce businessId.
+    Firestore has no native auto-increment; this is the standard pattern for it.
+
+teams/{teamId}/calendar/{sessionId}   — subcollection per team
+  date (ISO string "YYYY-MM-DD", not a Timestamp — enables simple lexicographic
+    range queries for the month view), trainingId, notes, createdBy, createdAt
+  — multiple sessions may share the same date.
+```
+
+## 6. Authorization Model
+
+All authorization is enforced in **Firestore Security Rules**, reading role/membership data directly from documents (no custom auth claims, no Cloud Functions — keeps the whole app on Firebase's free tier).
+
+1. **`adminAllowlist`**: never readable or writable by any client. Sole gate on who can become an admin.
+2. **`users/{uid}`**: a user can read/write their own doc; may only write `role: 'admin'` if `adminAllowlist/{their email}` exists.
+3. **`teams/{teamId}`**: read/write only if `request.auth.uid` is in `resource.data.adminUids`.
+4. **`teams/{teamId}/players/{playerId}`**: admins of the parent team can read/write. A viewer can read a single player doc only if their auth email is in that doc's `viewerEmails` (Section 6.4).
+5. **`teams/{teamId}/calendar/{sessionId}`**: same as players — team admins only. Out of scope for viewers.
+6. **`exercises`, `trainings`, `counters/trainings`**: readable/writable by any user with `role == 'admin'` (club-wide shared resource, not team-scoped).
+7. **`skillGuide/config`**: readable by any signed-in user (so a viewer can see what their player's scores mean); writable by admins only.
+8. All rules additionally validate data shape on write (e.g. `score` must be a number 1-10, required fields present) as defense in depth beyond client-side form validation.
+
+### 6.4 Viewer invite flow — TBD
+
+How a parent's email actually gets added to a player's `viewerEmails` (and how they're told to sign in) is **explicitly deferred**. The schema field exists; the invite UI/flow ships in a later iteration. Until then, the `admin` role is the only functioning one end-to-end.
+
+## 7. Screens
+
+- `/login` — email-link sign-in.
+- `/teams` — teams the signed-in admin has access to; "Create team."
+- `/teams/:teamId` — description/notes, roster overview (mirrors the spreadsheet's Overview tab: number, name, position, age, 8 skill scores, average, level), team development plan, **Calendar** tab (month view; assign a training from the shared library to a date), **Settings** tab (manage `adminUids`, edit team info).
+- `/teams/:teamId/players/:playerId` — full player card (contact info, skills with guide text shown inline, coach notes, priority flags, development plan). Edit mode for team admins; read-only render when accessed by that player's linked viewer.
+- `/exercises` — paginated library list, filter by category, create/edit (admin only).
+- `/trainings` — paginated library list, filter by age group / business ID, create/edit with an ordered exercise picker (order + duration), admin only.
+- `/admin/skill-guide` — edit the 8 skills' range descriptions and how-to-evaluate text (admin only).
+- `/privacy` — public static privacy policy page.
+
+## 8. Smart Fetching
+
+No view performs an unbounded collection read. Specifically:
+
+- **Exercises / Trainings libraries**: `orderBy(...).limit(25)`, with a "Load more" button using cursor pagination (`startAfter(lastVisibleDoc)`) — not offset-based paging, which Firestore doesn't support cheaply. Category/age-group/business-ID filters are `where()` clauses combined with the same limit+cursor pattern, backed by composite indexes.
+- **Team calendar**: queries only the visible date range (e.g. the current month); navigating months re-queries rather than loading full history.
+- **Teams list / team roster**: inherently small per user (a handful of teams, ~20 players per team) — fetched in full for that scope, but still capped with a defensive `limit()`.
+
+## 9. Migration
+
+A one-time Node.js script (using the `firebase-admin` SDK with a locally-held, gitignored service-account key — never committed) reads `VCB_U17_PlayerCards_2026-27.xlsx` and writes: one `teams` doc, the `skillGuide/config` doc (from the Skills Guide sheet), and 20 `players` docs (from the 20 player sheets). Run manually once against the live Firestore project.
+
+Imported players are seeded with `consent: { given: false }` — the spreadsheet predates the app's consent flow, so consent is not assumed on migration. An admin must explicitly confirm consent per player (via the same UI flow as new players) after import.
+
+## 10. Legal & Compliance (baseline)
+
+- Public privacy policy page describing what data is collected, why, who can see it, retention, and a contact point for data requests — explicitly addressing that subjects are minors and guardians are the consent-giving party.
+- A required consent checkbox when a player record is created ("I confirm parental/guardian consent has been obtained to store this player's data"), stored as `consent.given/date/confirmedBy` on the player doc.
+- Data minimization: only the fields already present in the source spreadsheet are collected — nothing additional.
+- Admin-triggered **export** (structured data dump) and **hard delete** on any player record, covering GDPR access/erasure rights without a formal ticketing workflow.
+- No third-party analytics or tracking scripts in the app, given minors' data is involved.
+- Encryption in transit (HTTPS, enforced by Firebase Hosting) and at rest (Firestore default).
+
+## 11. Security Hardening (cyber)
+
+- Deny-by-default Firestore rules (Section 6) as the actual access-control boundary, with data-shape validation on write.
+- Firebase App Check enabled (free) to block traffic that isn't coming from the real app.
+- Dependabot enabled on the GitHub repo for dependency vulnerability alerts.
+- No secrets committed to the repo: the migration script's service-account key stays local and gitignored; the CI deploy service account lives only in GitHub Actions secrets.
+- CSP headers configured via `firebase.json`.
+- Repo is public (acceptable — no proprietary logic, and Firebase web config is not a secret; security comes entirely from Firestore rules).
+
+## 12. CI/CD
+
+GitHub Actions:
+- On every pull request: install, lint, typecheck, build, run tests (Vitest + rules tests).
+- On merge to `main`: same checks, then deploy to Firebase Hosting.
+
+## 13. Testing Strategy
+
+- **Firestore rules tests** (`@firebase/rules-unit-testing`) are the highest priority — they verify the actual security boundary: a viewer cannot read another player, cannot write anywhere, an admin cannot access a team they're not in `adminUids` for, etc.
+- **Unit tests** (Vitest) for pure logic: skill average/level computation, training `businessId` sequence generation.
+- **Component tests** (React Testing Library) for the critical forms: player card edit, skill guide edit, training builder (exercise picker with order/duration).
+
+## 14. Open Items / Deferred
+
+- Viewer invite flow (Section 6.4) — schema exists, UI/flow deferred to a later iteration.
+- Firebase Hosting PR preview channels — nice-to-have, not required for MVP.

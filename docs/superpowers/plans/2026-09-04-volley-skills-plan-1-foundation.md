@@ -1908,10 +1908,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPlayer, listPlayers } from './playersApi';
 import type { Team } from '../types/team';
 
-const mockAddDoc = vi.fn();
-const mockGetDocs = vi.fn();
-const mockCollection = vi.fn(() => 'players-collection');
-const mockQuery = vi.fn((...args: unknown[]) => args);
+const { mockAddDoc, mockGetDocs, mockCollection, mockQuery } = vi.hoisted(() => ({
+  mockAddDoc: vi.fn(),
+  mockGetDocs: vi.fn(),
+  mockCollection: vi.fn(() => 'players-collection'),
+  mockQuery: vi.fn((...args: unknown[]) => args),
+}));
 
 vi.mock('firebase/firestore', () => ({
   collection: mockCollection,

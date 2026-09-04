@@ -1150,13 +1150,13 @@ const mockOrderBy = vi.fn((...args: unknown[]) => ({ type: 'orderBy', args }));
 const mockLimit = vi.fn((...args: unknown[]) => ({ type: 'limit', args }));
 
 vi.mock('firebase/firestore', () => ({
-  collection: (...args: unknown[]) => mockCollection(...args),
-  addDoc: (...args: unknown[]) => mockAddDoc(...args),
-  getDocs: (...args: unknown[]) => mockGetDocs(...args),
-  query: (...args: unknown[]) => mockQuery(...args),
-  where: (...args: unknown[]) => mockWhere(...args),
-  orderBy: (...args: unknown[]) => mockOrderBy(...args),
-  limit: (...args: unknown[]) => mockLimit(...args),
+  collection: mockCollection,
+  addDoc: mockAddDoc,
+  getDocs: mockGetDocs,
+  query: mockQuery,
+  where: mockWhere,
+  orderBy: mockOrderBy,
+  limit: mockLimit,
   serverTimestamp: () => 'server-timestamp',
   doc: vi.fn(() => 'doc-ref'),
   getDoc: vi.fn(),
@@ -1913,10 +1913,10 @@ const mockCollection = vi.fn(() => 'players-collection');
 const mockQuery = vi.fn((...args: unknown[]) => args);
 
 vi.mock('firebase/firestore', () => ({
-  collection: (...args: unknown[]) => mockCollection(...args),
-  addDoc: (...args: unknown[]) => mockAddDoc(...args),
-  getDocs: (...args: unknown[]) => mockGetDocs(...args),
-  query: (...args: unknown[]) => mockQuery(...args),
+  collection: mockCollection,
+  addDoc: mockAddDoc,
+  getDocs: mockGetDocs,
+  query: mockQuery,
   orderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
   limit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   startAfter: vi.fn((...args: unknown[]) => ({ type: 'startAfter', args })),

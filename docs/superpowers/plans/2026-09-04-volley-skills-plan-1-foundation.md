@@ -17,6 +17,7 @@
 - Team admin membership is **email-keyed** (`teams/{teamId}.adminEmails`), checked against `request.auth.token.email` — never uid-keyed, so granting access never requires resolving another user's uid.
 - TypeScript `strict: true`. No secrets committed — Firebase web config comes from `.env.local` (gitignored); no service-account keys in the repo.
 - Firestore rules tests are the highest-priority tests in this codebase — every access-control claim in a task must be backed by an `assertSucceeds`/`assertFails` pair, not just a unit test of application code.
+- **UI styling**: every component follows `docs/superpowers/specs/2026-09-04-volley-skills-design-system.md` — Tailwind theme tokens (navy/blue/orange/green/red, radii, shadows, Inter font) added in the "Design system foundation" task after Task 6, not ad-hoc colors or spacing. Buttons, inputs, cards, tabs, and tables follow that doc's Section 7 component specs; skill scores render via the shared `SkillMeter` component (Section 7) wherever displayed read-only.
 
 ---
 

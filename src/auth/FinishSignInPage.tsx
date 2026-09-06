@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { AuthShell } from './AuthShell';
 import { takeEmailForSignIn } from './emailLinkStorage';
 
 export function FinishSignInPage() {
@@ -31,5 +32,15 @@ export function FinishSignInPage() {
     void completeSignIn();
   }, [navigate]);
 
-  return error ? <p role="alert">{error}</p> : <p>Signing you in...</p>;
+  return (
+    <AuthShell title="Volley Skills">
+      {error ? (
+        <p role="alert" className="text-red">
+          {error}
+        </p>
+      ) : (
+        <p className="text-slate">Signing you in...</p>
+      )}
+    </AuthShell>
+  );
 }

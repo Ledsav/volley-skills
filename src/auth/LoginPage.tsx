@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { sendSignInLinkToEmail } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { AuthShell } from './AuthShell';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
 export function LoginPage() {
@@ -24,15 +27,36 @@ export function LoginPage() {
   }
 
   if (sent) {
-    return <p>Check your email for a sign-in link.</p>;
+    return (
+      <AuthShell title="Volley Skills">
+        <p className="text-slate">Check your email for a sign-in link.</p>
+      </AuthShell>
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label htmlFor="email">Email</label>
-      <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <button type="submit">Send sign-in link</button>
-      {error && <p role="alert">{error}</p>}
-    </form>
+    <AuthShell title="Volley Skills">
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="email" className="mb-1 block text-sm font-medium text-ink">
+          Email
+        </label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="mb-4 w-full"
+        />
+        <Button type="submit" variant="primary" className="w-full">
+          Send sign-in link
+        </Button>
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-red">
+            {error}
+          </p>
+        )}
+      </form>
+    </AuthShell>
   );
 }

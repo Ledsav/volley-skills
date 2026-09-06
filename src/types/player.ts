@@ -1,21 +1,12 @@
+import type { DevelopmentPlan } from './developmentPlan';
+
+export type { DevelopmentPlan };
+
 export interface Guardian {
   relation: 'mother' | 'father' | 'other';
   name: string;
   phone: string;
   email: string;
-}
-
-export interface DevelopmentPlanObjective {
-  objective: string;
-  targetDate: string;
-  status: string;
-  coachComment: string;
-}
-
-export interface DevelopmentPlan {
-  shortTermObjectives: DevelopmentPlanObjective[];
-  seasonObjectives: DevelopmentPlanObjective[];
-  generalNotes: string;
 }
 
 export type SkillKey = 'serve' | 'attack' | 'set' | 'defence' | 'reception' | 'jump' | 'speed' | 'iq';

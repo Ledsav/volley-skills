@@ -1,15 +1,6 @@
-export interface DevelopmentPlanObjective {
-  objective: string;
-  targetDate: string;
-  status: string;
-  coachComment: string;
-}
+import type { DevelopmentPlan } from './developmentPlan';
 
-export interface DevelopmentPlan {
-  shortTermObjectives: DevelopmentPlanObjective[];
-  seasonObjectives: DevelopmentPlanObjective[];
-  generalNotes: string;
-}
+export type { DevelopmentPlan };
 
 export interface Team {
   id: string;

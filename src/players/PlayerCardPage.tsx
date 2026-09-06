@@ -2,24 +2,28 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { getPlayer } from './playersApi';
+import { getTeam } from '../teams/teamsApi';
 import { PlayerContactSection } from './PlayerContactSection';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import type { Player } from '../types/player';
 
 export function PlayerCardPage() {
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
-  const { appUser } = useAuth();
-  const isAdmin = appUser?.role === 'admin';
+  const { firebaseUser } = useAuth();
   const [player, setPlayer] = useState<Player | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!teamId || !playerId) return;
     setError(null);
-    void getPlayer(teamId, playerId)
-      .then(setPlayer)
+    void Promise.all([getPlayer(teamId, playerId), getTeam(teamId)])
+      .then(([fetchedPlayer, fetchedTeam]) => {
+        setPlayer(fetchedPlayer);
+        setIsAdmin(Boolean(firebaseUser?.email && fetchedTeam?.adminEmails.includes(firebaseUser.email)));
+      })
       .catch(() => setError("You don't have access to this player."));
-  }, [teamId, playerId]);
+  }, [teamId, playerId, firebaseUser?.email]);
 
   if (error) {
     return (

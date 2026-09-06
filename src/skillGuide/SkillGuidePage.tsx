@@ -8,10 +8,17 @@ import type { SkillGuideEntry } from '../types/skillGuide';
 export function SkillGuidePage() {
   const { firebaseUser } = useAuth();
   const [skills, setSkills] = useState<SkillGuideEntry[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void getSkillGuide().then((guide) => setSkills(guide.skills));
+    getSkillGuide()
+      .then((guide) => {
+        setSkills(guide.skills);
+        setLoaded(true);
+      })
+      .catch(() => setLoadError('Could not load the skill guide. Please refresh the page.'));
   }, []);
 
   function updateHowToEvaluate(key: string, value: string) {
@@ -36,6 +43,14 @@ export function SkillGuidePage() {
     } catch {
       setError('Could not save the skill guide. Please try again.');
     }
+  }
+
+  if (loadError) {
+    return (
+      <p role="alert" className="p-6 text-red">
+        {loadError}
+      </p>
+    );
   }
 
   return (
@@ -73,7 +88,7 @@ export function SkillGuidePage() {
           </section>
         ))}
       </div>
-      <Button variant="primary" onClick={() => void handleSave()} className="mt-6">
+      <Button variant="primary" onClick={() => void handleSave()} className="mt-6" disabled={!loaded}>
         Save
       </Button>
       {error && (

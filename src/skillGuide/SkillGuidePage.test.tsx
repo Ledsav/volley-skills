@@ -77,4 +77,40 @@ describe('SkillGuidePage', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   });
+
+  it('shows an error and no form when loading the guide fails', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(skillGuideApi, 'getSkillGuide').mockRejectedValue({ code: 'unavailable' });
+
+    render(<SkillGuidePage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the skill guide.');
+    expect(screen.queryByText('Save')).not.toBeInTheDocument();
+  });
+
+  it('disables Save until the guide has loaded', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    let resolveLoad: (value: { skills: never[]; updatedBy: string; updatedAt: null }) => void = () => {};
+    const pending = new Promise((resolve) => {
+      resolveLoad = resolve;
+    });
+    vi.spyOn(skillGuideApi, 'getSkillGuide').mockReturnValue(pending as ReturnType<typeof skillGuideApi.getSkillGuide>);
+
+    render(<SkillGuidePage />);
+
+    expect(screen.getByText('Save')).toBeDisabled();
+
+    resolveLoad({ skills: [], updatedBy: '', updatedAt: null });
+    await waitFor(() => expect(screen.getByText('Save')).not.toBeDisabled());
+  });
 });

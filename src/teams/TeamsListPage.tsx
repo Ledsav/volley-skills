@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
+import { Button } from '../components/Button';
 import { listMyTeams } from './teamsApi';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import type { Team } from '../types/team';
@@ -38,12 +39,9 @@ export function TeamsListPage() {
     <div className="mx-auto max-w-2xl bg-bg p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-md bg-navy px-4 py-2 font-medium text-white hover:bg-navy/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
+        <Button variant="primary" onClick={() => setShowCreate(true)}>
           Create team
-        </button>
+        </Button>
       </div>
 
       <div className="rounded-lg border border-border bg-surface shadow-card">
@@ -61,12 +59,9 @@ export function TeamsListPage() {
 
       {hasMore && (
         <div className="mt-4 flex justify-center">
-          <button
-            onClick={() => void loadMore()}
-            className="rounded-md border border-blue px-4 py-2 font-medium text-blue hover:bg-blue/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-          >
+          <Button variant="secondary" onClick={() => void loadMore()}>
             Load more
-          </button>
+          </Button>
         </div>
       )}
 

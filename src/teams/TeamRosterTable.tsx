@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { Button } from '../components/Button';
 import { listPlayers } from '../players/playersApi';
 import type { Level, Player, SkillKey } from '../types/player';
 
@@ -95,12 +96,9 @@ export function TeamRosterTable({ teamId }: { teamId: string }) {
         </table>
       </div>
       {hasMore && (
-        <button
-          onClick={() => void loadMore()}
-          className="mt-4 rounded-md border border-blue px-4 py-2 font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
+        <Button variant="secondary" onClick={() => void loadMore()} className="mt-4">
           Load more
-        </button>
+        </Button>
       )}
     </div>
   );

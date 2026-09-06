@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
 import { updatePlayerContact } from './playersApi';
 import type { Player } from '../types/player';
 
@@ -29,12 +31,9 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
         <p className="mt-3 text-slate">Name: {player.fullName}</p>
         <p className="mt-1 text-slate">Position: {player.position}</p>
         <p className="mt-1 text-slate">Phone: {player.playerPhone}</p>
-        <button
-          onClick={() => setEditing(true)}
-          className="mt-4 rounded-md px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
+        <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="mt-4">
           Edit
-        </button>
+        </Button>
       </section>
     );
   }
@@ -48,48 +47,41 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
       <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
         Name
       </label>
-      <input
+      <Input
         id="player-name"
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}
         required
-        className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue"
+        className="mb-3 w-full"
       />
 
       <label htmlFor="player-position" className="mb-1 block text-sm font-medium text-ink">
         Position
       </label>
-      <input
+      <Input
         id="player-position"
         value={position}
         onChange={(e) => setPosition(e.target.value)}
-        className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue"
+        className="mb-3 w-full"
       />
 
       <label htmlFor="player-phone" className="mb-1 block text-sm font-medium text-ink">
         Phone
       </label>
-      <input
+      <Input
         id="player-phone"
         value={playerPhone}
         onChange={(e) => setPlayerPhone(e.target.value)}
-        className="mb-4 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue"
+        className="mb-4 w-full"
       />
 
       <div className="flex gap-3">
-        <button
-          type="submit"
-          className="rounded-md bg-navy px-4 py-2 font-medium text-white hover:bg-navy/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
+        <Button variant="primary" type="submit">
           Save
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className="rounded-md px-4 py-2 font-medium text-slate hover:bg-border/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
+        </Button>
+        <Button variant="ghost" onClick={() => setEditing(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

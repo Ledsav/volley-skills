@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { Button } from '../components/Button';
+import { Input, Textarea } from '../components/Input';
 import { createTeam } from './teamsApi';
 
 interface CreateTeamDialogProps {
@@ -7,8 +9,6 @@ interface CreateTeamDialogProps {
   onCreated: () => void;
 }
 
-const inputClass =
-  'w-full rounded-md border border-border bg-surface px-3 py-2 text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue';
 const labelClass = 'mb-1 block text-sm font-medium text-ink';
 const fieldClass = 'mb-4';
 
@@ -40,62 +40,49 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           <label htmlFor="team-name" className={labelClass}>
             Name
           </label>
-          <input id="team-name" value={name} onChange={(e) => setName(e.target.value)} required className={inputClass} />
+          <Input id="team-name" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-club" className={labelClass}>
             Club
           </label>
-          <input id="team-club" value={club} onChange={(e) => setClub(e.target.value)} required className={inputClass} />
+          <Input id="team-club" value={club} onChange={(e) => setClub(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-age-group" className={labelClass}>
             Age group
           </label>
-          <input
-            id="team-age-group"
-            value={ageGroup}
-            onChange={(e) => setAgeGroup(e.target.value)}
-            required
-            className={inputClass}
-          />
+          <Input id="team-age-group" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-season" className={labelClass}>
             Season
           </label>
-          <input id="team-season" value={season} onChange={(e) => setSeason(e.target.value)} required className={inputClass} />
+          <Input id="team-season" value={season} onChange={(e) => setSeason(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-description" className={labelClass}>
             Description
           </label>
-          <textarea
+          <Textarea
             id="team-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className={`${inputClass} min-h-[80px] resize-y`}
+            className="w-full min-h-[80px] resize-y"
           />
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-blue px-4 py-2 font-medium text-blue hover:bg-blue/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-          >
+          <Button variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="rounded-md bg-navy px-4 py-2 font-medium text-white hover:bg-navy/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-          >
+          </Button>
+          <Button variant="primary" type="submit">
             Create
-          </button>
+          </Button>
         </div>
       </form>
     </div>

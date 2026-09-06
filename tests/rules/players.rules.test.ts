@@ -48,4 +48,17 @@ describe('player rules', () => {
     const db = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
     await assertFails(db.doc('teams/team-1/players/player-1').get());
   });
+
+  it('allows a score within 1-10, denies a score outside that range', async () => {
+    const env = await getTestEnv();
+    const validSkills = {
+      serve: { score: 7 }, attack: { score: null }, set: { score: null }, defence: { score: null },
+      reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
+    };
+    const invalidSkills = { ...validSkills, serve: { score: 11 } };
+
+    const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(adminDb.doc('teams/team-1/players/player-1').update({ skills: validSkills }));
+    await assertFails(adminDb.doc('teams/team-1/players/player-1').update({ skills: invalidSkills }));
+  });
 });

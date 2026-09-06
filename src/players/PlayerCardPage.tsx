@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getPlayer } from './playersApi';
 import { PlayerContactSection } from './PlayerContactSection';
+import { PlayerSkillsSection } from './PlayerSkillsSection';
 import type { Player } from '../types/player';
 
 export function PlayerCardPage() {
@@ -19,7 +20,7 @@ export function PlayerCardPage() {
     <div className="mx-auto max-w-2xl bg-bg p-6">
       <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">{player.fullName}</h1>
       <PlayerContactSection teamId={teamId} playerId={playerId} player={player} onPlayerUpdated={setPlayer} />
-      <p className="mt-6 text-slate">Skills section coming in Task 13.</p>
+      <PlayerSkillsSection teamId={teamId} playerId={playerId} player={player} onPlayerUpdated={setPlayer} />
     </div>
   );
 }

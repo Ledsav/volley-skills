@@ -46,10 +46,25 @@ service cloud.firestore {
             get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
         }
 
+        function validScore(score) {
+          return score == null || (score is number && score >= 1 && score <= 10);
+        }
+
+        function validSkills(skills) {
+          return validScore(skills.serve.score) &&
+            validScore(skills.attack.score) &&
+            validScore(skills.set.score) &&
+            validScore(skills.defence.score) &&
+            validScore(skills.reception.score) &&
+            validScore(skills.jump.score) &&
+            validScore(skills.speed.score) &&
+            validScore(skills.iq.score);
+        }
+
         allow read: if request.auth != null && (
           isTeamAdmin() || request.auth.token.email in resource.data.viewerEmails
         );
-        allow create, update: if request.auth != null && isTeamAdmin();
+        allow create, update: if request.auth != null && isTeamAdmin() && validSkills(request.resource.data.skills);
         allow delete: if false;
       }
     }

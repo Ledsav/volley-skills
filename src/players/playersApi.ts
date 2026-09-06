@@ -93,3 +93,18 @@ export async function updatePlayerContact(
 ): Promise<void> {
   await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { ...updates, updatedAt: serverTimestamp() });
 }
+
+export async function updatePlayerSkills(
+  teamId: string,
+  playerId: string,
+  skills: Player['skills'],
+  avgScore: number | null,
+  level: Player['level']
+): Promise<void> {
+  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), {
+    skills,
+    avgScore,
+    level,
+    updatedAt: serverTimestamp(),
+  });
+}

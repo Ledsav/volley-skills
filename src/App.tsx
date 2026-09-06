@@ -6,6 +6,7 @@ import { FinishSignInPage } from './auth/FinishSignInPage';
 import { TeamsListPage } from './teams/TeamsListPage';
 import { TeamPage } from './teams/TeamPage';
 import { PlayerCardPage } from './players/PlayerCardPage';
+import { SkillGuidePage } from './skillGuide/SkillGuidePage';
 
 export function App() {
   return (
@@ -35,6 +36,14 @@ export function App() {
             element={
               <RequireAuth>
                 <PlayerCardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/guides"
+            element={
+              <RequireAuth>
+                <SkillGuidePage />
               </RequireAuth>
             }
           />

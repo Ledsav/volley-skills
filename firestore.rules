@@ -29,6 +29,19 @@ service cloud.firestore {
         && request.auth.token.email in resource.data.adminEmails
         && request.resource.data.adminEmails.size() > 0;
       allow delete: if false;
+
+      match /players/{playerId} {
+        function isTeamAdmin() {
+          return request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
+        }
+
+        allow read: if request.auth != null && (
+          isTeamAdmin() || request.auth.token.email in resource.data.viewerEmails
+        );
+        allow create, update: if request.auth != null && isTeamAdmin();
+        allow delete: if false;
+      }
     }
   }
 }

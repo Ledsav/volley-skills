@@ -5,6 +5,7 @@ import { LoginPage } from './auth/LoginPage';
 import { FinishSignInPage } from './auth/FinishSignInPage';
 import { TeamsListPage } from './teams/TeamsListPage';
 import { TeamPage } from './teams/TeamPage';
+import { PlayerCardPage } from './players/PlayerCardPage';
 
 export function App() {
   return (
@@ -26,6 +27,14 @@ export function App() {
             element={
               <RequireAuth>
                 <TeamPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/teams/:teamId/players/:playerId"
+            element={
+              <RequireAuth>
+                <PlayerCardPage />
               </RequireAuth>
             }
           />

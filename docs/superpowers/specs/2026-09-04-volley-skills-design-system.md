@@ -112,7 +112,7 @@ Full specs and live states for each are in the Artifact; summarized here for imp
 - **Cards** — three distinct treatments, not one radius/shadow everywhere: stat tiles (flat, dense, big tabular number), content cards (full border+shadow, holds a screen region), list rows inside a card (hairline-separated, not nested cards).
 - **Tabs** — underline style; active tab takes `blue` (matches links/active-nav), keeping `navy` reserved for the sidebar and primary actions.
 - **Navigation** — one vocabulary, two shells: navy sidebar (desktop, ≥1024px), white bottom tab bar (mobile). Same items, same order, same icon in both — this is the literal implementation of the app design spec's mobile-first requirement (§7 screens list, responsive across `/teams`, `/players`, etc.).
-- **Table** — used for team rosters. Header row: small, medium-weight, uppercase with slight letter-spacing (a functional data-table convention, not a decorative eyebrow). Numeric columns right-aligned with tabular figures. Row hover uses `surface-2`, no border added on hover (avoids layout shift).
+- **Table** — used for team rosters. Header row: small, medium-weight, uppercase with slight letter-spacing (a functional data-table convention, not a decorative eyebrow). Numeric columns right-aligned with tabular figures. Row hover uses `bg` (the app-canvas neutral, since no `surface-2` token is defined), no border added on hover (avoids layout shift).
 
 ## 8. Tailwind implementation notes
 

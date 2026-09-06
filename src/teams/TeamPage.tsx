@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { getTeam } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
+import { AddPlayerDialog } from '../players/AddPlayerDialog';
+import { Button } from '../components/Button';
 import type { Team } from '../types/team';
 
 type Tab = 'overview' | 'settings';
@@ -17,6 +19,8 @@ export function TeamPage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [error, setError] = useState<string | null>(null);
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!teamId) return;
@@ -52,10 +56,30 @@ export function TeamPage() {
         </nav>
 
         <div className="mt-6">
-          {tab === 'overview' && <TeamRosterTable teamId={teamId} />}
+          {tab === 'overview' && (
+            <>
+              <div className="mb-4 flex justify-end">
+                <Button variant="primary" size="sm" onClick={() => setShowAddPlayer(true)}>
+                  + Add player
+                </Button>
+              </div>
+              <TeamRosterTable key={rosterRefreshKey} teamId={teamId} />
+            </>
+          )}
           {tab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
         </div>
       </div>
+      {showAddPlayer && (
+        <AddPlayerDialog
+          teamId={teamId}
+          team={team}
+          onClose={() => setShowAddPlayer(false)}
+          onCreated={() => {
+            setShowAddPlayer(false);
+            setRosterRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

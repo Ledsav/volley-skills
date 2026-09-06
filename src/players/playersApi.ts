@@ -44,7 +44,8 @@ export async function createPlayer(
   teamId: string,
   team: Team,
   input: NewPlayerInput,
-  creatorUid: string
+  creatorUid: string,
+  confirmedByEmail: string
 ): Promise<string> {
   const docRef = await addDoc(collection(db, 'teams', teamId, 'players'), {
     ...input,
@@ -56,7 +57,7 @@ export async function createPlayer(
     avgScore: null,
     level: null,
     developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
-    consent: { given: false, date: null, confirmedBy: null },
+    consent: { given: true, date: new Date().toISOString().slice(0, 10), confirmedBy: confirmedByEmail },
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

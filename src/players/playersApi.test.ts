@@ -45,7 +45,7 @@ describe('playersApi', () => {
     mockGetDocs.mockReset();
   });
 
-  it('creates a player with empty skills and denormalized team fields', async () => {
+  it('creates a player with empty skills, denormalized team fields, and given consent', async () => {
     mockAddDoc.mockResolvedValue({ id: 'player-1' });
 
     const id = await createPlayer(
@@ -59,9 +59,10 @@ describe('playersApi', () => {
         licenseNumber: 'J-000001',
         position: 'OH',
         playerPhone: '',
-        guardians: [],
+        guardians: [{ relation: 'mother', name: 'Jane Doe', phone: '+352 000 000', email: 'jane@example.com' }],
       },
-      'coach-uid'
+      'coach-uid',
+      'coach@example.com'
     );
 
     expect(id).toBe('player-1');
@@ -74,9 +75,11 @@ describe('playersApi', () => {
       viewerEmails: [],
       avgScore: null,
       level: null,
-      consent: { given: false, date: null, confirmedBy: null },
+      guardians: [{ relation: 'mother', name: 'Jane Doe', phone: '+352 000 000', email: 'jane@example.com' }],
+      consent: { given: true, confirmedBy: 'coach@example.com' },
       skills: { serve: { score: null, notes: '', priority: false } },
     });
+    expect(payload.consent.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it('lists players ordered by number', async () => {

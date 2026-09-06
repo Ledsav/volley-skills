@@ -62,4 +62,20 @@ describe('PlayerContactSection', () => {
     );
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ fullName: 'Updated Name' }));
   });
+
+  it('shows an error message and stays in edit mode when the save is rejected', async () => {
+    vi.spyOn(playersApi, 'updatePlayerContact').mockRejectedValue({ code: 'permission-denied' });
+    const onPlayerUpdated = vi.fn();
+
+    render(
+      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
+    );
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(onPlayerUpdated).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+  });
 });

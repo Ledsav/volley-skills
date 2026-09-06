@@ -11,17 +11,30 @@ interface TeamSettingsTabProps {
 
 export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   async function handleAdd(event: FormEvent) {
     event.preventDefault();
+    setError(null);
     if (!newAdminEmail) return;
-    await addTeamAdmin(team.id, newAdminEmail, team.adminEmails);
+    try {
+      await addTeamAdmin(team.id, newAdminEmail, team.adminEmails);
+    } catch {
+      setError('Could not grant access. Please try again.');
+      return;
+    }
     onTeamUpdated({ ...team, adminEmails: [...team.adminEmails, newAdminEmail] });
     setNewAdminEmail('');
   }
 
   async function handleRemove(email: string) {
-    await removeTeamAdmin(team.id, email, team.adminEmails);
+    setError(null);
+    try {
+      await removeTeamAdmin(team.id, email, team.adminEmails);
+    } catch {
+      setError('Could not remove this admin. Please try again.');
+      return;
+    }
     onTeamUpdated({ ...team, adminEmails: team.adminEmails.filter((e) => e !== email) });
   }
 
@@ -56,6 +69,11 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
             Grant access
           </Button>
         </div>
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-red">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );

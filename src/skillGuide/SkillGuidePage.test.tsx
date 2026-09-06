@@ -47,4 +47,32 @@ describe('SkillGuidePage', () => {
       )
     );
   });
+
+  it('shows an error message when the save is rejected', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+    });
+    vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
+      skills: [
+        {
+          key: 'serve',
+          label: 'Serve',
+          ranges: [{ min: 1, max: 3, description: 'Inconsistent' }],
+          howToEvaluate: 'Count % of serves in.',
+        },
+      ],
+      updatedBy: 'someone',
+      updatedAt: null,
+    });
+    vi.spyOn(skillGuideApi, 'updateSkillGuide').mockRejectedValue({ code: 'permission-denied' });
+
+    render(<SkillGuidePage />);
+
+    await screen.findByText('Serve');
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+  });
 });

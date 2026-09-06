@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { updatePlayerSkills } from './playersApi';
 import { computeAvgScore, computeLevel } from './skillMath';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
 import { SkillMeter } from '../components/SkillMeter';
 import type { Player, SkillKey, Skills } from '../types/player';
 
@@ -26,6 +28,7 @@ interface PlayerSkillsSectionProps {
 
 export function PlayerSkillsSection({ teamId, playerId, player, onPlayerUpdated }: PlayerSkillsSectionProps) {
   const [skills, setSkills] = useState<Skills>(player.skills);
+  const [error, setError] = useState<string | null>(null);
 
   function updateScore(key: SkillKey, rawValue: string) {
     const score = rawValue === '' ? null : Number(rawValue);
@@ -37,9 +40,15 @@ export function PlayerSkillsSection({ teamId, playerId, player, onPlayerUpdated 
   }
 
   async function handleSave() {
+    setError(null);
     const avgScore = computeAvgScore(skills);
     const level = computeLevel(avgScore);
-    await updatePlayerSkills(teamId, playerId, skills, avgScore, level);
+    try {
+      await updatePlayerSkills(teamId, playerId, skills, avgScore, level);
+    } catch {
+      setError('Could not save skills. Check that every score is between 1 and 10, then try again.');
+      return;
+    }
     onPlayerUpdated({ ...player, skills, avgScore, level });
   }
 
@@ -55,14 +64,14 @@ export function PlayerSkillsSection({ teamId, playerId, player, onPlayerUpdated 
             <label htmlFor={`skill-${key}`} className="w-24 shrink-0 text-sm font-medium text-ink">
               {SKILL_LABELS[key]}
             </label>
-            <input
+            <Input
               id={`skill-${key}`}
               type="number"
               min={1}
               max={10}
               value={skills[key].score ?? ''}
               onChange={(e) => updateScore(key, e.target.value)}
-              className="w-20 shrink-0 rounded-md border border-border bg-surface px-3 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue"
+              className="w-20 shrink-0"
             />
             <div className="min-w-[8rem] flex-1">
               <SkillMeter score={skills[key].score} />
@@ -82,12 +91,14 @@ export function PlayerSkillsSection({ teamId, playerId, player, onPlayerUpdated 
       <p className="mt-4 text-slate">
         Average: {previewAvg?.toFixed(1) ?? '—'} ({previewLevel ?? 'No scores yet'})
       </p>
-      <button
-        onClick={() => void handleSave()}
-        className="mt-4 rounded-md bg-navy px-4 py-2 font-medium text-white hover:bg-navy/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-      >
+      <Button variant="primary" onClick={() => void handleSave()} className="mt-4">
         Save skills
-      </button>
+      </Button>
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-red">
+          {error}
+        </p>
+      )}
     </section>
   );
 }

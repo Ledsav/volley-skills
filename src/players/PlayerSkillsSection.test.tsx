@@ -68,6 +68,21 @@ describe('PlayerSkillsSection', () => {
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ avgScore: 7, level: 'Advanced' }));
   });
 
+  it('shows an error message when the save is rejected', async () => {
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockRejectedValue({ code: 'permission-denied' });
+    const onPlayerUpdated = vi.fn();
+
+    render(
+      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
+    );
+
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '99' } });
+    fireEvent.click(screen.getByText('Save skills'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(onPlayerUpdated).not.toHaveBeenCalled();
+  });
+
   it('marks a skill as a focus area via the priority checkbox', () => {
     render(
       <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} />

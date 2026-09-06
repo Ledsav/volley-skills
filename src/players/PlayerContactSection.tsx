@@ -16,10 +16,17 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
   const [fullName, setFullName] = useState(player.fullName);
   const [position, setPosition] = useState(player.position);
   const [playerPhone, setPlayerPhone] = useState(player.playerPhone);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
-    await updatePlayerContact(teamId, playerId, { fullName, position, playerPhone });
+    setError(null);
+    try {
+      await updatePlayerContact(teamId, playerId, { fullName, position, playerPhone });
+    } catch {
+      setError('Could not save contact information. Please try again.');
+      return;
+    }
     onPlayerUpdated({ ...player, fullName, position, playerPhone });
     setEditing(false);
   }
@@ -83,6 +90,11 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
           Cancel
         </Button>
       </div>
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-red">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

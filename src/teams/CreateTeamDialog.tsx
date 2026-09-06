@@ -19,11 +19,18 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   const [ageGroup, setAgeGroup] = useState('');
   const [season, setSeason] = useState('');
   const [description, setDescription] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    setError(null);
     if (!firebaseUser?.email) return;
-    await createTeam({ name, club, ageGroup, season, description }, firebaseUser.uid, firebaseUser.email);
+    try {
+      await createTeam({ name, club, ageGroup, season, description }, firebaseUser.uid, firebaseUser.email);
+    } catch {
+      setError('Could not create the team. Please try again.');
+      return;
+    }
     onCreated();
   }
 
@@ -84,6 +91,11 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
             Create
           </Button>
         </div>
+        {error && (
+          <p role="alert" className="mt-3 text-right text-sm text-red">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );

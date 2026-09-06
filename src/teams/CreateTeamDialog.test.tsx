@@ -33,4 +33,25 @@ describe('CreateTeamDialog', () => {
       'coach@example.com'
     );
   });
+
+  it('shows an error message when createTeam is rejected', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
+      appUser: null,
+      loading: false,
+    });
+    vi.spyOn(teamsApi, 'createTeam').mockRejectedValue({ code: 'permission-denied' });
+    const onCreated = vi.fn();
+
+    render(<CreateTeamDialog onClose={vi.fn()} onCreated={onCreated} />);
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
+    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'VCB' } });
+    fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
+    fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
+    fireEvent.click(screen.getByText('Create'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(onCreated).not.toHaveBeenCalled();
+  });
 });

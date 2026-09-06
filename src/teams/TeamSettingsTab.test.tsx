@@ -37,6 +37,18 @@ describe('TeamSettingsTab', () => {
     );
   });
 
+  it('shows an error message when granting access is rejected', async () => {
+    vi.spyOn(teamsApi, 'addTeamAdmin').mockRejectedValue({ code: 'permission-denied' });
+    const onTeamUpdated = vi.fn();
+
+    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'assistant@example.com' } });
+    fireEvent.click(screen.getByText('Grant access'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(onTeamUpdated).not.toHaveBeenCalled();
+  });
+
   it('does not show a remove button when there is only one admin', () => {
     render(<TeamSettingsTab team={baseTeam} onTeamUpdated={vi.fn()} />);
     expect(screen.queryByText('Remove')).not.toBeInTheDocument();

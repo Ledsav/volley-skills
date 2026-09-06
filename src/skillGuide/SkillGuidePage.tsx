@@ -8,6 +8,7 @@ import type { SkillGuideEntry } from '../types/skillGuide';
 export function SkillGuidePage() {
   const { firebaseUser } = useAuth();
   const [skills, setSkills] = useState<SkillGuideEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void getSkillGuide().then((guide) => setSkills(guide?.skills ?? []));
@@ -28,8 +29,13 @@ export function SkillGuidePage() {
   }
 
   async function handleSave() {
+    setError(null);
     if (!firebaseUser) return;
-    await updateSkillGuide(skills, firebaseUser.uid);
+    try {
+      await updateSkillGuide(skills, firebaseUser.uid);
+    } catch {
+      setError('Could not save the skill guide. Please try again.');
+    }
   }
 
   return (
@@ -70,6 +76,11 @@ export function SkillGuidePage() {
       <Button variant="primary" onClick={() => void handleSave()} className="mt-6">
         Save
       </Button>
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-red">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTeam } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
+import { TeamRosterTable } from './TeamRosterTable';
 import type { Team } from '../types/team';
 
 type Tab = 'overview' | 'settings';
@@ -39,7 +40,7 @@ export function TeamPage() {
         </nav>
 
         <div className="mt-6">
-          {tab === 'overview' && <p className="text-slate">Roster overview coming in Task 14.</p>}
+          {tab === 'overview' && <TeamRosterTable teamId={teamId} />}
           {tab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
         </div>
       </div>

@@ -11,7 +11,7 @@ export function SkillGuidePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void getSkillGuide().then((guide) => setSkills(guide?.skills ?? []));
+    void getSkillGuide().then((guide) => setSkills(guide.skills));
   }, []);
 
   function updateHowToEvaluate(key: string, value: string) {

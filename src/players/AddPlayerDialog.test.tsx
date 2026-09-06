@@ -81,6 +81,27 @@ describe('AddPlayerDialog', () => {
     expect(createPlayerSpy).not.toHaveBeenCalled();
   });
 
+  it('does not submit when every other required field is filled but consent is unchecked', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
+      appUser: null,
+      loading: false,
+      authError: null,
+    });
+    const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockResolvedValue('player-1');
+
+    render(<AddPlayerDialog teamId="team-1" team={team} onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Number'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Player' } });
+    fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: '2012-01-01' } });
+    fireEvent.change(screen.getByLabelText('Guardian name'), { target: { value: 'Jane Doe' } });
+    // Consent checkbox intentionally left unchecked — this isolates it as the sole blocker.
+    fireEvent.click(screen.getByText('Create'));
+
+    expect(createPlayerSpy).not.toHaveBeenCalled();
+  });
+
   it('adds a second guardian row', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,

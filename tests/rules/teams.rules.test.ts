@@ -6,6 +6,11 @@ describe('teams rules', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('users/coach-uid').set({ email: 'coach@example.com', role: 'admin' });
+      await db.doc('users/viewer-uid').set({ email: 'parent@example.com', role: 'viewer' });
+    });
   });
 
   afterAll(async () => {
@@ -18,6 +23,14 @@ describe('teams rules', () => {
     const db = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
     await assertSucceeds(
       db.collection('teams').add({ name: 'U17', adminEmails: ['coach@example.com'], createdBy: 'coach-uid' })
+    );
+  });
+
+  it('denies a role viewer from creating a team, even listing themselves as admin', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
+    await assertFails(
+      db.collection('teams').add({ name: 'U17', adminEmails: ['parent@example.com'], createdBy: 'viewer-uid' })
     );
   });
 

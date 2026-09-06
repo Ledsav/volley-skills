@@ -32,7 +32,10 @@ service cloud.firestore {
     match /teams/{teamId} {
       allow read: if request.auth != null
         && request.auth.token.email in resource.data.adminEmails;
+      // isAdmin() keeps adminAllowlist the sole gate on becoming an admin:
+      // without it any signed-in viewer could create a team and be its admin.
       allow create: if request.auth != null
+        && isAdmin()
         && request.auth.token.email in request.resource.data.adminEmails
         && request.resource.data.createdBy == request.auth.uid;
       allow update: if request.auth != null

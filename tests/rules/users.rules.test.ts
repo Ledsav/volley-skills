@@ -41,6 +41,21 @@ describe('users and adminAllowlist rules', () => {
     await assertSucceeds(db.doc('users/parent-uid').set({ email: 'parent@example.com', role: 'viewer' }));
   });
 
+  it('denies a user from updating or deleting their own user doc', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc('users/parent-uid')
+        .set({ email: 'parent@example.com', role: 'viewer' });
+    });
+
+    const db = env.authenticatedContext('parent-uid', { email: 'parent@example.com' }).firestore();
+    // This is the line that stops a viewer from self-promoting to admin.
+    await assertFails(db.doc('users/parent-uid').update({ role: 'admin' }));
+    await assertFails(db.doc('users/parent-uid').delete());
+  });
+
   it("denies a user from reading another user's doc", async () => {
     const env = await getTestEnv();
     await env.withSecurityRulesDisabled(async (context) => {

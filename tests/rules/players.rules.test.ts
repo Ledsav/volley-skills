@@ -49,6 +49,28 @@ describe('player rules', () => {
     await assertFails(db.doc('teams/team-1/players/player-1').get());
   });
 
+  it('denies an admin of one team any access to a player under another team', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('teams/team-A').set({ name: 'U17 A', adminEmails: ['coach-a@example.com'] });
+      await db.doc('teams/team-B').set({ name: 'U17 B', adminEmails: ['coach-b@example.com'] });
+      await db.doc('teams/team-B/players/player-b').set({
+        fullName: 'Team B Player',
+        viewerEmails: [],
+        skills: {
+          serve: { score: null }, attack: { score: null }, set: { score: null }, defence: { score: null },
+          reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
+        },
+      });
+    });
+
+    // coach-a is a legitimate admin — but of the wrong team.
+    const coachA = env.authenticatedContext('coach-a-uid', { email: 'coach-a@example.com' }).firestore();
+    await assertFails(coachA.doc('teams/team-B/players/player-b').get());
+    await assertFails(coachA.doc('teams/team-B/players/player-b').update({ fullName: 'Hacked' }));
+  });
+
   it('allows a score within 1-10, denies a score outside that range', async () => {
     const env = await getTestEnv();
     const validSkills = {

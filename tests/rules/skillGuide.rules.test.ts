@@ -27,6 +27,22 @@ describe('skillGuide rules', () => {
     await assertFails(viewerDb.doc('skillGuide/config').set({ skills: [] }));
   });
 
+  it('denies a team admin whose global role is viewer from writing the skill guide', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      // parent@example.com is in a team's adminEmails (team-scoped admin) but
+      // their users/{uid}.role is still 'viewer' (global role). The two
+      // "admin" concepts must not be conflated.
+      await context
+        .firestore()
+        .doc('teams/team-1')
+        .set({ name: 'U17', adminEmails: ['parent@example.com'] });
+    });
+
+    const teamAdminDb = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
+    await assertFails(teamAdminDb.doc('skillGuide/config').set({ skills: [] }));
+  });
+
   it('lets any signed-in user read the skill guide', async () => {
     const env = await getTestEnv();
     const viewerDb = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();

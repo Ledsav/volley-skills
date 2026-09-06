@@ -16,14 +16,21 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   async function handleAdd(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!newAdminEmail) return;
+    // Firebase Auth always lowercases request.auth.token.email, and the rules
+    // compare it exactly against adminEmails, so store the normalized form.
+    const email = newAdminEmail.trim().toLowerCase();
+    if (!email) return;
+    if (team.adminEmails.includes(email)) {
+      setError('That email is already an admin of this team.');
+      return;
+    }
     try {
-      await addTeamAdmin(team.id, newAdminEmail, team.adminEmails);
+      await addTeamAdmin(team.id, email, team.adminEmails);
     } catch {
       setError('Could not grant access. Please try again.');
       return;
     }
-    onTeamUpdated({ ...team, adminEmails: [...team.adminEmails, newAdminEmail] });
+    onTeamUpdated({ ...team, adminEmails: [...team.adminEmails, email] });
     setNewAdminEmail('');
   }
 

@@ -37,6 +37,37 @@ describe('TeamSettingsTab', () => {
     );
   });
 
+  it('trims and lowercases the entered email before granting access', async () => {
+    const addSpy = vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
+    const onTeamUpdated = vi.fn();
+
+    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    fireEvent.change(screen.getByLabelText('Add admin by email'), {
+      target: { value: '  Assistant@Example.com  ' },
+    });
+    fireEvent.click(screen.getByText('Grant access'));
+
+    await waitFor(() =>
+      expect(addSpy).toHaveBeenCalledWith('team-1', 'assistant@example.com', ['coach@example.com'])
+    );
+    expect(onTeamUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ adminEmails: ['coach@example.com', 'assistant@example.com'] })
+    );
+  });
+
+  it('does not re-add an email that is already an admin', async () => {
+    const addSpy = vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
+    const onTeamUpdated = vi.fn();
+
+    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'Coach@Example.com' } });
+    fireEvent.click(screen.getByText('Grant access'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(addSpy).not.toHaveBeenCalled();
+    expect(onTeamUpdated).not.toHaveBeenCalled();
+  });
+
   it('shows an error message when granting access is rejected', async () => {
     vi.spyOn(teamsApi, 'addTeamAdmin').mockRejectedValue({ code: 'permission-denied' });
     const onTeamUpdated = vi.fn();

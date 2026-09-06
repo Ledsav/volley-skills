@@ -4,6 +4,7 @@ import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
 import { FinishSignInPage } from './auth/FinishSignInPage';
 import { TeamsListPage } from './teams/TeamsListPage';
+import { TeamPage } from './teams/TeamPage';
 
 export function App() {
   return (
@@ -17,6 +18,14 @@ export function App() {
             element={
               <RequireAuth>
                 <TeamsListPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/teams/:teamId"
+            element={
+              <RequireAuth>
+                <TeamPage />
               </RequireAuth>
             }
           />

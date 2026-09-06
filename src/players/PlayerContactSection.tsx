@@ -26,15 +26,9 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
     return (
       <section className="rounded-lg border border-border bg-surface p-6 shadow-card">
         <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Contact & Registration</h2>
-        <p className="mt-3 text-ink">
-          Name: <span className="text-slate">{player.fullName}</span>
-        </p>
-        <p className="mt-1 text-ink">
-          Position: <span className="text-slate">{player.position}</span>
-        </p>
-        <p className="mt-1 text-ink">
-          Phone: <span className="text-slate">{player.playerPhone}</span>
-        </p>
+        <p className="mt-3 text-slate">Name: {player.fullName}</p>
+        <p className="mt-1 text-slate">Position: {player.position}</p>
+        <p className="mt-1 text-slate">Phone: {player.playerPhone}</p>
         <button
           onClick={() => setEditing(true)}
           className="mt-4 rounded-md px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
@@ -51,8 +45,6 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
       aria-label="Edit contact information"
       className="rounded-lg border border-border bg-surface p-6 shadow-card"
     >
-      <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Contact & Registration</h2>
-
       <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
         Name
       </label>

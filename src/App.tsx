@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
+import { RequireAdmin } from './auth/RequireAdmin';
 import { LoginPage } from './auth/LoginPage';
 import { FinishSignInPage } from './auth/FinishSignInPage';
 import { TeamsListPage } from './teams/TeamsListPage';
@@ -42,9 +43,9 @@ export function App() {
           <Route
             path="/admin/guides"
             element={
-              <RequireAuth>
+              <RequireAdmin>
                 <SkillGuidePage />
-              </RequireAuth>
+              </RequireAdmin>
             }
           />
           <Route path="/" element={<Navigate to="/teams" replace />} />

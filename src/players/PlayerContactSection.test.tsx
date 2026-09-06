@@ -46,7 +46,7 @@ describe('PlayerContactSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
+      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -68,7 +68,7 @@ describe('PlayerContactSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
+      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -77,5 +77,21 @@ describe('PlayerContactSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(onPlayerUpdated).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Name')).toBeInTheDocument();
+  });
+
+  it('hides the edit affordance for a non-admin viewer', () => {
+    render(
+      <PlayerContactSection
+        teamId="team-1"
+        playerId="player-1"
+        player={basePlayer}
+        onPlayerUpdated={vi.fn()}
+        isAdmin={false}
+      />
+    );
+
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
+    expect(screen.getByText('Name: Test Player')).toBeInTheDocument();
   });
 });

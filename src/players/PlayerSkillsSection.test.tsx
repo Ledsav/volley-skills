@@ -46,7 +46,7 @@ describe('PlayerSkillsSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
+      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
     );
 
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
@@ -73,7 +73,7 @@ describe('PlayerSkillsSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
+      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
     );
 
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '99' } });
@@ -85,11 +85,33 @@ describe('PlayerSkillsSection', () => {
 
   it('marks a skill as a focus area via the priority checkbox', () => {
     render(
-      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} />
+      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} isAdmin />
     );
 
     const checkboxes = screen.getAllByLabelText('Focus area');
     fireEvent.click(checkboxes[0]);
     expect(checkboxes[0]).toBeChecked();
+  });
+
+  it('renders scores read-only and hides the edit affordances for a non-admin viewer', () => {
+    const scoredPlayer: Player = {
+      ...basePlayer,
+      skills: { ...basePlayer.skills, serve: { score: 6, notes: '', priority: false } },
+    };
+
+    render(
+      <PlayerSkillsSection
+        teamId="team-1"
+        playerId="player-1"
+        player={scoredPlayer}
+        onPlayerUpdated={vi.fn()}
+        isAdmin={false}
+      />
+    );
+
+    expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Focus area')).toHaveLength(0);
+    expect(screen.queryByText('Save skills')).not.toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
   });
 });

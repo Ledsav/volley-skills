@@ -9,9 +9,16 @@ interface PlayerContactSectionProps {
   playerId: string;
   player: Player;
   onPlayerUpdated: (player: Player) => void;
+  isAdmin: boolean;
 }
 
-export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated }: PlayerContactSectionProps) {
+export function PlayerContactSection({
+  teamId,
+  playerId,
+  player,
+  onPlayerUpdated,
+  isAdmin,
+}: PlayerContactSectionProps) {
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(player.fullName);
   const [position, setPosition] = useState(player.position);
@@ -31,16 +38,18 @@ export function PlayerContactSection({ teamId, playerId, player, onPlayerUpdated
     setEditing(false);
   }
 
-  if (!editing) {
+  if (!editing || !isAdmin) {
     return (
       <section className="rounded-lg border border-border bg-surface p-6 shadow-card">
         <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Contact & Registration</h2>
         <p className="mt-3 text-slate">Name: {player.fullName}</p>
         <p className="mt-1 text-slate">Position: {player.position}</p>
         <p className="mt-1 text-slate">Phone: {player.playerPhone}</p>
-        <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="mt-4">
-          Edit
-        </Button>
+        {isAdmin && (
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="mt-4">
+            Edit
+          </Button>
+        )}
       </section>
     );
   }

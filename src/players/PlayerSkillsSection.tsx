@@ -24,9 +24,16 @@ interface PlayerSkillsSectionProps {
   playerId: string;
   player: Player;
   onPlayerUpdated: (player: Player) => void;
+  isAdmin: boolean;
 }
 
-export function PlayerSkillsSection({ teamId, playerId, player, onPlayerUpdated }: PlayerSkillsSectionProps) {
+export function PlayerSkillsSection({
+  teamId,
+  playerId,
+  player,
+  onPlayerUpdated,
+  isAdmin,
+}: PlayerSkillsSectionProps) {
   const [skills, setSkills] = useState<Skills>(player.skills);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,39 +68,57 @@ export function PlayerSkillsSection({ teamId, playerId, player, onPlayerUpdated 
       <div className="mt-4 flex flex-col gap-4">
         {SKILL_ORDER.map((key) => (
           <div key={key} className="flex flex-col gap-2 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
-            <label htmlFor={`skill-${key}`} className="w-24 shrink-0 text-sm font-medium text-ink">
-              {SKILL_LABELS[key]}
-            </label>
-            <Input
-              id={`skill-${key}`}
-              type="number"
-              min={1}
-              max={10}
-              value={skills[key].score ?? ''}
-              onChange={(e) => updateScore(key, e.target.value)}
-              className="w-20 shrink-0"
-            />
+            {isAdmin ? (
+              <label htmlFor={`skill-${key}`} className="w-24 shrink-0 text-sm font-medium text-ink">
+                {SKILL_LABELS[key]}
+              </label>
+            ) : (
+              <span className="w-24 shrink-0 text-sm font-medium text-ink">{SKILL_LABELS[key]}</span>
+            )}
+            {isAdmin ? (
+              <Input
+                id={`skill-${key}`}
+                type="number"
+                min={1}
+                max={10}
+                value={skills[key].score ?? ''}
+                onChange={(e) => updateScore(key, e.target.value)}
+                className="w-20 shrink-0"
+              />
+            ) : (
+              <span className="w-20 shrink-0 tabular-nums text-ink">{skills[key].score ?? '—'}</span>
+            )}
             <div className="min-w-[8rem] flex-1">
               <SkillMeter score={skills[key].score} />
             </div>
-            <label className="flex shrink-0 items-center gap-2 text-sm text-slate">
-              <input
-                type="checkbox"
-                checked={skills[key].priority}
-                onChange={(e) => updatePriority(key, e.target.checked)}
-                className="h-4 w-4 rounded-sm border-border text-blue focus:outline-none focus:ring-2 focus:ring-blue"
-              />
-              Focus area
-            </label>
+            {isAdmin ? (
+              <label className="flex shrink-0 items-center gap-2 text-sm text-slate">
+                <input
+                  type="checkbox"
+                  checked={skills[key].priority}
+                  onChange={(e) => updatePriority(key, e.target.checked)}
+                  className="h-4 w-4 rounded-sm border-border text-blue focus:outline-none focus:ring-2 focus:ring-blue"
+                />
+                Focus area
+              </label>
+            ) : (
+              skills[key].priority && (
+                <span className="shrink-0 rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange">
+                  Focus area
+                </span>
+              )
+            )}
           </div>
         ))}
       </div>
       <p className="mt-4 text-slate">
         Average: {previewAvg?.toFixed(1) ?? '—'} ({previewLevel ?? 'No scores yet'})
       </p>
-      <Button variant="primary" onClick={() => void handleSave()} className="mt-4">
-        Save skills
-      </Button>
+      {isAdmin && (
+        <Button variant="primary" onClick={() => void handleSave()} className="mt-4">
+          Save skills
+        </Button>
+      )}
       {error && (
         <p role="alert" className="mt-3 text-sm text-red">
           {error}

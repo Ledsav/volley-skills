@@ -16,11 +16,23 @@ export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const [team, setTeam] = useState<Team | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!teamId) return;
-    void getTeam(teamId).then(setTeam);
+    setError(null);
+    void getTeam(teamId)
+      .then(setTeam)
+      .catch(() => setError("You don't have access to this team."));
   }, [teamId]);
+
+  if (error) {
+    return (
+      <p role="alert" className="p-6 text-red">
+        {error}
+      </p>
+    );
+  }
 
   if (!team || !teamId) return <p className="p-6 text-slate">Loading team...</p>;
 

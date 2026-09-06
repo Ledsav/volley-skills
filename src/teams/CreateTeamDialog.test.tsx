@@ -14,6 +14,7 @@ describe('CreateTeamDialog', () => {
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
       appUser: null,
       loading: false,
+      authError: null,
     });
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockResolvedValue('team-1');
     const onCreated = vi.fn();
@@ -39,6 +40,7 @@ describe('CreateTeamDialog', () => {
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
       appUser: null,
       loading: false,
+      authError: null,
     });
     vi.spyOn(teamsApi, 'createTeam').mockRejectedValue({ code: 'permission-denied' });
     const onCreated = vi.fn();

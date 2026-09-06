@@ -8,11 +8,23 @@ import type { Player } from '../types/player';
 export function PlayerCardPage() {
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const [player, setPlayer] = useState<Player | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!teamId || !playerId) return;
-    void getPlayer(teamId, playerId).then(setPlayer);
+    setError(null);
+    void getPlayer(teamId, playerId)
+      .then(setPlayer)
+      .catch(() => setError("You don't have access to this player."));
   }, [teamId, playerId]);
+
+  if (error) {
+    return (
+      <p role="alert" className="p-6 text-red">
+        {error}
+      </p>
+    );
+  }
 
   if (!player || !teamId || !playerId) return <p className="p-6 text-slate">Loading player...</p>;
 

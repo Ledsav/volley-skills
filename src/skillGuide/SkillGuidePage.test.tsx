@@ -14,6 +14,7 @@ describe('SkillGuidePage', () => {
       firebaseUser: { uid: 'coach-uid' } as never,
       appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
       loading: false,
+      authError: null,
     });
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
       skills: [
@@ -53,6 +54,7 @@ describe('SkillGuidePage', () => {
       firebaseUser: { uid: 'coach-uid' } as never,
       appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
       loading: false,
+      authError: null,
     });
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
       skills: [

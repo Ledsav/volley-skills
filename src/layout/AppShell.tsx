@@ -50,6 +50,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <LogOut size={20} strokeWidth={1.5} />
           Sign out
         </button>
+        <NavLink to="/privacy" className="px-3 py-2 text-xs font-medium text-white/50 hover:text-white/80">
+          Privacy
+        </NavLink>
       </aside>
 
       <div className="flex-1 pb-16 lg:pb-0">{children}</div>

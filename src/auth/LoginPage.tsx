@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { Button } from '../components/Button';
@@ -44,6 +44,11 @@ export function LoginPage() {
     return (
       <AuthShell title="Volley Skills">
         <p className="text-slate">Check your email for a sign-in link.</p>
+        <p className="mt-6 text-sm">
+          <Link to="/privacy" className="text-slate hover:underline">
+            Privacy
+          </Link>
+        </p>
       </AuthShell>
     );
   }
@@ -82,6 +87,12 @@ export function LoginPage() {
           {error}
         </p>
       )}
+
+      <p className="mt-6 text-sm">
+        <Link to="/privacy" className="text-slate hover:underline">
+          Privacy
+        </Link>
+      </p>
     </AuthShell>
   );
 }

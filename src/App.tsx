@@ -11,6 +11,7 @@ import { PlayerCardPage } from './players/PlayerCardPage';
 import { GuidesPage } from './admin/GuidesPage';
 import { ExercisesPage } from './exercises/ExercisesPage';
 import { TrainingsPage } from './trainings/TrainingsPage';
+import { PrivacyPage } from './legal/PrivacyPage';
 
 function AuthenticatedLayout() {
   return (
@@ -29,6 +30,7 @@ export function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/finish-sign-in" element={<FinishSignInPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route element={<AuthenticatedLayout />}>
             <Route path="/teams" element={<TeamsListPage />} />
             <Route path="/teams/:teamId" element={<TeamPage />} />

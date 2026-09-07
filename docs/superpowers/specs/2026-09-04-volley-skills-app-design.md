@@ -99,7 +99,7 @@ teams/{teamId}/players/{playerId}/physicalTests/{testId}
     e.g. a new sprint time logged in March and a new jump height logged in June,
     unrelated to each other.
   testType: 'growth' | 'cmj' | 'approachJump' | 'broadJump' | 'sprint10m'
-          | 'shuttle5105' | 'reaction' | 'strength6rm'
+          | 'shuttle5105' | 'reaction' | 'strength'
   date (ISO string "YYYY-MM-DD")
   — fields present depend on testType. Where a test protocol calls for multiple
     attempts, the raw attempts are stored and the app computes the best (max, or

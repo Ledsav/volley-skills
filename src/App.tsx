@@ -10,6 +10,7 @@ import { TeamPage } from './teams/TeamPage';
 import { PlayerCardPage } from './players/PlayerCardPage';
 import { GuidesPage } from './admin/GuidesPage';
 import { ExercisesPage } from './exercises/ExercisesPage';
+import { TrainingsPage } from './trainings/TrainingsPage';
 
 function AuthenticatedLayout() {
   return (
@@ -45,6 +46,14 @@ export function App() {
               element={
                 <RequireAdmin>
                   <ExercisesPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/trainings"
+              element={
+                <RequireAdmin>
+                  <TrainingsPage />
                 </RequireAdmin>
               }
             />

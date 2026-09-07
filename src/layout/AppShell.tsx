@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, Dumbbell, LogOut, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, Dumbbell, LogOut, Users } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
 
 const NAV_ITEMS = [
   { to: '/teams', label: 'Teams', Icon: Users },
   { to: '/exercises', label: 'Exercises', Icon: Dumbbell },
+  { to: '/trainings', label: 'Trainings', Icon: ClipboardList },
   { to: '/admin/guides', label: 'Guides', Icon: BookOpen },
 ];
 

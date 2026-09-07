@@ -6,9 +6,10 @@ import { TeamRosterTable } from './TeamRosterTable';
 import { AddPlayerDialog } from '../players/AddPlayerDialog';
 import { Button } from '../components/Button';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
+import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
 import type { Team } from '../types/team';
 
-type Tab = 'overview' | 'plan' | 'settings';
+type Tab = 'overview' | 'calendar' | 'plan' | 'settings';
 
 const tabClass = (active: boolean) =>
   `border-b-2 px-1 py-3 text-sm font-medium ${
@@ -51,6 +52,9 @@ export function TeamPage() {
           <button onClick={() => setTab('overview')} className={tabClass(tab === 'overview')}>
             Overview
           </button>
+          <button onClick={() => setTab('calendar')} className={tabClass(tab === 'calendar')}>
+            Calendar
+          </button>
           <button onClick={() => setTab('plan')} className={tabClass(tab === 'plan')}>
             Development Plan
           </button>
@@ -70,6 +74,7 @@ export function TeamPage() {
               <TeamRosterTable key={rosterRefreshKey} teamId={teamId} />
             </>
           )}
+          {tab === 'calendar' && <TeamCalendarTab teamId={teamId} />}
           {tab === 'plan' && (
             <DevelopmentPlanEditor
               plan={team.developmentPlan}

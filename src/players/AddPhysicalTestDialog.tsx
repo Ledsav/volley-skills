@@ -1,11 +1,16 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
-import { Input, Textarea } from '../components/Input';
+import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { AttemptsInput } from '../components/AttemptsInput';
-import { bestOf, computeApproachJump } from './physicalTestMath';
-import { createPhysicalTest } from './physicalTestsApi';
+import { bestOf, computeApproachJump, computeReaction, computeBodyMassRatio } from './physicalTestMath';
+import { createPhysicalTest, getLatestByType } from './physicalTestsApi';
 import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
-import type { NewPhysicalTestInput, PhysicalTestType } from '../types/physicalTest';
+import type {
+  BodyweightExercise,
+  NewPhysicalTestInput,
+  PhysicalTestType,
+  WeightedExercise,
+} from '../types/physicalTest';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -37,6 +42,24 @@ export function AddPhysicalTestDialog({
   const [standingReachCm, setStandingReachCm] = useState('');
   const [touchAttempts, setTouchAttempts] = useState<number[]>([NaN, NaN, NaN]);
 
+  const [sprintAttempts, setSprintAttempts] = useState<number[]>([NaN, NaN]);
+  const [rightFirstSeconds, setRightFirstSeconds] = useState('');
+  const [leftFirstSeconds, setLeftFirstSeconds] = useState('');
+  const [reactionAttempts, setReactionAttempts] = useState<number[]>([NaN, NaN, NaN, NaN, NaN]);
+  const [strengthMode, setStrengthMode] = useState<'weighted' | 'bodyweight'>('weighted');
+  const [weightedExercise, setWeightedExercise] = useState<WeightedExercise>('trapBarDeadlift');
+  const [weightKg, setWeightKg] = useState('');
+  const [bodyweightExercise, setBodyweightExercise] = useState<BodyweightExercise>('pushUps');
+  const [reps, setReps] = useState('');
+  const [latestBodyMassKg, setLatestBodyMassKg] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (testType !== 'strength') return;
+    void getLatestByType(teamId, playerId, 'growth').then((latest) => {
+      setLatestBodyMassKg(latest && latest.testType === 'growth' ? latest.bodyMassKg : null);
+    });
+  }, [teamId, playerId, testType]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -65,8 +88,40 @@ export function AddPhysicalTestDialog({
         date,
         notes,
       };
+    } else if (testType === 'sprint10m') {
+      input = {
+        testType: 'sprint10m',
+        attemptsSeconds: sprintAttempts,
+        bestSeconds: bestOf(sprintAttempts, 'min'),
+        date,
+        notes,
+      };
+    } else if (testType === 'shuttle5105') {
+      input = {
+        testType: 'shuttle5105',
+        rightFirstSeconds: Number(rightFirstSeconds),
+        leftFirstSeconds: Number(leftFirstSeconds),
+        date,
+        notes,
+      };
+    } else if (testType === 'reaction') {
+      const { averageCm, reactionTimeMs } = computeReaction(reactionAttempts);
+      input = { testType: 'reaction', attemptsCm: reactionAttempts, averageCm, reactionTimeMs, date, notes };
+    } else if (testType === 'strength' && strengthMode === 'weighted') {
+      const bodyMassRatio = latestBodyMassKg !== null ? computeBodyMassRatio(Number(weightKg), latestBodyMassKg) : null;
+      input = {
+        testType: 'strength',
+        mode: 'weighted',
+        exercise: weightedExercise,
+        weightKg: Number(weightKg),
+        reps6RM: 6,
+        bodyMassRatio,
+        date,
+        notes,
+      };
+    } else if (testType === 'strength' && strengthMode === 'bodyweight') {
+      input = { testType: 'strength', mode: 'bodyweight', exercise: bodyweightExercise, reps: Number(reps), date, notes };
     } else {
-      // sprint10m / shuttle5105 / reaction / strength are added in Task 16
       return;
     }
 
@@ -165,6 +220,140 @@ export function AddPhysicalTestDialog({
               onChange={setTouchAttempts}
               minCount={3}
             />
+          </>
+        )}
+
+        {testType === 'sprint10m' && (
+          <AttemptsInput
+            name="sprint"
+            label="Attempt (s)"
+            values={sprintAttempts}
+            onChange={setSprintAttempts}
+            minCount={2}
+            maxCount={3}
+          />
+        )}
+
+        {testType === 'shuttle5105' && (
+          <>
+            <div className="mb-4">
+              <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">
+                Right-first (s)
+              </label>
+              <Input
+                id="shuttle-right"
+                type="number"
+                step="any"
+                value={rightFirstSeconds}
+                onChange={(e) => setRightFirstSeconds(e.target.value)}
+                required
+                className="w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">
+                Left-first (s)
+              </label>
+              <Input
+                id="shuttle-left"
+                type="number"
+                step="any"
+                value={leftFirstSeconds}
+                onChange={(e) => setLeftFirstSeconds(e.target.value)}
+                required
+                className="w-full"
+              />
+            </div>
+          </>
+        )}
+
+        {testType === 'reaction' && (
+          <AttemptsInput
+            name="reaction"
+            label="Drop attempt (cm)"
+            values={reactionAttempts}
+            onChange={setReactionAttempts}
+            minCount={5}
+          />
+        )}
+
+        {testType === 'strength' && (
+          <>
+            <div className="mb-4">
+              <label htmlFor="strength-mode" className="mb-1 block text-sm font-medium text-ink">
+                Mode
+              </label>
+              <select
+                id="strength-mode"
+                className={`${FIELD_CLASS} w-full`}
+                value={strengthMode}
+                onChange={(e) => setStrengthMode(e.target.value as 'weighted' | 'bodyweight')}
+              >
+                <option value="weighted">Weighted</option>
+                <option value="bodyweight">Bodyweight</option>
+              </select>
+            </div>
+            {strengthMode === 'weighted' ? (
+              <>
+                <div className="mb-4">
+                  <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">
+                    Exercise
+                  </label>
+                  <select
+                    id="strength-exercise"
+                    className={`${FIELD_CLASS} w-full`}
+                    value={weightedExercise}
+                    onChange={(e) => setWeightedExercise(e.target.value as WeightedExercise)}
+                  >
+                    <option value="trapBarDeadlift">Trap-bar deadlift</option>
+                    <option value="squat">Squat</option>
+                    <option value="gobletSquat">Goblet squat</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">
+                    Weight (kg)
+                  </label>
+                  <Input
+                    id="strength-weight"
+                    type="number"
+                    step="any"
+                    value={weightKg}
+                    onChange={(e) => setWeightKg(e.target.value)}
+                    required
+                    className="w-full"
+                  />
+                </div>
+                <p className="mb-4 text-sm text-slate">
+                  {latestBodyMassKg !== null && weightKg !== ''
+                    ? `Body-mass ratio: ${computeBodyMassRatio(Number(weightKg), latestBodyMassKg).toFixed(2)}`
+                    : 'Body-mass ratio needs a Growth entry with body mass on file.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">
+                    Exercise
+                  </label>
+                  <select
+                    id="strength-bodyweight-exercise"
+                    className={`${FIELD_CLASS} w-full`}
+                    value={bodyweightExercise}
+                    onChange={(e) => setBodyweightExercise(e.target.value as BodyweightExercise)}
+                  >
+                    <option value="pushUps">Push-ups</option>
+                    <option value="splitSquat">Split squat</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">
+                    Reps
+                  </label>
+                  <Input id="strength-reps" type="number" value={reps} onChange={(e) => setReps(e.target.value)} required className="w-full" />
+                </div>
+              </>
+            )}
           </>
         )}
 

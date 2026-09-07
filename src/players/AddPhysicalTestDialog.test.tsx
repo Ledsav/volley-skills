@@ -83,4 +83,134 @@ describe('AddPhysicalTestDialog', () => {
       )
     );
   });
+
+  it('submits a 10m sprint entry with the computed best (min)', async () => {
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
+
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="sprint10m" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Attempt (s) 1'), { target: { value: '1.85' } });
+    fireEvent.change(screen.getByLabelText('Attempt (s) 2'), { target: { value: '1.79' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(spy).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        { testType: 'sprint10m', attemptsSeconds: [1.85, 1.79], bestSeconds: 1.79, date: '2026-09-07', notes: '' },
+        'coach-uid'
+      )
+    );
+  });
+
+  it('submits a 5-10-5 shuttle entry with separate right/left times', async () => {
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
+
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="shuttle5105" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Right-first (s)'), { target: { value: '5.12' } });
+    fireEvent.change(screen.getByLabelText('Left-first (s)'), { target: { value: '5.48' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(spy).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        { testType: 'shuttle5105', rightFirstSeconds: 5.12, leftFirstSeconds: 5.48, date: '2026-09-07', notes: '' },
+        'coach-uid'
+      )
+    );
+  });
+
+  it('submits a reaction entry with the discard-extremes average and ms conversion', async () => {
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
+
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="reaction" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Drop attempt (cm) 1'), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText('Drop attempt (cm) 2'), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('Drop attempt (cm) 3'), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('Drop attempt (cm) 4'), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('Drop attempt (cm) 5'), { target: { value: '30' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    const [, , payload] = spy.mock.calls[0];
+    expect(payload).toMatchObject({ testType: 'reaction', averageCm: 20 });
+    expect((payload as { reactionTimeMs: number }).reactionTimeMs).toBeCloseTo(201.93, 1);
+  });
+
+  it('submits a weighted strength entry with the body-mass ratio from the latest growth entry', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue({
+      id: 'growth-1',
+      testType: 'growth',
+      heightCm: 160,
+      bodyMassKg: 50,
+      date: '2026-08-01',
+      notes: '',
+      recordedBy: 'coach-uid',
+      createdAt: null,
+    });
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
+
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="strength" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    await screen.findByText(/Body-mass ratio needs/);
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Weight (kg)'), { target: { value: '55' } });
+    await screen.findByText('Body-mass ratio: 1.10');
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(spy).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        {
+          testType: 'strength',
+          mode: 'weighted',
+          exercise: 'trapBarDeadlift',
+          weightKg: 55,
+          reps6RM: 6,
+          bodyMassRatio: 1.1,
+          date: '2026-09-07',
+          notes: '',
+        },
+        'coach-uid'
+      )
+    );
+  });
+
+  it('submits a bodyweight strength entry', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
+
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="strength" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Mode'), { target: { value: 'bodyweight' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '25' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(spy).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        { testType: 'strength', mode: 'bodyweight', exercise: 'pushUps', reps: 25, date: '2026-09-07', notes: '' },
+        'coach-uid'
+      )
+    );
+  });
 });

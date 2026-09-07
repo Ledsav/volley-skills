@@ -30,7 +30,7 @@ export function buildPlayerExport(
       updatedAt: normalizeTimestamp(updatedAt),
     },
     physicalTests: physicalTests.map((test) => {
-      const { createdAt: testCreatedAt, ...testRest } = test as PhysicalTest & { createdAt?: unknown };
+      const { createdAt: testCreatedAt, ...testRest } = test;
       const createdAtIso = normalizeTimestamp(testCreatedAt);
       return createdAtIso == null ? { ...testRest } : { ...testRest, createdAt: createdAtIso };
     }),

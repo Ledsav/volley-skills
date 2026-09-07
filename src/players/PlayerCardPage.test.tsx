@@ -151,4 +151,29 @@ describe('PlayerCardPage', () => {
 
     await waitFor(() => expect(exportSpy).toHaveBeenCalledWith(basePlayer, []));
   });
+
+  it('surfaces an error and does not download when the export read fails', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { email: 'coach@example.com' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'listAllPhysicalTests').mockRejectedValue(new Error('boom'));
+    const exportModule = await import('./playerExport');
+    const exportSpy = vi.spyOn(exportModule, 'downloadPlayerExport').mockImplementation(() => {});
+
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    fireEvent.click(screen.getByText('Export data (JSON)'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Could not export this player's data. Please try again."
+    );
+    expect(exportSpy).not.toHaveBeenCalled();
+  });
 });

@@ -23,6 +23,7 @@ export function PlayerCardPage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!teamId || !playerId) return;
@@ -57,8 +58,14 @@ export function PlayerCardPage() {
   }
 
   async function handleExport() {
-    const tests = await listAllPhysicalTests(teamId!, playerId!);
-    downloadPlayerExport(player!, tests);
+    setExportError(null);
+    try {
+      const tests = await listAllPhysicalTests(teamId!, playerId!);
+      downloadPlayerExport(player!, tests);
+    } catch {
+      setExportError("Could not export this player's data. Please try again.");
+      return;
+    }
   }
 
   return (
@@ -109,6 +116,7 @@ export function PlayerCardPage() {
               Delete player
             </Button>
           </div>
+          {exportError && <p role="alert" className="mt-3 text-sm text-red">{exportError}</p>}
         </section>
       )}
 

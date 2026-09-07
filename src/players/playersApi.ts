@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -117,4 +118,10 @@ export async function updatePlayerSkills(
 
 export async function updatePlayerDevelopmentPlan(teamId: string, playerId: string, plan: DevelopmentPlan): Promise<void> {
   await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
+}
+
+export async function deletePlayer(teamId: string, playerId: string): Promise<void> {
+  const testsSnapshot = await getDocs(collection(db, 'teams', teamId, 'players', playerId, 'physicalTests'));
+  await Promise.all(testsSnapshot.docs.map((testDoc) => deleteDoc(testDoc.ref)));
+  await deleteDoc(doc(db, 'teams', teamId, 'players', playerId));
 }

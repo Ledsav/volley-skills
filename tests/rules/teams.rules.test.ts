@@ -99,4 +99,17 @@ describe('teams rules', () => {
     const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
     await assertSucceeds(adminDb.doc('teams/team-1').update({ adminEmails: ['assistant@example.com'] }));
   });
+
+  it('lets a team admin delete the team, denies a non-admin', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
+    });
+
+    const outsiderDb = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
+    await assertFails(outsiderDb.doc('teams/team-1').delete());
+
+    const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(adminDb.doc('teams/team-1').delete());
+  });
 });

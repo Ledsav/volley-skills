@@ -46,7 +46,8 @@ service cloud.firestore {
       allow update: if request.auth != null
         && request.auth.token.email in resource.data.adminEmails
         && request.resource.data.adminEmails.size() > 0;
-      allow delete: if false;
+      allow delete: if request.auth != null
+        && request.auth.token.email in resource.data.adminEmails;
 
       match /players/{playerId} {
         function isTeamAdmin() {
@@ -73,7 +74,7 @@ service cloud.firestore {
           isTeamAdmin() || request.auth.token.email in resource.data.viewerEmails
         );
         allow create, update: if request.auth != null && isTeamAdmin() && validSkills(request.resource.data.skills);
-        allow delete: if false;
+        allow delete: if request.auth != null && isTeamAdmin();
 
         match /physicalTests/{testId} {
           allow read: if request.auth != null && (
@@ -82,7 +83,10 @@ service cloud.firestore {
               get(/databases/$(database)/documents/teams/$(teamId)/players/$(playerId)).data.viewerEmails
           );
           allow create, update: if request.auth != null && isTeamAdmin();
-          allow delete: if false;
+          // Deletable only so a player's own hard-delete can clean up their test
+          // history (GDPR erasure, see docs/.../volley-skills-app-design.md §10) —
+          // there is no standalone "delete one test result" feature.
+          allow delete: if request.auth != null && isTeamAdmin();
         }
       }
     }

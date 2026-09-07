@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -14,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { deletePlayer } from '../players/playersApi';
 import type { Team } from '../types/team';
 import type { DevelopmentPlan } from '../types/developmentPlan';
 
@@ -78,4 +80,10 @@ export async function updateTeamInfo(
 
 export async function updateTeamDevelopmentPlan(teamId: string, plan: DevelopmentPlan): Promise<void> {
   await updateDoc(doc(db, 'teams', teamId), { developmentPlan: plan });
+}
+
+export async function deleteTeam(teamId: string): Promise<void> {
+  const playersSnapshot = await getDocs(collection(db, 'teams', teamId, 'players'));
+  await Promise.all(playersSnapshot.docs.map((playerDoc) => deletePlayer(teamId, playerDoc.id)));
+  await deleteDoc(doc(db, 'teams', teamId));
 }

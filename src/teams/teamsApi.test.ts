@@ -1,7 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
+import { createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
+import { deletePlayer } from '../players/playersApi';
 
-const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc } = vi.hoisted(() => ({
+const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockCollection: vi.fn(() => 'teams-collection'),
   mockGetDocs: vi.fn(),
@@ -10,6 +11,7 @@ const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrder
   mockOrderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
   mockLimit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   mockUpdateDoc: vi.fn(),
+  mockDeleteDoc: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -24,9 +26,11 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn(() => 'doc-ref'),
   getDoc: vi.fn(),
   updateDoc: mockUpdateDoc,
+  deleteDoc: mockDeleteDoc,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
+vi.mock('../players/playersApi');
 
 describe('teamsApi', () => {
   beforeEach(() => {
@@ -81,5 +85,17 @@ describe('teamsApi', () => {
         generalNotes: 'On track',
       },
     });
+  });
+
+  it('deletes every player on the team before deleting the team itself', async () => {
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'player-1' }, { id: 'player-2' }] });
+    vi.mocked(deletePlayer).mockResolvedValue(undefined);
+    mockDeleteDoc.mockResolvedValue(undefined);
+
+    await deleteTeam('team-1');
+
+    expect(deletePlayer).toHaveBeenCalledWith('team-1', 'player-1');
+    expect(deletePlayer).toHaveBeenCalledWith('team-1', 'player-2');
+    expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
   });
 });

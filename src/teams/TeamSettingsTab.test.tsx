@@ -1,11 +1,18 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import * as teamsApi from './teamsApi';
 import type { Team } from '../types/team';
 
+const mockNavigate = vi.fn();
+
 vi.mock('./teamsApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 const baseTeam: Team = {
   id: 'team-1',
@@ -21,12 +28,24 @@ const baseTeam: Team = {
   createdAt: null,
 };
 
+function renderSettings(team: Team, onTeamUpdated: (team: Team) => void) {
+  return render(
+    <MemoryRouter>
+      <TeamSettingsTab team={team} onTeamUpdated={onTeamUpdated} />
+    </MemoryRouter>
+  );
+}
+
 describe('TeamSettingsTab', () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+  });
+
   it('adds a new admin email and reflects it in the list', async () => {
     vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
     const onTeamUpdated = vi.fn();
 
-    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    renderSettings(baseTeam, onTeamUpdated);
     fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'assistant@example.com' } });
     fireEvent.click(screen.getByText('Grant access'));
 
@@ -41,7 +60,7 @@ describe('TeamSettingsTab', () => {
     const addSpy = vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
     const onTeamUpdated = vi.fn();
 
-    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    renderSettings(baseTeam, onTeamUpdated);
     fireEvent.change(screen.getByLabelText('Add admin by email'), {
       target: { value: '  Assistant@Example.com  ' },
     });
@@ -59,7 +78,7 @@ describe('TeamSettingsTab', () => {
     const addSpy = vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
     const onTeamUpdated = vi.fn();
 
-    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    renderSettings(baseTeam, onTeamUpdated);
     fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'Coach@Example.com' } });
     fireEvent.click(screen.getByText('Grant access'));
 
@@ -72,7 +91,7 @@ describe('TeamSettingsTab', () => {
     vi.spyOn(teamsApi, 'addTeamAdmin').mockRejectedValue({ code: 'permission-denied' });
     const onTeamUpdated = vi.fn();
 
-    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={onTeamUpdated} />);
+    renderSettings(baseTeam, onTeamUpdated);
     fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'assistant@example.com' } });
     fireEvent.click(screen.getByText('Grant access'));
 
@@ -81,7 +100,41 @@ describe('TeamSettingsTab', () => {
   });
 
   it('does not show a remove button when there is only one admin', () => {
-    render(<TeamSettingsTab team={baseTeam} onTeamUpdated={vi.fn()} />);
+    renderSettings(baseTeam, vi.fn());
     expect(screen.queryByText('Remove')).not.toBeInTheDocument();
+  });
+
+  it('does nothing until the delete team confirmation is accepted', () => {
+    const deleteSpy = vi.spyOn(teamsApi, 'deleteTeam').mockResolvedValue(undefined);
+    renderSettings(baseTeam, vi.fn());
+
+    fireEvent.click(screen.getByText('Delete team'));
+    expect(screen.getByText(/permanently delete/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByText(/permanently delete/i)).not.toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('deletes the team and navigates to /teams when confirmed', async () => {
+    const deleteSpy = vi.spyOn(teamsApi, 'deleteTeam').mockResolvedValue(undefined);
+    renderSettings(baseTeam, vi.fn());
+
+    fireEvent.click(screen.getByText('Delete team'));
+    fireEvent.click(screen.getByText('Yes, delete team'));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1'));
+    expect(mockNavigate).toHaveBeenCalledWith('/teams', { replace: true });
+  });
+
+  it('shows an error message when deleting the team fails', async () => {
+    vi.spyOn(teamsApi, 'deleteTeam').mockRejectedValue(new Error('denied'));
+    renderSettings(baseTeam, vi.fn());
+
+    fireEvent.click(screen.getByText('Delete team'));
+    fireEvent.click(screen.getByText('Yes, delete team'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

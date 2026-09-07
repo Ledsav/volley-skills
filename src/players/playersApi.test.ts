@@ -1,13 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createPlayer, listPlayers, updatePlayerDevelopmentPlan } from './playersApi';
+import { createPlayer, deletePlayer, listPlayers, updatePlayerDevelopmentPlan } from './playersApi';
 import type { Team } from '../types/team';
 
-const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc } = vi.hoisted(() => ({
+const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc, mockDeleteDoc } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockGetDocs: vi.fn(),
   mockCollection: vi.fn(() => 'players-collection'),
   mockQuery: vi.fn((...args: unknown[]) => args),
   mockUpdateDoc: vi.fn(),
+  mockDeleteDoc: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -22,6 +23,7 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn(() => 'doc-ref'),
   getDoc: vi.fn(),
   updateDoc: mockUpdateDoc,
+  deleteDoc: mockDeleteDoc,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -81,6 +83,22 @@ describe('playersApi', () => {
       skills: { serve: { score: null, notes: '', priority: false } },
     });
     expect(payload.consent.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('deletes a player and all of their physical test history', async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: 'test-1', ref: 'test-1-ref' },
+        { id: 'test-2', ref: 'test-2-ref' },
+      ],
+    });
+    mockDeleteDoc.mockResolvedValue(undefined);
+
+    await deletePlayer('team-1', 'player-1');
+
+    expect(mockDeleteDoc).toHaveBeenCalledWith('test-1-ref');
+    expect(mockDeleteDoc).toHaveBeenCalledWith('test-2-ref');
+    expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
   });
 
   it('lists players ordered by number', async () => {

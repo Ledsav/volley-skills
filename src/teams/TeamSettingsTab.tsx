@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { addTeamAdmin, removeTeamAdmin } from './teamsApi';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { addTeamAdmin, deleteTeam, removeTeamAdmin } from './teamsApi';
 import type { Team } from '../types/team';
 
 interface TeamSettingsTabProps {
@@ -10,8 +12,11 @@ interface TeamSettingsTabProps {
 }
 
 export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
+  const navigate = useNavigate();
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleAdd(event: FormEvent) {
     event.preventDefault();
@@ -43,6 +48,17 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
       return;
     }
     onTeamUpdated({ ...team, adminEmails: team.adminEmails.filter((e) => e !== email) });
+  }
+
+  async function handleDelete() {
+    setDeleteError(null);
+    try {
+      await deleteTeam(team.id);
+    } catch {
+      setDeleteError('Could not delete the team. Please try again.');
+      return;
+    }
+    navigate('/teams', { replace: true });
   }
 
   return (
@@ -82,6 +98,25 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           </p>
         )}
       </form>
+
+      <h2 className="mb-3 mt-8 text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
+      <div className="flex items-center justify-between rounded-lg border border-border bg-surface p-4 shadow-card">
+        <p className="text-slate">Deleting a team also removes its roster and every player's records.</p>
+        <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setShowDeleteConfirm(true)}>
+          Delete team
+        </Button>
+      </div>
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title={`Delete ${team.name}?`}
+          message="This will permanently delete the team, its roster, and every player's records, including their physical test history. This cannot be undone."
+          confirmLabel="Yes, delete team"
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setShowDeleteConfirm(false)}
+          error={deleteError}
+        />
+      )}
     </div>
   );
 }

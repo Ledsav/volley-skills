@@ -61,4 +61,13 @@ describe('physicalTests rules', () => {
     const db = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
     await assertFails(db.doc('teams/team-1/players/player-1/physicalTests/test-1').get());
   });
+
+  it('lets the team admin delete a physical test, denies the linked viewer', async () => {
+    const env = await getTestEnv();
+    const viewerDb = env.authenticatedContext('parent-uid', { email: 'parent@example.com' }).firestore();
+    await assertFails(viewerDb.doc('teams/team-1/players/player-1/physicalTests/test-1').delete());
+
+    const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(adminDb.doc('teams/team-1/players/player-1/physicalTests/test-1').delete());
+  });
 });

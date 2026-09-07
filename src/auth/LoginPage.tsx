@@ -1,12 +1,16 @@
 import { useState, type FormEvent } from 'react';
-import { sendSignInLinkToEmail } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { AuthShell } from './AuthShell';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
+const googleProvider = new GoogleAuthProvider();
+
 export function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +27,16 @@ export function LoginPage() {
       setSent(true);
     } catch {
       setError('Could not send sign-in link. Please check the email address and try again.');
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate('/teams', { replace: true });
+    } catch {
+      setError('Could not sign in with Google. Please try again.');
     }
   }
 
@@ -51,12 +65,23 @@ export function LoginPage() {
         <Button type="submit" variant="primary" className="w-full">
           Send sign-in link
         </Button>
-        {error && (
-          <p role="alert" className="mt-3 text-sm text-red">
-            {error}
-          </p>
-        )}
       </form>
+
+      <div className="my-4 flex items-center gap-3 text-xs text-slate">
+        <div className="h-px flex-1 bg-border" />
+        or
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button variant="secondary" className="w-full" onClick={handleGoogleSignIn}>
+        Continue with Google
+      </Button>
+
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-red">
+          {error}
+        </p>
+      )}
     </AuthShell>
   );
 }

@@ -38,6 +38,7 @@ export function AttemptsInput({ name, label, values, onChange, minCount, maxCoun
             step="any"
             value={Number.isNaN(value) ? '' : value}
             onChange={(e) => updateAt(index, e.target.value)}
+            required
             className="w-full"
           />
         </div>

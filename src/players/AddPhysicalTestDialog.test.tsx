@@ -52,6 +52,23 @@ describe('AddPhysicalTestDialog', () => {
     );
   });
 
+  it('blocks submission and does not save when an attempt is left blank', async () => {
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
+
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="cmj" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Attempt (cm) 1'), { target: { value: '30' } });
+    fireEvent.change(screen.getByLabelText('Attempt (cm) 2'), { target: { value: '34' } });
+    // Attempt (cm) 3 is left blank.
+    fireEvent.click(screen.getByText('Save'));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("submits an approach jump entry matching the coach's worked example", async () => {
     const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
 

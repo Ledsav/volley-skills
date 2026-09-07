@@ -63,6 +63,25 @@ export function AddPhysicalTestDialog({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const attemptsToValidate =
+      testType === 'cmj'
+        ? cmjAttempts
+        : testType === 'broadJump'
+          ? broadJumpAttempts
+          : testType === 'approachJump'
+            ? touchAttempts
+            : testType === 'sprint10m'
+              ? sprintAttempts
+              : testType === 'reaction'
+                ? reactionAttempts
+                : null;
+
+    if (attemptsToValidate && attemptsToValidate.some((value) => Number.isNaN(value))) {
+      setError('Please fill in every attempt before saving.');
+      return;
+    }
+
     let input: NewPhysicalTestInput;
 
     if (testType === 'growth') {

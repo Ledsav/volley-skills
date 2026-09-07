@@ -27,6 +27,14 @@ describe('AttemptsInput', () => {
     expect(screen.queryByText('Remove last attempt')).not.toBeInTheDocument();
   });
 
+  it('marks each attempt input as required so blank attempts block native form submission', () => {
+    render(<AttemptsInput name="cmj" label="Attempt" values={[30, NaN, 32]} onChange={vi.fn()} minCount={3} />);
+
+    expect(screen.getByLabelText('Attempt 1')).toBeRequired();
+    expect(screen.getByLabelText('Attempt 2')).toBeRequired();
+    expect(screen.getByLabelText('Attempt 3')).toBeRequired();
+  });
+
   it('adds an attempt up to maxCount, and allows removing back down to minCount', () => {
     const onChange = vi.fn();
     const { rerender } = render(

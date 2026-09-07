@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { deletePlayer, getPlayer, updatePlayerDevelopmentPlan } from './playersApi';
+import { listAllPhysicalTests } from './physicalTestsApi';
+import { downloadPlayerExport } from './playerExport';
 import { getTeam } from '../teams/teamsApi';
 import { PlayerContactSection } from './PlayerContactSection';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
@@ -54,6 +56,11 @@ export function PlayerCardPage() {
     navigate(`/teams/${teamId}`, { replace: true });
   }
 
+  async function handleExport() {
+    const tests = await listAllPhysicalTests(teamId!, playerId!);
+    downloadPlayerExport(player!, tests);
+  }
+
   return (
     <div className="mx-auto max-w-2xl bg-bg p-6">
       <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">{player.fullName}</h1>
@@ -89,10 +96,16 @@ export function PlayerCardPage() {
 
       {isAdmin && (
         <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
-          <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
-          <div className="mt-3 flex items-center justify-between">
-            <p className="text-slate">Deleting a player also removes their physical test history.</p>
-            <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setShowDeleteConfirm(true)}>
+          <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Data &amp; privacy</h2>
+          <p className="mt-1 text-slate">
+            Export produces a JSON file with this player&apos;s full record and physical-test history.
+            Deleting a player also removes their physical-test history.
+          </p>
+          <div className="mt-3 flex items-center justify-end gap-3">
+            <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+              Export data (JSON)
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
               Delete player
             </Button>
           </div>

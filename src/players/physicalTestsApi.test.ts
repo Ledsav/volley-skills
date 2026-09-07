@@ -66,6 +66,23 @@ describe('physicalTestsApi', () => {
     expect(latest).toBeNull();
   });
 
+  it('lists the entire physical-test history for a player, bounded by a defensive limit', async () => {
+    const { listAllPhysicalTests } = await import('./physicalTestsApi');
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: 'test-1', data: () => ({ testType: 'cmj', bestCm: 34, date: '2026-09-07' }) },
+        { id: 'test-2', data: () => ({ testType: 'growth', heightCm: 160, date: '2026-06-01' }) },
+      ],
+    });
+
+    const all = await listAllPhysicalTests('team-1', 'player-1');
+
+    expect(all).toEqual([
+      { id: 'test-1', testType: 'cmj', bestCm: 34, date: '2026-09-07' },
+      { id: 'test-2', testType: 'growth', heightCm: 160, date: '2026-06-01' },
+    ]);
+  });
+
   it('lists history for one test type, paginated', async () => {
     mockGetDocs.mockResolvedValue({
       docs: [{ id: 'test-1', data: () => ({ testType: 'cmj', bestCm: 34, date: '2026-09-07' }) }],

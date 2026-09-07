@@ -53,6 +53,21 @@ describe('PhysicalTestingSection', () => {
     expect(screen.queryByText('Add new')).not.toBeInTheDocument();
   });
 
+  it('shows a visible error instead of silent "No data yet" rows when the load fails', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
+      appUser: null,
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockRejectedValue({ code: 'permission-denied' });
+
+    render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i);
+    expect(screen.queryByText('No data yet')).not.toBeInTheDocument();
+  });
+
   it('opens the add-test dialog for the clicked quality and refreshes on save', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,

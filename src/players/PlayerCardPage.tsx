@@ -7,6 +7,7 @@ import { PlayerContactSection } from './PlayerContactSection';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { GuardiansSection } from './GuardiansSection';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
+import { PhysicalTestingSection } from './PhysicalTestingSection';
 import type { Player } from '../types/player';
 
 export function PlayerCardPage() {
@@ -68,6 +69,7 @@ export function PlayerCardPage() {
         }
         isAdmin={isAdmin}
       />
+      <PhysicalTestingSection teamId={teamId} playerId={playerId} isAdmin={isAdmin} />
     </div>
   );
 }

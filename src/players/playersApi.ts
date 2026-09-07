@@ -15,6 +15,7 @@ import {
 import { db } from '../firebase/config';
 import type { Player, SkillKey, Guardian } from '../types/player';
 import type { Team } from '../types/team';
+import type { DevelopmentPlan } from '../types/developmentPlan';
 
 const PLAYERS_PAGE_SIZE = 25;
 
@@ -112,4 +113,8 @@ export async function updatePlayerSkills(
     level,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function updatePlayerDevelopmentPlan(teamId: string, playerId: string, plan: DevelopmentPlan): Promise<void> {
+  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
 }

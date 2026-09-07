@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { getPlayer } from './playersApi';
+import { getPlayer, updatePlayerDevelopmentPlan } from './playersApi';
 import { getTeam } from '../teams/teamsApi';
 import { PlayerContactSection } from './PlayerContactSection';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { GuardiansSection } from './GuardiansSection';
+import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import type { Player } from '../types/player';
 
 export function PlayerCardPage() {
@@ -58,6 +59,13 @@ export function PlayerCardPage() {
         playerId={playerId}
         player={player}
         onPlayerUpdated={setPlayer}
+        isAdmin={isAdmin}
+      />
+      <DevelopmentPlanEditor
+        plan={player.developmentPlan}
+        onSave={(plan) =>
+          updatePlayerDevelopmentPlan(teamId, playerId, plan).then(() => setPlayer({ ...player, developmentPlan: plan }))
+        }
         isAdmin={isAdmin}
       />
     </div>

@@ -1,12 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createPlayer, listPlayers } from './playersApi';
+import { createPlayer, listPlayers, updatePlayerDevelopmentPlan } from './playersApi';
 import type { Team } from '../types/team';
 
-const { mockAddDoc, mockGetDocs, mockCollection, mockQuery } = vi.hoisted(() => ({
+const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockGetDocs: vi.fn(),
   mockCollection: vi.fn(() => 'players-collection'),
   mockQuery: vi.fn((...args: unknown[]) => args),
+  mockUpdateDoc: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -20,7 +21,7 @@ vi.mock('firebase/firestore', () => ({
   serverTimestamp: () => 'server-timestamp',
   doc: vi.fn(() => 'doc-ref'),
   getDoc: vi.fn(),
-  updateDoc: vi.fn(),
+  updateDoc: mockUpdateDoc,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -89,5 +90,26 @@ describe('playersApi', () => {
 
     expect(players).toEqual([{ id: 'player-1', fullName: 'Test Player' }]);
     expect(lastDoc).toEqual({ id: 'player-1', data: expect.any(Function) });
+  });
+
+  it('updates the player development plan', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await updatePlayerDevelopmentPlan('team-1', 'player-1', {
+      shortTermObjectives: [],
+      seasonObjectives: [{ objective: 'Make varsity', target: 'Consistent 6+ average', status: 'In progress', coachComment: '' }],
+      generalNotes: '',
+    });
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(
+      'doc-ref',
+      expect.objectContaining({
+        developmentPlan: {
+          shortTermObjectives: [],
+          seasonObjectives: [{ objective: 'Make varsity', target: 'Consistent 6+ average', status: 'In progress', coachComment: '' }],
+          generalNotes: '',
+        },
+      })
+    );
   });
 });

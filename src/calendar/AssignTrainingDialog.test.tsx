@@ -76,6 +76,14 @@ describe('AssignTrainingDialog', () => {
     expect((screen.getByLabelText(/Blocking drills/) as HTMLInputElement).checked).toBe(true);
   });
 
+  it('surfaces an alert instead of the empty state when the training list fails to load', async () => {
+    vi.mocked(trainingsApi.listTrainings).mockReset().mockRejectedValueOnce(new Error('permission-denied'));
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load trainings/i);
+    expect(screen.queryByText('No trainings available.')).not.toBeInTheDocument();
+  });
+
   it('blocks assigning when no training is selected', async () => {
     const createSpy = vi.mocked(calendarApi.createCalendarSession).mockResolvedValue('s-1');
     render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);

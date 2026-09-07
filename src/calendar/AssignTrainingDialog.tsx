@@ -24,30 +24,43 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
   const [selected, setSelected] = useState<Training | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
 
   useEffect(() => {
-    void listTrainings().then((page) => {
-      setOptions(page.trainings);
-      setOptionsLastDoc(page.lastDoc);
-      setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
-    });
+    void listTrainings()
+      .then((page) => {
+        setOptions(page.trainings);
+        setOptionsLastDoc(page.lastDoc);
+        setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+        setOptionsLoaded(true);
+      })
+      .catch(() => setError('Could not load trainings. Please try again.'));
   }, []);
 
   async function loadMoreOptions() {
     if (!optionsLastDoc) return;
-    const page = await listTrainings(optionsLastDoc);
-    setOptions((current) => [...current, ...page.trainings]);
-    setOptionsLastDoc(page.lastDoc);
-    setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+    try {
+      const page = await listTrainings(optionsLastDoc);
+      setOptions((current) => [...current, ...page.trainings]);
+      setOptionsLastDoc(page.lastDoc);
+      setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+    } catch {
+      setError('Could not load more trainings. Please try again.');
+    }
   }
 
   async function searchByBusinessId() {
     if (!businessId.trim()) return;
-    const found = await findTrainingByBusinessId(businessId.trim());
-    setOptions(found ? [found] : []);
-    setOptionsLastDoc(null);
-    setOptionsHasMore(false);
-    setSelected(found);
+    try {
+      const found = await findTrainingByBusinessId(businessId.trim());
+      setOptions(found ? [found] : []);
+      setOptionsLastDoc(null);
+      setOptionsHasMore(false);
+      setSelected(found);
+      setOptionsLoaded(true);
+    } catch {
+      setError('Could not search for that training. Please try again.');
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -113,7 +126,9 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         <fieldset className="mt-4">
           <legend className="mb-1 text-sm font-medium text-ink">Training</legend>
           <ul className="divide-y divide-border rounded-md border border-border">
-            {options.length === 0 && <li className="p-2 text-sm text-slate">No trainings available.</li>}
+            {optionsLoaded && options.length === 0 && (
+              <li className="p-2 text-sm text-slate">No trainings available.</li>
+            )}
             {options.map((training) => (
               <li key={training.id} className="p-2">
                 <label className="flex cursor-pointer items-center gap-2 text-sm">

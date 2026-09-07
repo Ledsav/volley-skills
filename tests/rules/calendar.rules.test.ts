@@ -9,6 +9,7 @@ describe('calendar rules', () => {
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
       await db.doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
+      await db.doc('teams/team-2').set({ name: 'U15', adminEmails: ['other-coach@example.com'] });
       await db.doc('teams/team-1/players/player-1').set({
         fullName: 'Test Player',
         viewerEmails: ['parent@example.com'],
@@ -73,6 +74,40 @@ describe('calendar rules', () => {
         trainingName: 'Serve & pass',
         notes: '',
         createdBy: 'someone-else',
+      })
+    );
+  });
+
+  it('isolates calendars across teams: another team admin gets nothing on team-1', async () => {
+    const env = await getTestEnv();
+    const otherDb = env
+      .authenticatedContext('other-coach-uid', { email: 'other-coach@example.com' })
+      .firestore();
+    await assertFails(otherDb.doc('teams/team-1/calendar/session-1').get());
+    await assertFails(
+      otherDb.collection('teams/team-1/calendar').add({
+        date: '2026-09-12',
+        trainingId: 't-2',
+        trainingBusinessId: 'TR-0008',
+        trainingName: 'Serve & pass',
+        notes: '',
+        createdBy: 'other-coach-uid',
+      })
+    );
+    await assertFails(otherDb.doc('teams/team-1/calendar/session-1').delete());
+  });
+
+  it('denies creating a session whose date is not a string', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertFails(
+      db.collection('teams/team-1/calendar').add({
+        date: 20260910,
+        trainingId: 't-2',
+        trainingBusinessId: 'TR-0008',
+        trainingName: 'Serve & pass',
+        notes: '',
+        createdBy: 'coach-uid',
       })
     );
   });

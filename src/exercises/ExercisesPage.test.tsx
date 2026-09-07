@@ -53,4 +53,22 @@ describe('ExercisesPage', () => {
 
     expect(await screen.findByText(/used in 2 training\(s\)/i)).toBeInTheDocument();
   });
+
+  it('surfaces an alert and hides the empty state when the first page fails to load', async () => {
+    vi.mocked(exercisesApi.listExercises).mockRejectedValueOnce(new Error('permission-denied'));
+    render(<ExercisesPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load exercises/i);
+    expect(screen.queryByText('No exercises yet.')).not.toBeInTheDocument();
+  });
+
+  it('still opens the delete confirmation when the usage count read fails', async () => {
+    vi.mocked(exercisesApi.countTrainingsUsingExercise).mockRejectedValue(new Error('offline'));
+    render(<ExercisesPage />);
+    await screen.findByText('Pepper');
+
+    fireEvent.click(screen.getByText('Delete'));
+
+    expect(await screen.findByText(/could not be determined/i)).toBeInTheDocument();
+  });
 });

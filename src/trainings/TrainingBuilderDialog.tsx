@@ -32,31 +32,41 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
 
   useEffect(() => {
     if (!training) return;
-    void getExercisesByIds(training.exercises.map((e) => e.exerciseId)).then((found) => {
-      const byId = new Map(found.map((ex) => [ex.id, ex.name]));
-      setRows(
-        training.exercises
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map((e) => ({ ...e, name: byId.get(e.exerciseId) ?? null }))
-      );
-    });
+    void getExercisesByIds(training.exercises.map((e) => e.exerciseId))
+      .then((found) => {
+        const byId = new Map(found.map((ex) => [ex.id, ex.name]));
+        setRows(
+          training.exercises
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((e) => ({ ...e, name: byId.get(e.exerciseId) ?? null }))
+        );
+      })
+      .catch(() => setError('Could not load the exercises for this training. Please reopen the dialog.'));
   }, [training]);
 
   async function openPicker() {
     setPickerOpen(true);
-    const page = await listExercises();
-    setPicker(page.exercises);
-    setPickerLastDoc(page.lastDoc);
-    setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    try {
+      const page = await listExercises();
+      setPicker(page.exercises);
+      setPickerLastDoc(page.lastDoc);
+      setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    } catch {
+      setError('Could not load exercises to pick from. Please try again.');
+    }
   }
 
   async function loadMorePicker() {
     if (!pickerLastDoc) return;
-    const page = await listExercises(pickerLastDoc);
-    setPicker((current) => [...current, ...page.exercises]);
-    setPickerLastDoc(page.lastDoc);
-    setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    try {
+      const page = await listExercises(pickerLastDoc);
+      setPicker((current) => [...current, ...page.exercises]);
+      setPickerLastDoc(page.lastDoc);
+      setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    } catch {
+      setError('Could not load more exercises. Please try again.');
+    }
   }
 
   function addExercise(exercise: Exercise) {

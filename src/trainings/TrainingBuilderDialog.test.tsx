@@ -142,6 +142,39 @@ describe('TrainingBuilderDialog', () => {
     );
   });
 
+  it('surfaces an alert when the edit-mode exercise lookup fails', async () => {
+    vi.mocked(exercisesApi.getExercisesByIds).mockReset().mockRejectedValueOnce(new Error('permission-denied'));
+    render(
+      <TrainingBuilderDialog
+        training={{
+          id: 't-1',
+          businessId: 'TR-0007',
+          name: 'Circuit',
+          description: '',
+          ageGroupTarget: 'U17',
+          exercises: [{ exerciseId: 'ex-1', order: 1, durationMinutes: 10 }],
+          exerciseIds: ['ex-1'],
+          createdBy: 'x',
+          createdAt: null,
+        }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load the exercises for this training/i);
+  });
+
+  it('surfaces an alert when opening the exercise picker fails', async () => {
+    vi.mocked(exercisesApi.listExercises).mockReset().mockRejectedValueOnce(new Error('permission-denied'));
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
+
+    fireEvent.click(screen.getByText('Add exercise'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load exercises to pick from/i);
+  });
+
   it('removes a row', async () => {
     render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });

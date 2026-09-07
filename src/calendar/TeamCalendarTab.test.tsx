@@ -61,6 +61,32 @@ describe('TeamCalendarTab', () => {
     );
   });
 
+  it('shows an alert but keeps the grid when the session query fails', async () => {
+    vi.mocked(calendarApi.listCalendarSessions).mockReset().mockRejectedValueOnce(new Error('permission-denied'));
+    render(
+      <MemoryRouter>
+        <TeamCalendarTab teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load calendar sessions/i);
+    expect(screen.getByText('Mon')).toBeInTheDocument();
+  });
+
+  it('offers no assign affordance on out-of-month padding cells', async () => {
+    render(
+      <MemoryRouter>
+        <TeamCalendarTab teamId="team-1" />
+      </MemoryRouter>
+    );
+    await screen.findByText('TR-0007 · Passing circuit');
+
+    // Viewing September 2026: Aug 31 and Oct 1 are adjacent-month padding cells.
+    expect(screen.queryByLabelText('Assign training on 2026-08-31')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Assign training on 2026-10-01')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Assign training on 2026-09-15')).toBeInTheDocument();
+  });
+
   it('removes a session after confirmation', async () => {
     vi.mocked(calendarApi.deleteCalendarSession).mockResolvedValue(undefined);
     render(

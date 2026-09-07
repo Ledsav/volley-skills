@@ -15,6 +15,7 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
   const [assignDate, setAssignDate] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarSession | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { start, end } = monthRange(view.year, view.month);
@@ -22,7 +23,8 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
   }, [teamId, view]);
 
   useEffect(() => {
-    void load();
+    setError(null);
+    load().catch(() => setError('Could not load calendar sessions. Please refresh the page.'));
   }, [load]);
 
   const grid = buildMonthGrid(view.year, view.month);
@@ -65,6 +67,12 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
         </button>
       </div>
 
+      {error && (
+        <p role="alert" className="mb-3 text-sm text-red">
+          {error}
+        </p>
+      )}
+
       <div className="grid grid-cols-7 gap-px rounded-lg border border-border bg-border text-sm">
         {WEEKDAYS.map((d) => (
           <div key={d} className="bg-surface px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate">
@@ -76,35 +84,46 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
             key={cell.date}
             className={`min-h-24 bg-surface p-1 ${cell.inMonth ? '' : 'opacity-40'}`}
           >
-            <button
-              type="button"
-              onClick={() => setAssignDate(cell.date)}
-              className="block w-full text-right text-xs tabular-nums text-slate hover:text-blue"
-              aria-label={`Assign training on ${cell.date}`}
-            >
-              {Number(cell.date.slice(-2))}
-            </button>
-            <ul className="mt-1 space-y-1">
-              {(sessionsByDate[cell.date] ?? []).map((session) => (
-                <li key={session.id} className="flex items-center gap-1 rounded-sm bg-blue/10 px-1 py-0.5 text-xs">
-                  <Link
-                    to={`/trainings?businessId=${session.trainingBusinessId}`}
-                    className="flex-1 truncate text-blue hover:underline"
-                    title={`${session.trainingBusinessId} · ${session.trainingName}`}
-                  >
-                    {session.trainingBusinessId} · {session.trainingName}
-                  </Link>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${session.trainingBusinessId} on ${session.date}`}
-                    onClick={() => { setDeleteError(null); setPendingDelete(session); }}
-                    className="text-red hover:text-red-strong"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {cell.inMonth ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setAssignDate(cell.date)}
+                  className="block w-full text-right text-xs tabular-nums text-slate hover:text-blue"
+                  aria-label={`Assign training on ${cell.date}`}
+                >
+                  {Number(cell.date.slice(-2))}
+                </button>
+                <ul className="mt-1 space-y-1">
+                  {(sessionsByDate[cell.date] ?? []).map((session) => (
+                    <li key={session.id} className="flex items-center gap-1 rounded-sm bg-blue/10 px-1 py-0.5 text-xs">
+                      <Link
+                        to={`/trainings?businessId=${session.trainingBusinessId}`}
+                        className="flex-1 truncate text-blue hover:underline"
+                        title={`${session.trainingBusinessId} · ${session.trainingName}`}
+                      >
+                        {session.trainingBusinessId} · {session.trainingName}
+                      </Link>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${session.trainingBusinessId} on ${session.date}`}
+                        onClick={() => { setDeleteError(null); setPendingDelete(session); }}
+                        className="text-red hover:text-red-strong"
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <span
+                aria-hidden="true"
+                className="block w-full text-right text-xs tabular-nums text-slate"
+              >
+                {Number(cell.date.slice(-2))}
+              </span>
+            )}
           </div>
         ))}
       </div>

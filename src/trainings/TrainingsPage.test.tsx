@@ -62,6 +62,14 @@ describe('TrainingsPage', () => {
     expect((screen.getByLabelText('Business ID') as HTMLInputElement).value).toBe('TR-0007');
   });
 
+  it('surfaces an alert and hides the empty state when the list query fails', async () => {
+    vi.mocked(trainingsApi.listTrainings).mockRejectedValueOnce(new Error('permission-denied'));
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load trainings/i);
+    expect(screen.queryByText('No trainings found.')).not.toBeInTheDocument();
+  });
+
   it('confirms before deleting a training', async () => {
     vi.mocked(trainingsApi.deleteTraining).mockResolvedValue(undefined);
     renderPage();

@@ -60,6 +60,23 @@ describe('trainings and counters rules', () => {
     await assertFails(db.doc('trainings/training-1').delete());
   });
 
+  it('denies a viewer-role user creating or updating a training with an otherwise valid shape', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
+    await assertFails(
+      db.collection('trainings').add({
+        businessId: 'TR-0003',
+        name: 'Serve & pass',
+        description: '',
+        ageGroupTarget: 'U15',
+        exercises: [],
+        exerciseIds: [],
+        createdBy: 'viewer-uid',
+      })
+    );
+    await assertFails(db.doc('trainings/training-1').update({ name: 'x' }));
+  });
+
   it('lets a global admin read and write the counter, denies a non-admin', async () => {
     const env = await getTestEnv();
     const adminDb = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();

@@ -61,6 +61,13 @@ describe('exercises rules', () => {
     );
   });
 
+  it('denies an admin update that violates the category or name validation', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    await assertFails(db.doc('exercises/ex-1').update({ category: 'nonsense' }));
+    await assertFails(db.doc('exercises/ex-1').update({ name: '' }));
+  });
+
   it('denies creating an exercise whose createdBy is not the caller', async () => {
     const env = await getTestEnv();
     const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();

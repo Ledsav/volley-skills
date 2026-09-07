@@ -10,11 +10,17 @@ const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
   EXERCISE_CATEGORIES.map((c) => [c.key, c.label])
 ) as Record<ExerciseCategory, string>;
 
+// Sentinel for askDelete when the usage count read fails: the confirm dialog
+// still opens, but the message says the count could not be determined.
+const USAGE_UNKNOWN = -1;
+
 export function ExercisesPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [category, setCategory] = useState<ExerciseCategory | ''>('');
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; exercise: Exercise } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ exercise: Exercise; usageCount: number } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -24,6 +30,7 @@ export function ExercisesPage() {
     setExercises(page.exercises);
     setLastDoc(page.lastDoc);
     setHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    setLoaded(true);
   }
 
   async function loadMore() {
@@ -35,13 +42,20 @@ export function ExercisesPage() {
   }
 
   useEffect(() => {
-    void loadFirstPage();
+    setError(null);
+    setLoaded(false);
+    loadFirstPage().catch(() => setError('Could not load exercises. Please refresh the page.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
   async function askDelete(exercise: Exercise) {
-    const usageCount = await countTrainingsUsingExercise(exercise.id);
     setDeleteError(null);
+    let usageCount = USAGE_UNKNOWN;
+    try {
+      usageCount = await countTrainingsUsingExercise(exercise.id);
+    } catch {
+      usageCount = USAGE_UNKNOWN;
+    }
     setPendingDelete({ exercise, usageCount });
   }
 
@@ -83,8 +97,14 @@ export function ExercisesPage() {
         ))}
       </select>
 
+      {error && (
+        <p role="alert" className="mb-4 text-red">
+          {error}
+        </p>
+      )}
+
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        {exercises.length === 0 && <p className="p-4 text-slate">No exercises yet.</p>}
+        {loaded && exercises.length === 0 && <p className="p-4 text-slate">No exercises yet.</p>}
         {exercises.map((exercise) => (
           <div key={exercise.id} className="flex items-start justify-between gap-4 p-4">
             <button
@@ -108,7 +128,12 @@ export function ExercisesPage() {
       </div>
 
       {hasMore && (
-        <Button variant="secondary" size="sm" onClick={() => void loadMore()} className="mt-4">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => loadMore().catch(() => setError('Could not load more exercises. Please try again.'))}
+          className="mt-4"
+        >
           Load more
         </Button>
       )}
@@ -128,9 +153,11 @@ export function ExercisesPage() {
         <ConfirmDialog
           title={`Delete ${pendingDelete.exercise.name}?`}
           message={
-            pendingDelete.usageCount > 0
-              ? `This exercise is used in ${pendingDelete.usageCount} training(s). Deleting it will leave those trainings with a missing exercise entry.`
-              : 'This exercise is not used in any training.'
+            pendingDelete.usageCount === USAGE_UNKNOWN
+              ? 'The number of trainings using this exercise could not be determined. Deleting it may leave some trainings with a missing exercise entry.'
+              : pendingDelete.usageCount > 0
+                ? `This exercise is used in ${pendingDelete.usageCount} training(s). Deleting it will leave those trainings with a missing exercise entry.`
+                : 'This exercise is not used in any training.'
           }
           confirmLabel="Yes, delete exercise"
           onConfirm={() => void confirmDelete()}

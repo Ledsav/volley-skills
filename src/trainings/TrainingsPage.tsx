@@ -18,6 +18,8 @@ export function TrainingsPage() {
   const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; training: Training } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Training | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     if (businessId.trim()) {
@@ -25,12 +27,14 @@ export function TrainingsPage() {
       setTrainings(found ? [found] : []);
       setLastDoc(null);
       setHasMore(false);
+      setLoaded(true);
       return;
     }
     const page = await listTrainings(null, ageGroup.trim() ? { ageGroupTarget: ageGroup.trim() } : {});
     setTrainings(page.trainings);
     setLastDoc(page.lastDoc);
     setHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+    setLoaded(true);
   }
 
   async function loadMore() {
@@ -42,7 +46,9 @@ export function TrainingsPage() {
   }
 
   useEffect(() => {
-    void load();
+    setError(null);
+    setLoaded(false);
+    load().catch(() => setError('Could not load trainings. Please refresh the page.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ageGroup, businessId]);
 
@@ -88,8 +94,14 @@ export function TrainingsPage() {
         </div>
       </div>
 
+      {error && (
+        <p role="alert" className="mb-4 text-red">
+          {error}
+        </p>
+      )}
+
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        {trainings.length === 0 && <p className="p-4 text-slate">No trainings found.</p>}
+        {loaded && trainings.length === 0 && <p className="p-4 text-slate">No trainings found.</p>}
         {trainings.map((training) => (
           <div key={training.id} className="flex items-center justify-between gap-4 p-4">
             <button type="button" onClick={() => setDialog({ mode: 'edit', training })} className="text-left">
@@ -108,7 +120,12 @@ export function TrainingsPage() {
       </div>
 
       {hasMore && (
-        <Button variant="secondary" size="sm" onClick={() => void loadMore()} className="mt-4">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => loadMore().catch(() => setError('Could not load more trainings. Please try again.'))}
+          className="mt-4"
+        >
           Load more
         </Button>
       )}

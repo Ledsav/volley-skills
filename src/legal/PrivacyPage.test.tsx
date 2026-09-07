@@ -20,5 +20,7 @@ describe('PrivacyPage', () => {
     expect(screen.getByRole('heading', { name: 'Retention' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Your rights and data requests' })).toBeInTheDocument();
     expect(screen.getByText(/parent or legal guardian is the party who gives consent/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Security' })).toBeInTheDocument();
+    expect(screen.getByText(/\[insert the club's data-request contact address\]/)).toBeInTheDocument();
   });
 });

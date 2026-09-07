@@ -48,6 +48,11 @@ export function GuardiansSection({ teamId, playerId, player, onPlayerUpdated, is
     setEditing(false);
   }
 
+  function handleCancel() {
+    setGuardians(player.guardians);
+    setEditing(false);
+  }
+
   if (!editing || !isAdmin) {
     return (
       <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
@@ -133,7 +138,7 @@ export function GuardiansSection({ teamId, playerId, player, onPlayerUpdated, is
         <Button variant="primary" type="submit">
           Save
         </Button>
-        <Button variant="ghost" onClick={() => setEditing(false)}>
+        <Button variant="ghost" onClick={handleCancel}>
           Cancel
         </Button>
       </div>

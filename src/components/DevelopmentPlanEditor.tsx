@@ -55,6 +55,13 @@ export function DevelopmentPlanEditor({ plan, onSave, isAdmin }: DevelopmentPlan
     setEditing(false);
   }
 
+  function handleCancel() {
+    setShortTermObjectives(plan.shortTermObjectives);
+    setSeasonObjectives(plan.seasonObjectives);
+    setGeneralNotes(plan.generalNotes);
+    setEditing(false);
+  }
+
   if (!editing || !isAdmin) {
     return (
       <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
@@ -224,7 +231,7 @@ export function DevelopmentPlanEditor({ plan, onSave, isAdmin }: DevelopmentPlan
         <Button variant="primary" type="submit">
           Save
         </Button>
-        <Button variant="ghost" onClick={() => setEditing(false)}>
+        <Button variant="ghost" onClick={handleCancel}>
           Cancel
         </Button>
       </div>

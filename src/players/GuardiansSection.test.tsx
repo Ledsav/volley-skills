@@ -79,4 +79,17 @@ describe('GuardiansSection', () => {
       })
     );
   });
+
+  it('discards edits when Cancel is clicked, instead of leaving them for the next edit session', () => {
+    render(
+      <GuardiansSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} isAdmin={true} />
+    );
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText('Guardian phone'), { target: { value: '+352 999 999' } });
+    fireEvent.click(screen.getByText('Cancel'));
+
+    fireEvent.click(screen.getByText('Edit'));
+    expect(screen.getByLabelText('Guardian phone')).toHaveValue('+352 000 000');
+  });
 });

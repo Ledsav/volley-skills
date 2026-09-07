@@ -51,4 +51,20 @@ describe('DevelopmentPlanEditor', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not save');
   });
+
+  it('discards edits when Cancel is clicked, instead of leaving them for the next edit session', () => {
+    const plan: DevelopmentPlan = {
+      shortTermObjectives: [{ objective: 'Improve serve', targetDate: '2026-12-01', status: 'Not started', coachComment: '' }],
+      seasonObjectives: [],
+      generalNotes: 'Original notes',
+    };
+    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={true} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText('Objective'), { target: { value: 'Abandoned edit' } });
+    fireEvent.click(screen.getByText('Cancel'));
+
+    fireEvent.click(screen.getByText('Edit'));
+    expect(screen.getByLabelText('Objective')).toHaveValue('Improve serve');
+  });
 });

@@ -20,7 +20,7 @@ export function PlayerCardPage() {
   useEffect(() => {
     if (!teamId || !playerId) return;
     setError(null);
-    void Promise.all([getPlayer(teamId, playerId), getTeam(teamId)])
+    void Promise.all([getPlayer(teamId, playerId), getTeam(teamId).catch(() => null)])
       .then(([fetchedPlayer, fetchedTeam]) => {
         setPlayer(fetchedPlayer);
         setIsAdmin(Boolean(firebaseUser?.email && fetchedTeam?.adminEmails.includes(firebaseUser.email)));

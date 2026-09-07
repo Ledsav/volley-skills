@@ -2,32 +2,11 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { getLatestByType } from './physicalTestsApi';
+import { formatPhysicalTestSummary } from './physicalTestFormat';
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
+import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
 import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER } from '../types/physicalTest';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
-
-function formatSummary(test: PhysicalTest): string {
-  switch (test.testType) {
-    case 'growth':
-      return `${test.heightCm} cm, ${test.bodyMassKg} kg`;
-    case 'cmj':
-      return `${test.bestCm} cm`;
-    case 'approachJump':
-      return `${test.approachJumpCm} cm (touch ${test.bestTouchCm} cm)`;
-    case 'broadJump':
-      return `${test.bestCm} cm`;
-    case 'sprint10m':
-      return `${test.bestSeconds} s`;
-    case 'shuttle5105':
-      return `R ${test.rightFirstSeconds}s / L ${test.leftFirstSeconds}s`;
-    case 'reaction':
-      return `${test.reactionTimeMs.toFixed(0)} ms`;
-    case 'strength':
-      return test.mode === 'weighted'
-        ? `${test.weightKg} kg (${test.bodyMassRatio !== null ? test.bodyMassRatio.toFixed(2) : '—'})`
-        : `${test.reps} reps`;
-  }
-}
 
 interface PhysicalTestingSectionProps {
   teamId: string;
@@ -39,6 +18,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
   const { firebaseUser } = useAuth();
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [activeDialogType, setActiveDialogType] = useState<PhysicalTestType | null>(null);
+  const [historyType, setHistoryType] = useState<PhysicalTestType | null>(null);
 
   async function loadAll() {
     const entries = await Promise.all(PHYSICAL_TEST_ORDER.map((t) => getLatestByType(teamId, playerId, t)));
@@ -64,13 +44,18 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
             <li key={testType} className="flex items-center justify-between py-3">
               <div>
                 <p className="font-medium text-ink">{PHYSICAL_TEST_LABELS[testType]}</p>
-                <p className="text-sm text-slate">{latest ? `${formatSummary(latest)} — ${latest.date}` : 'No data yet'}</p>
+                <p className="text-sm text-slate">{latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : 'No data yet'}</p>
               </div>
-              {isAdmin && (
-                <Button variant="secondary" size="sm" onClick={() => setActiveDialogType(testType)}>
-                  Add new
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setHistoryType(testType)}>
+                  View history
                 </Button>
-              )}
+                {isAdmin && (
+                  <Button variant="secondary" size="sm" onClick={() => setActiveDialogType(testType)}>
+                    Add new
+                  </Button>
+                )}
+              </div>
             </li>
           );
         })}
@@ -87,6 +72,9 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
             void loadAll();
           }}
         />
+      )}
+      {historyType && (
+        <PhysicalTestHistoryList teamId={teamId} playerId={playerId} testType={historyType} onClose={() => setHistoryType(null)} />
       )}
     </section>
   );

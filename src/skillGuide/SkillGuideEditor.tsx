@@ -5,7 +5,7 @@ import { Textarea } from '../components/Input';
 import { getSkillGuide, updateSkillGuide } from './skillGuideApi';
 import type { SkillGuideEntry } from '../types/skillGuide';
 
-export function SkillGuidePage() {
+export function SkillGuideEditor() {
   const { firebaseUser } = useAuth();
   const [skills, setSkills] = useState<SkillGuideEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -54,8 +54,7 @@ export function SkillGuidePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
-      <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">Skill Guide</h1>
+    <div>
       <div className="space-y-6">
         {skills.map((skill) => (
           <section key={skill.key} className="rounded-lg border border-border bg-surface p-6 shadow-card">

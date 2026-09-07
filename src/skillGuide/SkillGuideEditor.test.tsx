@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { SkillGuidePage } from './SkillGuidePage';
+import { SkillGuideEditor } from './SkillGuideEditor';
 import * as skillGuideApi from './skillGuideApi';
 import { useAuth } from '../auth/AuthContext';
 
@@ -8,7 +8,7 @@ vi.mock('./skillGuideApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 
-describe('SkillGuidePage', () => {
+describe('SkillGuideEditor', () => {
   it('loads the guide, edits a range description, and saves', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid' } as never,
@@ -30,7 +30,7 @@ describe('SkillGuidePage', () => {
     });
     const updateSpy = vi.spyOn(skillGuideApi, 'updateSkillGuide').mockResolvedValue(undefined);
 
-    render(<SkillGuidePage />);
+    render(<SkillGuideEditor />);
 
     await screen.findByText('Serve');
     fireEvent.change(screen.getByLabelText('1-3'), { target: { value: 'Updated description' } });
@@ -70,7 +70,7 @@ describe('SkillGuidePage', () => {
     });
     vi.spyOn(skillGuideApi, 'updateSkillGuide').mockRejectedValue({ code: 'permission-denied' });
 
-    render(<SkillGuidePage />);
+    render(<SkillGuideEditor />);
 
     await screen.findByText('Serve');
     fireEvent.click(screen.getByText('Save'));
@@ -87,7 +87,7 @@ describe('SkillGuidePage', () => {
     });
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockRejectedValue({ code: 'unavailable' });
 
-    render(<SkillGuidePage />);
+    render(<SkillGuideEditor />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the skill guide.');
     expect(screen.queryByText('Save')).not.toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('SkillGuidePage', () => {
     });
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockReturnValue(pending as ReturnType<typeof skillGuideApi.getSkillGuide>);
 
-    render(<SkillGuidePage />);
+    render(<SkillGuideEditor />);
 
     expect(screen.getByText('Save')).toBeDisabled();
 

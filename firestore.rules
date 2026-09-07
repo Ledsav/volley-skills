@@ -20,6 +20,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /exercises/{exerciseId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.category in
+           ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
+      allow update: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.category in
+           ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
+      allow delete: if isAdmin();
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null

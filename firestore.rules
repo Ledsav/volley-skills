@@ -69,6 +69,16 @@ service cloud.firestore {
         );
         allow create, update: if request.auth != null && isTeamAdmin() && validSkills(request.resource.data.skills);
         allow delete: if false;
+
+        match /physicalTests/{testId} {
+          allow read: if request.auth != null && (
+            isTeamAdmin() ||
+            request.auth.token.email in
+              get(/databases/$(database)/documents/teams/$(teamId)/players/$(playerId)).data.viewerEmails
+          );
+          allow create, update: if request.auth != null && isTeamAdmin();
+          allow delete: if false;
+        }
       }
     }
   }

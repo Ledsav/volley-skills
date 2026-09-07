@@ -7,6 +7,14 @@
         { "fieldPath": "adminEmails", "arrayConfig": "CONTAINS" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "physicalTests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "testType", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

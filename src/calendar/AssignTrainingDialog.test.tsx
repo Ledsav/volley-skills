@@ -58,6 +58,24 @@ describe('AssignTrainingDialog', () => {
     );
   });
 
+  it('pages the training picker with Load more', async () => {
+    const page2Training = { ...training, id: 't-2', businessId: 'TR-0042', name: 'Blocking drills' };
+    const page1LastDoc = { id: 'cursor-1' } as never;
+    vi.mocked(trainingsApi.listTrainings)
+      .mockReset()
+      .mockResolvedValueOnce({ trainings: [training], lastDoc: page1LastDoc })
+      .mockResolvedValueOnce({ trainings: [page2Training], lastDoc: null });
+
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    await screen.findByLabelText(/Passing circuit/);
+    fireEvent.click(screen.getByText('Load more'));
+
+    await waitFor(() => expect(trainingsApi.listTrainings).toHaveBeenCalledWith(page1LastDoc));
+    fireEvent.click(await screen.findByLabelText(/Blocking drills/));
+    expect((screen.getByLabelText(/Blocking drills/) as HTMLInputElement).checked).toBe(true);
+  });
+
   it('blocks assigning when no training is selected', async () => {
     const createSpy = vi.mocked(calendarApi.createCalendarSession).mockResolvedValue('s-1');
     render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { TrainingsPage } from './TrainingsPage';
 import * as trainingsApi from './trainingsApi';
@@ -21,6 +22,16 @@ const training = {
   createdAt: null,
 };
 
+function renderPage(initialEntry = '/trainings') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route path="/trainings" element={<TrainingsPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 describe('TrainingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,13 +40,13 @@ describe('TrainingsPage', () => {
   });
 
   it('lists trainings from the paginated query by default', async () => {
-    render(<TrainingsPage />);
+    renderPage();
     expect(await screen.findByText('Passing circuit')).toBeInTheDocument();
     expect(screen.getByText('TR-0007')).toBeInTheDocument();
   });
 
   it('switches to the single business-id lookup when that field is filled', async () => {
-    render(<TrainingsPage />);
+    renderPage();
     await screen.findByText('Passing circuit');
 
     fireEvent.change(screen.getByLabelText('Business ID'), { target: { value: 'TR-0007' } });
@@ -43,9 +54,17 @@ describe('TrainingsPage', () => {
     await waitFor(() => expect(trainingsApi.findTrainingByBusinessId).toHaveBeenCalledWith('TR-0007'));
   });
 
+  it('seeds the business-id filter from the ?businessId= query param', async () => {
+    renderPage('/trainings?businessId=TR-0007');
+
+    await waitFor(() => expect(trainingsApi.findTrainingByBusinessId).toHaveBeenCalledWith('TR-0007'));
+    expect(await screen.findByText('Passing circuit')).toBeInTheDocument();
+    expect((screen.getByLabelText('Business ID') as HTMLInputElement).value).toBe('TR-0007');
+  });
+
   it('confirms before deleting a training', async () => {
     vi.mocked(trainingsApi.deleteTraining).mockResolvedValue(undefined);
-    render(<TrainingsPage />);
+    renderPage();
     await screen.findByText('Passing circuit');
 
     fireEvent.click(screen.getByText('Delete'));

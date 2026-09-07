@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
@@ -17,19 +18,35 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
   const { firebaseUser } = useAuth();
   const [sessionDate, setSessionDate] = useState(date);
   const [options, setOptions] = useState<Training[]>([]);
+  const [optionsLastDoc, setOptionsLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [optionsHasMore, setOptionsHasMore] = useState(false);
   const [businessId, setBusinessId] = useState('');
   const [selected, setSelected] = useState<Training | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void listTrainings().then((page) => setOptions(page.trainings));
+    void listTrainings().then((page) => {
+      setOptions(page.trainings);
+      setOptionsLastDoc(page.lastDoc);
+      setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+    });
   }, []);
+
+  async function loadMoreOptions() {
+    if (!optionsLastDoc) return;
+    const page = await listTrainings(optionsLastDoc);
+    setOptions((current) => [...current, ...page.trainings]);
+    setOptionsLastDoc(page.lastDoc);
+    setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+  }
 
   async function searchByBusinessId() {
     if (!businessId.trim()) return;
     const found = await findTrainingByBusinessId(businessId.trim());
     setOptions(found ? [found] : []);
+    setOptionsLastDoc(null);
+    setOptionsHasMore(false);
     setSelected(found);
   }
 
@@ -112,6 +129,16 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
               </li>
             ))}
           </ul>
+          {optionsHasMore && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void loadMoreOptions()}
+              className="mt-2"
+            >
+              Load more
+            </Button>
+          )}
         </fieldset>
 
         <label htmlFor="session-notes" className="mb-1 mt-4 block text-sm font-medium text-ink">

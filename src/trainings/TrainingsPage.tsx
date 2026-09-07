@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -8,11 +9,12 @@ import { deleteTraining, findTrainingByBusinessId, listTrainings } from './train
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 
 export function TrainingsPage() {
+  const [searchParams] = useSearchParams();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [ageGroup, setAgeGroup] = useState('');
-  const [businessId, setBusinessId] = useState('');
+  const [businessId, setBusinessId] = useState(() => searchParams.get('businessId') ?? '');
   const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; training: Training } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Training | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);

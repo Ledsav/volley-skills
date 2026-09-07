@@ -95,6 +95,10 @@ export async function updatePlayerContact(
   await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { ...updates, updatedAt: serverTimestamp() });
 }
 
+export async function updatePlayerGuardians(teamId: string, playerId: string, guardians: Guardian[]): Promise<void> {
+  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { guardians, updatedAt: serverTimestamp() });
+}
+
 export async function updatePlayerSkills(
   teamId: string,
   playerId: string,

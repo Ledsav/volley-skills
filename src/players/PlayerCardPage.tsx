@@ -5,6 +5,7 @@ import { getPlayer } from './playersApi';
 import { getTeam } from '../teams/teamsApi';
 import { PlayerContactSection } from './PlayerContactSection';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
+import { GuardiansSection } from './GuardiansSection';
 import type { Player } from '../types/player';
 
 export function PlayerCardPage() {
@@ -46,6 +47,13 @@ export function PlayerCardPage() {
         isAdmin={isAdmin}
       />
       <PlayerSkillsSection
+        teamId={teamId}
+        playerId={playerId}
+        player={player}
+        onPlayerUpdated={setPlayer}
+        isAdmin={isAdmin}
+      />
+      <GuardiansSection
         teamId={teamId}
         playerId={playerId}
         player={player}

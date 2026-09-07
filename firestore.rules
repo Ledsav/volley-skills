@@ -130,6 +130,19 @@ service cloud.firestore {
           allow delete: if request.auth != null && isTeamAdmin();
         }
       }
+
+      match /calendar/{sessionId} {
+        function isTeamAdmin() {
+          return request.auth != null && request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
+        }
+        allow read: if isTeamAdmin();
+        allow create: if isTeamAdmin()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.date is string;
+        allow update: if false;
+        allow delete: if isTeamAdmin();
+      }
     }
   }
 }

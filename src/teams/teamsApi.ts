@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import type { Team } from '../types/team';
+import type { DevelopmentPlan } from '../types/developmentPlan';
 
 const TEAMS_PAGE_SIZE = 20;
 
@@ -73,4 +74,8 @@ export async function updateTeamInfo(
   updates: Partial<Pick<Team, 'name' | 'description' | 'notes'>>
 ): Promise<void> {
   await updateDoc(doc(db, 'teams', teamId), updates);
+}
+
+export async function updateTeamDevelopmentPlan(teamId: string, plan: DevelopmentPlan): Promise<void> {
+  await updateDoc(doc(db, 'teams', teamId), { developmentPlan: plan });
 }

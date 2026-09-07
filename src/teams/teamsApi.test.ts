@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createTeam, listMyTeams } from './teamsApi';
+import { createTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
 
-const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit } = vi.hoisted(() => ({
+const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockCollection: vi.fn(() => 'teams-collection'),
   mockGetDocs: vi.fn(),
@@ -9,6 +9,7 @@ const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrder
   mockWhere: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
   mockOrderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
   mockLimit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
+  mockUpdateDoc: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -22,7 +23,7 @@ vi.mock('firebase/firestore', () => ({
   serverTimestamp: () => 'server-timestamp',
   doc: vi.fn(() => 'doc-ref'),
   getDoc: vi.fn(),
-  updateDoc: vi.fn(),
+  updateDoc: mockUpdateDoc,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -62,5 +63,23 @@ describe('teamsApi', () => {
     expect(teams).toEqual([{ id: 'team-1', name: 'U17' }]);
     expect(lastDoc).toEqual({ id: 'team-1', data: expect.any(Function) });
     expect(mockWhere).toHaveBeenCalledWith('adminEmails', 'array-contains', 'coach@example.com');
+  });
+
+  it('updates the team development plan', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await updateTeamDevelopmentPlan('team-1', {
+      shortTermObjectives: [{ objective: 'Improve serve', targetDate: '2026-12-01', status: 'Active', coachComment: '' }],
+      seasonObjectives: [],
+      generalNotes: 'On track',
+    });
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', {
+      developmentPlan: {
+        shortTermObjectives: [{ objective: 'Improve serve', targetDate: '2026-12-01', status: 'Active', coachComment: '' }],
+        seasonObjectives: [],
+        generalNotes: 'On track',
+      },
+    });
   });
 });

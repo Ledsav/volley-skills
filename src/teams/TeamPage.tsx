@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getTeam } from './teamsApi';
+import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
 import { AddPlayerDialog } from '../players/AddPlayerDialog';
 import { Button } from '../components/Button';
+import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import type { Team } from '../types/team';
 
-type Tab = 'overview' | 'settings';
+type Tab = 'overview' | 'plan' | 'settings';
 
 const tabClass = (active: boolean) =>
   `border-b-2 px-1 py-3 text-sm font-medium ${
@@ -50,6 +51,9 @@ export function TeamPage() {
           <button onClick={() => setTab('overview')} className={tabClass(tab === 'overview')}>
             Overview
           </button>
+          <button onClick={() => setTab('plan')} className={tabClass(tab === 'plan')}>
+            Development Plan
+          </button>
           <button onClick={() => setTab('settings')} className={tabClass(tab === 'settings')}>
             Settings
           </button>
@@ -65,6 +69,13 @@ export function TeamPage() {
               </div>
               <TeamRosterTable key={rosterRefreshKey} teamId={teamId} />
             </>
+          )}
+          {tab === 'plan' && (
+            <DevelopmentPlanEditor
+              plan={team.developmentPlan}
+              onSave={(plan) => updateTeamDevelopmentPlan(teamId, plan).then(() => setTeam({ ...team, developmentPlan: plan }))}
+              isAdmin={true}
+            />
           )}
           {tab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
         </div>

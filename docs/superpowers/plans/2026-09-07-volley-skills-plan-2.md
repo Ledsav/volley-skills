@@ -2412,7 +2412,7 @@ export function computeBodyMassRatio(weightKg: number, bodyMassKg: number): numb
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/players/physicalTestMath.test.ts`
-Expected: PASS (6 tests).
+Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 

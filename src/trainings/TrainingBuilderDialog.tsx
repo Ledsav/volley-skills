@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
@@ -25,6 +26,8 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   const [rows, setRows] = useState<Row[]>([]);
   const [picker, setPicker] = useState<Exercise[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerLastDoc, setPickerLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [pickerHasMore, setPickerHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +47,16 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
     setPickerOpen(true);
     const page = await listExercises();
     setPicker(page.exercises);
+    setPickerLastDoc(page.lastDoc);
+    setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+  }
+
+  async function loadMorePicker() {
+    if (!pickerLastDoc) return;
+    const page = await listExercises(pickerLastDoc);
+    setPicker((current) => [...current, ...page.exercises]);
+    setPickerLastDoc(page.lastDoc);
+    setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
   }
 
   function addExercise(exercise: Exercise) {
@@ -196,6 +209,16 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                   </li>
                 ))}
               </ul>
+              {pickerHasMore && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void loadMorePicker()}
+                  className="mt-2"
+                >
+                  Load more
+                </Button>
+              )}
             </div>
           ) : (
             <Button variant="secondary" size="sm" onClick={() => void openPicker()} className="mt-2">

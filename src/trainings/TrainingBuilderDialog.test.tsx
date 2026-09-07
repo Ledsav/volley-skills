@@ -108,6 +108,40 @@ describe('TrainingBuilderDialog', () => {
     expect(screen.getByText('⚠ Deleted exercise')).toBeInTheDocument();
   });
 
+  it('paginates the exercise picker with Load more', async () => {
+    const exThree = {
+      id: 'ex-3',
+      name: 'Block footwork',
+      description: '',
+      category: 'defense' as const,
+      createdBy: 'x',
+      createdAt: null,
+    };
+    const firstPageLastDoc = { id: 'cursor-1' } as never;
+    vi.mocked(exercisesApi.listExercises)
+      .mockResolvedValueOnce({ exercises: [exOne, exTwo], lastDoc: firstPageLastDoc })
+      .mockResolvedValueOnce({ exercises: [exThree], lastDoc: null });
+    const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
+
+    fireEvent.click(screen.getByText('Add exercise'));
+    await screen.findByText('Pepper');
+    expect(screen.queryByText('Block footwork')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Load more'));
+
+    await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(firstPageLastDoc));
+
+    fireEvent.click(await screen.findByText('Block footwork'));
+
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() =>
+      expect(createSpy.mock.calls[0][0].exercises).toEqual([{ exerciseId: 'ex-3', order: 1, durationMinutes: 10 }])
+    );
+  });
+
   it('removes a row', async () => {
     render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });

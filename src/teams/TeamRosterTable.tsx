@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
 import { listPlayers } from '../players/playersApi';
-import type { Level, Player, SkillKey } from '../types/player';
-
-const SKILL_COLUMNS: SkillKey[] = ['serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
+import type { Level, Player } from '../types/player';
 
 const LEVEL_PILL_CLASS: Record<Level, string> = {
   Beginner: 'bg-red/10 text-red',
@@ -58,12 +56,7 @@ export function TeamRosterTable({ teamId }: { teamId: string }) {
               <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
                 Position
               </th>
-              {SKILL_COLUMNS.map((key) => (
-                <th key={key} className={NUMERIC_HEADER_CLASS}>
-                  {key}
-                </th>
-              ))}
-              <th className={NUMERIC_HEADER_CLASS}>Avg</th>
+              <th className={NUMERIC_HEADER_CLASS}>Skill avg</th>
               <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Level</th>
             </tr>
           </thead>
@@ -77,11 +70,6 @@ export function TeamRosterTable({ teamId }: { teamId: string }) {
                   </Link>
                 </td>
                 <td className="px-3 py-2 text-ink">{player.position}</td>
-                {SKILL_COLUMNS.map((key) => (
-                  <td key={key} className={NUMERIC_CELL_CLASS}>
-                    {player.skills[key].score ?? '—'}
-                  </td>
-                ))}
                 <td className={NUMERIC_CELL_CLASS}>{player.avgScore?.toFixed(1) ?? '—'}</td>
                 <td className="px-3 py-2">
                   <span

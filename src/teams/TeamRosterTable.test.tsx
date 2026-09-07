@@ -44,7 +44,7 @@ function makePlayer(id: string, number: number, fullName: string): Player {
 }
 
 describe('TeamRosterTable', () => {
-  it('renders the first page of players with their skill scores', async () => {
+  it('renders players with a single averaged skill column and the level, not per-skill columns', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [makePlayer('player-1', 1, 'Test Player')],
       lastDoc: null,
@@ -57,9 +57,12 @@ describe('TeamRosterTable', () => {
     );
 
     await screen.findByText('Test Player');
+    expect(screen.getByText('Skill avg')).toBeInTheDocument();
     expect(screen.getByText('6.5')).toBeInTheDocument();
     expect(screen.getByText('Advanced')).toBeInTheDocument();
-    expect(screen.queryByText('Load more')).not.toBeInTheDocument();
+    // per-skill column headers are gone
+    expect(screen.queryByText('serve')).not.toBeInTheDocument();
+    expect(screen.queryByText('reception')).not.toBeInTheDocument();
   });
 
   it('loads the next page when "Load more" is clicked', async () => {

@@ -34,6 +34,20 @@ service cloud.firestore {
         && request.resource.data.category in
            ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
       allow delete: if isAdmin();
+
+      match /diagrams/{diagramId} {
+        allow read: if isAdmin();
+        allow create, update: if isAdmin()
+          && request.resource.data.title is string
+          && request.resource.data.title.size() >= 1
+          && request.resource.data.title.size() <= 40
+          && request.resource.data.order is int
+          && request.resource.data.scene.v == 1
+          && request.resource.data.scene.court in ['full', 'half', 'blank']
+          && request.resource.data.scene.items is list
+          && request.resource.data.scene.items.size() <= 60;
+        allow delete: if isAdmin();
+      }
     }
 
     match /trainings/{trainingId} {

@@ -97,7 +97,7 @@ const ftPkg = JSON.parse(readFileSync(ftPkgPath, 'utf8'));
 const firebaseBin = join(dirname(ftPkgPath), ftPkg.bin.firebase);
 
 const passthrough = process.argv.slice(2);
-const args = [firebaseBin, 'emulators:start', '--only', 'firestore', ...passthrough];
+const args = [firebaseBin, 'emulators:start', '--only', 'auth,firestore', ...passthrough];
 const child = spawn(process.execPath, args, { stdio: 'inherit', env });
 child.on('exit', (code) => process.exit(code ?? 0));
 child.on('error', (err) => {

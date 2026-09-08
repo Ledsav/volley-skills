@@ -44,9 +44,27 @@ npm run emulator
 npm run seed:emulator
 ```
 
-`npm run emulator` prints which JDK it picked, then starts Firestore (:8080) and
-the Emulator UI (:4000, or the next free port). `seed:emulator` needs no Java —
-it just talks to the running emulator over the wire.
+`npm run emulator` prints which JDK it picked, then starts the **Auth** (:9099)
+and **Firestore** (:8080) emulators plus the Emulator UI (:4000, or the next free
+port). `seed:emulator` needs no Java — it just talks to the running emulator.
+
+### Run the app against the seeded emulator
+
+```bash
+npm run emulator                       # terminal 1 — leave running
+npm run seed:emulator                  # terminal 2 — once
+VITE_USE_EMULATOR=true npm run dev      # terminal 2/3 — or put VITE_USE_EMULATOR=true in .env.local
+```
+
+`src/firebase/config.ts` connects to the Auth + Firestore emulators only when
+`import.meta.env.DEV && VITE_USE_EMULATOR === 'true'` — production builds never do.
+
+Then at `/login`, enter the seeded admin email (`coach@example.com`, or whatever
+`--admin` you passed). The Auth emulator **does not send email** — it prints the
+sign-in link to the `npm run emulator` console (and shows it in the Emulator UI
+under Authentication). Open that link to finish signing in. The seeder also writes
+`adminAllowlist/<admin>`, so that account resolves to a full `role: 'admin'` on
+first sign-in.
 
 `seed:emulator` runs `node scripts/seed/seed.mjs --emulator --reset`:
 
@@ -92,5 +110,6 @@ The script prints the target project id (from the key file) before writing. Run 
 | Path | Contents |
 |---|---|
 | `teams/{autoId}` | `name` (age group), `club`, `ageGroup`, `season`, empty `description`/`notes`, empty `developmentPlan`, `adminEmails: [<--admin>]`, `createdBy: "seed-script"`, `createdAt` |
+| `adminAllowlist/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` — lets that email become a global admin on sign-in |
 | `skillGuide/config` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
 | `teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |

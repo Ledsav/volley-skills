@@ -149,7 +149,11 @@ async function main() {
       await batch.commit();
     }
     await db.doc('skillGuide/config').delete().catch(() => {});
-    console.log(`Reset: removed ${existing.size} previously-seeded team(s) + skillGuide/config.`);
+    const allow = await db.collection('adminAllowlist').where('addedBy', '==', 'seed-script').get();
+    await Promise.all(allow.docs.map((d) => d.ref.delete()));
+    console.log(
+      `Reset: removed ${existing.size} previously-seeded team(s), skillGuide/config, ${allow.size} adminAllowlist entr${allow.size === 1 ? 'y' : 'ies'}.`
+    );
   }
 
   // --- Write ---------------------------------------------------------
@@ -163,6 +167,12 @@ async function main() {
     createdBy: 'seed-script',
     createdAt: now,
   });
+
+  // adminAllowlist gates who may become a global admin (spec §6). Without an
+  // entry, the admin email would resolve to role 'viewer' on first sign-in and
+  // couldn't create teams or edit the guide. In prod this doc is normally added
+  // via the Firebase console; seeding it here keeps the imported team usable.
+  batch.set(db.doc(`adminAllowlist/${args.admin}`), { addedBy: 'seed-script', addedAt: now });
 
   batch.set(db.doc('skillGuide/config'), {
     skills: skillGuide,
@@ -199,7 +209,8 @@ async function main() {
   await batch.commit();
 
   console.log(
-    `\nDone. Wrote team ${teamRef.id} (admin ${args.admin}), skillGuide/config, and ${players.length} players.`
+    `\nDone. Wrote team ${teamRef.id}, skillGuide/config, adminAllowlist/${args.admin}, and ${players.length} players.` +
+      `\nSign in as ${args.admin} to manage this team.`
   );
   process.exit(0);
 }

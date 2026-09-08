@@ -16,6 +16,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { deletePlayer } from '../players/playersApi';
 import type { Team } from '../types/team';
 import type { DevelopmentPlan } from '../types/developmentPlan';
@@ -47,6 +48,7 @@ export async function bulkCreateTeams(
   creatorUid: string,
   creatorEmail: string
 ): Promise<number> {
+  if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const batch = writeBatch(db);
   for (const input of inputs) {
     const ref = doc(collection(db, 'teams'));

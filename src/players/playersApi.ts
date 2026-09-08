@@ -15,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SKILL_KEYS, type Player, type SkillKey, type Guardian, type Skills } from '../types/player';
 import type { Team } from '../types/team';
@@ -76,6 +77,7 @@ export async function bulkCreatePlayers(
   inputs: PlayerImportInput[],
   creatorUid: string
 ): Promise<number> {
+  if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const batch = writeBatch(db);
   for (const input of inputs) {
     const skills = SKILL_KEYS.reduce(

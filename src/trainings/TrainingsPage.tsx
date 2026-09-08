@@ -170,7 +170,16 @@ export function TrainingsPage() {
           hint="Exercises are matched by name against the existing library."
           exampleJson={TRAINING_IMPORT_EXAMPLE}
           validate={async (rows) => {
-            const map = await resolveExerciseNames(collectExerciseNames(rows));
+            const names = collectExerciseNames(rows);
+            if (names.length > 500) {
+              return {
+                inputs: [],
+                errors: [
+                  'too many distinct exercise names to resolve at once (max 500) — split the import into smaller files',
+                ],
+              };
+            }
+            const map = await resolveExerciseNames(names);
             return validateTrainingRows(rows, map);
           }}
           commit={(inputs) => bulkCreateTrainings(inputs, firebaseUser.uid)}

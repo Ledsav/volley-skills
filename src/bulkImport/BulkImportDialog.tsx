@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '../components/Button';
 import { Textarea } from '../components/Input';
 import { parseJsonArray } from './parseJsonArray';
@@ -37,8 +37,10 @@ export function BulkImportDialog<TInput>({
   const [validating, setValidating] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [commitError, setCommitError] = useState<string | null>(null);
+  const validationGen = useRef(0);
 
   function resetResults() {
+    validationGen.current += 1;
     setParseError(null);
     setErrors([]);
     setReady(null);
@@ -64,18 +66,38 @@ export function BulkImportDialog<TInput>({
       setParseError(parsed.error);
       return;
     }
+    // A stale async validation must not arm Import under superseded text: any
+    // reset (textarea edit, file change, a fresh Validate click) bumps the
+    // generation, and a completion whose captured generation no longer matches
+    // is dropped.
+    const gen = validationGen.current;
     // `validate` may be sync or async. A sync result is applied immediately so
     // the outcome is on screen before the click handler returns; an async one
     // is always awaited via Promise.resolve.
-    const outcome = validate(parsed.rows);
-    if (isPromiseLike(outcome)) {
-      setValidating(true);
-      Promise.resolve(outcome)
-        .then(applyResult)
-        .catch(() => setParseError('could not validate the data — please try again'))
-        .finally(() => setValidating(false));
-    } else {
-      applyResult(outcome);
+    try {
+      const outcome = validate(parsed.rows);
+      if (isPromiseLike(outcome)) {
+        setValidating(true);
+        Promise.resolve(outcome)
+          .then((result) => {
+            if (validationGen.current !== gen) return;
+            applyResult(result);
+          })
+          .catch(() => {
+            if (validationGen.current !== gen) return;
+            setParseError('could not validate the data — please try again');
+          })
+          .finally(() => {
+            if (validationGen.current !== gen) return;
+            setValidating(false);
+          });
+      } else if (validationGen.current === gen) {
+        applyResult(outcome);
+      }
+    } catch {
+      if (validationGen.current === gen) {
+        setParseError('could not validate the data — please try again');
+      }
     }
   }
 
@@ -147,7 +169,7 @@ export function BulkImportDialog<TInput>({
         )}
 
         {errors.length > 0 && (
-          <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-red">
+          <ul role="alert" className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-red">
             {errors.map((message, i) => (
               <li key={i}>{message}</li>
             ))}
@@ -170,7 +192,11 @@ export function BulkImportDialog<TInput>({
           <Button variant="ghost" onClick={onClose} disabled={committing}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleImport} disabled={!ready || committing}>
+          <Button
+            variant="primary"
+            onClick={handleImport}
+            disabled={!ready || ready.length === 0 || committing}
+          >
             {committing ? 'Importing…' : 'Import'}
           </Button>
         </div>

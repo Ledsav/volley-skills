@@ -81,4 +81,33 @@ describe('BulkImportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
     await screen.findByText('1 entry ready to import.');
   });
+
+  it('drops a stale async validation when the textarea changes before it resolves', async () => {
+    let resolveValidation: (result: ValidationResult<Row>) => void = () => {};
+    const validate = vi.fn(
+      () =>
+        new Promise<ValidationResult<Row>>((resolve) => {
+          resolveValidation = resolve;
+        })
+    );
+    setup({ validate });
+    paste('[1]');
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    // Supersede the in-flight validation with new text.
+    paste('[1,2]');
+    resolveValidation({ inputs: [{ v: 0 }], errors: [] });
+    await waitFor(() => expect(validate).toHaveBeenCalled());
+
+    expect(screen.queryByText(/ready to import/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+  });
+
+  it('keeps Import disabled when a clean validation yields zero rows', async () => {
+    const validate = vi.fn((): ValidationResult<Row> => ({ inputs: [], errors: [] }));
+    setup({ validate });
+    paste('[1]');
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    await screen.findByText('0 entries ready to import.');
+    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+  });
 });

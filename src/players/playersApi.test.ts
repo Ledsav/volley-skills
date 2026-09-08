@@ -93,6 +93,10 @@ describe('playersApi', () => {
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
     const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
+    const allSix = {
+      serve: 6, attack: 6, set: 6, defence: 6,
+      reception: 6, jump: 6, speed: 6, iq: 6,
+    };
     const count = await bulkCreatePlayers(
       'team-1',
       team,
@@ -106,16 +110,27 @@ describe('playersApi', () => {
           position: '',
           playerPhone: '',
           guardians: [],
-          skills: {
-            serve: 6, attack: 6, set: 6, defence: 6,
-            reception: 6, jump: 6, speed: 6, iq: 6,
-          },
+          skills: allSix,
+        },
+        {
+          number: 8,
+          fullName: 'John Roe',
+          dob: '',
+          nationality: '',
+          licenseNumber: '',
+          position: '',
+          playerPhone: '',
+          guardians: [],
+          skills: allSix,
         },
       ],
       'coach-uid'
     );
 
-    expect(count).toBe(1);
+    expect(count).toBe(2);
+    expect(batchSet).toHaveBeenCalledTimes(2);
+    expect(batchCommit).toHaveBeenCalledTimes(1);
+    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players');
     const payload = batchSet.mock.calls[0][1];
     expect(payload).toMatchObject({
       number: 7,
@@ -130,7 +145,29 @@ describe('playersApi', () => {
       createdBy: 'coach-uid',
     });
     expect(payload.skills.serve).toEqual({ score: 6, notes: '', priority: false });
-    expect(batchCommit).toHaveBeenCalledTimes(1);
+    expect(batchSet.mock.calls[1][1]).toMatchObject({ number: 8, fullName: 'John Roe' });
+  });
+
+  it('rejects a bulk player import above the MAX_IMPORT cap before any write', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn();
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
+    const rows = Array.from({ length: 101 }, (_, i) => ({
+      number: i,
+      fullName: 'x',
+      dob: '',
+      nationality: '',
+      licenseNumber: '',
+      position: '',
+      playerPhone: '',
+      guardians: [],
+      skills: { serve: null, attack: null, set: null, defence: null, reception: null, jump: null, speed: null, iq: null },
+    })) as never;
+
+    await expect(bulkCreatePlayers('team-1', team, rows, 'coach-uid')).rejects.toThrow(/capped at 100 entries/);
+    expect(batchCommit).not.toHaveBeenCalled();
   });
 
   it('deletes a player and all of their physical test history', async () => {

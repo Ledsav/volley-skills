@@ -65,12 +65,16 @@ describe('teamsApi', () => {
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
     const count = await bulkCreateTeams(
-      [{ name: 'A', club: '', ageGroup: '', season: '', description: '' }],
+      [
+        { name: 'A', club: '', ageGroup: '', season: '', description: '' },
+        { name: 'B', club: '', ageGroup: '', season: '', description: '' },
+      ],
       'coach-uid',
       'coach@example.com'
     );
 
-    expect(count).toBe(1);
+    expect(count).toBe(2);
+    expect(batchSet).toHaveBeenCalledTimes(2);
     expect(batchSet.mock.calls[0][1]).toMatchObject({
       name: 'A',
       notes: '',
@@ -78,7 +82,23 @@ describe('teamsApi', () => {
       createdBy: 'coach-uid',
       createdAt: 'server-timestamp',
     });
+    expect(batchSet.mock.calls[1][1]).toMatchObject({ name: 'B', adminEmails: ['coach@example.com'] });
     expect(batchCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a bulk team import above the MAX_IMPORT cap before any write', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn();
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    await expect(
+      bulkCreateTeams(
+        Array.from({ length: 101 }, () => ({ name: 'x', club: '', ageGroup: '', season: '', description: '' })),
+        'coach-uid',
+        'coach@example.com'
+      )
+    ).rejects.toThrow(/capped at 100 entries/);
+    expect(batchCommit).not.toHaveBeenCalled();
   });
 
   it('lists teams filtered to the given admin email', async () => {

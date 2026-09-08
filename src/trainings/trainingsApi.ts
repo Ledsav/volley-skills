@@ -15,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import type { NewTrainingInput, Training } from '../types/training';
 import { formatBusinessId } from './businessId';
 
@@ -125,6 +126,7 @@ export async function bulkCreateTrainings(
   creatorUid: string
 ): Promise<number> {
   if (inputs.length === 0) return 0;
+  if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const counterRef = doc(db, 'counters', 'trainings');
 
   await runTransaction(db, async (tx) => {

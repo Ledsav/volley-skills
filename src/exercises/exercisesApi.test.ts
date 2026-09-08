@@ -100,6 +100,20 @@ describe('exercisesApi', () => {
     expect(batchCommit).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects a bulk exercise import above the MAX_IMPORT cap before any write', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn();
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    await expect(
+      bulkCreateExercises(
+        Array.from({ length: 101 }, () => ({ name: 'x', description: '', category: 'warmup' as const })),
+        'coach-uid'
+      )
+    ).rejects.toThrow(/capped at 100 entries/);
+    expect(batchCommit).not.toHaveBeenCalled();
+  });
+
   it('updates an exercise', async () => {
     mockUpdateDoc.mockResolvedValue(undefined);
     await updateExercise('ex-1', { name: 'Pepper (advanced)' });

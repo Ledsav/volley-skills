@@ -195,4 +195,16 @@ describe('trainingsApi', () => {
     expect(tx.set.mock.calls[1][1]).toMatchObject({ businessId: 'TR-0008', name: 'B', exerciseIds: [] });
     expect(tx.set.mock.calls[2][1]).toEqual({ lastSequence: 8 });
   });
+
+  it('rejects a bulk training import above the MAX_IMPORT cap before opening a transaction', async () => {
+    const rows = Array.from({ length: 101 }, () => ({
+      name: 'x',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+    }));
+
+    await expect(bulkCreateTrainings(rows, 'coach-uid')).rejects.toThrow(/capped at 100 entries/);
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+  });
 });

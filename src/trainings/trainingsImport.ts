@@ -64,6 +64,8 @@ export function validateTrainingRows(
     if (row.exercises !== undefined) {
       if (!Array.isArray(row.exercises)) {
         fail(`row ${n}: "exercises" must be an array`);
+      } else if (row.exercises.length > 50) {
+        fail(`row ${n}: a training can list at most 50 exercises`);
       } else {
         row.exercises.forEach((entry, k) => {
           const m = k + 1;

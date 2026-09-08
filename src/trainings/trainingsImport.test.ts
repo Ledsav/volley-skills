@@ -81,4 +81,18 @@ describe('validateTrainingRows', () => {
       'row 1: exercise "Dig" is ambiguous — 2 exercises share that name; rename or remove duplicates',
     ]);
   });
+
+  it('rejects a row that lists more than 50 exercises', () => {
+    const exercises = Array.from({ length: 51 }, () => ({ name: 'Butterfly', durationMinutes: 10 }));
+    const result = validateTrainingRows([{ name: 'Too big', exercises }], map);
+    expect(result.errors).toEqual(['row 1: a training can list at most 50 exercises']);
+    expect(result.inputs).toEqual([]);
+  });
+
+  it('accepts a row with exactly 50 valid exercises', () => {
+    const exercises = Array.from({ length: 50 }, () => ({ name: 'Butterfly', durationMinutes: 10 }));
+    const result = validateTrainingRows([{ name: 'At the limit', exercises }], map);
+    expect(result.errors).toEqual([]);
+    expect(result.inputs[0].exercises).toHaveLength(50);
+  });
 });

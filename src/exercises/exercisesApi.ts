@@ -17,6 +17,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import type { Exercise, ExerciseCategory, NewExerciseInput } from '../types/exercise';
 
 const EXERCISES_PAGE_SIZE = 25;
@@ -34,6 +35,7 @@ export async function bulkCreateExercises(
   inputs: NewExerciseInput[],
   creatorUid: string
 ): Promise<number> {
+  if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const batch = writeBatch(db);
   for (const input of inputs) {
     const ref = doc(collection(db, 'exercises'));

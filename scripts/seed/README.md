@@ -50,6 +50,16 @@ port). `seed:emulator` needs no Java — it just talks to the running emulator.
 
 ### Run the app against the seeded emulator
 
+One command — boots the emulators, seeds, starts Vite, and shuts the emulators
+down on Ctrl+C (emulators are in-memory, so every run re-seeds fresh):
+
+```bash
+npm run dev:emulator
+# change the seeded admin:  npm run dev:emulator -- --admin you@example.com
+```
+
+Or the three steps by hand (keeps the emulator up across Vite restarts):
+
 ```bash
 npm run emulator                       # terminal 1 — leave running
 npm run seed:emulator                  # terminal 2 — once

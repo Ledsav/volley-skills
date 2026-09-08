@@ -6,8 +6,9 @@
 //   npm run emulator
 
 import { spawn } from 'node:child_process';
-import { envWithJdk, firebaseBin } from './jdk.mjs';
+import { envWithJdk, firebaseBin, freeEmulatorPorts } from './jdk.mjs';
 
+freeEmulatorPorts();
 const env = envWithJdk();
 const args = [firebaseBin(), 'emulators:start', '--only', 'auth,firestore', ...process.argv.slice(2)];
 

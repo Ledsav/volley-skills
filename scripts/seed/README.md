@@ -70,8 +70,10 @@ VITE_USE_EMULATOR=true npm run dev      # terminal 2/3 — or put VITE_USE_EMULA
 ```
 
 **"Port taken" / `ERR_CONNECTION_REFUSED`** — a previous emulator didn't shut
-down (usually after killing it with something other than Ctrl+C). Find and stop
-the stragglers, then re-run:
+down (usually after killing it with something other than Ctrl+C). `npm run
+emulator` / `npm run dev:emulator` now clear this automatically at startup
+(`Freed stale emulator ports — stopped …`); it only stops `java` / `node`
+processes on the emulator ports. If you ever need to do it by hand:
 
 ```bash
 # Windows (PowerShell)

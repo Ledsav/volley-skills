@@ -1,6 +1,7 @@
-// Locate a JDK 21+ (the Firestore emulator needs one) without requiring
-// JAVA_HOME to be set globally, and resolve firebase-tools' JS entrypoint.
-// Shared by emulator.mjs and dev.mjs.
+// Emulator-launch helpers shared by emulator.mjs and dev.mjs: locate a JDK 21+
+// (the Firestore emulator needs one) without a global JAVA_HOME, resolve
+// firebase-tools' JS entrypoint, and clear ports left held by a previous
+// emulator that didn't shut down cleanly.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -91,4 +92,56 @@ export function firebaseBin() {
   const pkgPath = require.resolve('firebase-tools/package.json');
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   return join(dirname(pkgPath), pkg.bin.firebase);
+}
+
+const EMULATOR_PORTS = [8080, 9099, 4000, 4001, 4400, 4401, 4500, 4501, 9150];
+
+function listeningPids(ports) {
+  const pids = new Set();
+  if (process.platform === 'win32') {
+    const out = spawnSync('netstat', ['-ano', '-p', 'TCP'], { encoding: 'utf8' }).stdout || '';
+    for (const line of out.split('\n')) {
+      if (!/LISTENING/.test(line)) continue;
+      const m = line.match(/:(\d+)\s+\S+\s+LISTENING\s+(\d+)/);
+      if (m && ports.includes(Number(m[1]))) pids.add(m[2]);
+    }
+  } else {
+    const out = spawnSync('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'], { encoding: 'utf8' }).stdout || '';
+    for (const line of out.split('\n')) {
+      const m = line.match(/^\S+\s+(\d+).*:(\d+)\s+\(LISTEN\)/);
+      if (m && ports.includes(Number(m[2]))) pids.add(m[1]);
+    }
+  }
+  return [...pids];
+}
+
+function processName(pid) {
+  if (process.platform === 'win32') {
+    const out = spawnSync('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { encoding: 'utf8' }).stdout || '';
+    return (out.match(/^"([^"]+)"/) || [, ''])[1].toLowerCase();
+  }
+  return (spawnSync('ps', ['-p', pid, '-o', 'comm='], { encoding: 'utf8' }).stdout || '').trim().toLowerCase();
+}
+
+/**
+ * Kill java / node processes still holding the emulator ports (a previous run
+ * that exited uncleanly). Only those two image names are touched, so an
+ * unrelated service is left alone. Logs what it kills; no-op when ports are free.
+ */
+export function freeEmulatorPorts() {
+  const killed = [];
+  for (const pid of listeningPids(EMULATOR_PORTS)) {
+    if (pid === String(process.pid)) continue;
+    const name = processName(pid);
+    if (!/^java|^node|openjdk/.test(name)) continue;
+    const res =
+      process.platform === 'win32'
+        ? spawnSync('taskkill', ['/F', '/T', '/PID', pid], { encoding: 'utf8' })
+        : spawnSync('kill', ['-9', pid], { encoding: 'utf8' });
+    if (res.status === 0) killed.push(`${name || 'pid'} (${pid})`);
+  }
+  if (killed.length) {
+    console.log(`Freed stale emulator ports — stopped ${killed.join(', ')}`);
+    spawnSync(process.platform === 'win32' ? 'cmd' : 'sh', process.platform === 'win32' ? ['/c', 'timeout /t 2 /nobreak >nul'] : ['-c', 'sleep 2']);
+  }
 }

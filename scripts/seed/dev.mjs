@@ -13,7 +13,7 @@ import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { envWithJdk, firebaseBin } from './jdk.mjs';
+import { envWithJdk, firebaseBin, freeEmulatorPorts } from './jdk.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -29,6 +29,7 @@ const firestorePort = fb.emulators?.firestore?.port ?? 8080;
 const authPort = fb.emulators?.auth?.port ?? 9099;
 const uiWanted = fb.emulators?.ui?.port ?? 4000;
 
+freeEmulatorPorts();
 const env = envWithJdk();
 console.log(
   [

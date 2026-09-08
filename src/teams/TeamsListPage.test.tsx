@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { TeamsListPage } from './TeamsListPage';
@@ -42,5 +42,24 @@ describe('TeamsListPage', () => {
 
     expect(await screen.findByText('U17 Girls')).toBeInTheDocument();
     expect(screen.getByText('VCB · U17 · 2026-27')).toBeInTheDocument();
+  });
+
+  it('opens the bulk-import dialog from the Import button', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { email: 'coach@example.com' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+
+    render(
+      <MemoryRouter>
+        <TeamsListPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
+    expect(screen.getByRole('dialog', { name: /Import teams/ })).toBeInTheDocument();
   });
 });

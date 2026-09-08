@@ -10,6 +10,12 @@ vi.mock('./ExerciseFormDialog', () => ({
   ),
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({
+    firebaseUser: { uid: 'coach-uid' },
+    appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+  }),
+}));
 
 const exercise = {
   id: 'ex-1',
@@ -83,5 +89,11 @@ describe('ExercisesPage', () => {
     fireEvent.click(screen.getByText('Delete'));
 
     expect(await screen.findByText(/could not be determined/i)).toBeInTheDocument();
+  });
+
+  it('opens the bulk-import dialog from the Import button', async () => {
+    render(<ExercisesPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
+    expect(screen.getByRole('dialog', { name: /Import exercises/ })).toBeInTheDocument();
   });
 });

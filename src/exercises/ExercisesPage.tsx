@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { useAuth } from '../auth/AuthContext';
+import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
-import { countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
+import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
+import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
 import { ExerciseFormDialog } from './ExerciseFormDialog';
 
 const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
@@ -15,6 +18,9 @@ const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
 const USAGE_UNKNOWN = -1;
 
 export function ExercisesPage() {
+  const { firebaseUser } = useAuth();
+  const [showImport, setShowImport] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -75,9 +81,14 @@ export function ExercisesPage() {
     <div className="w-full bg-bg p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Exercises</h1>
-        <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
-          New exercise
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+            Import
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
+            New exercise
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
@@ -111,6 +122,8 @@ export function ExercisesPage() {
           {error}
         </p>
       )}
+
+      {notice && <p className="mb-4 text-sm text-green">{notice}</p>}
 
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
         {loaded && exercises.length === 0 && <p className="p-4 text-slate">No exercises yet.</p>}
@@ -153,6 +166,22 @@ export function ExercisesPage() {
           onClose={() => setDialog(null)}
           onSaved={() => {
             setDialog(null);
+            void loadFirstPage();
+          }}
+        />
+      )}
+
+      {showImport && firebaseUser && (
+        <BulkImportDialog
+          title="Import exercises"
+          exampleJson={EXERCISE_IMPORT_EXAMPLE}
+          validate={validateExerciseRows}
+          commit={(inputs) => bulkCreateExercises(inputs, firebaseUser.uid)}
+          onClose={() => setShowImport(false)}
+          onImported={(n) => {
+            setShowImport(false);
+            setNotice(`Imported ${n} exercise${n === 1 ? '' : 's'}.`);
+            window.setTimeout(() => setNotice(null), 4000);
             void loadFirstPage();
           }}
         />

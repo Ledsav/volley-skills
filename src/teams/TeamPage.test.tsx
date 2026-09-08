@@ -57,7 +57,7 @@ describe('TeamPage', () => {
 
   it('shows the team calendar when the Calendar tab is selected', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
-    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
 
     renderTeamPage();
 

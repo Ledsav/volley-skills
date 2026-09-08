@@ -176,4 +176,16 @@ describe('PlayerCardPage', () => {
     );
     expect(exportSpy).not.toHaveBeenCalled();
   });
+
+  it('shows an avatar with initials and a level badge next to the name', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, avgScore: 6.8, level: 'Advanced' });
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+
+    renderPlayerCard();
+
+    await screen.findByText('Test Player');
+    expect(screen.getByText('TP')).toBeInTheDocument();
+    expect(screen.getByText('Advanced')).toBeInTheDocument();
+  });
 });

@@ -37,7 +37,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
   }, [teamId, playerId]);
 
   return (
-    <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
+    <section className="p-6">
       <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Physical Testing</h2>
       {loadError && (
         <p role="alert" className="mt-3 text-red">

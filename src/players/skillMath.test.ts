@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { computeAvgScore, computeLevel } from './skillMath';
-import type { Skills } from '../types/player';
+import { computeAvgScore, computeLevel, computeTeamAvgScore } from './skillMath';
+import type { Player, Skills } from '../types/player';
 
 function skillsWith(scores: Partial<Record<keyof Skills, number | null>>): Skills {
   const keys: (keyof Skills)[] = ['serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
@@ -51,5 +51,23 @@ describe('computeLevel', () => {
   it('returns Elite at 8 and above', () => {
     expect(computeLevel(8)).toBe('Elite');
     expect(computeLevel(10)).toBe('Elite');
+  });
+});
+
+function playerWithAvg(avgScore: number | null): Player {
+  return { avgScore } as Player;
+}
+
+describe('computeTeamAvgScore', () => {
+  it('returns null when there are no players', () => {
+    expect(computeTeamAvgScore([])).toBeNull();
+  });
+
+  it('returns null when no player has a score yet', () => {
+    expect(computeTeamAvgScore([playerWithAvg(null), playerWithAvg(null)])).toBeNull();
+  });
+
+  it('averages only the players who have a score', () => {
+    expect(computeTeamAvgScore([playerWithAvg(6), playerWithAvg(null), playerWithAvg(8)])).toBe(7);
   });
 });

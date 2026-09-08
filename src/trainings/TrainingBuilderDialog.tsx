@@ -123,7 +123,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form
         onSubmit={handleSubmit}
         aria-label={training ? 'Edit training' : 'New training'}

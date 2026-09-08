@@ -31,7 +31,7 @@ describe('AssignTrainingDialog', () => {
       loading: false,
       authError: null,
     });
-    vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null });
+    vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null, hasMore: false });
   });
 
   it('creates a session with the picked training denormalized onto it', async () => {
@@ -63,8 +63,8 @@ describe('AssignTrainingDialog', () => {
     const page1LastDoc = { id: 'cursor-1' } as never;
     vi.mocked(trainingsApi.listTrainings)
       .mockReset()
-      .mockResolvedValueOnce({ trainings: [training], lastDoc: page1LastDoc })
-      .mockResolvedValueOnce({ trainings: [page2Training], lastDoc: null });
+      .mockResolvedValueOnce({ trainings: [training], lastDoc: page1LastDoc, hasMore: true })
+      .mockResolvedValueOnce({ trainings: [page2Training], lastDoc: null, hasMore: false });
 
     render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
 

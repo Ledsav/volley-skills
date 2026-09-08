@@ -64,23 +64,33 @@ export function DevelopmentPlanEditor({ plan, onSave, isAdmin }: DevelopmentPlan
 
   if (!editing || !isAdmin) {
     return (
-      <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
+      <section className="p-6">
         <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Development Plan</h2>
 
         <h3 className="mt-4 text-sm font-semibold uppercase tracking-wide text-slate">Short-term objectives</h3>
         {plan.shortTermObjectives.length === 0 && <p className="mt-2 text-slate">None yet.</p>}
         {plan.shortTermObjectives.map((o, i) => (
-          <p key={i} className="mt-2 text-slate">
-            {o.objective} — {o.targetDate} — <StatusChip status={o.status} /> — {o.coachComment}
-          </p>
+          <div key={i} className="mt-2 rounded-md border border-border p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <span className="font-medium text-ink">{o.objective}</span>
+              <StatusChip status={o.status} />
+            </div>
+            <p className="mt-1 text-sm text-slate">Target date: {o.targetDate || '—'}</p>
+            {o.coachComment && <p className="mt-1 text-sm text-slate">{o.coachComment}</p>}
+          </div>
         ))}
 
         <h3 className="mt-4 text-sm font-semibold uppercase tracking-wide text-slate">Season objectives</h3>
         {plan.seasonObjectives.length === 0 && <p className="mt-2 text-slate">None yet.</p>}
         {plan.seasonObjectives.map((o, i) => (
-          <p key={i} className="mt-2 text-slate">
-            {o.objective} — {o.target} — <StatusChip status={o.status} /> — {o.coachComment}
-          </p>
+          <div key={i} className="mt-2 rounded-md border border-border p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <span className="font-medium text-ink">{o.objective}</span>
+              <StatusChip status={o.status} />
+            </div>
+            <p className="mt-1 text-sm text-slate">Target: {o.target || '—'}</p>
+            {o.coachComment && <p className="mt-1 text-sm text-slate">{o.coachComment}</p>}
+          </div>
         ))}
 
         <h3 className="mt-4 text-sm font-semibold uppercase tracking-wide text-slate">General notes</h3>
@@ -99,7 +109,7 @@ export function DevelopmentPlanEditor({ plan, onSave, isAdmin }: DevelopmentPlan
     <form
       onSubmit={handleSave}
       aria-label="Edit development plan"
-      className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card"
+      className="p-6"
     >
       <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Development Plan</h2>
 

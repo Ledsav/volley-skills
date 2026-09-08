@@ -33,7 +33,7 @@ export function TrainingsPage() {
     const page = await listTrainings(null, ageGroup.trim() ? { ageGroupTarget: ageGroup.trim() } : {});
     setTrainings(page.trainings);
     setLastDoc(page.lastDoc);
-    setHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+    setHasMore(page.hasMore);
     setLoaded(true);
   }
 
@@ -42,7 +42,7 @@ export function TrainingsPage() {
     const page = await listTrainings(lastDoc, ageGroup.trim() ? { ageGroupTarget: ageGroup.trim() } : {});
     setTrainings((current) => [...current, ...page.trainings]);
     setLastDoc(page.lastDoc);
-    setHasMore(page.trainings.length > 0 && page.lastDoc !== null);
+    setHasMore(page.hasMore);
   }
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function TrainingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
+    <div className="w-full bg-bg p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Trainings</h1>
         <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>

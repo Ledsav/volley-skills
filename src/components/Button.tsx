@@ -3,12 +3,14 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 export type ButtonSize = 'sm' | 'md';
 
+// inline-flex + min-h-11 (44px) keeps every button at least the recommended
+// mobile touch-target size, regardless of how tight its padding/text is.
 const BASE_CLASS =
-  'rounded-md font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue disabled:cursor-not-allowed disabled:opacity-50';
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2',
+  sm: 'min-h-11 px-3 py-1.5 text-sm',
+  md: 'min-h-11 px-4 py-2',
 };
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {

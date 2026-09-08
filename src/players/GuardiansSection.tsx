@@ -55,7 +55,7 @@ export function GuardiansSection({ teamId, playerId, player, onPlayerUpdated, is
 
   if (!editing || !isAdmin) {
     return (
-      <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
+      <section className="p-6">
         <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Guardians</h2>
         {player.guardians.length === 0 && <p className="mt-3 text-slate">No guardians on file.</p>}
         {player.guardians.map((guardian, index) => (
@@ -73,7 +73,7 @@ export function GuardiansSection({ teamId, playerId, player, onPlayerUpdated, is
   }
 
   return (
-    <form onSubmit={handleSave} aria-label="Edit guardians" className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
+    <form onSubmit={handleSave} aria-label="Edit guardians" className="p-6">
       <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Guardians</h2>
       {guardians.map((guardian, index) => (
         <div key={index} className="mb-4 rounded-md border border-border p-3">

@@ -12,6 +12,8 @@ import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { PhysicalTestingSection } from './PhysicalTestingSection';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { LevelPill } from '../components/LevelPill';
+import { getInitials } from './nameFormat';
 import type { Player } from '../types/player';
 
 export function PlayerCardPage() {
@@ -69,37 +71,52 @@ export function PlayerCardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
-      <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">{player.fullName}</h1>
-      <PlayerContactSection
-        teamId={teamId}
-        playerId={playerId}
-        player={player}
-        onPlayerUpdated={setPlayer}
-        isAdmin={isAdmin}
-      />
-      <PlayerSkillsSection
-        teamId={teamId}
-        playerId={playerId}
-        player={player}
-        onPlayerUpdated={setPlayer}
-        isAdmin={isAdmin}
-      />
-      <GuardiansSection
-        teamId={teamId}
-        playerId={playerId}
-        player={player}
-        onPlayerUpdated={setPlayer}
-        isAdmin={isAdmin}
-      />
-      <DevelopmentPlanEditor
-        plan={player.developmentPlan}
-        onSave={(plan) =>
-          updatePlayerDevelopmentPlan(teamId, playerId, plan).then(() => setPlayer({ ...player, developmentPlan: plan }))
-        }
-        isAdmin={isAdmin}
-      />
-      <PhysicalTestingSection teamId={teamId} playerId={playerId} isAdmin={isAdmin} />
+    <div className="w-full bg-bg p-6 lg:p-8">
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue/10 text-lg font-bold text-blue">
+          {getInitials(player.fullName)}
+        </div>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{player.fullName}</h1>
+            {player.avgScore !== null && <LevelPill level={player.level} />}
+          </div>
+          <p className="text-sm text-slate">
+            #{player.number} · {player.position}
+          </p>
+        </div>
+      </div>
+      <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
+        <PlayerContactSection
+          teamId={teamId}
+          playerId={playerId}
+          player={player}
+          onPlayerUpdated={setPlayer}
+          isAdmin={isAdmin}
+        />
+        <PlayerSkillsSection
+          teamId={teamId}
+          playerId={playerId}
+          player={player}
+          onPlayerUpdated={setPlayer}
+          isAdmin={isAdmin}
+        />
+        <GuardiansSection
+          teamId={teamId}
+          playerId={playerId}
+          player={player}
+          onPlayerUpdated={setPlayer}
+          isAdmin={isAdmin}
+        />
+        <DevelopmentPlanEditor
+          plan={player.developmentPlan}
+          onSave={(plan) =>
+            updatePlayerDevelopmentPlan(teamId, playerId, plan).then(() => setPlayer({ ...player, developmentPlan: plan }))
+          }
+          isAdmin={isAdmin}
+        />
+        <PhysicalTestingSection teamId={teamId} playerId={playerId} isAdmin={isAdmin} />
+      </div>
 
       {isAdmin && (
         <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">

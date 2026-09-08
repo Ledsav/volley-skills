@@ -40,6 +40,7 @@ export async function deleteExercise(exerciseId: string): Promise<void> {
 export interface ExercisesPage {
   exercises: Exercise[];
   lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
 }
 
 export async function listExercises(
@@ -56,7 +57,7 @@ export async function listExercises(
   const snapshot = await getDocs(query(base, ...constraints));
   const exercises = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
-  return { exercises, lastDoc };
+  return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
 }
 
 export async function getExercisesByIds(ids: string[]): Promise<Exercise[]> {

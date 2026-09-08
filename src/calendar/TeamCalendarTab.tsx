@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { CalendarSession } from '../types/calendarSession';
+import { AssignTrainingDialog } from './AssignTrainingDialog';
 import { deleteCalendarSession, listCalendarSessions } from './calendarApi';
 import { addMonths, buildMonthGrid, formatMonthLabel, monthRange } from './monthGrid';
-import { AssignTrainingDialog } from './AssignTrainingDialog';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -73,7 +74,7 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
         </p>
       )}
 
-      <div className="grid grid-cols-7 gap-px rounded-lg border border-border bg-border text-sm">
+      <div className="grid grid-cols-7 gap-px  border border-border bg-border text-sm">
         {WEEKDAYS.map((d) => (
           <div key={d} className="bg-surface px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate">
             {d}
@@ -96,10 +97,10 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
                 </button>
                 <ul className="mt-1 space-y-1">
                   {(sessionsByDate[cell.date] ?? []).map((session) => (
-                    <li key={session.id} className="flex items-center gap-1 rounded-sm bg-blue/10 px-1 py-0.5 text-xs">
+                    <li key={session.id} className="flex items-center gap-1.5 rounded-sm bg-blue/10 py-0.5 pl-1.5 pr-1 text-xs">
                       <Link
                         to={`/trainings?businessId=${session.trainingBusinessId}`}
-                        className="flex-1 truncate text-blue hover:underline"
+                        className="min-w-0 flex-1 truncate text-blue hover:underline"
                         title={`${session.trainingBusinessId} · ${session.trainingName}`}
                       >
                         {session.trainingBusinessId} · {session.trainingName}
@@ -108,9 +109,9 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
                         type="button"
                         aria-label={`Remove ${session.trainingBusinessId} on ${session.date}`}
                         onClick={() => { setDeleteError(null); setPendingDelete(session); }}
-                        className="text-red hover:text-red-strong"
+                        className="shrink-0 rounded-sm p-0.5 text-red hover:bg-red/10 hover:text-red-strong"
                       >
-                        ✕
+                        <X size={11} strokeWidth={2} />
                       </button>
                     </li>
                   ))}

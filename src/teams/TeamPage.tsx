@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom';
 import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
+import { TeamStatsRow } from './TeamStatsRow';
 import { AddPlayerDialog } from '../players/AddPlayerDialog';
 import { Button } from '../components/Button';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
+import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
 type Tab = 'overview' | 'calendar' | 'plan' | 'settings';
@@ -23,6 +25,7 @@ export function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
+  const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
     if (!teamId) return;
@@ -43,22 +46,22 @@ export function TeamPage() {
   if (!team || !teamId) return <p className="p-6 text-slate">Loading team...</p>;
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
+    <div className="w-full bg-bg p-6 lg:p-8">
       <div className="mb-6 rounded-lg border border-border bg-surface p-6 shadow-card">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{team.name}</h1>
         <p className="mt-1 text-slate">{team.description}</p>
 
-        <nav className="mt-4 flex gap-6 border-b border-border">
-          <button onClick={() => setTab('overview')} className={tabClass(tab === 'overview')}>
+        <nav className="mt-4 flex gap-6 overflow-x-auto border-b border-border">
+          <button onClick={() => setTab('overview')} className={`${tabClass(tab === 'overview')} shrink-0`}>
             Overview
           </button>
-          <button onClick={() => setTab('calendar')} className={tabClass(tab === 'calendar')}>
+          <button onClick={() => setTab('calendar')} className={`${tabClass(tab === 'calendar')} shrink-0`}>
             Calendar
           </button>
-          <button onClick={() => setTab('plan')} className={tabClass(tab === 'plan')}>
+          <button onClick={() => setTab('plan')} className={`${tabClass(tab === 'plan')} shrink-0`}>
             Development Plan
           </button>
-          <button onClick={() => setTab('settings')} className={tabClass(tab === 'settings')}>
+          <button onClick={() => setTab('settings')} className={`${tabClass(tab === 'settings')} shrink-0`}>
             Settings
           </button>
         </nav>
@@ -66,12 +69,13 @@ export function TeamPage() {
         <div className="mt-6">
           {tab === 'overview' && (
             <>
+              <TeamStatsRow players={rosterPlayers} />
               <div className="mb-4 flex justify-end">
                 <Button variant="primary" size="sm" onClick={() => setShowAddPlayer(true)}>
                   + Add player
                 </Button>
               </div>
-              <TeamRosterTable key={rosterRefreshKey} teamId={teamId} />
+              <TeamRosterTable key={rosterRefreshKey} teamId={teamId} onPlayersChange={setRosterPlayers} />
             </>
           )}
           {tab === 'calendar' && <TeamCalendarTab teamId={teamId} />}

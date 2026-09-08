@@ -35,7 +35,7 @@ function renderPage(initialEntry = '/trainings') {
 describe('TrainingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null });
+    vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null, hasMore: false });
     vi.mocked(trainingsApi.findTrainingByBusinessId).mockResolvedValue(training);
   });
 

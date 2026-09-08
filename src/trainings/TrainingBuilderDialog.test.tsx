@@ -22,7 +22,7 @@ describe('TrainingBuilderDialog', () => {
       loading: false,
       authError: null,
     });
-    vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exOne, exTwo], lastDoc: null });
+    vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exOne, exTwo], lastDoc: null, hasMore: false });
     vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([]);
   });
 
@@ -119,8 +119,8 @@ describe('TrainingBuilderDialog', () => {
     };
     const firstPageLastDoc = { id: 'cursor-1' } as never;
     vi.mocked(exercisesApi.listExercises)
-      .mockResolvedValueOnce({ exercises: [exOne, exTwo], lastDoc: firstPageLastDoc })
-      .mockResolvedValueOnce({ exercises: [exThree], lastDoc: null });
+      .mockResolvedValueOnce({ exercises: [exOne, exTwo], lastDoc: firstPageLastDoc, hasMore: true })
+      .mockResolvedValueOnce({ exercises: [exThree], lastDoc: null, hasMore: false });
     const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
 
     render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);

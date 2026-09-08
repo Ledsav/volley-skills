@@ -23,7 +23,7 @@ const exercise = {
 describe('ExercisesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exercise], lastDoc: null });
+    vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exercise], lastDoc: null, hasMore: false });
   });
 
   it('renders exercises from the first page', async () => {
@@ -35,13 +35,26 @@ describe('ExercisesPage', () => {
     expect(nameEl.closest('button')).toHaveTextContent('Warm-up');
   });
 
-  it('reloads with a category filter when the dropdown changes', async () => {
+  it('reloads with a category filter when a category chip is clicked', async () => {
     render(<ExercisesPage />);
     await screen.findByText('Pepper');
 
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'attack' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Attack' }));
 
     await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, 'attack'));
+  });
+
+  it('marks the active category chip and returns to "All" when it is clicked again', async () => {
+    render(<ExercisesPage />);
+    await screen.findByText('Pepper');
+
+    const attackChip = screen.getByRole('button', { name: 'Attack' });
+    fireEvent.click(attackChip);
+    await waitFor(() => expect(attackChip).toHaveAttribute('aria-pressed', 'true'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, null));
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows the training usage count in the delete confirmation', async () => {

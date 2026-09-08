@@ -29,7 +29,7 @@ export function ExercisesPage() {
     const page = await listExercises(null, category || null);
     setExercises(page.exercises);
     setLastDoc(page.lastDoc);
-    setHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    setHasMore(page.hasMore);
     setLoaded(true);
   }
 
@@ -38,7 +38,7 @@ export function ExercisesPage() {
     const page = await listExercises(lastDoc, category || null);
     setExercises((current) => [...current, ...page.exercises]);
     setLastDoc(page.lastDoc);
-    setHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+    setHasMore(page.hasMore);
   }
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function ExercisesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
+    <div className="w-full bg-bg p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Exercises</h1>
         <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
@@ -80,22 +80,31 @@ export function ExercisesPage() {
         </Button>
       </div>
 
-      <label htmlFor="category-filter" className="mr-2 text-sm text-slate">
-        Category
-      </label>
-      <select
-        id="category-filter"
-        value={category}
-        onChange={(e) => setCategory(e.target.value as ExerciseCategory | '')}
-        className="mb-4 rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-blue"
-      >
-        <option value="">All categories</option>
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+        <button
+          type="button"
+          aria-pressed={category === ''}
+          onClick={() => setCategory('')}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+            category === '' ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+          }`}
+        >
+          All
+        </button>
         {EXERCISE_CATEGORIES.map((c) => (
-          <option key={c.key} value={c.key}>
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={category === c.key}
+            onClick={() => setCategory(c.key)}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+              category === c.key ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+            }`}
+          >
             {c.label}
-          </option>
+          </button>
         ))}
-      </select>
+      </div>
 
       {error && (
         <p role="alert" className="mb-4 text-red">

@@ -63,6 +63,7 @@ export async function deleteTraining(trainingId: string): Promise<void> {
 export interface TrainingsPage {
   trainings: Training[];
   lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
 }
 
 export async function listTrainings(
@@ -79,7 +80,7 @@ export async function listTrainings(
   const snapshot = await getDocs(query(base, ...constraints));
   const trainings = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Training);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
-  return { trainings, lastDoc };
+  return { trainings, lastDoc, hasMore: snapshot.docs.length === TRAININGS_PAGE_SIZE };
 }
 
 export async function findTrainingByBusinessId(businessId: string): Promise<Training | null> {

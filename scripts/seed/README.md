@@ -58,12 +58,27 @@ npm run dev:emulator
 # change the seeded admin:  npm run dev:emulator -- --admin you@example.com
 ```
 
+Emulator UI: **http://127.0.0.1:4000** (Firestore data browser, Auth users).
+Vite prints its own URL (usually http://localhost:5173).
+
 Or the three steps by hand (keeps the emulator up across Vite restarts):
 
 ```bash
 npm run emulator                       # terminal 1 — leave running
 npm run seed:emulator                  # terminal 2 — once
 VITE_USE_EMULATOR=true npm run dev      # terminal 2/3 — or put VITE_USE_EMULATOR=true in .env.local
+```
+
+**"Port taken" / `ERR_CONNECTION_REFUSED`** — a previous emulator didn't shut
+down (usually after killing it with something other than Ctrl+C). Find and stop
+the stragglers, then re-run:
+
+```bash
+# Windows (PowerShell)
+Get-NetTCPConnection -LocalPort 8080,9099,4000,4400 -State Listen |
+  Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force }
+# macOS / Linux
+lsof -ti tcp:8080,tcp:9099,tcp:4000,tcp:4400 | xargs kill -9
 ```
 
 `src/firebase/config.ts` connects to the Auth + Firestore emulators only when

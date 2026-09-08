@@ -48,10 +48,11 @@ const seed = ['node', 'scripts/seed/seed.mjs', '--emulator', '--reset', ...passt
   .join(' ');
 
 // `emulators:exec` starts the emulators, waits for "All emulators ready",
-// runs this, then tears the emulators down on exit. Resolve vite's JS
-// entrypoint so it works regardless of whether node_modules/.bin is on PATH.
+// runs this, then tears the emulators down on exit. `--ui` also brings up the
+// Emulator UI (exec is headless without it). Resolve vite's JS entrypoint so it
+// works regardless of whether node_modules/.bin is on PATH.
 const inner = `${seed} && node ${JSON.stringify(binOf('vite'))}`;
-const args = [firebaseBin(), 'emulators:exec', '--only', 'auth,firestore', inner];
+const args = [firebaseBin(), 'emulators:exec', '--ui', '--only', 'auth,firestore', inner];
 
 const child = spawn(process.execPath, args, {
   stdio: 'inherit',

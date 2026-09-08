@@ -12,6 +12,7 @@ import {
   startAfter,
   updateDoc,
   where,
+  writeBatch,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -39,6 +40,27 @@ export async function createTeam(input: NewTeamInput, creatorUid: string, creato
     createdAt: serverTimestamp(),
   });
   return docRef.id;
+}
+
+export async function bulkCreateTeams(
+  inputs: NewTeamInput[],
+  creatorUid: string,
+  creatorEmail: string
+): Promise<number> {
+  const batch = writeBatch(db);
+  for (const input of inputs) {
+    const ref = doc(collection(db, 'teams'));
+    batch.set(ref, {
+      ...input,
+      notes: '',
+      adminEmails: [creatorEmail],
+      developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
+      createdBy: creatorUid,
+      createdAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
+  return inputs.length;
 }
 
 export interface TeamsPage {

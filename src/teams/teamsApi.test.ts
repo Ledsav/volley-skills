@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
+import { bulkCreateTeams, createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
 import { deletePlayer } from '../players/playersApi';
 
-const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc } = vi.hoisted(() => ({
+const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockCollection: vi.fn(() => 'teams-collection'),
   mockGetDocs: vi.fn(),
@@ -12,6 +12,7 @@ const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrder
   mockLimit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   mockUpdateDoc: vi.fn(),
   mockDeleteDoc: vi.fn(),
+  mockWriteBatch: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -27,6 +28,7 @@ vi.mock('firebase/firestore', () => ({
   getDoc: vi.fn(),
   updateDoc: mockUpdateDoc,
   deleteDoc: mockDeleteDoc,
+  writeBatch: mockWriteBatch,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -55,6 +57,28 @@ describe('teamsApi', () => {
       createdBy: 'creator-uid',
       developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
     });
+  });
+
+  it('bulk-creates teams in one batch with creator as sole admin', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const count = await bulkCreateTeams(
+      [{ name: 'A', club: '', ageGroup: '', season: '', description: '' }],
+      'coach-uid',
+      'coach@example.com'
+    );
+
+    expect(count).toBe(1);
+    expect(batchSet.mock.calls[0][1]).toMatchObject({
+      name: 'A',
+      notes: '',
+      adminEmails: ['coach@example.com'],
+      createdBy: 'coach-uid',
+      createdAt: 'server-timestamp',
+    });
+    expect(batchCommit).toHaveBeenCalledTimes(1);
   });
 
   it('lists teams filtered to the given admin email', async () => {

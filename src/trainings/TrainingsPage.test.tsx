@@ -9,6 +9,12 @@ vi.mock('./TrainingBuilderDialog', () => ({
   TrainingBuilderDialog: ({ onSaved }: { onSaved: () => void }) => <button onClick={onSaved}>builder-stub</button>,
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({
+    firebaseUser: { uid: 'coach-uid' },
+    appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+  }),
+}));
 
 const training = {
   id: 't-1',
@@ -79,5 +85,11 @@ describe('TrainingsPage', () => {
     fireEvent.click(screen.getByText('Yes, delete training'));
 
     await waitFor(() => expect(trainingsApi.deleteTraining).toHaveBeenCalledWith('t-1'));
+  });
+
+  it('opens the bulk-import dialog from the Import button', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
+    expect(screen.getByRole('dialog', { name: /Import trainings/ })).toBeInTheDocument();
   });
 });

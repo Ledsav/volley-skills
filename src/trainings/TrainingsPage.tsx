@@ -1,15 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { useAuth } from '../auth/AuthContext';
+import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Input } from '../components/Input';
 import type { Training } from '../types/training';
-import { deleteTraining, findTrainingByBusinessId, listTrainings } from './trainingsApi';
+import {
+  bulkCreateTrainings,
+  deleteTraining,
+  findTrainingByBusinessId,
+  listTrainings,
+  resolveExerciseNames,
+} from './trainingsApi';
+import {
+  TRAINING_IMPORT_EXAMPLE,
+  collectExerciseNames,
+  validateTrainingRows,
+} from './trainingsImport';
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 
 export function TrainingsPage() {
   const [searchParams] = useSearchParams();
+  const { firebaseUser } = useAuth();
+  const [showImport, setShowImport] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -68,9 +84,14 @@ export function TrainingsPage() {
     <div className="w-full bg-bg p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Trainings</h1>
-        <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
-          New training
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+            Import
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
+            New training
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-3">
@@ -99,6 +120,8 @@ export function TrainingsPage() {
           {error}
         </p>
       )}
+
+      {notice && <p className="mb-4 text-sm text-green">{notice}</p>}
 
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
         {loaded && trainings.length === 0 && <p className="p-4 text-slate">No trainings found.</p>}
@@ -136,6 +159,35 @@ export function TrainingsPage() {
           onClose={() => setDialog(null)}
           onSaved={() => {
             setDialog(null);
+            void load();
+          }}
+        />
+      )}
+
+      {showImport && firebaseUser && (
+        <BulkImportDialog
+          title="Import trainings"
+          hint="Exercises are matched by name against the existing library."
+          exampleJson={TRAINING_IMPORT_EXAMPLE}
+          validate={async (rows) => {
+            const names = collectExerciseNames(rows);
+            if (names.length > 500) {
+              return {
+                inputs: [],
+                errors: [
+                  'too many distinct exercise names to resolve at once (max 500) — split the import into smaller files',
+                ],
+              };
+            }
+            const map = await resolveExerciseNames(names);
+            return validateTrainingRows(rows, map);
+          }}
+          commit={(inputs) => bulkCreateTrainings(inputs, firebaseUser.uid)}
+          onClose={() => setShowImport(false)}
+          onImported={(n) => {
+            setShowImport(false);
+            setNotice(`Imported ${n} training${n === 1 ? '' : 's'}.`);
+            window.setTimeout(() => setNotice(null), 4000);
             void load();
           }}
         />

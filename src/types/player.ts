@@ -11,6 +11,10 @@ export interface Guardian {
 
 export type SkillKey = 'serve' | 'attack' | 'set' | 'defence' | 'reception' | 'jump' | 'speed' | 'iq';
 
+export const SKILL_KEYS: SkillKey[] = [
+  'serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq',
+];
+
 export interface SkillEntry {
   score: number | null;
   notes: string;

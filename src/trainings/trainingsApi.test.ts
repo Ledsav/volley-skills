@@ -5,6 +5,8 @@ import {
   deleteTraining,
   listTrainings,
   findTrainingByBusinessId,
+  resolveExerciseNames,
+  bulkCreateTrainings,
 } from './trainingsApi';
 
 const {
@@ -139,5 +141,70 @@ describe('trainingsApi', () => {
 
     expect(found).toEqual({ id: 'training-1', businessId: 'TR-0007', name: 'Passing circuit' });
     expect(mockWhere).toHaveBeenCalledWith('businessId', '==', 'TR-0007');
+  });
+
+  it('resolves exercise names to id lists, grouping duplicates', async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: 'ex-1', data: () => ({ name: 'Butterfly' }) },
+        { id: 'ex-2', data: () => ({ name: 'Dig' }) },
+        { id: 'ex-3', data: () => ({ name: 'Dig' }) },
+      ],
+    });
+
+    const map = await resolveExerciseNames(['Butterfly', 'Dig', 'Butterfly', '  ']);
+
+    expect(map.get('Butterfly')).toEqual(['ex-1']);
+    expect(map.get('Dig')).toEqual(['ex-2', 'ex-3']);
+    expect(mockWhere).toHaveBeenCalledWith('name', 'in', ['Butterfly', 'Dig']);
+  });
+
+  it('bulk-creates trainings in one transaction with sequential business ids', async () => {
+    mockDoc.mockImplementation((...args: unknown[]) => {
+      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      return { id: 'training-x' };
+    });
+    const tx = {
+      get: vi.fn().mockResolvedValue({ exists: () => true, data: () => ({ lastSequence: 6 }) }),
+      set: vi.fn(),
+    };
+    mockRunTransaction.mockImplementation(async (_db: unknown, fn: (t: typeof tx) => unknown) => fn(tx));
+
+    const count = await bulkCreateTrainings(
+      [
+        {
+          name: 'A',
+          description: '',
+          ageGroupTarget: 'U17',
+          exercises: [{ exerciseId: 'ex-1', order: 1, durationMinutes: 10 }],
+        },
+        { name: 'B', description: '', ageGroupTarget: '', exercises: [] },
+      ],
+      'coach-uid'
+    );
+
+    expect(count).toBe(2);
+    // 2 training sets + 1 counter set
+    expect(tx.set).toHaveBeenCalledTimes(3);
+    expect(tx.set.mock.calls[0][1]).toMatchObject({
+      businessId: 'TR-0007',
+      name: 'A',
+      exerciseIds: ['ex-1'],
+      createdBy: 'coach-uid',
+    });
+    expect(tx.set.mock.calls[1][1]).toMatchObject({ businessId: 'TR-0008', name: 'B', exerciseIds: [] });
+    expect(tx.set.mock.calls[2][1]).toEqual({ lastSequence: 8 });
+  });
+
+  it('rejects a bulk training import above the MAX_IMPORT cap before opening a transaction', async () => {
+    const rows = Array.from({ length: 101 }, () => ({
+      name: 'x',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+    }));
+
+    await expect(bulkCreateTrainings(rows, 'coach-uid')).rejects.toThrow(/capped at 100 entries/);
+    expect(mockRunTransaction).not.toHaveBeenCalled();
   });
 });

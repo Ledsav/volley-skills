@@ -120,14 +120,14 @@ export function BulkImportDialog<TInput>({
       <div
         role="dialog"
         aria-label={title}
-        className="w-full max-w-lg rounded-lg border border-border bg-surface p-6 shadow-pop"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-pop"
       >
         <h2 className="mb-1 text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
         {hint && <p className="mb-3 text-sm text-slate">{hint}</p>}
 
         <details className="mb-3 text-sm text-slate">
           <summary className="cursor-pointer select-none">Example format</summary>
-          <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-bg p-3 text-xs text-ink">
+          <pre className="mt-2 max-h-60 overflow-auto rounded-md border border-border bg-bg p-3 text-xs text-ink">
             {exampleJson}
           </pre>
         </details>

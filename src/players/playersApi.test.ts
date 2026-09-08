@@ -1,14 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createPlayer, deletePlayer, listPlayers, updatePlayerDevelopmentPlan } from './playersApi';
+import { bulkCreatePlayers, createPlayer, deletePlayer, listPlayers, updatePlayerDevelopmentPlan } from './playersApi';
 import type { Team } from '../types/team';
 
-const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc, mockDeleteDoc } = vi.hoisted(() => ({
+const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockGetDocs: vi.fn(),
   mockCollection: vi.fn(() => 'players-collection'),
   mockQuery: vi.fn((...args: unknown[]) => args),
   mockUpdateDoc: vi.fn(),
   mockDeleteDoc: vi.fn(),
+  mockWriteBatch: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -24,6 +25,7 @@ vi.mock('firebase/firestore', () => ({
   getDoc: vi.fn(),
   updateDoc: mockUpdateDoc,
   deleteDoc: mockDeleteDoc,
+  writeBatch: mockWriteBatch,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -83,6 +85,52 @@ describe('playersApi', () => {
       skills: { serve: { score: null, notes: '', priority: false } },
     });
     expect(payload.consent.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('bulk-creates players with computed skills, forced consent-not-given, and denormalised team fields', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
+    const count = await bulkCreatePlayers(
+      'team-1',
+      team,
+      [
+        {
+          number: 7,
+          fullName: 'Jane Doe',
+          dob: '',
+          nationality: '',
+          licenseNumber: '',
+          position: '',
+          playerPhone: '',
+          guardians: [],
+          skills: {
+            serve: 6, attack: 6, set: 6, defence: 6,
+            reception: 6, jump: 6, speed: 6, iq: 6,
+          },
+        },
+      ],
+      'coach-uid'
+    );
+
+    expect(count).toBe(1);
+    const payload = batchSet.mock.calls[0][1];
+    expect(payload).toMatchObject({
+      number: 7,
+      fullName: 'Jane Doe',
+      teamName: 'U17',
+      ageGroup: 'U17',
+      season: '2026-27',
+      avgScore: 6,
+      level: 'Advanced',
+      viewerEmails: [],
+      consent: { given: false, date: null, confirmedBy: null },
+      createdBy: 'coach-uid',
+    });
+    expect(payload.skills.serve).toEqual({ score: 6, notes: '', priority: false });
+    expect(batchCommit).toHaveBeenCalledTimes(1);
   });
 
   it('deletes a player and all of their physical test history', async () => {

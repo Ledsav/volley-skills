@@ -11,12 +11,15 @@ import {
   serverTimestamp,
   startAfter,
   updateDoc,
+  writeBatch,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import type { Player, SkillKey, Guardian } from '../types/player';
+import { computeAvgScore, computeLevel } from './skillMath';
+import { SKILL_KEYS, type Player, type SkillKey, type Guardian, type Skills } from '../types/player';
 import type { Team } from '../types/team';
 import type { DevelopmentPlan } from '../types/developmentPlan';
+import type { PlayerImportInput } from './playersImport';
 
 const PLAYERS_PAGE_SIZE = 25;
 
@@ -65,6 +68,46 @@ export async function createPlayer(
     updatedAt: serverTimestamp(),
   });
   return docRef.id;
+}
+
+export async function bulkCreatePlayers(
+  teamId: string,
+  team: Team,
+  inputs: PlayerImportInput[],
+  creatorUid: string
+): Promise<number> {
+  const batch = writeBatch(db);
+  for (const input of inputs) {
+    const skills = SKILL_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = { score: input.skills[key], notes: '', priority: false };
+        return acc;
+      },
+      {} as Skills
+    );
+    const avgScore = computeAvgScore(skills);
+    const level = computeLevel(avgScore);
+    const { skills: _skills, ...contact } = input;
+    void _skills;
+    const ref = doc(collection(db, 'teams', teamId, 'players'));
+    batch.set(ref, {
+      ...contact,
+      viewerEmails: [],
+      teamName: team.name,
+      ageGroup: team.ageGroup,
+      season: team.season,
+      skills,
+      avgScore,
+      level,
+      developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
+      consent: { given: false, date: null, confirmedBy: null },
+      createdBy: creatorUid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
+  return inputs.length;
 }
 
 export interface PlayersPage {

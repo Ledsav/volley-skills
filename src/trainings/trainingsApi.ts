@@ -97,3 +97,53 @@ export async function getTraining(trainingId: string): Promise<Training | null> 
   if (!snapshot.exists()) return null;
   return { id: snapshot.id, ...snapshot.data() } as Training;
 }
+
+/**
+ * Maps each requested exercise name to the ids of exercises with that exact
+ * name. Bounded reads: one `where('name','in', chunk)` per 30 distinct names.
+ */
+export async function resolveExerciseNames(names: string[]): Promise<Map<string, string[]>> {
+  const distinct = [...new Set(names.map((s) => s.trim()).filter((s) => s.length > 0))];
+  const map = new Map<string, string[]>();
+  for (let i = 0; i < distinct.length; i += 30) {
+    const chunk = distinct.slice(i, i + 30);
+    const snap = await getDocs(query(collection(db, 'exercises'), where('name', 'in', chunk)));
+    for (const d of snap.docs) {
+      const name = d.data().name as string;
+      map.set(name, [...(map.get(name) ?? []), d.id]);
+    }
+  }
+  return map;
+}
+
+/**
+ * Writes N trainings in one transaction, bumping counters/trainings by N so
+ * every training gets a sequential businessId. All-or-nothing.
+ */
+export async function bulkCreateTrainings(
+  inputs: NewTrainingInput[],
+  creatorUid: string
+): Promise<number> {
+  if (inputs.length === 0) return 0;
+  const counterRef = doc(db, 'counters', 'trainings');
+
+  await runTransaction(db, async (tx) => {
+    const counterSnap = await tx.get(counterRef);
+    const lastSequence = counterSnap.exists() ? (counterSnap.data().lastSequence as number) : 0;
+
+    inputs.forEach((input, i) => {
+      const trainingRef = doc(collection(db, 'trainings'));
+      tx.set(trainingRef, {
+        businessId: formatBusinessId(lastSequence + i + 1),
+        ...input,
+        exerciseIds: input.exercises.map((e) => e.exerciseId),
+        createdBy: creatorUid,
+        createdAt: serverTimestamp(),
+      });
+    });
+
+    tx.set(counterRef, { lastSequence: lastSequence + inputs.length });
+  });
+
+  return inputs.length;
+}

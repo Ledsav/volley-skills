@@ -70,4 +70,34 @@ describe('withBackoff', () => {
     // initial attempt + 2 retries
     expect(fn).toHaveBeenCalledTimes(3);
   });
+
+  it('rethrows a non-object throw (string, undefined) immediately', async () => {
+    const stringThrower = vi.fn().mockRejectedValue('boom');
+    await expect(withBackoff(stringThrower)).rejects.toBe('boom');
+    expect(stringThrower).toHaveBeenCalledTimes(1);
+
+    const undefinedThrower = vi.fn().mockImplementation(() => Promise.reject());
+    await expect(withBackoff(undefinedThrower)).rejects.toBeUndefined();
+    expect(undefinedThrower).toHaveBeenCalledTimes(1);
+  });
+
+  it('never schedules a retry delay longer than the ceiling for that attempt', async () => {
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    const fn = vi.fn().mockRejectedValue(firestoreError('unavailable'));
+
+    const promise = withBackoff(fn, { retries: 3, baseMs: 100, maxMs: 250 });
+    const assertion = expect(promise).rejects.toMatchObject({ code: 'unavailable' });
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    // ceilings per attempt: min(250, 100), min(250, 200), min(250, 400) => 100, 200, 250
+    const delays = timeoutSpy.mock.calls.map(([, ms]) => ms as number);
+    expect(delays).toHaveLength(3);
+    expect(delays[0]).toBeLessThanOrEqual(100);
+    expect(delays[1]).toBeLessThanOrEqual(200);
+    expect(delays[2]).toBeLessThanOrEqual(250);
+    for (const d of delays) expect(d).toBeGreaterThanOrEqual(0);
+
+    timeoutSpy.mockRestore();
+  });
 });

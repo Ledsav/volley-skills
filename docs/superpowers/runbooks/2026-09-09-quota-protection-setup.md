@@ -16,14 +16,18 @@ runbook is the console/GCP work that code cannot do. Do the steps in order.
 3. Domains: your production host (e.g. `volley-skills-app.web.app` and any custom
    domain). Add `localhost` too if you want App Check to work in a non-emulator
    local run.
-4. Accept the terms, submit. Copy the **site key** (public) — the secret key is
-   not needed for Firebase App Check.
+4. Accept the terms, submit. Copy **both** keys:
+   - **site key** (public) → goes in the app as `VITE_APPCHECK_RECAPTCHA_KEY`
+     (step 3).
+   - **secret key** (private) → goes in the Firebase console at registration
+     (step 2). Firebase uses it server-side to verify tokens.
 
 ## 2. Register App Check in the Firebase console
 
 1. Firebase console → your project → **Build → App Check**.
 2. On the **Apps** tab, select the web app, click **Register**.
-3. Provider: **reCAPTCHA v3**. Paste the site key from step 1. Save.
+3. Provider: **reCAPTCHA v3**. Paste the **secret key** from step 1 (not the
+   site key — the site key goes in the app in step 3). Save.
 4. Leave enforcement **off** for now (that's step 5).
 
 ## 3. Wire the key into the app

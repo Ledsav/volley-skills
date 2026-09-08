@@ -132,6 +132,10 @@ export async function bulkCreateTrainings(
   if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const counterRef = doc(db, 'counters', 'trainings');
 
+  // The SDK already retries the transaction internally; this outer withBackoff
+  // only adds a few paced retries if the whole transaction still surfaces a
+  // transient overload error. Safe to layer: every re-run re-reads the counter
+  // and re-derives all businessIds, so a retry is idempotent.
   await withBackoff(() =>
     runTransaction(db, async (tx) => {
       const counterSnap = await tx.get(counterRef);

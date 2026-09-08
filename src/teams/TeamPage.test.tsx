@@ -88,4 +88,29 @@ describe('TeamPage', () => {
     expect(screen.getByRole('dialog', { name: 'Import players' })).toBeInTheDocument();
     expect(screen.getByText(/consent not given/i)).toBeInTheDocument();
   });
+
+  it('shows a consent-reminder notice after a successful player import', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    vi.spyOn(playersApi, 'bulkCreatePlayers').mockResolvedValue(2);
+
+    renderTeamPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Import players' }));
+    fireEvent.change(screen.getByLabelText('Paste JSON'), {
+      target: {
+        value: JSON.stringify([
+          { number: 7, fullName: 'Ana Ruiz' },
+          { number: 9, fullName: 'Bea Soto' },
+        ]),
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
+
+    expect(
+      await screen.findByText(/imported 2 players with consent not given/i)
+    ).toBeInTheDocument();
+    expect(playersApi.bulkCreatePlayers).toHaveBeenCalledTimes(1);
+  });
 });

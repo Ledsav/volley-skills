@@ -41,6 +41,10 @@ export function BulkImportDialog<TInput>({
 
   function resetResults() {
     validationGen.current += 1;
+    // Clear the in-flight spinner too: a superseded async validation's `.finally`
+    // is generation-guarded and will not run, so without this the Validate button
+    // would stay stuck (and disabled) until the dialog is reopened.
+    setValidating(false);
     setParseError(null);
     setErrors([]);
     setReady(null);

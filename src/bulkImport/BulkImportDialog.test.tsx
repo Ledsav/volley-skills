@@ -100,6 +100,10 @@ describe('BulkImportDialog', () => {
 
     expect(screen.queryByText(/ready to import/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    // The superseding edit must also clear the in-flight spinner so Validate
+    // stays usable — otherwise the button is stuck disabled on "Checking…".
+    const validateBtn = screen.getByRole('button', { name: 'Validate' });
+    expect(validateBtn).toBeEnabled();
   });
 
   it('keeps Import disabled when a clean validation yields zero rows', async () => {

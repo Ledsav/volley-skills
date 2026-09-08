@@ -30,6 +30,7 @@ export function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
 
@@ -84,6 +85,7 @@ export function TeamPage() {
                   + Add player
                 </Button>
               </div>
+              {importNotice && <p className="mb-4 text-sm text-green">{importNotice}</p>}
               <TeamRosterTable key={rosterRefreshKey} teamId={teamId} onPlayersChange={setRosterPlayers} />
             </>
           )}
@@ -117,8 +119,12 @@ export function TeamPage() {
           validate={validatePlayerRows}
           commit={(inputs) => bulkCreatePlayers(teamId, team, inputs, firebaseUser.uid)}
           onClose={() => setShowImportPlayers(false)}
-          onImported={() => {
+          onImported={(n) => {
             setShowImportPlayers(false);
+            setImportNotice(
+              `Imported ${n} player${n === 1 ? '' : 's'} with consent not given — confirm each one on their card.`
+            );
+            window.setTimeout(() => setImportNotice(null), 6000);
             setRosterRefreshKey((k) => k + 1);
           }}
         />

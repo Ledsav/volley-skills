@@ -6,6 +6,7 @@ import {
   listExercises,
   getExercisesByIds,
   countTrainingsUsingExercise,
+  bulkCreateExercises,
 } from './exercisesApi';
 
 const {
@@ -18,6 +19,7 @@ const {
   mockCollection,
   mockDoc,
   mockWhere,
+  mockWriteBatch,
 } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockUpdateDoc: vi.fn(),
@@ -28,6 +30,7 @@ const {
   mockCollection: vi.fn(() => 'exercises-collection'),
   mockDoc: vi.fn(() => 'doc-ref'),
   mockWhere: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
+  mockWriteBatch: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -45,6 +48,7 @@ vi.mock('firebase/firestore', () => ({
   limit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   startAfter: vi.fn((...args: unknown[]) => ({ type: 'startAfter', args })),
   serverTimestamp: () => 'server-timestamp',
+  writeBatch: mockWriteBatch,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -70,6 +74,30 @@ describe('exercisesApi', () => {
       createdBy: 'coach-uid',
       createdAt: 'server-timestamp',
     });
+  });
+
+  it('bulk-creates exercises in a single batch stamped with creator + timestamp', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const count = await bulkCreateExercises(
+      [
+        { name: 'A', description: '', category: 'warmup' },
+        { name: 'B', description: 'x', category: 'attack' },
+      ],
+      'coach-uid'
+    );
+
+    expect(count).toBe(2);
+    expect(batchSet).toHaveBeenCalledTimes(2);
+    expect(batchSet.mock.calls[0][1]).toMatchObject({
+      name: 'A',
+      category: 'warmup',
+      createdBy: 'coach-uid',
+      createdAt: 'server-timestamp',
+    });
+    expect(batchCommit).toHaveBeenCalledTimes(1);
   });
 
   it('updates an exercise', async () => {

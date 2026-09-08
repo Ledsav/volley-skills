@@ -13,6 +13,7 @@ import {
   startAfter,
   updateDoc,
   where,
+  writeBatch,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -27,6 +28,19 @@ export async function createExercise(input: NewExerciseInput, creatorUid: string
     createdAt: serverTimestamp(),
   });
   return docRef.id;
+}
+
+export async function bulkCreateExercises(
+  inputs: NewExerciseInput[],
+  creatorUid: string
+): Promise<number> {
+  const batch = writeBatch(db);
+  for (const input of inputs) {
+    const ref = doc(collection(db, 'exercises'));
+    batch.set(ref, { ...input, createdBy: creatorUid, createdAt: serverTimestamp() });
+  }
+  await batch.commit();
+  return inputs.length;
 }
 
 export async function updateExercise(exerciseId: string, updates: Partial<NewExerciseInput>): Promise<void> {

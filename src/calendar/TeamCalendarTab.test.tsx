@@ -73,7 +73,7 @@ describe('TeamCalendarTab', () => {
     expect(screen.getByText('Mon')).toBeInTheDocument();
   });
 
-  it('offers no assign affordance on out-of-month padding cells', async () => {
+  it('offers no add affordance on out-of-month padding cells', async () => {
     render(
       <MemoryRouter>
         <TeamCalendarTab teamId="team-1" />
@@ -82,9 +82,23 @@ describe('TeamCalendarTab', () => {
     await screen.findByText('TR-0007 · Passing circuit');
 
     // Viewing September 2026: Aug 31 and Oct 1 are adjacent-month padding cells.
-    expect(screen.queryByLabelText('Assign training on 2026-08-31')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Assign training on 2026-10-01')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Assign training on 2026-09-15')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Add training on 2026-08-31')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add training on 2026-10-01')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Add training on 2026-09-15')).toBeInTheDocument();
+  });
+
+  it('opens the assign dialog from the add button on an empty in-month day', async () => {
+    render(
+      <MemoryRouter>
+        <TeamCalendarTab teamId="team-1" />
+      </MemoryRouter>
+    );
+    await screen.findByText('TR-0007 · Passing circuit');
+
+    expect(screen.queryByText('assign-stub')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Add training on 2026-09-20'));
+
+    expect(screen.getByText('assign-stub')).toBeInTheDocument();
   });
 
   it('removes a session after confirmation', async () => {

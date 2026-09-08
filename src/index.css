@@ -4,6 +4,12 @@
 
 /* Light theme (default) — matches docs/superpowers/specs/2026-09-04-volley-skills-design-system.md §2 */
 :root {
+  /* Tells the browser which palette to paint native controls with — the
+     <input type="date"> picker glyph, number spinners, native scrollbars.
+     These live in browser shadow DOM and ignore `color`/text-ink, so without
+     this they'd render light-mode dark on the dark surface. */
+  color-scheme: light;
+
   --color-navy: 15 45 91; /* #0F2D5B */
   --color-blue: 40 101 246; /* #2865F6 */
   --color-blue-strong: 30 79 220; /* #1E4FDC */
@@ -23,6 +29,8 @@
 /* Dark theme — spec §2.3: brand hues lightened to hold contrast, navy stays
    the darkest structural color (it's still darker than the page canvas). */
 .dark {
+  color-scheme: dark;
+
   --color-navy: 33 58 99; /* #213A63 */
   --color-blue: 112 149 255; /* #7095FF */
   --color-blue-strong: 147 176 255; /* #93B0FF */

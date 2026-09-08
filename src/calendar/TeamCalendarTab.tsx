@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { CalendarSession } from '../types/calendarSession';
 import { AssignTrainingDialog } from './AssignTrainingDialog';
@@ -83,18 +83,17 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
         {grid.flat().map((cell) => (
           <div
             key={cell.date}
-            className={`min-h-24 bg-surface p-1 ${cell.inMonth ? '' : 'opacity-40'}`}
+            className={`flex min-h-24 flex-col bg-surface p-1 ${
+              cell.inMonth
+                ? 'group transition-colors hover:bg-blue/5 focus-within:bg-blue/5'
+                : 'opacity-40'
+            }`}
           >
             {cell.inMonth ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => setAssignDate(cell.date)}
-                  className="block w-full text-right text-xs tabular-nums text-slate hover:text-blue"
-                  aria-label={`Assign training on ${cell.date}`}
-                >
+                <span className="block w-full text-right text-xs tabular-nums text-slate">
                   {Number(cell.date.slice(-2))}
-                </button>
+                </span>
                 <ul className="mt-1 space-y-1">
                   {(sessionsByDate[cell.date] ?? []).map((session) => (
                     <li key={session.id} className="flex items-center gap-1.5 rounded-sm bg-blue/10 py-0.5 pl-1.5 pr-1 text-xs">
@@ -116,6 +115,15 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
                     </li>
                   ))}
                 </ul>
+                <button
+                  type="button"
+                  onClick={() => setAssignDate(cell.date)}
+                  aria-label={`Add training on ${cell.date}`}
+                  className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate/50 transition-colors hover:bg-blue/10 hover:text-blue focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue group-hover:text-blue"
+                >
+                  <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
+                  <span>Add</span>
+                </button>
               </>
             ) : (
               <span

@@ -1,13 +1,15 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
 import * as playersApi from '../players/playersApi';
+import { useAuth } from '../auth/AuthContext';
 import type { Team } from '../types/team';
 
 vi.mock('./teamsApi');
 vi.mock('../players/playersApi');
+vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../calendar/calendarApi', () => ({
   listCalendarSessions: vi.fn().mockResolvedValue([]),
@@ -40,6 +42,15 @@ function renderTeamPage() {
 }
 
 describe('TeamPage', () => {
+  beforeEach(() => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+  });
+
   it('shows an access message instead of loading forever when the read is rejected', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
 
@@ -64,5 +75,17 @@ describe('TeamPage', () => {
     fireEvent.click(await screen.findByText('Calendar'));
 
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
+  });
+
+  it('opens the player bulk-import dialog from the overview tab', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+
+    renderTeamPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Import players' }));
+
+    expect(screen.getByRole('dialog', { name: 'Import players' })).toBeInTheDocument();
+    expect(screen.getByText(/consent not given/i)).toBeInTheDocument();
   });
 });

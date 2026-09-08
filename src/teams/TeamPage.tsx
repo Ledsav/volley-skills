@@ -5,6 +5,10 @@ import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
 import { TeamStatsRow } from './TeamStatsRow';
 import { AddPlayerDialog } from '../players/AddPlayerDialog';
+import { useAuth } from '../auth/AuthContext';
+import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
+import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImport';
+import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
@@ -20,10 +24,12 @@ const tabClass = (active: boolean) =>
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
+  const { firebaseUser } = useAuth();
   const [team, setTeam] = useState<Team | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [error, setError] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [showImportPlayers, setShowImportPlayers] = useState(false);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
 
@@ -70,7 +76,10 @@ export function TeamPage() {
           {tab === 'overview' && (
             <>
               <TeamStatsRow players={rosterPlayers} />
-              <div className="mb-4 flex justify-end">
+              <div className="mb-4 flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setShowImportPlayers(true)}>
+                  Import players
+                </Button>
                 <Button variant="primary" size="sm" onClick={() => setShowAddPlayer(true)}>
                   + Add player
                 </Button>
@@ -96,6 +105,20 @@ export function TeamPage() {
           onClose={() => setShowAddPlayer(false)}
           onCreated={() => {
             setShowAddPlayer(false);
+            setRosterRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
+      {showImportPlayers && firebaseUser && (
+        <BulkImportDialog
+          title="Import players"
+          hint="Imported players start with consent not given — confirm each one on their card."
+          exampleJson={PLAYER_IMPORT_EXAMPLE}
+          validate={validatePlayerRows}
+          commit={(inputs) => bulkCreatePlayers(teamId, team, inputs, firebaseUser.uid)}
+          onClose={() => setShowImportPlayers(false)}
+          onImported={() => {
+            setShowImportPlayers(false);
             setRosterRefreshKey((k) => k + 1);
           }}
         />

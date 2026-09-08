@@ -15,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import type { NewTrainingInput, Training } from '../types/training';
 import { formatBusinessId } from './businessId';
@@ -108,7 +109,9 @@ export async function resolveExerciseNames(names: string[]): Promise<Map<string,
   const map = new Map<string, string[]>();
   for (let i = 0; i < distinct.length; i += 30) {
     const chunk = distinct.slice(i, i + 30);
-    const snap = await getDocs(query(collection(db, 'exercises'), where('name', 'in', chunk)));
+    const snap = await withBackoff(() =>
+      getDocs(query(collection(db, 'exercises'), where('name', 'in', chunk)))
+    );
     for (const d of snap.docs) {
       const name = d.data().name as string;
       map.set(name, [...(map.get(name) ?? []), d.id]);
@@ -129,23 +132,25 @@ export async function bulkCreateTrainings(
   if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const counterRef = doc(db, 'counters', 'trainings');
 
-  await runTransaction(db, async (tx) => {
-    const counterSnap = await tx.get(counterRef);
-    const lastSequence = counterSnap.exists() ? (counterSnap.data().lastSequence as number) : 0;
+  await withBackoff(() =>
+    runTransaction(db, async (tx) => {
+      const counterSnap = await tx.get(counterRef);
+      const lastSequence = counterSnap.exists() ? (counterSnap.data().lastSequence as number) : 0;
 
-    inputs.forEach((input, i) => {
-      const trainingRef = doc(collection(db, 'trainings'));
-      tx.set(trainingRef, {
-        businessId: formatBusinessId(lastSequence + i + 1),
-        ...input,
-        exerciseIds: input.exercises.map((e) => e.exerciseId),
-        createdBy: creatorUid,
-        createdAt: serverTimestamp(),
+      inputs.forEach((input, i) => {
+        const trainingRef = doc(collection(db, 'trainings'));
+        tx.set(trainingRef, {
+          businessId: formatBusinessId(lastSequence + i + 1),
+          ...input,
+          exerciseIds: input.exercises.map((e) => e.exerciseId),
+          createdBy: creatorUid,
+          createdAt: serverTimestamp(),
+        });
       });
-    });
 
-    tx.set(counterRef, { lastSequence: lastSequence + inputs.length });
-  });
+      tx.set(counterRef, { lastSequence: lastSequence + inputs.length });
+    })
+  );
 
   return inputs.length;
 }

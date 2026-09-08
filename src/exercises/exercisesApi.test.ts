@@ -100,6 +100,20 @@ describe('exercisesApi', () => {
     expect(batchCommit).toHaveBeenCalledTimes(1);
   });
 
+  it('retries the batch commit once on a transient resource-exhausted error', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('quota'), { code: 'resource-exhausted' }))
+      .mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const count = await bulkCreateExercises([{ name: 'A', description: '', category: 'warmup' }], 'coach-uid');
+
+    expect(count).toBe(1);
+    expect(batchCommit).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects a bulk exercise import above the MAX_IMPORT cap before any write', async () => {
     const batchSet = vi.fn();
     const batchCommit = vi.fn();

@@ -148,6 +148,38 @@ describe('playersApi', () => {
     expect(batchSet.mock.calls[1][1]).toMatchObject({ number: 8, fullName: 'John Roe' });
   });
 
+  it('retries the batch commit once on a transient resource-exhausted error', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('quota'), { code: 'resource-exhausted' }))
+      .mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
+    const count = await bulkCreatePlayers(
+      'team-1',
+      team,
+      [
+        {
+          number: 7,
+          fullName: 'Jane Doe',
+          dob: '',
+          nationality: '',
+          licenseNumber: '',
+          position: '',
+          playerPhone: '',
+          guardians: [],
+          skills: { serve: 6, attack: 6, set: 6, defence: 6, reception: 6, jump: 6, speed: 6, iq: 6 },
+        },
+      ],
+      'coach-uid'
+    );
+
+    expect(count).toBe(1);
+    expect(batchCommit).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects a bulk player import above the MAX_IMPORT cap before any write', async () => {
     const batchSet = vi.fn();
     const batchCommit = vi.fn();

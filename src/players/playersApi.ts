@@ -15,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SKILL_KEYS, type Player, type SkillKey, type Guardian, type Skills } from '../types/player';
@@ -108,7 +109,7 @@ export async function bulkCreatePlayers(
       updatedAt: serverTimestamp(),
     });
   }
-  await batch.commit();
+  await withBackoff(() => batch.commit());
   return inputs.length;
 }
 

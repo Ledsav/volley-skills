@@ -92,4 +92,20 @@ describe('TrainingsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
     expect(screen.getByRole('dialog', { name: /Import trainings/ })).toBeInTheDocument();
   });
+
+  it('debounces the age-group filter so typing does not query on every keystroke', async () => {
+    renderPage();
+    await screen.findByText('Passing circuit');
+    vi.mocked(trainingsApi.listTrainings).mockClear();
+
+    const field = screen.getByLabelText('Age group');
+    fireEvent.change(field, { target: { value: 'U' } });
+    fireEvent.change(field, { target: { value: 'U1' } });
+    fireEvent.change(field, { target: { value: 'U17' } });
+
+    expect(trainingsApi.listTrainings).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1));
+    expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' });
+  });
 });

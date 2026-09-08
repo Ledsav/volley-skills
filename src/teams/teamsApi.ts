@@ -16,6 +16,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { deletePlayer } from '../players/playersApi';
 import type { Team } from '../types/team';
@@ -61,7 +62,7 @@ export async function bulkCreateTeams(
       createdAt: serverTimestamp(),
     });
   }
-  await batch.commit();
+  await withBackoff(() => batch.commit());
   return inputs.length;
 }
 

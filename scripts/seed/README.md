@@ -23,8 +23,11 @@ The script logs **counts only** — never player or guardian field values.
 - `reference/VCB_U17_PlayerCards_2026-27.xlsx` present (it is **gitignored** — it
   holds minors' contact data; keep it local, never commit it). Override the path
   with `--file <path>`.
-- Emulator target: JDK 21+ on `PATH` (the Firestore emulator needs it) and
-  `firebase-tools` (already a dev dependency).
+- Emulator target: a JDK **21+** installed somewhere (the Firestore emulator
+  needs it). `npm run emulator` locates it automatically — it checks `JAVA_HOME`,
+  then the usual install dirs (Adoptium, Microsoft, Corretto, Zulu, `/usr/lib/jvm`,
+  …), then `java` on `PATH` — so you do **not** need `JAVA_HOME` set. If none is
+  found it prints a Temurin download link.
 - Prod target: `serviceAccountKey.json` at the repo root (**gitignored**) —
   download it from the Firebase console → Project settings → Service accounts →
   "Generate new private key".
@@ -40,6 +43,10 @@ npm run emulator
 # terminal 2 — seed it
 npm run seed:emulator
 ```
+
+`npm run emulator` prints which JDK it picked, then starts Firestore (:8080) and
+the Emulator UI (:4000, or the next free port). `seed:emulator` needs no Java —
+it just talks to the running emulator over the wire.
 
 `seed:emulator` runs `node scripts/seed/seed.mjs --emulator --reset`:
 
@@ -59,7 +66,7 @@ The emulator is in-memory: restart `npm run emulator` and re-run
 on Linux/macOS — add those flags to the `emulator` script — but currently fails
 with `EPERM` on this Windows box.)
 
-Inspect the seeded data at the Emulator UI (`http://127.0.0.1:4000`) while
+Inspect the seeded data at the Emulator UI (`http://127.0.0.1:4000`, or the next free port) while
 `npm run emulator` is running.
 
 ## Seed production

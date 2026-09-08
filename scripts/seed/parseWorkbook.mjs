@@ -238,7 +238,7 @@ export async function parseWorkbook(filePath) {
   // Team identity: read the club/age/season banner off the first player sheet.
   const banner = playerSheets.length ? cellText(playerSheets[0].getRow(1).getCell(1).value) : '';
   const ageGroup = (banner.match(/\bU\d{1,2}\b/) || ['U17'])[0];
-  const season = (banner.match(/\b(\d{4})\s*[-–]\s*(\d{2,4})\b/) || [, '2026', '2027']).slice(1).join('-');
+  const season = (banner.match(/\b(\d{4})\s*[-–]\s*(\d{2,4})\b/) || [undefined, '2026', '2027']).slice(1).join('-');
 
   const team = {
     name: ageGroup,

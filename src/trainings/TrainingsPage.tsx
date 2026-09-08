@@ -6,6 +6,7 @@ import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Input } from '../components/Input';
+import { useDebouncedValue } from '../components/useDebouncedValue';
 import type { Training } from '../types/training';
 import {
   bulkCreateTrainings,
@@ -31,6 +32,10 @@ export function TrainingsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [ageGroup, setAgeGroup] = useState('');
   const [businessId, setBusinessId] = useState(() => searchParams.get('businessId') ?? '');
+  // Free-text filters: debounce so a query fires once the user stops typing,
+  // not on every keystroke.
+  const debouncedAgeGroup = useDebouncedValue(ageGroup, 350);
+  const debouncedBusinessId = useDebouncedValue(businessId, 350);
   const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; training: Training } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Training | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -38,15 +43,18 @@ export function TrainingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    if (businessId.trim()) {
-      const found = await findTrainingByBusinessId(businessId.trim());
+    if (debouncedBusinessId.trim()) {
+      const found = await findTrainingByBusinessId(debouncedBusinessId.trim());
       setTrainings(found ? [found] : []);
       setLastDoc(null);
       setHasMore(false);
       setLoaded(true);
       return;
     }
-    const page = await listTrainings(null, ageGroup.trim() ? { ageGroupTarget: ageGroup.trim() } : {});
+    const page = await listTrainings(
+      null,
+      debouncedAgeGroup.trim() ? { ageGroupTarget: debouncedAgeGroup.trim() } : {}
+    );
     setTrainings(page.trainings);
     setLastDoc(page.lastDoc);
     setHasMore(page.hasMore);
@@ -55,7 +63,10 @@ export function TrainingsPage() {
 
   async function loadMore() {
     if (!lastDoc) return;
-    const page = await listTrainings(lastDoc, ageGroup.trim() ? { ageGroupTarget: ageGroup.trim() } : {});
+    const page = await listTrainings(
+      lastDoc,
+      debouncedAgeGroup.trim() ? { ageGroupTarget: debouncedAgeGroup.trim() } : {}
+    );
     setTrainings((current) => [...current, ...page.trainings]);
     setLastDoc(page.lastDoc);
     setHasMore(page.hasMore);
@@ -66,7 +77,7 @@ export function TrainingsPage() {
     setLoaded(false);
     load().catch(() => setError('Could not load trainings. Please refresh the page.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ageGroup, businessId]);
+  }, [debouncedAgeGroup, debouncedBusinessId]);
 
   async function confirmDelete() {
     if (!pendingDelete) return;

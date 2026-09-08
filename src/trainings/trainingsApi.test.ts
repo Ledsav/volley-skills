@@ -196,6 +196,39 @@ describe('trainingsApi', () => {
     expect(tx.set.mock.calls[2][1]).toEqual({ lastSequence: 8 });
   });
 
+  it('retries the transaction once on a transient resource-exhausted error', async () => {
+    mockDoc.mockImplementation((...args: unknown[]) => {
+      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      return { id: 'training-x' };
+    });
+    const tx = {
+      get: vi.fn().mockResolvedValue({ exists: () => true, data: () => ({ lastSequence: 6 }) }),
+      set: vi.fn(),
+    };
+    mockRunTransaction
+      .mockRejectedValueOnce(Object.assign(new Error('quota'), { code: 'resource-exhausted' }))
+      .mockImplementation(async (_db: unknown, fn: (t: typeof tx) => unknown) => fn(tx));
+
+    const count = await bulkCreateTrainings(
+      [{ name: 'A', description: '', ageGroupTarget: '', exercises: [] }],
+      'coach-uid'
+    );
+
+    expect(count).toBe(1);
+    expect(mockRunTransaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a name-resolution query once on a transient unavailable error', async () => {
+    mockGetDocs
+      .mockRejectedValueOnce(Object.assign(new Error('blip'), { code: 'unavailable' }))
+      .mockResolvedValue({ docs: [{ id: 'ex-1', data: () => ({ name: 'Butterfly' }) }] });
+
+    const map = await resolveExerciseNames(['Butterfly']);
+
+    expect(map.get('Butterfly')).toEqual(['ex-1']);
+    expect(mockGetDocs).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects a bulk training import above the MAX_IMPORT cap before opening a transaction', async () => {
     const rows = Array.from({ length: 101 }, () => ({
       name: 'x',

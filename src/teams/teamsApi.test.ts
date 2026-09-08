@@ -86,6 +86,24 @@ describe('teamsApi', () => {
     expect(batchCommit).toHaveBeenCalledTimes(1);
   });
 
+  it('retries the batch commit once on a transient resource-exhausted error', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('quota'), { code: 'resource-exhausted' }))
+      .mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    const count = await bulkCreateTeams(
+      [{ name: 'A', club: '', ageGroup: '', season: '', description: '' }],
+      'coach-uid',
+      'coach@example.com'
+    );
+
+    expect(count).toBe(1);
+    expect(batchCommit).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects a bulk team import above the MAX_IMPORT cap before any write', async () => {
     const batchSet = vi.fn();
     const batchCommit = vi.fn();

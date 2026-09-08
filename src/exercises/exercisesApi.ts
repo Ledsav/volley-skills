@@ -17,6 +17,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import type { Exercise, ExerciseCategory, NewExerciseInput } from '../types/exercise';
 
@@ -41,7 +42,7 @@ export async function bulkCreateExercises(
     const ref = doc(collection(db, 'exercises'));
     batch.set(ref, { ...input, createdBy: creatorUid, createdAt: serverTimestamp() });
   }
-  await batch.commit();
+  await withBackoff(() => batch.commit());
   return inputs.length;
 }
 

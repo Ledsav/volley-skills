@@ -20,6 +20,47 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /exercises/{exerciseId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.category in
+           ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
+      allow update: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.category in
+           ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
+      allow delete: if isAdmin();
+    }
+
+    match /trainings/{trainingId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.businessId is string
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.exercises is list
+        && request.resource.data.exerciseIds is list;
+      allow update: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.exercises is list
+        && request.resource.data.exerciseIds is list
+        && request.resource.data.businessId == resource.data.businessId;
+      allow delete: if isAdmin();
+    }
+
+    match /counters/{counterId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin()
+        && request.resource.data.lastSequence is int
+        && request.resource.data.lastSequence >= 0;
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null
@@ -88,6 +129,19 @@ service cloud.firestore {
           // there is no standalone "delete one test result" feature.
           allow delete: if request.auth != null && isTeamAdmin();
         }
+      }
+
+      match /calendar/{sessionId} {
+        function isTeamAdmin() {
+          return request.auth != null && request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
+        }
+        allow read: if isTeamAdmin();
+        allow create: if isTeamAdmin()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.date is string;
+        allow update: if false;
+        allow delete: if isTeamAdmin();
       }
     }
   }

@@ -40,7 +40,7 @@ export function PlayerContactSection({
 
   if (!editing || !isAdmin) {
     return (
-      <section className="rounded-lg border border-border bg-surface p-6 shadow-card">
+      <section className="p-6">
         <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Contact & Registration</h2>
         <p className="mt-3 text-slate">Name: {player.fullName}</p>
         <p className="mt-1 text-slate">Position: {player.position}</p>
@@ -58,7 +58,7 @@ export function PlayerContactSection({
     <form
       onSubmit={handleSave}
       aria-label="Edit contact information"
-      className="rounded-lg border border-border bg-surface p-6 shadow-card"
+      className="p-6"
     >
       <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
         Name

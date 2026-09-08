@@ -14,6 +14,7 @@ import { db } from '../firebase/config';
 import type { NewPhysicalTestInput, PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 
 const HISTORY_PAGE_SIZE = 10;
+const FULL_HISTORY_CAP = 500;
 
 export async function createPhysicalTest(
   teamId: string,
@@ -40,6 +41,12 @@ export async function getLatestByType(
   if (snapshot.docs.length === 0) return null;
   const d = snapshot.docs[0];
   return { id: d.id, ...d.data() } as PhysicalTest;
+}
+
+export async function listAllPhysicalTests(teamId: string, playerId: string): Promise<PhysicalTest[]> {
+  const base = collection(db, 'teams', teamId, 'players', playerId, 'physicalTests');
+  const snapshot = await getDocs(query(base, orderBy('date', 'desc'), limit(FULL_HISTORY_CAP)));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PhysicalTest);
 }
 
 export interface PhysicalTestHistoryPage {

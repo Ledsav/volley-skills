@@ -19,7 +19,7 @@ export function TeamsListPage() {
     const page = await listMyTeams(appUser.email);
     setTeams(page.teams);
     setLastDoc(page.lastDoc);
-    setHasMore(page.teams.length > 0 && page.lastDoc !== null);
+    setHasMore(page.hasMore);
   }
 
   async function loadMore() {
@@ -27,7 +27,7 @@ export function TeamsListPage() {
     const page = await listMyTeams(appUser.email, lastDoc);
     setTeams((current) => [...current, ...page.teams]);
     setLastDoc(page.lastDoc);
-    setHasMore(page.teams.length > 0);
+    setHasMore(page.hasMore);
   }
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function TeamsListPage() {
   }, [appUser?.email]);
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
+    <div className="w-full bg-bg p-6 lg:p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
         <Button variant="primary" onClick={() => setShowCreate(true)}>
@@ -44,18 +44,27 @@ export function TeamsListPage() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-surface shadow-card">
-        <ul className="divide-y divide-border">
+      {teams.length === 0 ? (
+        <div className="rounded-lg border border-border bg-surface p-6 text-center text-sm text-slate shadow-card">
+          No teams yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {teams.map((team) => (
-            <li key={team.id} className="px-4 py-3">
-              <Link to={`/teams/${team.id}`} className="font-medium text-blue hover:underline">
-                {team.name}
-              </Link>
-            </li>
+            <Link
+              key={team.id}
+              to={`/teams/${team.id}`}
+              className="rounded-lg border border-border bg-surface p-4 shadow-card hover:border-blue"
+            >
+              <div className="font-semibold text-ink">{team.name}</div>
+              <p className="mt-1 text-sm text-slate">
+                {team.club} · {team.ageGroup} · {team.season}
+              </p>
+              {team.description && <p className="mt-2 line-clamp-2 text-sm text-slate">{team.description}</p>}
+            </Link>
           ))}
-          {teams.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate">No teams yet.</li>}
-        </ul>
-      </div>
+        </div>
+      )}
 
       {hasMore && (
         <div className="mt-4 flex justify-center">

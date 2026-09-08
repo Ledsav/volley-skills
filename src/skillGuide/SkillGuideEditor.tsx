@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Textarea } from '../components/Input';
 import { getSkillGuide, updateSkillGuide } from './skillGuideApi';
+import { bandBorderClass } from './bandColor';
 import type { SkillGuideEntry } from '../types/skillGuide';
 
 export function SkillGuideEditor() {
@@ -59,9 +60,12 @@ export function SkillGuideEditor() {
         {skills.map((skill) => (
           <section key={skill.key} className="rounded-lg border border-border bg-surface p-6 shadow-card">
             <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{skill.label}</h2>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {skill.ranges.map((range, index) => (
-                <div key={`${range.min}-${range.max}`}>
+                <div
+                  key={`${range.min}-${range.max}`}
+                  className={`rounded-r-md border-l-4 bg-bg p-3 ${bandBorderClass(range.min)}`}
+                >
                   <label
                     htmlFor={`${skill.key}-range-${index}`}
                     className="mb-1 block text-sm font-medium text-ink"
@@ -70,19 +74,20 @@ export function SkillGuideEditor() {
                     id={`${skill.key}-range-${index}`}
                     value={range.description}
                     onChange={(e) => updateRangeDescription(skill.key, index, e.target.value)}
+                    className="w-full bg-surface"
                   />
                 </div>
               ))}
-              <div>
-                <label htmlFor={`${skill.key}-how-to-evaluate`} className="mb-1 block text-sm font-medium text-ink">
-                  How to evaluate
-                </label>
-                <Textarea
-                  id={`${skill.key}-how-to-evaluate`}
-                  value={skill.howToEvaluate}
-                  onChange={(e) => updateHowToEvaluate(skill.key, e.target.value)}
-                />
-              </div>
+            </div>
+            <div className="mt-3">
+              <label htmlFor={`${skill.key}-how-to-evaluate`} className="mb-1 block text-sm font-medium text-ink">
+                How to evaluate
+              </label>
+              <Textarea
+                id={`${skill.key}-how-to-evaluate`}
+                value={skill.howToEvaluate}
+                onChange={(e) => updateHowToEvaluate(skill.key, e.target.value)}
+              />
             </div>
           </section>
         ))}

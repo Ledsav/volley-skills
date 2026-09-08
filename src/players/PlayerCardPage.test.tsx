@@ -14,6 +14,7 @@ const mockNavigate = vi.fn();
 vi.mock('./playersApi');
 vi.mock('../teams/teamsApi');
 vi.mock('./physicalTestsApi');
+vi.mock('./playerExport');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -127,5 +128,64 @@ describe('PlayerCardPage', () => {
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1', 'player-1'));
     expect(mockNavigate).toHaveBeenCalledWith('/teams/team-1', { replace: true });
+  });
+
+  it('exports the player record as JSON when an admin clicks Export', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { email: 'coach@example.com' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'listAllPhysicalTests').mockResolvedValue([]);
+    const exportModule = await import('./playerExport');
+    const exportSpy = vi.spyOn(exportModule, 'downloadPlayerExport').mockImplementation(() => {});
+
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    fireEvent.click(screen.getByText('Export data (JSON)'));
+
+    await waitFor(() => expect(exportSpy).toHaveBeenCalledWith(basePlayer, []));
+  });
+
+  it('surfaces an error and does not download when the export read fails', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { email: 'coach@example.com' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'listAllPhysicalTests').mockRejectedValue(new Error('boom'));
+    const exportModule = await import('./playerExport');
+    const exportSpy = vi.spyOn(exportModule, 'downloadPlayerExport').mockImplementation(() => {});
+
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    fireEvent.click(screen.getByText('Export data (JSON)'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Could not export this player's data. Please try again."
+    );
+    expect(exportSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows an avatar with initials and a level badge next to the name', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, avgScore: 6.8, level: 'Advanced' });
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+
+    renderPlayerCard();
+
+    await screen.findByText('Test Player');
+    expect(screen.getByText('TP')).toBeInTheDocument();
+    expect(screen.getByText('Advanced')).toBeInTheDocument();
   });
 });

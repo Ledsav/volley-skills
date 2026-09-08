@@ -17,4 +17,10 @@ describe('App', () => {
     render(<App />);
     expect(await screen.findByLabelText('Email')).toBeInTheDocument();
   });
+
+  it('renders the public privacy page without authentication', async () => {
+    window.history.pushState({}, '', '/privacy');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Privacy Policy' })).toBeInTheDocument();
+  });
 });

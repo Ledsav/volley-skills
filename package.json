@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:emulator": "node scripts/seed/dev.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.ts\""
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.ts\"",
+    "emulator": "node scripts/seed/emulator.mjs",
+    "seed:emulator": "node scripts/seed/seed.mjs --emulator --reset",
+    "seed:prod": "node scripts/seed/seed.mjs --prod"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -33,6 +37,8 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "exceljs": "^4.4.0",
+    "firebase-admin": "^13.10.0",
     "firebase-tools": "^15.29.0",
     "jsdom": "^24.1.1",
     "postcss": "^8.4.40",

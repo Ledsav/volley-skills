@@ -13,7 +13,7 @@ export function GuidesPage() {
   const [tab, setTab] = useState<GuideTab>('skills');
 
   return (
-    <div className="mx-auto max-w-2xl bg-bg p-6">
+    <div className="w-full bg-bg p-6 lg:p-8">
       <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">Guides</h1>
       <nav className="mb-6 flex gap-6 border-b border-border">
         <button onClick={() => setTab('skills')} className={tabClass(tab === 'skills')}>

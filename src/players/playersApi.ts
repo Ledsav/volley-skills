@@ -70,6 +70,7 @@ export async function createPlayer(
 export interface PlayersPage {
   players: Player[];
   lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
 }
 
 export async function listPlayers(teamId: string, afterDoc: QueryDocumentSnapshot | null = null): Promise<PlayersPage> {
@@ -80,7 +81,7 @@ export async function listPlayers(teamId: string, afterDoc: QueryDocumentSnapsho
   const snapshot = await getDocs(q);
   const players = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Player);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
-  return { players, lastDoc };
+  return { players, lastDoc, hasMore: snapshot.docs.length === PLAYERS_PAGE_SIZE };
 }
 
 export async function getPlayer(teamId: string, playerId: string): Promise<Player | null> {

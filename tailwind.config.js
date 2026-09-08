@@ -1,19 +1,36 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
+      // Each token reads from a CSS variable (defined per-theme in src/index.css)
+      // via the rgb(var(...) / <alpha-value>) pattern, so bg-navy, text-ink, etc.
+      // repaint automatically when the `dark` class toggles, and opacity
+      // modifiers like bg-blue/10 keep working.
       colors: {
-        navy: '#0F2D5B',
-        blue: { DEFAULT: '#2865F6', strong: '#1E4FDC' },
-        orange: { DEFAULT: '#F97316', strong: '#DC5F0A' },
-        green: { DEFAULT: '#109861', strong: '#0C7C4F' },
-        red: { DEFAULT: '#DC2626', strong: '#B91C1C' },
-        ink: '#0F172A',
-        slate: '#64748B',
-        border: '#E2E8F0',
-        bg: '#F8FAFC',
-        surface: '#FFFFFF',
+        navy: 'rgb(var(--color-navy) / <alpha-value>)',
+        blue: {
+          DEFAULT: 'rgb(var(--color-blue) / <alpha-value>)',
+          strong: 'rgb(var(--color-blue-strong) / <alpha-value>)',
+        },
+        orange: {
+          DEFAULT: 'rgb(var(--color-orange) / <alpha-value>)',
+          strong: 'rgb(var(--color-orange-strong) / <alpha-value>)',
+        },
+        green: {
+          DEFAULT: 'rgb(var(--color-green) / <alpha-value>)',
+          strong: 'rgb(var(--color-green-strong) / <alpha-value>)',
+        },
+        red: {
+          DEFAULT: 'rgb(var(--color-red) / <alpha-value>)',
+          strong: 'rgb(var(--color-red-strong) / <alpha-value>)',
+        },
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
+        slate: 'rgb(var(--color-slate) / <alpha-value>)',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        bg: 'rgb(var(--color-bg) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
       },
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
       borderRadius: { sm: '6px', md: '9px', lg: '14px' },

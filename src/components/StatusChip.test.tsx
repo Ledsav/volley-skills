@@ -12,9 +12,11 @@ describe('StatusChip', () => {
     expect(screen.getByText('Active')).toHaveClass('bg-green/10', 'text-green');
   });
 
-  it('renders Completed with the solid ink fill', () => {
+  it('renders Completed with the solid, self-inverting fill', () => {
+    // bg-ink/text-bg (not text-white) so this chip still inverts correctly
+    // in dark mode, where `ink` becomes the light color and `bg` the dark one.
     render(<StatusChip status="Completed" />);
-    expect(screen.getByText('Completed')).toHaveClass('bg-ink', 'text-white');
+    expect(screen.getByText('Completed')).toHaveClass('bg-ink', 'text-bg');
   });
 
   it('renders Not started with the muted slate treatment', () => {

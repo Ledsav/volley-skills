@@ -20,6 +20,36 @@ describe('DevelopmentPlanEditor', () => {
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
   });
 
+  it('renders an objective as a structured card, not a single em-dash-joined line', () => {
+    const plan: DevelopmentPlan = {
+      shortTermObjectives: [
+        { objective: 'Improve serve accuracy', targetDate: '2026-12-01', status: 'In progress', coachComment: 'Good progress' },
+      ],
+      seasonObjectives: [],
+      generalNotes: '',
+    };
+
+    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={false} />);
+
+    // The title stands alone — it's not glued to its metadata with " — ".
+    expect(screen.getByText('Improve serve accuracy')).toBeInTheDocument();
+    expect(screen.queryByText(/Improve serve accuracy —/)).not.toBeInTheDocument();
+    expect(screen.getByText(/2026-12-01/)).toBeInTheDocument();
+    expect(screen.getByText('Good progress')).toBeInTheDocument();
+  });
+
+  it('does not print a dangling separator when an objective has no coach comment', () => {
+    const plan: DevelopmentPlan = {
+      shortTermObjectives: [{ objective: 'Improve serve', targetDate: '2026-12-01', status: 'Not started', coachComment: '' }],
+      seasonObjectives: [],
+      generalNotes: '',
+    };
+
+    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={false} />);
+
+    expect(screen.queryByText(/—\s*$/)).not.toBeInTheDocument();
+  });
+
   it('adds a short-term objective and saves the whole plan', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<DevelopmentPlanEditor plan={emptyPlan} onSave={onSave} isAdmin={true} />);

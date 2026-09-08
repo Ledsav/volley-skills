@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, LogOut, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, Dumbbell, LogOut, Settings, Users } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { ThemeToggle } from '../theme/ThemeToggle';
+import logo from '../assets/logo.png';
 
 const NAV_ITEMS = [
   { to: '/teams', label: 'Teams', Icon: Users },
+  { to: '/exercises', label: 'Exercises', Icon: Dumbbell },
+  { to: '/trainings', label: 'Trainings', Icon: ClipboardList },
   { to: '/admin/guides', label: 'Guides', Icon: BookOpen },
 ];
 
@@ -31,8 +35,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg lg:flex">
-      <aside className="hidden w-56 flex-col bg-navy p-4 lg:flex">
-        <span className="mb-6 px-3 text-lg font-semibold tracking-[-0.01em] text-white">Volley Skills</span>
+      <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto bg-navy p-4 lg:sticky lg:top-0 lg:flex lg:h-screen">
+        <div className="mb-6 flex items-center gap-2 px-3">
+          <img src={logo} alt="" className="h-8 w-8 rounded-full border-2 border-white" />
+          <span className="text-lg font-semibold tracking-[-0.01em] text-white">Volley Skills</span>
+        </div>
         <nav className="flex flex-1 flex-col gap-1">
           {NAV_ITEMS.map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} className={sidebarLinkClass}>
@@ -41,13 +48,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
+        <ThemeToggle className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white" />
         <button
           onClick={() => void handleSignOut()}
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
         >
           <LogOut size={20} strokeWidth={1.5} />
           Sign out
         </button>
+        <NavLink to="/privacy" className="px-3 py-2 text-xs font-medium text-white/50 hover:text-white/80">
+          Privacy
+        </NavLink>
       </aside>
 
       <div className="flex-1 pb-16 lg:pb-0">{children}</div>
@@ -59,13 +70,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             {label}
           </NavLink>
         ))}
-        <button
-          onClick={() => void handleSignOut()}
-          className="flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium text-slate"
-        >
-          <LogOut size={22} strokeWidth={1.5} />
-          Sign out
-        </button>
+        <NavLink to="/settings" className={bottomTabClass}>
+          <Settings size={22} strokeWidth={1.5} />
+          Settings
+        </NavLink>
       </nav>
     </div>
   );

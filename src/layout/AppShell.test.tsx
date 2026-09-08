@@ -19,6 +19,8 @@ describe('AppShell', () => {
     );
 
     expect(screen.getAllByText('Teams')).toHaveLength(2);
+    expect(screen.getAllByText('Exercises')).toHaveLength(2);
+    expect(screen.getAllByText('Trainings')).toHaveLength(2);
     expect(screen.getAllByText('Guides')).toHaveLength(2);
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });

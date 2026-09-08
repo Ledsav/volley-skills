@@ -2,8 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light theme (default) — matches docs/superpowers/specs/2026-09-04-volley-skills-design-system.md §2 */
+:root {
+  /* Tells the browser which palette to paint native controls with — the
+     <input type="date"> picker glyph, number spinners, native scrollbars.
+     These live in browser shadow DOM and ignore `color`/text-ink, so without
+     this they'd render light-mode dark on the dark surface. */
+  color-scheme: light;
+
+  --color-navy: 15 45 91; /* #0F2D5B */
+  --color-blue: 40 101 246; /* #2865F6 */
+  --color-blue-strong: 30 79 220; /* #1E4FDC */
+  --color-orange: 249 115 22; /* #F97316 */
+  --color-orange-strong: 220 95 10; /* #DC5F0A */
+  --color-green: 16 152 97; /* #109861 */
+  --color-green-strong: 12 124 79; /* #0C7C4F */
+  --color-red: 220 38 38; /* #DC2626 */
+  --color-red-strong: 185 28 28; /* #B91C1C */
+  --color-ink: 15 23 42; /* #0F172A */
+  --color-slate: 100 116 139; /* #64748B */
+  --color-border: 226 232 240; /* #E2E8F0 */
+  --color-bg: 248 250 252; /* #F8FAFC */
+  --color-surface: 255 255 255; /* #FFFFFF */
+}
+
+/* Dark theme — spec §2.3: brand hues lightened to hold contrast, navy stays
+   the darkest structural color (it's still darker than the page canvas). */
+.dark {
+  color-scheme: dark;
+
+  --color-navy: 33 58 99; /* #213A63 */
+  --color-blue: 112 149 255; /* #7095FF */
+  --color-blue-strong: 147 176 255; /* #93B0FF */
+  --color-orange: 251 146 60; /* #FB923C */
+  --color-orange-strong: 253 186 116; /* #FDBA74 */
+  --color-green: 52 201 138; /* #34C98A */
+  --color-green-strong: 110 220 174; /* #6EDCAE */
+  --color-red: 248 113 113; /* #F87171 */
+  --color-red-strong: 252 165 165; /* #FCA5A5 */
+  --color-ink: 234 240 251; /* #EAF0FB — flips to the light text color */
+  --color-slate: 147 163 190; /* #93A3BE */
+  --color-border: 36 50 82; /* #243252 */
+  --color-bg: 11 18 32; /* #0B1220 */
+  --color-surface: 18 27 46; /* #121B2E */
+}
+
 @layer base {
+  html {
+    @apply bg-bg;
+  }
   body {
-    @apply font-sans;
+    @apply bg-bg font-sans text-ink;
   }
 }

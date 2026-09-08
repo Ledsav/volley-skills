@@ -44,6 +44,11 @@ export async function createTeam(input: NewTeamInput, creatorUid: string, creato
 export interface TeamsPage {
   teams: Team[];
   lastDoc: QueryDocumentSnapshot | null;
+  // A full page might still be the last one — but a page shorter than the
+  // limit definitely is, so this is honest about "definitely no more" without
+  // an extra read, unlike lastDoc !== null (which is true even on a final
+  // full page and would show "Load more" one click too many).
+  hasMore: boolean;
 }
 
 export async function listMyTeams(email: string, afterDoc: QueryDocumentSnapshot | null = null): Promise<TeamsPage> {
@@ -54,7 +59,7 @@ export async function listMyTeams(email: string, afterDoc: QueryDocumentSnapshot
   const snapshot = await getDocs(q);
   const teams = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Team);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
-  return { teams, lastDoc };
+  return { teams, lastDoc, hasMore: snapshot.docs.length === TEAMS_PAGE_SIZE };
 }
 
 export async function getTeam(teamId: string): Promise<Team | null> {

@@ -63,7 +63,7 @@ export function PlayerSkillsSection({
   const previewLevel = computeLevel(previewAvg);
 
   return (
-    <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
+    <section className="p-6">
       <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Skills</h2>
       <div className="mt-4 flex flex-col gap-4">
         {SKILL_ORDER.map((key) => (

@@ -63,48 +63,55 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
 
   return (
     <div>
-      <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Admins</h2>
-      <ul className="mb-6 divide-y divide-border rounded-lg border border-border bg-surface">
-        {team.adminEmails.map((email) => (
-          <li key={email} className="flex items-center justify-between px-4 py-3">
-            <span className="text-ink">{email}</span>
-            {team.adminEmails.length > 1 && (
-              <Button variant="destructive" size="sm" onClick={() => void handleRemove(email)}>
-                Remove
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={handleAdd} className="rounded-lg border border-border bg-surface p-4 shadow-card">
-        <label htmlFor="new-admin-email" className="mb-1 block text-sm font-medium text-ink">
-          Add admin by email
-        </label>
-        <div className="flex gap-3">
-          <Input
-            id="new-admin-email"
-            type="email"
-            value={newAdminEmail}
-            onChange={(e) => setNewAdminEmail(e.target.value)}
-            required
-          />
-          <Button variant="primary" type="submit" className="shrink-0">
-            Grant access
+      <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
+        <div className="p-4">
+          <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Admins</h2>
+          <ul className="divide-y divide-border">
+            {team.adminEmails.map((email) => (
+              <li key={email} className="flex items-center justify-between py-3">
+                <span className="text-ink">{email}</span>
+                {team.adminEmails.length > 1 && (
+                  <Button variant="destructive" size="sm" onClick={() => void handleRemove(email)}>
+                    Remove
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <form onSubmit={handleAdd} className="p-4">
+          <label htmlFor="new-admin-email" className="mb-1 block text-sm font-medium text-ink">
+            Add admin by email
+          </label>
+          <div className="flex gap-3">
+            <Input
+              id="new-admin-email"
+              type="email"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              required
+            />
+            <Button variant="primary" type="submit" className="shrink-0">
+              Grant access
+            </Button>
+          </div>
+          {error && (
+            <p role="alert" className="mt-3 text-sm text-red">
+              {error}
+            </p>
+          )}
+        </form>
+
+        <div className="flex items-center justify-between gap-4 p-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
+            <p className="mt-1 text-slate">Deleting a team also removes its roster and every player's records.</p>
+          </div>
+          <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setShowDeleteConfirm(true)}>
+            Delete team
           </Button>
         </div>
-        {error && (
-          <p role="alert" className="mt-3 text-sm text-red">
-            {error}
-          </p>
-        )}
-      </form>
-
-      <h2 className="mb-3 mt-8 text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
-      <div className="flex items-center justify-between rounded-lg border border-border bg-surface p-4 shadow-card">
-        <p className="text-slate">Deleting a team also removes its roster and every player's records.</p>
-        <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setShowDeleteConfirm(true)}>
-          Delete team
-        </Button>
       </div>
 
       {showDeleteConfirm && (

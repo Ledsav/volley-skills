@@ -140,7 +140,7 @@ export function ExercisesPage() {
                 setDialog({ mode: 'edit', exercise });
               }
             }}
-            className="flex cursor-pointer items-start justify-between gap-4 p-4 hover:bg-bg"
+            className="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-bg"
           >
             <div className="flex items-start gap-3">
               <DiagramThumbnail exerciseId={exercise.id} />

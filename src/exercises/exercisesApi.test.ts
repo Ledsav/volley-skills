@@ -20,6 +20,7 @@ const {
   mockDoc,
   mockWhere,
   mockWriteBatch,
+  mockSaveDiagramSet,
 } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockUpdateDoc: vi.fn(),
@@ -31,6 +32,7 @@ const {
   mockDoc: vi.fn(() => 'doc-ref'),
   mockWhere: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
   mockWriteBatch: vi.fn(),
+  mockSaveDiagramSet: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -53,9 +55,12 @@ vi.mock('firebase/firestore', () => ({
 
 vi.mock('../firebase/config', () => ({ db: {} }));
 
+vi.mock('../diagrams/diagramsApi', () => ({ saveDiagramSet: mockSaveDiagramSet }));
+
 describe('exercisesApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSaveDiagramSet.mockResolvedValue({ idMap: {} });
   });
 
   it('creates an exercise stamped with the creator and a server timestamp', async () => {
@@ -83,8 +88,8 @@ describe('exercisesApi', () => {
 
     const count = await bulkCreateExercises(
       [
-        { name: 'A', description: '', category: 'warmup' },
-        { name: 'B', description: 'x', category: 'attack' },
+        { name: 'A', description: '', category: 'warmup', diagrams: [] },
+        { name: 'B', description: 'x', category: 'attack', diagrams: [] },
       ],
       'coach-uid'
     );
@@ -97,7 +102,58 @@ describe('exercisesApi', () => {
       createdBy: 'coach-uid',
       createdAt: 'server-timestamp',
     });
+    // `diagrams` is stripped from the exercise doc payload.
+    expect(batchSet.mock.calls[0][1]).not.toHaveProperty('diagrams');
     expect(batchCommit).toHaveBeenCalledTimes(1);
+    expect(mockSaveDiagramSet).not.toHaveBeenCalled();
+  });
+
+  it('writes each imported exercise\'s diagrams via saveDiagramSet after the batch commits', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+    mockDoc.mockReturnValueOnce({ id: 'ex-a' }).mockReturnValueOnce({ id: 'ex-b' });
+    const scene = { v: 1 as const, court: 'full' as const, showZones: false, items: [] };
+
+    const count = await bulkCreateExercises(
+      [
+        {
+          name: 'A',
+          description: '',
+          category: 'warmup',
+          diagrams: [{ title: 'Setup', order: 0, scene }],
+        },
+        { name: 'B', description: '', category: 'attack', diagrams: [] },
+      ],
+      'coach-uid'
+    );
+
+    expect(count).toBe(2);
+    expect(batchSet).toHaveBeenCalledTimes(2);
+    expect(batchCommit).toHaveBeenCalledTimes(1);
+    expect(mockSaveDiagramSet).toHaveBeenCalledTimes(1);
+    expect(mockSaveDiagramSet).toHaveBeenCalledWith(
+      'ex-a',
+      {
+        creates: [{ tempId: 'imp-0', title: 'Setup', order: 0, scene }],
+        updates: [],
+        deletes: [],
+      },
+      'coach-uid'
+    );
+  });
+
+  it('does not call saveDiagramSet when no imported row carries diagrams', async () => {
+    const batchSet = vi.fn();
+    const batchCommit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
+
+    await bulkCreateExercises(
+      [{ name: 'A', description: '', category: 'warmup', diagrams: [] }],
+      'coach-uid'
+    );
+
+    expect(mockSaveDiagramSet).not.toHaveBeenCalled();
   });
 
   it('retries the batch commit once on a transient resource-exhausted error', async () => {
@@ -108,7 +164,10 @@ describe('exercisesApi', () => {
       .mockResolvedValue(undefined);
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
-    const count = await bulkCreateExercises([{ name: 'A', description: '', category: 'warmup' }], 'coach-uid');
+    const count = await bulkCreateExercises(
+      [{ name: 'A', description: '', category: 'warmup', diagrams: [] }],
+      'coach-uid'
+    );
 
     expect(count).toBe(1);
     expect(batchCommit).toHaveBeenCalledTimes(2);
@@ -121,11 +180,17 @@ describe('exercisesApi', () => {
 
     await expect(
       bulkCreateExercises(
-        Array.from({ length: 101 }, () => ({ name: 'x', description: '', category: 'warmup' as const })),
+        Array.from({ length: 101 }, () => ({
+          name: 'x',
+          description: '',
+          category: 'warmup' as const,
+          diagrams: [],
+        })),
         'coach-uid'
       )
     ).rejects.toThrow(/capped at 100 entries/);
     expect(batchCommit).not.toHaveBeenCalled();
+    expect(mockSaveDiagramSet).not.toHaveBeenCalled();
   });
 
   it('updates an exercise', async () => {

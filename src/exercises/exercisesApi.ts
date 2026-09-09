@@ -13,12 +13,15 @@ import {
   updateDoc,
   where,
   writeBatch,
+  type DocumentReference,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
+import { saveDiagramSet } from '../diagrams/diagramsApi';
 import type { Exercise, ExerciseCategory, NewExerciseInput } from '../types/exercise';
+import type { ExerciseImportInput, ImportedDiagram } from './exercisesImport';
 
 const EXERCISES_PAGE_SIZE = 25;
 
@@ -32,16 +35,45 @@ export async function createExercise(input: NewExerciseInput, creatorUid: string
 }
 
 export async function bulkCreateExercises(
-  inputs: NewExerciseInput[],
+  inputs: ExerciseImportInput[],
   creatorUid: string
 ): Promise<number> {
   if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
+
+  // Phase 1: create every exercise doc in one atomic batch, keeping each
+  // pre-generated ref so its id can anchor the diagrams written next.
+  const created: { ref: DocumentReference; diagrams: ImportedDiagram[] }[] = [];
   const batch = writeBatch(db);
   for (const input of inputs) {
+    const { diagrams, ...exercise } = input;
     const ref = doc(collection(db, 'exercises'));
-    batch.set(ref, { ...input, createdBy: creatorUid, createdAt: serverTimestamp() });
+    batch.set(ref, { ...exercise, createdBy: creatorUid, createdAt: serverTimestamp() });
+    created.push({ ref, diagrams });
   }
   await withBackoff(() => batch.commit());
+
+  // Phase 2: write each exercise's diagrams via saveDiagramSet (it revalidates
+  // + batches <=12 writes per exercise). Sequential is fine for a one-off import.
+  // If a call fails here the exercises are already committed with no rollback —
+  // the admin re-adds the missing diagrams through the editor.
+  for (const { ref, diagrams } of created) {
+    if (diagrams.length === 0) continue;
+    await saveDiagramSet(
+      ref.id,
+      {
+        creates: diagrams.map((d, i) => ({
+          tempId: `imp-${i}`,
+          title: d.title,
+          order: d.order,
+          scene: d.scene,
+        })),
+        updates: [],
+        deletes: [],
+      },
+      creatorUid,
+    );
+  }
+
   return inputs.length;
 }
 

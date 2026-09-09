@@ -323,4 +323,112 @@ describe('DiagramEditorPage', () => {
     expect(await screen.findByText('Add the first diagram')).toBeInTheDocument();
     expect(screen.queryByLabelText('Court preset')).not.toBeInTheDocument();
   });
+
+  it('shift-clicking a second item builds a multi-selection with no single-select handle', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const cones = () => [...stage().querySelectorAll('[data-item-type="cone"]')];
+    await waitFor(() => expect(cones()).toHaveLength(2));
+
+    // Adding a 2nd cone replaced the selection with just it; shift-click the
+    // 1st (unselected) cone to add it to the selection.
+    await act(async () => {
+      cones()[0].dispatchEvent(new MouseEvent('pointerdown', { shiftKey: true, bubbles: true }));
+    });
+
+    await waitFor(() => expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(2));
+    expect(stage().querySelector('[data-transform-handle]')).toBeNull();
+  });
+
+  it('Delete removes every item in a multi-selection', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const cones = () => stage().querySelectorAll('[data-item-type="cone"]');
+    await waitFor(() => expect(cones()).toHaveLength(2));
+    await act(async () => {
+      cones()[0].dispatchEvent(new MouseEvent('pointerdown', { shiftKey: true, bubbles: true }));
+    });
+    await waitFor(() => expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(2));
+
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(cones()).toHaveLength(0));
+  });
+
+  it('Ctrl+A selects every item on the active diagram', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    await waitFor(() => expect(stage().querySelectorAll('[data-item-id]')).toHaveLength(2));
+
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    await waitFor(() => expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(2));
+  });
+
+  it('copies and pastes a whole multi-selection, selecting the new pasted pair', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const cones = () => stage().querySelectorAll('[data-item-type="cone"]');
+    await waitFor(() => expect(cones()).toHaveLength(2));
+    await act(async () => {
+      cones()[0].dispatchEvent(new MouseEvent('pointerdown', { shiftKey: true, bubbles: true }));
+    });
+    await waitFor(() => expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(2));
+
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+
+    await waitFor(() => expect(cones()).toHaveLength(4));
+    expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(2);
+  });
+
+  it('Ctrl+A and Delete are no-ops while the diagram-title input is focused', async () => {
+    renderPage();
+    const title = await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    await waitFor(() => expect(stage().querySelectorAll('[data-item-id]')).toHaveLength(2));
+
+    fireEvent.keyDown(title, { key: 'a', ctrlKey: true });
+    expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(1);
+    fireEvent.keyDown(title, { key: 'Delete' });
+    expect(stage().querySelectorAll('[data-item-id]')).toHaveLength(2);
+  });
+
+  it('right-clicking inside a multi-selection keeps it and Delete (n) removes the whole group', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const cones = () => stage().querySelectorAll('[data-item-type="cone"]');
+    await waitFor(() => expect(cones()).toHaveLength(2));
+    await act(async () => {
+      cones()[0].dispatchEvent(new MouseEvent('pointerdown', { shiftKey: true, bubbles: true }));
+    });
+    await waitFor(() => expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(2));
+
+    fireEvent.contextMenu(cones()[0], { clientX: 40, clientY: 40 });
+    const del = await screen.findByRole('menuitem', { name: 'Delete (2)' });
+    fireEvent.click(del);
+
+    await waitFor(() => expect(cones()).toHaveLength(0));
+  });
 });

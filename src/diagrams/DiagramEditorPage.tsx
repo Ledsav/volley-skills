@@ -62,48 +62,50 @@ export function DiagramEditorPage() {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
 
-      const selectedId = state.selectedItemId;
+      const selectedIds = state.selectedIds;
       const items = activeDiagram?.scene.items ?? [];
+      const selected = items.filter((i) => selectedIds.includes(i.id));
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedId) {
+        if (selectedIds.length) {
           e.preventDefault();
-          dispatch({ type: 'deleteItem', id: selectedId });
+          dispatch({ type: 'deleteSelected' });
         }
         return;
       }
 
       if (!e.ctrlKey && !e.metaKey) return;
       const key = e.key.toLowerCase();
-      if (key === 'z' && !e.shiftKey) {
+      if (key === 'a') {
+        e.preventDefault();
+        dispatch({ type: 'selectAll' });
+      } else if (key === 'z' && !e.shiftKey) {
         e.preventDefault();
         dispatch({ type: 'undo' });
       } else if ((key === 'z' && e.shiftKey) || key === 'y') {
         e.preventDefault();
         dispatch({ type: 'redo' });
       } else if (key === 'c') {
-        const item = items.find((i) => i.id === selectedId);
-        if (item) {
+        if (selected.length) {
           e.preventDefault();
-          setDiagramClipboard(item);
+          setDiagramClipboard(selected);
         }
       } else if (key === 'v') {
         const clip = getDiagramClipboard();
-        if (clip) {
+        if (clip.length) {
           e.preventDefault();
-          dispatch({ type: 'addItem', item: cloneItemAt(clip, 2.5, 2.5) });
+          dispatch({ type: 'pasteItems', items: clip.map((it) => cloneItemAt(it, 2.5, 2.5)) });
         }
       } else if (key === 'd') {
-        const item = items.find((i) => i.id === selectedId);
-        if (item) {
+        if (selected.length) {
           e.preventDefault();
-          dispatch({ type: 'addItem', item: cloneItemAt(item, 2.5, 2.5) });
+          dispatch({ type: 'pasteItems', items: selected.map((it) => cloneItemAt(it, 2.5, 2.5)) });
         }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [dispatch, state.selectedItemId, activeDiagram]);
+  }, [dispatch, state.selectedIds, activeDiagram]);
 
   // Warn on tab close while dirty.
   useEffect(() => {
@@ -135,9 +137,10 @@ export function DiagramEditorPage() {
     [dispatch],
   );
 
+  // Drag the whole current selection as a unit. The caller decides selection
+  // (replace vs. toggle) before starting the drag.
   const beginDrag = useCallback(
-    (id: string, e: React.PointerEvent) => {
-      dispatch({ type: 'selectItem', id });
+    (e: React.PointerEvent) => {
       const api = stageApi.current;
       if (!api) return;
       // Translate by the delta since the previous move so line/arrow geometry
@@ -153,7 +156,7 @@ export function DiagramEditorPage() {
           dy = snap(dy);
         }
         if (dx === 0 && dy === 0) return;
-        dispatch({ type: 'translateItem', id, dx, dy });
+        dispatch({ type: 'translateSelected', dx, dy });
         // Advance the reference by what we actually applied so sub-grid motion
         // accumulates until it crosses the next snap step.
         last = { x: last.x + dx, y: last.y + dy };
@@ -166,6 +169,24 @@ export function DiagramEditorPage() {
       window.addEventListener('pointerup', up);
     },
     [dispatch, snapOn],
+  );
+
+  const onItemPointerDown = useCallback(
+    (id: string, e: React.PointerEvent) => {
+      const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+      if (additive) {
+        // Modifier-click toggles membership and does NOT start a drag.
+        dispatch({ type: 'toggleSelect', id });
+        return;
+      }
+      if (!state.selectedIds.includes(id)) {
+        // Plain click on an unselected item selects just it; a plain click on
+        // an already-selected item keeps the whole selection so it can be dragged.
+        dispatch({ type: 'selectItem', id });
+      }
+      beginDrag(e);
+    },
+    [dispatch, state.selectedIds, beginDrag],
   );
 
   const beginEndpointDrag = useCallback(
@@ -245,40 +266,49 @@ export function DiagramEditorPage() {
 
   const selectedItem =
     activeDiagram?.scene.items.find((i) => i.id === state.selectedItemId) ?? null;
+  const selectedItems =
+    activeDiagram?.scene.items.filter((i) => state.selectedIds.includes(i.id)) ?? [];
+  const selectedCount = state.selectedIds.length;
+  const suffix = selectedCount > 1 ? ` (${selectedCount})` : '';
 
   const menuActions: MenuAction[] = [
     {
-      label: 'Copy',
-      disabled: !selectedItem,
+      label: `Copy${suffix}`,
+      disabled: selectedCount < 1,
       onSelect: () => {
-        if (selectedItem) setDiagramClipboard(selectedItem);
+        if (selectedItems.length) setDiagramClipboard(selectedItems);
       },
     },
     {
       label: 'Paste',
-      disabled: !getDiagramClipboard(),
+      disabled: getDiagramClipboard().length === 0,
       onSelect: () => {
         const clip = getDiagramClipboard();
-        if (clip) dispatch({ type: 'addItem', item: cloneItemAt(clip, 2.5, 2.5) });
+        if (clip.length)
+          dispatch({ type: 'pasteItems', items: clip.map((it) => cloneItemAt(it, 2.5, 2.5)) });
       },
     },
     {
-      label: 'Duplicate',
-      disabled: !selectedItem,
+      label: `Duplicate${suffix}`,
+      disabled: selectedCount < 1,
       onSelect: () => {
-        if (selectedItem) dispatch({ type: 'addItem', item: cloneItemAt(selectedItem, 2.5, 2.5) });
+        if (selectedItems.length)
+          dispatch({
+            type: 'pasteItems',
+            items: selectedItems.map((it) => cloneItemAt(it, 2.5, 2.5)),
+          });
       },
     },
     {
-      label: 'Delete',
-      disabled: !selectedItem,
+      label: `Delete${suffix}`,
+      disabled: selectedCount < 1,
       onSelect: () => {
-        if (state.selectedItemId) dispatch({ type: 'deleteItem', id: state.selectedItemId });
+        if (selectedCount) dispatch({ type: 'deleteSelected' });
       },
     },
     {
       label: 'Bring forward',
-      disabled: !selectedItem,
+      disabled: selectedCount !== 1,
       onSelect: () => {
         if (state.selectedItemId)
           dispatch({ type: 'reorderItem', id: state.selectedItemId, to: 'forward' });
@@ -286,7 +316,7 @@ export function DiagramEditorPage() {
     },
     {
       label: 'Send backward',
-      disabled: !selectedItem,
+      disabled: selectedCount !== 1,
       onSelect: () => {
         if (state.selectedItemId)
           dispatch({ type: 'reorderItem', id: state.selectedItemId, to: 'backward' });
@@ -378,7 +408,9 @@ export function DiagramEditorPage() {
             onContextMenu={(e) => {
               e.preventDefault();
               const id = (e.target as Element).closest('[data-item-id]')?.getAttribute('data-item-id');
-              if (id) dispatch({ type: 'selectItem', id });
+              // Right-clicking outside the current selection selects just that
+              // item; right-clicking within a multi-selection keeps it.
+              if (id && !state.selectedIds.includes(id)) dispatch({ type: 'selectItem', id });
               setMenu({ x: e.clientX, y: e.clientY });
             }}
           >
@@ -386,8 +418,8 @@ export function DiagramEditorPage() {
               <DiagramSvg
                 scene={activeDiagram.scene}
                 interactive
-                selectedId={state.selectedItemId}
-                onItemPointerDown={beginDrag}
+                selectedIds={state.selectedIds}
+                onItemPointerDown={onItemPointerDown}
                 onTransformHandlePointerDown={beginTransform}
                 onEndpointPointerDown={beginEndpointDrag}
                 onBackgroundPointerDown={() => dispatch({ type: 'selectItem', id: null })}
@@ -419,7 +451,11 @@ export function DiagramEditorPage() {
                 </div>
               )}
             </div>
-            <PropertiesPanel item={selectedItem} dispatch={dispatch} />
+            <PropertiesPanel
+              item={selectedItem}
+              dispatch={dispatch}
+              selectedCount={selectedCount}
+            />
           </aside>
         </div>
       ) : (

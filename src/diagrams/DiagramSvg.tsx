@@ -6,7 +6,7 @@ import type { DiagramItem, Scene } from '../types/diagram';
 interface DiagramSvgProps {
   scene: Scene;
   interactive?: boolean;
-  selectedId?: string | null;
+  selectedIds?: string[];
   onItemPointerDown?: (id: string, e: PointerEvent) => void;
   onBackgroundPointerDown?: (e: PointerEvent) => void;
   onTransformHandlePointerDown?: (id: string, e: PointerEvent) => void;
@@ -36,14 +36,18 @@ function bbox(item: DiagramItem): { x: number; y: number; w: number; h: number }
 export function DiagramSvg({
   scene,
   interactive = false,
-  selectedId = null,
+  selectedIds = [],
   onItemPointerDown,
   onBackgroundPointerDown,
   onTransformHandlePointerDown,
   onEndpointPointerDown,
   className,
 }: DiagramSvgProps) {
-  const selected = interactive && selectedId ? scene.items.find((i) => i.id === selectedId) ?? null : null;
+  const selectedItems = interactive
+    ? scene.items.filter((i) => selectedIds.includes(i.id))
+    : [];
+  // Transform / endpoint handles are single-select affordances only.
+  const single = selectedItems.length === 1 ? selectedItems[0] : null;
 
   return (
     <svg
@@ -84,28 +88,35 @@ export function DiagramSvg({
         ),
       )}
 
-      {selected &&
-        (() => {
-          const b = bbox(selected);
-          const onHandleDown = (e: PointerEvent) => {
-            e.stopPropagation();
-            onTransformHandlePointerDown?.(selected.id, e);
-          };
-          const endpointsInteractive = interactive && !!onEndpointPointerDown;
-          return (
-            <g style={{ pointerEvents: 'none' }}>
+      {selectedItems.length > 0 && (
+        <g style={{ pointerEvents: 'none' }}>
+          {selectedItems.map((it) => {
+            const ob = bbox(it);
+            return (
               <rect
+                key={it.id}
                 data-selection-outline
-                x={b.x}
-                y={b.y}
-                width={b.w}
-                height={b.h}
+                x={ob.x}
+                y={ob.y}
+                width={ob.w}
+                height={ob.h}
                 fill="none"
                 stroke="rgb(var(--color-blue))"
                 strokeWidth={0.6}
                 strokeDasharray="2 1.5"
               />
-              {endpoints(selected).length > 0 ? (
+            );
+          })}
+          {single &&
+            (() => {
+              const selected = single;
+              const b = bbox(selected);
+              const onHandleDown = (e: PointerEvent) => {
+                e.stopPropagation();
+                onTransformHandlePointerDown?.(selected.id, e);
+              };
+              const endpointsInteractive = interactive && !!onEndpointPointerDown;
+              return endpoints(selected).length > 0 ? (
                 endpoints(selected).map((p, i) => {
                   if (!endpointsInteractive) {
                     return (
@@ -170,10 +181,10 @@ export function DiagramSvg({
                     onPointerDown={onHandleDown}
                   />
                 </g>
-              )}
-            </g>
-          );
-        })()}
+              );
+            })()}
+        </g>
+      )}
     </svg>
   );
 }

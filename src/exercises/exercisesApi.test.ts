@@ -29,7 +29,7 @@ const {
   mockGetDocs: vi.fn(),
   mockGetCountFromServer: vi.fn(),
   mockCollection: vi.fn(() => 'exercises-collection'),
-  mockDoc: vi.fn(() => 'doc-ref'),
+  mockDoc: vi.fn(),
   mockWhere: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
   mockWriteBatch: vi.fn(),
   mockSaveDiagramSet: vi.fn(),
@@ -194,12 +194,14 @@ describe('exercisesApi', () => {
   });
 
   it('updates an exercise', async () => {
+    mockDoc.mockReturnValue('doc-ref');
     mockUpdateDoc.mockResolvedValue(undefined);
     await updateExercise('ex-1', { name: 'Pepper (advanced)' });
     expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', { name: 'Pepper (advanced)' });
   });
 
   it('deletes an exercise', async () => {
+    mockDoc.mockReturnValue('doc-ref');
     const del = vi.fn();
     const commit = vi.fn().mockResolvedValue(undefined);
     mockWriteBatch.mockReturnValue({ set: vi.fn(), update: vi.fn(), delete: del, commit });
@@ -210,6 +212,7 @@ describe('exercisesApi', () => {
   });
 
   it('deletes an exercise together with its diagrams subcollection in one batch', async () => {
+    mockDoc.mockReturnValue('doc-ref');
     const set = vi.fn();
     const del = vi.fn();
     const commit = vi.fn().mockResolvedValue(undefined);

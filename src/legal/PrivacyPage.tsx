@@ -1,8 +1,10 @@
-// DRAFT privacy policy. Pending review by Volley Club Belair and its legal
-// advisor before this is treated as an authoritative published policy. The
-// data-request contact below is a placeholder and must be set to a real
-// address before publication.
+// DRAFT privacy policy. The app is currently for internal club use only and
+// parent/guardian sign-in is not enabled, so this has not yet been through a
+// formal legal review — do that before telling any guardian they can log in.
+// The data-request contact is the club operator's own address.
 import { Link } from 'react-router-dom';
+
+const DATA_REQUEST_CONTACT = 'alberto.valdes.rey.official@gmail.com';
 
 export function PrivacyPage() {
   return (
@@ -10,7 +12,8 @@ export function PrivacyPage() {
       <h1 className="text-2xl font-semibold tracking-[-0.01em]">Privacy Policy</h1>
 
       <p role="note" className="mt-3 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink">
-        Draft policy — pending review by the club and its legal advisor before production use.
+        Draft policy — internal club use only; parent/guardian access is not yet enabled. Pending
+        legal review before any guardian sign-in.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold">What data we collect</h2>
@@ -50,7 +53,10 @@ export function PrivacyPage() {
       <p className="mt-1 text-slate">
         Parents and guardians can request access to, correction of, or erasure of their child&apos;s data
         by contacting the club at{' '}
-        <span className="font-medium">[insert the club&apos;s data-request contact address]</span>.
+        <a className="font-medium text-blue hover:underline" href={`mailto:${DATA_REQUEST_CONTACT}`}>
+          {DATA_REQUEST_CONTACT}
+        </a>
+        .
       </p>
 
       <h2 className="mt-6 text-lg font-semibold">Security</h2>

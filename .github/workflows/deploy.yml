@@ -1,0 +1,38 @@
+name: Deploy
+
+# Ships on every merge to main: builds the app and pushes hosting + Firestore
+# rules + indexes to the live `volley-skills` project. PR CI (ci.yml) is the gate
+# before a merge; this workflow re-runs the build (so a typecheck/build failure
+# still blocks the deploy) but not the full test suite.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Write service-account credentials
+        run: printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/firebase-sa.json"
+
+      - name: Deploy hosting + rules + indexes
+        run: npx firebase-tools deploy --only hosting,firestore:rules,firestore:indexes --project volley-skills --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json

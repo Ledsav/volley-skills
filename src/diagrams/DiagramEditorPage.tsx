@@ -51,6 +51,26 @@ export function DiagramEditorPage() {
     [],
   );
 
+  // Undo / redo keyboard shortcuts. Ignore while typing in a field so title
+  // editing keeps its native Ctrl/Cmd+Z.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (!e.ctrlKey && !e.metaKey) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        dispatch({ type: 'undo' });
+      } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+        e.preventDefault();
+        dispatch({ type: 'redo' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dispatch]);
+
   // Warn on tab close while dirty.
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -132,6 +152,22 @@ export function DiagramEditorPage() {
             <input type="checkbox" checked={snapOn} onChange={(e) => setSnapOn(e.target.checked)} /> Snap
           </label>
           {saveError && <span role="alert" className="text-xs text-red">{saveError}</span>}
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={state.undo.length === 0}
+            onClick={() => dispatch({ type: 'undo' })}
+          >
+            Undo
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={state.redo.length === 0}
+            onClick={() => dispatch({ type: 'redo' })}
+          >
+            Redo
+          </Button>
           <Button variant="primary" size="sm" disabled={!dirty || saving} onClick={() => void save()}>
             {saving ? 'Saving…' : 'Save'}
           </Button>

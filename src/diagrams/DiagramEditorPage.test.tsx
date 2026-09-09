@@ -70,6 +70,24 @@ describe('DiagramEditorPage', () => {
     expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
   });
 
+  it('undo removes the last added item and redo restores it', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    expect(undo).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    await waitFor(() => expect(stage().querySelector('[data-item-type="cone"]')).not.toBeNull());
+    expect(undo).toBeEnabled();
+
+    fireEvent.click(undo);
+    await waitFor(() => expect(stage().querySelector('[data-item-type="cone"]')).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
+    await waitFor(() => expect(stage().querySelector('[data-item-type="cone"]')).not.toBeNull());
+  });
+
   it('flushes an unsaved change to saveDiagramSet when the editor unmounts', async () => {
     const { unmount } = renderPage();
     await screen.findByDisplayValue('Setup');

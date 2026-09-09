@@ -26,7 +26,7 @@ export function Palette({ onAdd, variant }: Props) {
           key={p.type}
           type="button"
           onClick={() => onAdd(p.type)}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-bg"
+          className="min-h-11 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-bg"
         >
           {p.label}
         </button>

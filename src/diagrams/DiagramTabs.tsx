@@ -46,6 +46,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 <button
                   type="button"
                   aria-label="Move diagram left"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'left' })}
                 >
                   <ChevronLeft className="h-4 w-4 text-slate" />
@@ -53,6 +54,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 <button
                   type="button"
                   aria-label="Move diagram right"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'right' })}
                 >
                   <ChevronRight className="h-4 w-4 text-slate" />
@@ -60,6 +62,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 <button
                   type="button"
                   aria-label="Delete diagram"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'deleteDiagram', id: d.id })}
                 >
                   <Trash2 className="h-4 w-4 text-red" />
@@ -74,7 +77,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
         aria-label="Add diagram"
         disabled={!canAdd}
         onClick={() => dispatch({ type: 'addDiagram' })}
-        className="shrink-0 rounded-md border border-border p-1 text-slate disabled:opacity-40"
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-border p-1 text-slate disabled:opacity-40"
       >
         <Plus className="h-4 w-4" />
       </button>

@@ -27,11 +27,15 @@ export function PropertiesPanel({ item, dispatch }: Props) {
                 aria-label={c}
                 aria-pressed={item.color === c}
                 onClick={() => set({ color: c })}
-                className={`h-6 w-6 rounded-full border-2 ${
-                  item.color === c ? 'border-ink' : 'border-transparent'
-                }`}
-                style={{ background: tokenColor(c) }}
-              />
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md"
+              >
+                <span
+                  className={`h-6 w-6 rounded-full border-2 ${
+                    item.color === c ? 'border-ink' : 'border-transparent'
+                  }`}
+                  style={{ background: tokenColor(c) }}
+                />
+              </button>
             ))}
           </div>
         </div>
@@ -155,7 +159,7 @@ export function PropertiesPanel({ item, dispatch }: Props) {
         <button
           type="button"
           aria-label="Nudge left"
-          className="rounded-md border border-border px-2 py-1"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: -1, dy: 0 })}
         >
           ←
@@ -163,7 +167,7 @@ export function PropertiesPanel({ item, dispatch }: Props) {
         <button
           type="button"
           aria-label="Nudge right"
-          className="rounded-md border border-border px-2 py-1"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 1, dy: 0 })}
         >
           →
@@ -171,7 +175,7 @@ export function PropertiesPanel({ item, dispatch }: Props) {
         <button
           type="button"
           aria-label="Nudge up"
-          className="rounded-md border border-border px-2 py-1"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 0, dy: -1 })}
         >
           ↑
@@ -179,7 +183,7 @@ export function PropertiesPanel({ item, dispatch }: Props) {
         <button
           type="button"
           aria-label="Nudge down"
-          className="rounded-md border border-border px-2 py-1"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 0, dy: 1 })}
         >
           ↓
@@ -189,14 +193,14 @@ export function PropertiesPanel({ item, dispatch }: Props) {
       <div className="flex flex-wrap gap-1">
         <button
           type="button"
-          className="rounded-md border border-border px-2 py-1 text-xs"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1 text-xs"
           onClick={() => dispatch({ type: 'reorderItem', id: item.id, to: 'backward' })}
         >
           Back
         </button>
         <button
           type="button"
-          className="rounded-md border border-border px-2 py-1 text-xs"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1 text-xs"
           onClick={() => dispatch({ type: 'reorderItem', id: item.id, to: 'forward' })}
         >
           Forward
@@ -206,7 +210,7 @@ export function PropertiesPanel({ item, dispatch }: Props) {
       <button
         type="button"
         onClick={() => dispatch({ type: 'deleteItem', id: item.id })}
-        className="rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
+        className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
       >
         Delete element
       </button>

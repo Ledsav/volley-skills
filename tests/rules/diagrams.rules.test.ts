@@ -47,6 +47,21 @@ describe('diagrams rules', () => {
     await assertFails(viewer.doc('exercises/ex-1/diagrams/dg-1').get());
     await assertFails(viewer.collection('exercises/ex-1/diagrams').add(diagramDoc()));
     await assertFails(anon.doc('exercises/ex-1/diagrams/dg-1').get());
+    await assertFails(anon.collection('exercises/ex-1/diagrams').add(diagramDoc()));
+  });
+
+  it('pins updatedBy to the calling admin on create and update', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    await assertFails(
+      db.collection('exercises/ex-1/diagrams').add(diagramDoc({ updatedBy: 'someone-else' })),
+    );
+    await assertFails(
+      db.doc('exercises/ex-1/diagrams/dg-1').update({ title: 'X', updatedBy: 'someone-else' }),
+    );
+    await assertSucceeds(
+      db.doc('exercises/ex-1/diagrams/dg-1').update({ title: 'X', updatedBy: 'admin-uid' }),
+    );
   });
 
   it('rejects writes that violate the coarse shape caps', async () => {

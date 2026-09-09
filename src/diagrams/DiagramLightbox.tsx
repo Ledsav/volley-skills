@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { DiagramSvg } from './DiagramSvg';
 import type { Diagram } from '../types/diagram';
@@ -11,6 +11,11 @@ interface Props {
 
 export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
   const [i, setI] = useState(startIndex);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,10 +31,15 @@ export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
   if (!current) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/70 p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={current.title}
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/70 p-4"
+    >
       <div className="flex w-full max-w-3xl items-center justify-between text-white">
         <span className="font-medium">{current.title}</span>
-        <button type="button" aria-label="Close" onClick={onClose}>
+        <button ref={closeRef} type="button" aria-label="Close" onClick={onClose}>
           <X className="h-5 w-5" />
         </button>
       </div>

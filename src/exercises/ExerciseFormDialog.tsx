@@ -1,8 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
+import { DiagramSvg } from '../diagrams/DiagramSvg';
+import { DiagramLightbox } from '../diagrams/DiagramLightbox';
+import { listDiagrams } from '../diagrams/diagramsApi';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
+import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
 
 interface ExerciseFormDialogProps {
@@ -17,6 +22,14 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
   const [description, setDescription] = useState(exercise?.description ?? '');
   const [category, setCategory] = useState<ExerciseCategory>(exercise?.category ?? 'warmup');
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [diagrams, setDiagrams] = useState<Diagram[]>([]);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!exercise) return;
+    listDiagrams(exercise.id).then(setDiagrams).catch(() => setDiagrams([]));
+  }, [exercise]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -79,6 +92,47 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
         />
+
+        {exercise && (
+          <div className="mt-4">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm font-medium text-ink">Diagrams</span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(`/exercises/${exercise.id}/diagram`)}
+              >
+                Edit diagrams
+              </Button>
+            </div>
+            {diagrams.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {diagrams.map((d, idx) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setLightbox(idx)}
+                    className="shrink-0"
+                    aria-label={`Open diagram ${d.title}`}
+                  >
+                    <span className="block aspect-square w-20 overflow-hidden rounded-sm border border-border bg-bg">
+                      <DiagramSvg scene={d.scene} />
+                    </span>
+                    <span className="mt-0.5 block max-w-20 truncate text-xs text-slate">{d.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {lightbox !== null && (
+          <DiagramLightbox
+            diagrams={diagrams}
+            startIndex={lightbox}
+            onClose={() => setLightbox(null)}
+          />
+        )}
 
         {error && (
           <p role="alert" className="mt-3 text-sm text-red">

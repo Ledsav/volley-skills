@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
 import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
@@ -129,19 +130,22 @@ export function ExercisesPage() {
         {loaded && exercises.length === 0 && <p className="p-4 text-slate">No exercises yet.</p>}
         {exercises.map((exercise) => (
           <div key={exercise.id} className="flex items-start justify-between gap-4 p-4">
-            <button
-              type="button"
-              onClick={() => setDialog({ mode: 'edit', exercise })}
-              className="text-left"
-            >
-              <span className="font-medium text-ink">{exercise.name}</span>
-              <span className="ml-2 rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
-                {CATEGORY_LABEL[exercise.category]}
-              </span>
-              {exercise.description && (
-                <p className="mt-1 line-clamp-1 text-sm text-slate">{exercise.description}</p>
-              )}
-            </button>
+            <div className="flex items-start gap-3">
+              <DiagramThumbnail exerciseId={exercise.id} />
+              <button
+                type="button"
+                onClick={() => setDialog({ mode: 'edit', exercise })}
+                className="text-left"
+              >
+                <span className="font-medium text-ink">{exercise.name}</span>
+                <span className="ml-2 rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
+                  {CATEGORY_LABEL[exercise.category]}
+                </span>
+                {exercise.description && (
+                  <p className="mt-1 line-clamp-1 text-sm text-slate">{exercise.description}</p>
+                )}
+              </button>
+            </div>
             <Button variant="ghost" size="sm" onClick={() => void askDelete(exercise)}>
               Delete
             </Button>

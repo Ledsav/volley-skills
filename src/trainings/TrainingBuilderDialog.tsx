@@ -3,6 +3,7 @@ import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
+import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { getExercisesByIds, listExercises } from '../exercises/exercisesApi';
 import type { Exercise } from '../types/exercise';
 import type { Training, TrainingExercise } from '../types/training';
@@ -163,6 +164,10 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
             {rows.length === 0 && <li className="p-3 text-sm text-slate">No exercises added yet.</li>}
             {rows.map((row, i) => (
               <li key={`${row.exerciseId}-${i}`} className="flex items-center gap-2 p-3">
+                <DiagramThumbnail
+                  exerciseId={row.exerciseId}
+                  className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
+                />
                 <span className="w-6 text-sm tabular-nums text-slate">{i + 1}</span>
                 <span className={`flex-1 text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
                   {row.name ?? '⚠ Deleted exercise'}

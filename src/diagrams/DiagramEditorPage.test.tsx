@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiagramEditorPage } from './DiagramEditorPage';
 import * as diagramsApi from './diagramsApi';
@@ -9,16 +9,15 @@ vi.mock('./diagramsApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 
-// A data router is required because DiagramEditorPage uses useBlocker().
 function renderPage() {
-  const router = createMemoryRouter(
-    [
-      { path: '/exercises/:exerciseId/diagram', element: <DiagramEditorPage /> },
-      { path: '/exercises', element: <div>Exercises list</div> },
-    ],
-    { initialEntries: ['/exercises/ex-1/diagram'] },
+  return render(
+    <MemoryRouter initialEntries={['/exercises/ex-1/diagram']}>
+      <Routes>
+        <Route path="/exercises/:exerciseId/diagram" element={<DiagramEditorPage />} />
+        <Route path="/exercises" element={<div>Exercises list</div>} />
+      </Routes>
+    </MemoryRouter>,
   );
-  return render(<RouterProvider router={router} />);
 }
 
 describe('DiagramEditorPage', () => {
@@ -67,5 +66,19 @@ describe('DiagramEditorPage', () => {
     vi.mocked(diagramsApi.listDiagrams).mockRejectedValueOnce(new Error('boom'));
     renderPage();
     expect(await screen.findByText(/could not load diagrams/i)).toBeInTheDocument();
+  });
+
+  it('confirms before leaving via "‹ Exercises" when the editor is dirty', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    // Make the editor dirty by adding an element.
+    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeEnabled());
+
+    fireEvent.click(screen.getByRole('button', { name: '‹ Exercises' }));
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Exercises list')).toBeInTheDocument();
   });
 });

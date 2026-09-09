@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { DiagramSvg } from './DiagramSvg';
@@ -53,14 +53,10 @@ export function DiagramEditorPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 
-  const blocker = useBlocker(dirty);
-  useEffect(() => {
-    if (blocker.state === 'blocked' && window.confirm('You have unsaved diagram changes. Leave anyway?')) {
-      blocker.proceed();
-    } else if (blocker.state === 'blocked') {
-      blocker.reset();
-    }
-  }, [blocker]);
+  function leaveEditor() {
+    if (dirty && !window.confirm('You have unsaved diagram changes. Leave anyway?')) return;
+    navigate('/exercises');
+  }
 
   const addFromPalette = useCallback(
     (type: DiagramItemType) => {
@@ -108,7 +104,7 @@ export function DiagramEditorPage() {
   return (
     <div className="flex h-[calc(100vh-0px)] flex-col bg-bg">
       <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2">
-        <button type="button" onClick={() => navigate('/exercises')} className="text-sm text-blue">‹ Exercises</button>
+        <button type="button" onClick={leaveEditor} className="text-sm text-blue">‹ Exercises</button>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1 text-xs text-slate">
             <input type="checkbox" checked={snapOn} onChange={(e) => setSnapOn(e.target.checked)} /> Snap

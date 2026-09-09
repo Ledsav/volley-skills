@@ -107,6 +107,8 @@ describe('diagramReducer', () => {
     expect(s.diagrams[0].persisted).toBe(true);
     expect(s.dirtyIds.size).toBe(0);
     expect(s.deletedIds).toEqual([]);
+    expect(s.activeDiagramId).toBe('real-9');
+    expect(s.diagrams.find((d) => d.id === s.activeDiagramId)).toBeTruthy();
   });
 });
 
@@ -119,5 +121,10 @@ describe('buildSaveOps', () => {
     expect(ops.updates.map((u) => u.id)).toEqual(['d1']);
     expect(ops.creates).toHaveLength(1);
     expect(ops.deletes).toEqual([]);
+
+    let s3 = loaded();
+    s3 = diagramReducer(s3, { type: 'addDiagram' });
+    s3 = diagramReducer(s3, { type: 'deleteDiagram', id: 'd1' });
+    expect(buildSaveOps(s3).deletes).toEqual(['d1']);
   });
 });

@@ -233,7 +233,17 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         id: action.idMap[d.id] ?? d.id,
         persisted: true,
       }));
-      return { ...state, diagrams, dirtyIds: new Set(), deletedIds: [], undo: [], redo: [] };
+      return {
+        ...state,
+        diagrams,
+        activeDiagramId: state.activeDiagramId
+          ? action.idMap[state.activeDiagramId] ?? state.activeDiagramId
+          : null,
+        dirtyIds: new Set(),
+        deletedIds: [],
+        undo: [],
+        redo: [],
+      };
     }
   }
 }

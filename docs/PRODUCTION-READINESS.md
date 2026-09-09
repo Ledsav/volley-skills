@@ -40,10 +40,10 @@ Last reviewed: 2026-09-09
       frame. **Verify against the deployed app** — tighten/loosen if the console
       logs a violation.
 - [x] **Deployment path** — `.github/workflows/ci.yml` + `deploy.yml`.
-- [~] **CI secret** — approach changed: `VITE_FIREBASE_*` are committed in
-      `.env.production`. Still needed: **`FIREBASE_SERVICE_ACCOUNT`** GitHub
-      secret (service-account JSON with Hosting Admin + Firebase Rules Admin +
-      Cloud Datastore roles). Easiest: `npx firebase init hosting:github` once.
+- [x] **CI secret** — `VITE_FIREBASE_*` committed in `.env.production`; the
+      service-account JSON was uploaded by `firebase init hosting:github` as the
+      GitHub secret **`FIREBASE_SERVICE_ACCOUNT_VOLLEY_SKILLS`**, which
+      `deploy.yml` references.
 - [x] **Deploy Firestore rules + indexes to the live project** — done once from
       the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
 - [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.

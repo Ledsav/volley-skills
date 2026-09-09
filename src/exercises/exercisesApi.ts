@@ -50,7 +50,11 @@ export async function updateExercise(exerciseId: string, updates: Partial<NewExe
 }
 
 export async function deleteExercise(exerciseId: string): Promise<void> {
-  const diagrams = await getDocs(collection(db, 'exercises', exerciseId, 'diagrams'));
+  // Cap the cascade read: an exercise holds at most 12 diagrams (SCENE_LIMITS),
+  // so this is never truncating real data but guards against a runaway read.
+  const diagrams = await getDocs(
+    query(collection(db, 'exercises', exerciseId, 'diagrams'), limit(12)),
+  );
   const batch = writeBatch(db);
   diagrams.docs.forEach((d) => batch.delete(d.ref));
   batch.delete(doc(db, 'exercises', exerciseId));

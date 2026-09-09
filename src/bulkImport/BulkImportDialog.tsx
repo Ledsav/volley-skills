@@ -124,7 +124,7 @@ export function BulkImportDialog<TInput>({
       <div
         role="dialog"
         aria-label={title}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-pop"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
       >
         <h2 className="mb-1 text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
         {hint && <p className="mb-3 text-sm text-slate">{hint}</p>}

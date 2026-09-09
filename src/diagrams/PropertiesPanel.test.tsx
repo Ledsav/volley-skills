@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PropertiesPanel } from './PropertiesPanel';
 import { createItem } from './sceneFactory';
+import type { PlayerItem } from '../types/diagram';
 
 describe('PropertiesPanel', () => {
   it('shows a hint when nothing is selected', () => {
@@ -48,6 +49,36 @@ describe('PropertiesPanel', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'translateSelected', dx: 1, dy: 0 });
     fireEvent.click(screen.getByRole('button', { name: 'Nudge up' }));
     expect(dispatch).toHaveBeenCalledWith({ type: 'translateSelected', dx: 0, dy: -1 });
+  });
+
+  it('changes a player view and only offers Shape for the token view', () => {
+    const dispatch = vi.fn();
+    const item: PlayerItem = {
+      ...(createItem('player', { x: 10, y: 10 }) as PlayerItem),
+      id: 'p2',
+      view: 'above',
+    };
+    const { rerender } = render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
+
+    // A non-token view hides the circle/square Shape control.
+    expect(screen.queryByLabelText(/shape/i)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/view/i), { target: { value: 'spike' } });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'p2', patch: { view: 'spike' } });
+
+    rerender(
+      <PropertiesPanel item={{ ...item, view: 'token' }} dispatch={dispatch} selectedCount={1} />,
+    );
+    fireEvent.change(screen.getByLabelText(/shape/i), { target: { value: 'square' } });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'p2', patch: { shape: 'square' } });
+  });
+
+  it('switches a ball between plain and mikasa styles', () => {
+    const dispatch = vi.fn();
+    const item = { ...createItem('ball', { x: 10, y: 10 }), id: 'b2' };
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
+    fireEvent.change(screen.getByLabelText(/style/i), { target: { value: 'mikasa' } });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'b2', patch: { style: 'mikasa' } });
   });
 
   it('renders the single-item editor when exactly one element is selected', () => {

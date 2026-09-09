@@ -17,13 +17,38 @@ interface BaseItem {
   color: PaletteColor;
 }
 
+export type PlayerView =
+  | 'token'
+  | 'above'
+  | 'aboveMale'
+  | 'aboveFemale'
+  | 'front'
+  | 'dig'
+  | 'spike'
+  | 'set';
+export const PLAYER_VIEWS: PlayerView[] = [
+  'token',
+  'above',
+  'aboveMale',
+  'aboveFemale',
+  'front',
+  'dig',
+  'spike',
+  'set',
+];
+
 export interface PlayerItem extends BaseItem {
   type: 'player';
   label: string;
+  /** Only used when `view === 'token'`. */
   shape: 'circle' | 'square';
+  view: PlayerView;
 }
+export type BallStyle = 'plain' | 'mikasa';
+export const BALL_STYLES: BallStyle[] = ['plain', 'mikasa'];
 export interface BallItem extends BaseItem {
   type: 'ball';
+  style: BallStyle;
 }
 export interface ConeItem extends BaseItem {
   type: 'cone';

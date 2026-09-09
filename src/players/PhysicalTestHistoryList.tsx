@@ -70,7 +70,7 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-pop">
+      <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]">
         <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">{PHYSICAL_TEST_LABELS[testType]} history</h2>
         {series && <PhysicalTestTrendChart series={series} />}
         {loaded && tests.length === 0 && <p className="text-slate">No entries yet.</p>}

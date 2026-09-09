@@ -1,6 +1,8 @@
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import {
+  BALL_STYLES,
   PALETTE_COLORS,
+  PLAYER_VIEWS,
   SCENE_LIMITS,
   type CourtPreset,
   type DiagramItem,
@@ -49,12 +51,21 @@ function repairItem(raw: unknown): DiagramItem | null {
   };
 
   switch (type) {
-    case 'ball':
     case 'cone':
     case 'pole':
       return { ...base, type };
+    case 'ball':
+      return { ...base, type, style: oneOf(raw.style, BALL_STYLES, 'plain') };
     case 'player':
-      return { ...base, type, label: str(raw.label, SCENE_LIMITS.labelLength), shape: oneOf(raw.shape, ['circle', 'square'] as const, 'circle') };
+      return {
+        ...base,
+        type,
+        label: str(raw.label, SCENE_LIMITS.labelLength),
+        shape: oneOf(raw.shape, ['circle', 'square'] as const, 'circle'),
+        // Missing/unknown view backfills to 'token' so diagrams saved before
+        // player views existed keep their original circle/square look.
+        view: oneOf(raw.view, PLAYER_VIEWS, 'token'),
+      };
     case 'ladder': {
       if (!Number.isFinite(raw.rungs) || !Number.isFinite(raw.length)) return null;
       return { ...base, type, rungs: clampInt(raw.rungs, 3, 10, 5), length: clamp(raw.length, 5, 40, 20) };

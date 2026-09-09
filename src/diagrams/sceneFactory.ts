@@ -20,9 +20,9 @@ export function createItem(type: DiagramItemType, at: Point): DiagramItem {
   const base = { id: newId(), x: at.x, y: at.y, rotation: 0, size: 1, color: 'ink' as const };
   switch (type) {
     case 'player':
-      return { ...base, color: 'blue', type, label: '', shape: 'circle' };
+      return { ...base, color: 'blue', type, label: '', shape: 'circle', view: 'above' };
     case 'ball':
-      return { ...base, color: 'orange', type };
+      return { ...base, color: 'orange', type, style: 'plain' };
     case 'cone':
       return { ...base, color: 'orange', type };
     case 'pole':

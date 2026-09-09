@@ -11,12 +11,25 @@ export function Arrow({ item }: { item: ArrowItem }) {
   const bend = item.curved ? 8 : 0;
   const cx = mx + (nx / len) * bend;
   const cy = my + (ny / len) * bend;
-  const d = item.curved ? `M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}` : `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
-  const dash = item.style === 'run' ? '3 2' : undefined;
-  const width = item.style === 'shot' ? 1.6 : 1;
+  const d = item.curved
+    ? `M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`
+    : `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+  // Base weight comes from the style; the Size control scales it (and, because
+  // the markers use strokeWidth units, the arrowhead grows with it too).
+  const base = item.style === 'shot' ? 1.6 : 1;
+  const width = base * item.size;
+  const dash = item.style === 'run' ? `${3 * item.size} ${2 * item.size}` : undefined;
   return (
     <g data-item-id={item.id} data-item-type="arrow">
-      <path d={d} fill="none" stroke={tokenColor(item.color)} strokeWidth={width} strokeDasharray={dash} markerEnd={`url(#arrowhead-${item.head})`} />
+      <path
+        d={d}
+        fill="none"
+        stroke={tokenColor(item.color)}
+        strokeWidth={width}
+        strokeDasharray={dash}
+        strokeLinecap="round"
+        markerEnd={`url(#arrowhead-${item.head})`}
+      />
     </g>
   );
 }

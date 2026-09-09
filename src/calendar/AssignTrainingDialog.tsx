@@ -94,7 +94,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
       <form
         onSubmit={handleSubmit}
         aria-label="Assign training"
-        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-pop"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
       >
         <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Assign training</h2>
 

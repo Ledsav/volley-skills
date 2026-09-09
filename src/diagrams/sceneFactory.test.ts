@@ -28,6 +28,13 @@ describe('sceneFactory', () => {
     }
   });
 
+  it('defaults a new player to the top-down human view and a new ball to plain', () => {
+    const player = createItem('player', { x: 40, y: 60 });
+    if (player.type === 'player') expect(player.view).toBe('above');
+    const ball = createItem('ball', { x: 40, y: 60 });
+    if (ball.type === 'ball') expect(ball.style).toBe('plain');
+  });
+
   it('positions line and arrow endpoints relative to the drop point', () => {
     const line = createItem('line', { x: 30, y: 30 });
     if (line.type === 'line') expect(line.points[0]).toEqual({ x: 30, y: 30 });

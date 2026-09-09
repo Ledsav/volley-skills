@@ -1,20 +1,21 @@
 import type { DiagramItem } from '../types/diagram';
 
 /**
- * A single-slot, module-level clipboard for diagram elements. Living outside
- * React state means a copy made in one diagram tab can be pasted into another.
+ * A module-level clipboard for diagram elements. Living outside React state
+ * means a copy made in one diagram tab can be pasted into another. It holds a
+ * list so a whole multi-selection can be copied and pasted as a unit.
  */
-let clipboard: DiagramItem | null = null;
+let clipboard: DiagramItem[] = [];
 
-export function setDiagramClipboard(item: DiagramItem): void {
-  clipboard = item;
+export function setDiagramClipboard(items: DiagramItem[]): void {
+  clipboard = items;
 }
 
-export function getDiagramClipboard(): DiagramItem | null {
+export function getDiagramClipboard(): DiagramItem[] {
   return clipboard;
 }
 
 /** Reset the clipboard. Primarily for tests that need a clean slate. */
 export function clearDiagramClipboard(): void {
-  clipboard = null;
+  clipboard = [];
 }

@@ -6,9 +6,62 @@ import type { EditorAction } from './useDiagramEditor';
 interface Props {
   item: DiagramItem | null;
   dispatch: Dispatch<EditorAction>;
+  selectedCount: number;
 }
 
-export function PropertiesPanel({ item, dispatch }: Props) {
+const nudgeBtn =
+  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1';
+
+export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
+  if (selectedCount > 1) {
+    return (
+      <div className="flex flex-col gap-3 p-3 text-sm">
+        <p className="font-medium text-ink">{selectedCount} elements selected</p>
+        <div className="flex flex-wrap gap-1">
+          <button
+            type="button"
+            aria-label="Nudge left"
+            className={nudgeBtn}
+            onClick={() => dispatch({ type: 'translateSelected', dx: -1, dy: 0 })}
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            aria-label="Nudge right"
+            className={nudgeBtn}
+            onClick={() => dispatch({ type: 'translateSelected', dx: 1, dy: 0 })}
+          >
+            →
+          </button>
+          <button
+            type="button"
+            aria-label="Nudge up"
+            className={nudgeBtn}
+            onClick={() => dispatch({ type: 'translateSelected', dx: 0, dy: -1 })}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            aria-label="Nudge down"
+            className={nudgeBtn}
+            onClick={() => dispatch({ type: 'translateSelected', dx: 0, dy: 1 })}
+          >
+            ↓
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: 'deleteSelected' })}
+          className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
+        >
+          Delete
+        </button>
+      </div>
+    );
+  }
+
   if (!item) {
     return <p className="p-3 text-sm text-slate">Select an element to edit its properties.</p>;
   }

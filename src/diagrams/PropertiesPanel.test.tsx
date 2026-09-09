@@ -5,14 +5,14 @@ import { createItem } from './sceneFactory';
 
 describe('PropertiesPanel', () => {
   it('shows a hint when nothing is selected', () => {
-    render(<PropertiesPanel item={null} dispatch={vi.fn()} />);
+    render(<PropertiesPanel item={null} dispatch={vi.fn()} selectedCount={0} />);
     expect(screen.getByText(/select an element/i)).toBeInTheDocument();
   });
 
   it('edits a player label via setItemProp', () => {
     const dispatch = vi.fn();
     const item = { ...createItem('player', { x: 10, y: 10 }), id: 'p1' };
-    render(<PropertiesPanel item={item} dispatch={dispatch} />);
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
     fireEvent.change(screen.getByLabelText(/role/i), { target: { value: 'OH' } });
     expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'p1', patch: { label: 'OH' } });
   });
@@ -20,7 +20,7 @@ describe('PropertiesPanel', () => {
   it('changes colour from a swatch', () => {
     const dispatch = vi.fn();
     const item = { ...createItem('cone', { x: 10, y: 10 }), id: 'c1' };
-    render(<PropertiesPanel item={item} dispatch={dispatch} />);
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
     fireEvent.click(screen.getByRole('button', { name: 'green' }));
     expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'c1', patch: { color: 'green' } });
   });
@@ -28,8 +28,32 @@ describe('PropertiesPanel', () => {
   it('deletes the selected item', () => {
     const dispatch = vi.fn();
     const item = { ...createItem('ball', { x: 10, y: 10 }), id: 'b1' };
-    render(<PropertiesPanel item={item} dispatch={dispatch} />);
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
     fireEvent.click(screen.getByRole('button', { name: /delete/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: 'deleteItem', id: 'b1' });
+  });
+
+  it('shows a compact multi panel when more than one element is selected', () => {
+    const dispatch = vi.fn();
+    render(<PropertiesPanel item={null} dispatch={dispatch} selectedCount={3} />);
+    expect(screen.getByText('3 elements selected')).toBeInTheDocument();
+    // No per-field editors or colour swatches in multi mode.
+    expect(screen.queryByRole('button', { name: 'green' })).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'deleteSelected' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge right' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'translateSelected', dx: 1, dy: 0 });
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge up' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'translateSelected', dx: 0, dy: -1 });
+  });
+
+  it('renders the single-item editor when exactly one element is selected', () => {
+    const item = { ...createItem('player', { x: 10, y: 10 }), id: 'p9' };
+    render(<PropertiesPanel item={item} dispatch={vi.fn()} selectedCount={1} />);
+    expect(screen.getByLabelText(/role/i)).toBeInTheDocument();
+    expect(screen.queryByText(/elements selected/i)).toBeNull();
   });
 });

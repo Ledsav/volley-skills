@@ -1,5 +1,5 @@
-import { buildSkillRadar } from './skillRadar';
 import type { Level } from '../types/player';
+import { buildSkillRadar } from './skillRadar';
 
 interface SkillRadarChartProps {
   scores: (number | null)[];

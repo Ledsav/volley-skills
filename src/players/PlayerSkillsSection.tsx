@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { updatePlayerSkills } from './playersApi';
-import { computeAvgScore, computeLevel } from './skillMath';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input } from '../components/Input';
 import { SkillMeter } from '../components/SkillMeter';
-import { SkillRadarChart } from './SkillRadarChart';
 import type { Player, SkillKey, Skills } from '../types/player';
+import { updatePlayerSkills } from './playersApi';
+import { computeAvgScore, computeLevel } from './skillMath';
+import { SkillRadarChart } from './SkillRadarChart';
 
 const SKILL_LABELS: Record<SkillKey, string> = {
   serve: 'Serve',

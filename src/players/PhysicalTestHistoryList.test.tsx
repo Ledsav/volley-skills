@@ -1,8 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PhysicalTest } from '../types/physicalTest';
 import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
 import * as physicalTestsApi from './physicalTestsApi';
-import type { PhysicalTest } from '../types/physicalTest';
 
 vi.mock('./physicalTestsApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
-import { getLatestByType } from './physicalTestsApi';
-import { formatPhysicalTestSummary } from './physicalTestFormat';
-import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
-import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
-import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER } from '../types/physicalTest';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
+import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER } from '../types/physicalTest';
+import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
+import { formatPhysicalTestSummary } from './physicalTestFormat';
+import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
+import { getLatestByType } from './physicalTestsApi';
 
 interface PhysicalTestingSectionProps {
   teamId: string;

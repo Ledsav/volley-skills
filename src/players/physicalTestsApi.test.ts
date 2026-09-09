@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPhysicalTest, getLatestByType, listHistoryByType } from './physicalTestsApi';
 
 const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockDeleteDoc, mockDoc } = vi.hoisted(() => ({

@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { deletePlayer, getPlayer, updatePlayerDevelopmentPlan } from './playersApi';
-import { listAllPhysicalTests } from './physicalTestsApi';
-import { downloadPlayerExport } from './playerExport';
-import { getTeam } from '../teams/teamsApi';
-import { nextObjective } from './playerDashboard';
-import { PlayerContactSection } from './PlayerContactSection';
-import { PlayerSkillsSection } from './PlayerSkillsSection';
-import { GuardiansSection } from './GuardiansSection';
-import { PlayerIdentityCard } from './PlayerIdentityCard';
-import { PlayerKpiTiles } from './PlayerKpiTiles';
-import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
-import { PhysicalTestingSection } from './PhysicalTestingSection';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { EditButton } from '../components/EditButton';
 import { StatusChip } from '../components/StatusChip';
+import { getTeam } from '../teams/teamsApi';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import type { Player } from '../types/player';
+import { GuardiansSection } from './GuardiansSection';
+import { PhysicalTestingSection } from './PhysicalTestingSection';
+import { listAllPhysicalTests } from './physicalTestsApi';
+import { PlayerContactSection } from './PlayerContactSection';
+import { nextObjective } from './playerDashboard';
+import { downloadPlayerExport } from './playerExport';
+import { PlayerIdentityCard } from './PlayerIdentityCard';
+import { PlayerKpiTiles } from './PlayerKpiTiles';
+import { deletePlayer, getPlayer, updatePlayerDevelopmentPlan } from './playersApi';
+import { PlayerSkillsSection } from './PlayerSkillsSection';
 
 function Tile({
   title,

@@ -17,6 +17,9 @@ export interface EditorDiagram {
 export interface EditorState {
   diagrams: EditorDiagram[];
   activeDiagramId: string | null;
+  /** Source of truth for selection. */
+  selectedIds: string[];
+  /** Derived: the sole selected id, or null when 0 or >1 items are selected. */
   selectedItemId: string | null;
   dirtyIds: Set<string>;
   deletedIds: string[];
@@ -32,13 +35,18 @@ export type EditorAction =
   | { type: 'reorderDiagram'; id: string; direction: 'left' | 'right' }
   | { type: 'deleteDiagram'; id: string }
   | { type: 'selectItem'; id: string | null }
+  | { type: 'toggleSelect'; id: string }
+  | { type: 'selectAll' }
   | { type: 'addItem'; item: DiagramItem }
+  | { type: 'pasteItems'; items: DiagramItem[] }
   | { type: 'moveItem'; id: string; x: number; y: number }
   | { type: 'translateItem'; id: string; dx: number; dy: number }
+  | { type: 'translateSelected'; dx: number; dy: number }
   | { type: 'moveEndpoint'; id: string; index: number; x: number; y: number }
   | { type: 'transformItem'; id: string; rotation: number; size: number }
   | { type: 'setItemProp'; id: string; patch: Partial<DiagramItem> }
   | { type: 'deleteItem'; id: string }
+  | { type: 'deleteSelected' }
   | { type: 'reorderItem'; id: string; to: 'front' | 'back' | 'forward' | 'backward' }
   | { type: 'setCourt'; court: CourtPreset }
   | { type: 'toggleZones' }
@@ -49,12 +57,33 @@ export type EditorAction =
 export const initialEditorState: EditorState = {
   diagrams: [],
   activeDiagramId: null,
+  selectedIds: [],
   selectedItemId: null,
   dirtyIds: new Set(),
   deletedIds: [],
   undo: [],
   redo: [],
 };
+
+/** Set the selection to `ids`, keeping the derived single-select field in sync. */
+function withSelection(state: EditorState, ids: string[]): EditorState {
+  return { ...state, selectedIds: ids, selectedItemId: ids.length === 1 ? ids[0] : null };
+}
+
+/** Shift one item by `(dx, dy)`, handling line points and arrow endpoints. */
+function translateItemBy(it: DiagramItem, dx: number, dy: number): DiagramItem {
+  if (it.type === 'line') {
+    return { ...it, points: it.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
+  }
+  if (it.type === 'arrow') {
+    return {
+      ...it,
+      from: { x: it.from.x + dx, y: it.from.y + dy },
+      to: { x: it.to.x + dx, y: it.to.y + dy },
+    };
+  }
+  return { ...it, x: it.x + dx, y: it.y + dy };
+}
 
 function reorderZ(
   items: DiagramItem[],
@@ -103,7 +132,14 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       return { ...initialEditorState, diagrams: sorted, activeDiagramId: sorted[0]?.id ?? null };
     }
     case 'selectDiagram':
-      return { ...state, activeDiagramId: action.id, selectedItemId: null, undo: [], redo: [] };
+      return {
+        ...state,
+        activeDiagramId: action.id,
+        selectedIds: [],
+        selectedItemId: null,
+        undo: [],
+        redo: [],
+      };
     case 'addDiagram': {
       if (state.diagrams.length >= SCENE_LIMITS.diagramsPerExercise) return state;
       const n = state.diagrams.length;
@@ -119,6 +155,7 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         ...state,
         diagrams: [...state.diagrams, diagram],
         activeDiagramId: id,
+        selectedIds: [],
         selectedItemId: null,
         dirtyIds: new Set(state.dirtyIds).add(id),
         undo: [],
@@ -164,20 +201,42 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         deletedIds: target.persisted ? [...state.deletedIds, action.id] : state.deletedIds,
         activeDiagramId:
           state.activeDiagramId === action.id ? diagrams[0]?.id ?? null : state.activeDiagramId,
+        selectedIds: [],
         selectedItemId: null,
         undo: [],
         redo: [],
       };
     }
     case 'selectItem':
-      return { ...state, selectedItemId: action.id };
+      return withSelection(state, action.id ? [action.id] : []);
+    case 'toggleSelect': {
+      const next = state.selectedIds.includes(action.id)
+        ? state.selectedIds.filter((x) => x !== action.id)
+        : [...state.selectedIds, action.id];
+      return withSelection(state, next);
+    }
+    case 'selectAll': {
+      const active = state.diagrams.find((d) => d.id === state.activeDiagramId);
+      if (!active) return state;
+      return withSelection(state, active.scene.items.map((it) => it.id));
+    }
     case 'addItem': {
       const next = mutateActive(state, (scene) =>
         scene.items.length >= SCENE_LIMITS.itemsPerScene
           ? scene
           : { ...scene, items: [...scene.items, action.item] },
       );
-      return next === state ? state : { ...next, selectedItemId: action.item.id };
+      return next === state ? state : withSelection(next, [action.item.id]);
+    }
+    case 'pasteItems': {
+      if (action.items.length === 0) return state;
+      const active = state.diagrams.find((d) => d.id === state.activeDiagramId);
+      if (!active) return state;
+      const room = SCENE_LIMITS.itemsPerScene - active.scene.items.length;
+      if (room <= 0) return state;
+      const toAdd = action.items.slice(0, room);
+      const next = mutateActive(state, (scene) => ({ ...scene, items: [...scene.items, ...toAdd] }));
+      return next === state ? state : withSelection(next, toAdd.map((it) => it.id));
     }
     case 'moveItem':
       return mutateActive(state, (scene) =>
@@ -188,20 +247,17 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       if (action.dx === 0 && action.dy === 0) return state;
       const { dx, dy } = action;
       return mutateActive(state, (scene) =>
-        patchItems(scene, action.id, (it) => {
-          if (it.type === 'line') {
-            return { ...it, points: it.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
-          }
-          if (it.type === 'arrow') {
-            return {
-              ...it,
-              from: { x: it.from.x + dx, y: it.from.y + dy },
-              to: { x: it.to.x + dx, y: it.to.y + dy },
-            };
-          }
-          return { ...it, x: it.x + dx, y: it.y + dy };
-        }),
+        patchItems(scene, action.id, (it) => translateItemBy(it, dx, dy)),
       );
+    }
+    case 'translateSelected': {
+      const { dx, dy } = action;
+      if ((dx === 0 && dy === 0) || state.selectedIds.length === 0) return state;
+      const sel = new Set(state.selectedIds);
+      return mutateActive(state, (scene) => ({
+        ...scene,
+        items: scene.items.map((it) => (sel.has(it.id) ? translateItemBy(it, dx, dy) : it)),
+      }));
     }
     case 'moveEndpoint': {
       const { id, index, x, y } = action;
@@ -241,7 +297,18 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         ...scene,
         items: scene.items.filter((it) => it.id !== action.id),
       }));
-      return next === state ? state : { ...next, selectedItemId: null };
+      return next === state
+        ? state
+        : withSelection(next, state.selectedIds.filter((x) => x !== action.id));
+    }
+    case 'deleteSelected': {
+      if (state.selectedIds.length === 0) return state;
+      const sel = new Set(state.selectedIds);
+      const next = mutateActive(state, (scene) => {
+        const items = scene.items.filter((it) => !sel.has(it.id));
+        return items.length === scene.items.length ? scene : { ...scene, items };
+      });
+      return next === state ? state : withSelection(next, []);
     }
     case 'reorderItem':
       return mutateActive(state, (scene) => ({
@@ -264,6 +331,7 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         undo: state.undo.slice(0, -1),
         redo: [...state.redo, active.scene].slice(-UNDO_LIMIT),
         dirtyIds: new Set(state.dirtyIds).add(active.id),
+        selectedIds: [],
         selectedItemId: null,
       };
     }
@@ -277,6 +345,7 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         redo: state.redo.slice(0, -1),
         undo: [...state.undo, active.scene].slice(-UNDO_LIMIT),
         dirtyIds: new Set(state.dirtyIds).add(active.id),
+        selectedIds: [],
         selectedItemId: null,
       };
     }

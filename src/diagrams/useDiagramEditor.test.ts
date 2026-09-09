@@ -268,6 +268,163 @@ describe('moveEndpoint', () => {
   });
 });
 
+describe('multi-selection', () => {
+  function threeItems(): EditorState {
+    const a = { ...createItem('cone', { x: 10, y: 10 }), id: 'a' };
+    const b = { ...createItem('cone', { x: 20, y: 20 }), id: 'b' };
+    const c = { ...createItem('line', { x: 0, y: 0 }), id: 'c' };
+    let s = loaded();
+    for (const item of [a, b, c]) s = diagramReducer(s, { type: 'addItem', item });
+    return s;
+  }
+
+  it('selectItem replaces the selection; null clears it', () => {
+    let s = diagramReducer(loaded(), {
+      type: 'addItem',
+      item: { ...createItem('cone', { x: 1, y: 1 }), id: 'a' },
+    });
+    s = diagramReducer(s, { type: 'selectItem', id: 'a' });
+    expect(s.selectedIds).toEqual(['a']);
+    expect(s.selectedItemId).toBe('a');
+    s = diagramReducer(s, { type: 'selectItem', id: null });
+    expect(s.selectedIds).toEqual([]);
+    expect(s.selectedItemId).toBeNull();
+  });
+
+  it('toggleSelect adds then removes an id; two ids => selectedItemId null', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: null });
+    s = diagramReducer(s, { type: 'toggleSelect', id: 'a' });
+    expect(s.selectedIds).toEqual(['a']);
+    expect(s.selectedItemId).toBe('a');
+    s = diagramReducer(s, { type: 'toggleSelect', id: 'b' });
+    expect(s.selectedIds).toEqual(['a', 'b']);
+    expect(s.selectedItemId).toBeNull();
+    s = diagramReducer(s, { type: 'toggleSelect', id: 'a' });
+    expect(s.selectedIds).toEqual(['b']);
+    expect(s.selectedItemId).toBe('b');
+  });
+
+  it('selectAll selects every item id in scene order', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: null });
+    s = diagramReducer(s, { type: 'selectAll' });
+    expect(s.selectedIds).toEqual(['a', 'b', 'c']);
+    expect(s.selectedItemId).toBeNull();
+  });
+
+  it('selectAll on an empty scene clears the selection', () => {
+    const s = diagramReducer(loaded(), { type: 'selectAll' });
+    expect(s.selectedIds).toEqual([]);
+  });
+
+  it('deleteSelected removes every selected item in one undo frame and clears the selection', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: 'a' });
+    s = diagramReducer(s, { type: 'toggleSelect', id: 'b' });
+    const undoLen = s.undo.length;
+    s = diagramReducer(s, { type: 'deleteSelected' });
+    expect(s.diagrams[0].scene.items.map((i) => i.id)).toEqual(['c']);
+    expect(s.undo.length).toBe(undoLen + 1);
+    expect(s.selectedIds).toEqual([]);
+    expect(s.selectedItemId).toBeNull();
+  });
+
+  it('deleteSelected with nothing selected is a no-op (same state reference)', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: null });
+    expect(diagramReducer(s, { type: 'deleteSelected' })).toBe(s);
+  });
+
+  it('translateSelected moves each selected item, shifts every line point, and leaves others alone', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: 'a' });
+    s = diagramReducer(s, { type: 'toggleSelect', id: 'c' });
+    const undoLen = s.undo.length;
+    s = diagramReducer(s, { type: 'translateSelected', dx: 5, dy: -3 });
+    const items = s.diagrams[0].scene.items;
+    const ia = items.find((i) => i.id === 'a')!;
+    expect({ x: ia.x, y: ia.y }).toEqual({ x: 15, y: 7 });
+    const ib = items.find((i) => i.id === 'b')!;
+    expect({ x: ib.x, y: ib.y }).toEqual({ x: 20, y: 20 });
+    const ic = items.find((i) => i.id === 'c')!;
+    if (ic.type !== 'line') throw new Error('expected a line');
+    expect(ic.points).toEqual([
+      { x: 5, y: -3 },
+      { x: 20, y: -3 },
+    ]);
+    expect(s.undo.length).toBe(undoLen + 1);
+  });
+
+  it('translateSelected with a zero delta is a no-op (same state reference)', () => {
+    const s = threeItems();
+    expect(diagramReducer(s, { type: 'translateSelected', dx: 0, dy: 0 })).toBe(s);
+  });
+
+  it('translateSelected with nothing selected is a no-op (same state reference)', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: null });
+    expect(diagramReducer(s, { type: 'translateSelected', dx: 3, dy: 3 })).toBe(s);
+  });
+
+  it('addItem makes the new item the sole selection', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectAll' });
+    s = diagramReducer(s, { type: 'addItem', item: { ...createItem('ball', { x: 9, y: 9 }), id: 'd' } });
+    expect(s.selectedIds).toEqual(['d']);
+    expect(s.selectedItemId).toBe('d');
+  });
+
+  it('pasteItems appends all items, selects them, in one undo frame', () => {
+    let s = threeItems();
+    const undoLen = s.undo.length;
+    const clones = ['p1', 'p2', 'p3'].map((id) => ({ ...createItem('cone', { x: 1, y: 1 }), id }));
+    s = diagramReducer(s, { type: 'pasteItems', items: clones });
+    expect(s.diagrams[0].scene.items.map((i) => i.id)).toEqual(['a', 'b', 'c', 'p1', 'p2', 'p3']);
+    expect(s.selectedIds).toEqual(['p1', 'p2', 'p3']);
+    expect(s.selectedItemId).toBeNull();
+    expect(s.undo.length).toBe(undoLen + 1);
+  });
+
+  it('pasteItems only appends what fits under the item cap', () => {
+    let s = loaded();
+    for (let i = 0; i < 58; i += 1) {
+      s = diagramReducer(s, { type: 'addItem', item: { ...createItem('cone', { x: i, y: i }), id: `x${i}` } });
+    }
+    const clones = Array.from({ length: 5 }, (_, i) => ({ ...createItem('cone', { x: i, y: i }), id: `c${i}` }));
+    s = diagramReducer(s, { type: 'pasteItems', items: clones });
+    expect(s.diagrams[0].scene.items).toHaveLength(60);
+    expect(s.selectedIds).toEqual(['c0', 'c1']);
+  });
+
+  it('pasteItems with an empty list is a no-op (same state reference)', () => {
+    const s = threeItems();
+    expect(diagramReducer(s, { type: 'pasteItems', items: [] })).toBe(s);
+  });
+
+  it('selectDiagram resets the selection to empty', () => {
+    let s = diagramReducer(loaded(), { type: 'addDiagram' });
+    const d2 = s.activeDiagramId!;
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'd1' });
+    s = diagramReducer(s, { type: 'addItem', item: { ...createItem('cone', { x: 1, y: 1 }), id: 'z' } });
+    expect(s.selectedIds).toEqual(['z']);
+    s = diagramReducer(s, { type: 'selectDiagram', id: d2 });
+    expect(s.selectedIds).toEqual([]);
+    expect(s.selectedItemId).toBeNull();
+  });
+
+  it('undo and redo reset the selection to empty', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectAll' });
+    expect(s.selectedIds).toEqual(['a', 'b', 'c']);
+    s = diagramReducer(s, { type: 'undo' });
+    expect(s.selectedIds).toEqual([]);
+    s = diagramReducer(s, { type: 'selectAll' });
+    s = diagramReducer(s, { type: 'redo' });
+    expect(s.selectedIds).toEqual([]);
+  });
+});
+
 describe('buildSaveOps', () => {
   it('splits diagrams into creates (unpersisted), updates (persisted + dirty) and deletes', () => {
     let s2 = loaded();

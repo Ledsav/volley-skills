@@ -12,7 +12,7 @@ import { createItem, cloneItemAt } from './sceneFactory';
 import { getDiagramClipboard, setDiagramClipboard } from './diagramClipboard';
 import { computeHandleTransform } from './transformMath';
 import { useDiagramEditor } from './useDiagramEditor';
-import { SCENE_LIMITS, type DiagramItemType } from '../types/diagram';
+import { SCENE_LIMITS, type CourtPreset, type DiagramItemType } from '../types/diagram';
 
 const SNAP = 2.5;
 const snap = (v: number) => Math.round(v / SNAP) * SNAP;
@@ -311,6 +311,31 @@ export function DiagramEditorPage() {
           <label className="flex items-center gap-1 text-xs text-slate">
             <input type="checkbox" checked={snapOn} onChange={(e) => setSnapOn(e.target.checked)} /> Snap
           </label>
+          {activeDiagram && (
+            <>
+              <label className="flex items-center gap-1 text-xs text-slate">
+                Court
+                <select
+                  aria-label="Court preset"
+                  value={activeDiagram.scene.court}
+                  onChange={(e) => dispatch({ type: 'setCourt', court: e.target.value as CourtPreset })}
+                  className="rounded-md border border-border bg-surface px-2 py-1 text-ink"
+                >
+                  <option value="full">Full</option>
+                  <option value="half">Half</option>
+                  <option value="blank">Blank</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1 text-xs text-slate">
+                <input
+                  type="checkbox"
+                  checked={activeDiagram.scene.showZones}
+                  onChange={() => dispatch({ type: 'toggleZones' })}
+                />
+                Zones
+              </label>
+            </>
+          )}
           {saveError && <span role="alert" className="text-xs text-red">{saveError}</span>}
           <Button
             variant="secondary"

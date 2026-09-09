@@ -278,4 +278,49 @@ describe('DiagramEditorPage', () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Exercises list')).toBeInTheDocument();
   });
+
+  it('shows the active diagram\'s current court in the Court select', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    expect(screen.getByLabelText('Court preset')).toHaveValue('full');
+  });
+
+  it('changes the court to half via the select, re-rendering the backdrop and enabling Save', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const save = screen.getByRole('button', { name: /save/i });
+    expect(save).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Court preset'), { target: { value: 'half' } });
+
+    await waitFor(() => {
+      const stage = document.querySelector('[data-canvas-stage]')!;
+      expect(stage.querySelector('[data-court="half"]')).not.toBeNull();
+    });
+    expect(save).toBeEnabled();
+  });
+
+  it('toggles zone labels on via the Zones checkbox and enables Save', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const save = screen.getByRole('button', { name: /save/i });
+    const zones = screen.getByRole('checkbox', { name: 'Zones' });
+    expect(zones).not.toBeChecked();
+
+    fireEvent.click(zones);
+
+    await waitFor(() => {
+      const stage = document.querySelector('[data-canvas-stage]')!;
+      expect(stage.querySelectorAll('[data-zone-label]').length).toBeGreaterThan(0);
+    });
+    expect(zones).toBeChecked();
+    expect(save).toBeEnabled();
+  });
+
+  it('does not render the Court select when the exercise has no diagrams', async () => {
+    vi.mocked(diagramsApi.listDiagrams).mockResolvedValueOnce([]);
+    renderPage();
+    expect(await screen.findByText('Add the first diagram')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Court preset')).not.toBeInTheDocument();
+  });
 });

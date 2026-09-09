@@ -12,9 +12,11 @@ interface PhysicalTestingSectionProps {
   teamId: string;
   playerId: string;
   isAdmin: boolean;
+  /** Notified after each successful load so a parent dashboard can derive summary stats. */
+  onLatestLoaded?: (latestByType: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => void;
 }
 
-export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTestingSectionProps) {
+export function PhysicalTestingSection({ teamId, playerId, isAdmin, onLatestLoaded }: PhysicalTestingSectionProps) {
   const { firebaseUser } = useAuth();
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [activeDialogType, setActiveDialogType] = useState<PhysicalTestType | null>(null);
@@ -28,6 +30,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
       next[t] = entries[i];
     });
     setLatestByType(next);
+    onLatestLoaded?.(next);
   }
 
   useEffect(() => {
@@ -37,24 +40,25 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
   }, [teamId, playerId]);
 
   return (
-    <section className="p-6">
-      <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Physical Testing</h2>
+    <div className="flex h-full flex-col">
       {loadError && (
-        <p role="alert" className="mt-3 text-red">
+        <p role="alert" className="text-sm text-red">
           {loadError}
         </p>
       )}
       {!loadError && (
-        <ul className="mt-3 divide-y divide-border">
+        <ul className="divide-y divide-border">
           {PHYSICAL_TEST_ORDER.map((testType) => {
             const latest = latestByType[testType];
             return (
-              <li key={testType} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium text-ink">{PHYSICAL_TEST_LABELS[testType]}</p>
-                  <p className="text-sm text-slate">{latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : 'No data yet'}</p>
+              <li key={testType} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{PHYSICAL_TEST_LABELS[testType]}</p>
+                  <p className="text-xs text-slate">
+                    {latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : 'No data yet'}
+                  </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-1">
                   <Button variant="ghost" size="sm" onClick={() => setHistoryType(testType)}>
                     View history
                   </Button>
@@ -84,8 +88,14 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin }: PhysicalTe
         />
       )}
       {historyType && (
-        <PhysicalTestHistoryList teamId={teamId} playerId={playerId} testType={historyType} onClose={() => setHistoryType(null)} />
+        <PhysicalTestHistoryList
+          teamId={teamId}
+          playerId={playerId}
+          testType={historyType}
+          isAdmin={isAdmin}
+          onClose={() => setHistoryType(null)}
+        />
       )}
-    </section>
+    </div>
   );
 }

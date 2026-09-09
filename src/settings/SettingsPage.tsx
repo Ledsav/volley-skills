@@ -30,7 +30,7 @@ export function SettingsPage() {
             <p className="font-medium text-ink">Account</p>
             <p className="text-sm text-slate">Sign out of Volley Skills on this device.</p>
           </div>
-          <Button variant="destructive" size="sm" onClick={() => void handleSignOut()}>
+          <Button variant="secondary" size="sm" onClick={() => void handleSignOut()}>
             Sign out
           </Button>
         </section>

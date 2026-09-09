@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPhysicalTest, getLatestByType, listHistoryByType } from './physicalTestsApi';
 
-const { mockAddDoc, mockGetDocs, mockCollection, mockQuery } = vi.hoisted(() => ({
+const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockDeleteDoc, mockDoc } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
   mockGetDocs: vi.fn(),
   mockCollection: vi.fn(() => 'physical-tests-collection'),
   mockQuery: vi.fn((...args: unknown[]) => args),
+  mockDeleteDoc: vi.fn(),
+  mockDoc: vi.fn((...args: unknown[]) => ({ type: 'doc', args })),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -17,6 +19,8 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
   limit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   startAfter: vi.fn((...args: unknown[]) => ({ type: 'startAfter', args })),
+  deleteDoc: mockDeleteDoc,
+  doc: mockDoc,
   serverTimestamp: () => 'server-timestamp',
 }));
 
@@ -26,6 +30,8 @@ describe('physicalTestsApi', () => {
   beforeEach(() => {
     mockAddDoc.mockReset();
     mockGetDocs.mockReset();
+    mockDeleteDoc.mockReset();
+    mockDoc.mockClear();
   });
 
   it('creates a physical test entry stamped with the recorder and a server timestamp', async () => {
@@ -96,5 +102,36 @@ describe('physicalTestsApi', () => {
 
     expect(tests).toEqual([{ id: 'test-1', testType: 'cmj', bestCm: 34, date: '2026-09-07' }]);
     expect(lastDoc).toEqual({ id: 'test-1', data: expect.any(Function) });
+  });
+
+  it('lists an oldest-first series for one test type, for a trend chart', async () => {
+    const { listSeriesByType } = await import('./physicalTestsApi');
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: 'test-1', data: () => ({ testType: 'cmj', bestCm: 30, date: '2026-01-10' }) },
+        { id: 'test-2', data: () => ({ testType: 'cmj', bestCm: 34, date: '2026-02-10' }) },
+      ],
+    });
+    mockQuery.mockClear();
+
+    const series = await listSeriesByType('team-1', 'player-1', 'cmj');
+
+    expect(series).toEqual([
+      { id: 'test-1', testType: 'cmj', bestCm: 30, date: '2026-01-10' },
+      { id: 'test-2', testType: 'cmj', bestCm: 34, date: '2026-02-10' },
+    ]);
+    const queryArgs = mockQuery.mock.calls[0];
+    expect(queryArgs).toContainEqual({ type: 'orderBy', args: ['date', 'asc'] });
+    expect(queryArgs).toContainEqual({ type: 'limit', args: [60] });
+  });
+
+  it('deletes a physical test entry', async () => {
+    const { deletePhysicalTest } = await import('./physicalTestsApi');
+    mockDeleteDoc.mockResolvedValue(undefined);
+
+    await deletePhysicalTest('team-1', 'player-1', 'test-1');
+
+    expect(mockDoc).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests', 'test-1');
+    expect(mockDeleteDoc).toHaveBeenCalledWith({ type: 'doc', args: [{}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests', 'test-1'] });
   });
 });

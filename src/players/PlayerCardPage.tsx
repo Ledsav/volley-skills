@@ -1,20 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { deletePlayer, getPlayer, updatePlayerDevelopmentPlan } from './playersApi';
 import { listAllPhysicalTests } from './physicalTestsApi';
 import { downloadPlayerExport } from './playerExport';
 import { getTeam } from '../teams/teamsApi';
+import { nextObjective } from './playerDashboard';
 import { PlayerContactSection } from './PlayerContactSection';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { GuardiansSection } from './GuardiansSection';
+import { PlayerIdentityCard } from './PlayerIdentityCard';
+import { PlayerKpiTiles } from './PlayerKpiTiles';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { PhysicalTestingSection } from './PhysicalTestingSection';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { LevelPill } from '../components/LevelPill';
-import { getInitials } from './nameFormat';
+import { EditButton } from '../components/EditButton';
+import { StatusChip } from '../components/StatusChip';
+import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import type { Player } from '../types/player';
+
+function Tile({
+  title,
+  action,
+  className = '',
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-card ${className}`.trim()}
+    >
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+        <h2 className="text-sm font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+        {action}
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+    </section>
+  );
+}
 
 export function PlayerCardPage() {
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
@@ -26,6 +54,8 @@ export function PlayerCardPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
+  const [editingSection, setEditingSection] = useState<'skills' | 'plan' | 'contact' | 'guardians' | null>(null);
 
   useEffect(() => {
     if (!teamId || !playerId) return;
@@ -37,6 +67,11 @@ export function PlayerCardPage() {
       })
       .catch(() => setError("You don't have access to this player."));
   }, [teamId, playerId, firebaseUser?.email]);
+
+  const handleLatestLoaded = useCallback(
+    (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),
+    []
+  );
 
   if (error) {
     return (
@@ -70,72 +105,135 @@ export function PlayerCardPage() {
     }
   }
 
-  return (
-    <div className="w-full bg-bg p-6 lg:p-8">
-      <div className="mb-6 flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue/10 text-lg font-bold text-blue">
-          {getInitials(player.fullName)}
-        </div>
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{player.fullName}</h1>
-            {player.avgScore !== null && <LevelPill level={player.level} />}
-          </div>
-          <p className="text-sm text-slate">
-            #{player.number} · {player.position}
-          </p>
-        </div>
-      </div>
-      <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        <PlayerContactSection
-          teamId={teamId}
-          playerId={playerId}
-          player={player}
-          onPlayerUpdated={setPlayer}
-          isAdmin={isAdmin}
-        />
-        <PlayerSkillsSection
-          teamId={teamId}
-          playerId={playerId}
-          player={player}
-          onPlayerUpdated={setPlayer}
-          isAdmin={isAdmin}
-        />
-        <GuardiansSection
-          teamId={teamId}
-          playerId={playerId}
-          player={player}
-          onPlayerUpdated={setPlayer}
-          isAdmin={isAdmin}
-        />
-        <DevelopmentPlanEditor
-          plan={player.developmentPlan}
-          onSave={(plan) =>
-            updatePlayerDevelopmentPlan(teamId, playerId, plan).then(() => setPlayer({ ...player, developmentPlan: plan }))
-          }
-          isAdmin={isAdmin}
-        />
-        <PhysicalTestingSection teamId={teamId} playerId={playerId} isAdmin={isAdmin} />
-      </div>
+  const next = nextObjective(player.developmentPlan);
+  const editAction = (section: typeof editingSection, label: string) =>
+    isAdmin ? <EditButton label={label} onClick={() => setEditingSection(section)} /> : undefined;
 
-      {isAdmin && (
-        <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-card">
-          <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Data &amp; privacy</h2>
-          <p className="mt-1 text-slate">
-            Export produces a JSON file with this player&apos;s full record and physical-test history.
-            Deleting a player also removes their physical-test history.
-          </p>
-          <div className="mt-3 flex items-center justify-end gap-3">
-            <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
-              Export data (JSON)
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
-              Delete player
-            </Button>
+  return (
+    <div className="w-full bg-bg p-4 lg:p-6">
+      <div className="flex flex-col gap-4">
+        {/* Region A — identity, at-a-glance stats, skills */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12 lg:grid-rows-[auto_minmax(0,1fr)] lg:h-[30rem]">
+          <div className="md:col-span-2 lg:col-span-4 lg:row-span-2">
+            <PlayerIdentityCard player={player} />
           </div>
-          {exportError && <p role="alert" className="mt-3 text-sm text-red">{exportError}</p>}
-        </section>
-      )}
+          <div className="md:col-span-2 lg:col-span-8 lg:row-start-1 lg:col-start-5">
+            <PlayerKpiTiles player={player} latestByType={latestByType} />
+          </div>
+          <Tile
+            title="Skills"
+            action={editAction('skills', 'Edit skills')}
+            className="md:col-span-2 lg:col-span-8 lg:col-start-5 lg:row-start-2"
+          >
+            <PlayerSkillsSection
+              teamId={teamId}
+              playerId={playerId}
+              player={player}
+              onPlayerUpdated={setPlayer}
+              isAdmin={isAdmin}
+              editing={editingSection === 'skills'}
+              onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
+            />
+          </Tile>
+        </div>
+
+        {/* Region B — the two deep panels */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-[30rem]">
+          <Tile title="Physical testing">
+            <PhysicalTestingSection
+              teamId={teamId}
+              playerId={playerId}
+              isAdmin={isAdmin}
+              onLatestLoaded={handleLatestLoaded}
+            />
+          </Tile>
+          <Tile title="Development plan" action={editAction('plan', 'Edit plan')}>
+            <DevelopmentPlanEditor
+              plan={player.developmentPlan}
+              onSave={(plan) =>
+                updatePlayerDevelopmentPlan(teamId, playerId, plan).then(() =>
+                  setPlayer({ ...player, developmentPlan: plan })
+                )
+              }
+              isAdmin={isAdmin}
+              editing={editingSection === 'plan'}
+              onEditingChange={(v) => setEditingSection(v ? 'plan' : null)}
+            />
+          </Tile>
+        </div>
+
+        {/* Region C — next action, contacts, and (admin) data controls */}
+        <div
+          className={`grid grid-cols-1 gap-4 md:grid-cols-2 lg:h-[16rem] ${
+            isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+          }`}
+        >
+          <Tile title="Next objective">
+            {next ? (
+              <div>
+                <p className="font-medium text-ink">{next.objective}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <StatusChip status={next.status} />
+                  <span className="text-xs text-slate">
+                    {next.targetDate ? `Due ${next.targetDate}` : 'No target date'}
+                  </span>
+                </div>
+                {next.coachComment && <p className="mt-2 text-sm text-slate">{next.coachComment}</p>}
+              </div>
+            ) : (
+              <p className="text-sm text-slate">No open short-term objectives.</p>
+            )}
+          </Tile>
+
+          <Tile title="Contact & registration" action={editAction('contact', 'Edit')}>
+            <PlayerContactSection
+              teamId={teamId}
+              playerId={playerId}
+              player={player}
+              onPlayerUpdated={setPlayer}
+              isAdmin={isAdmin}
+              editing={editingSection === 'contact'}
+              onEditingChange={(v) => setEditingSection(v ? 'contact' : null)}
+            />
+          </Tile>
+
+          <Tile title="Guardians" action={editAction('guardians', 'Edit')}>
+            <GuardiansSection
+              teamId={teamId}
+              playerId={playerId}
+              player={player}
+              onPlayerUpdated={setPlayer}
+              isAdmin={isAdmin}
+              editing={editingSection === 'guardians'}
+              onEditingChange={(v) => setEditingSection(v ? 'guardians' : null)}
+            />
+          </Tile>
+
+          {isAdmin && (
+            <Tile title="Data & privacy">
+              <div className="flex h-full flex-col">
+                <p className="text-sm text-slate">
+                  Export produces a JSON file with this player&apos;s full record and physical-test history. Deleting a
+                  player also removes their physical-test history.
+                </p>
+                <div className="mt-auto flex flex-col gap-2 pt-3">
+                  <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+                    Export data (JSON)
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+                    Delete player
+                  </Button>
+                </div>
+                {exportError && (
+                  <p role="alert" className="mt-3 text-sm text-red">
+                    {exportError}
+                  </p>
+                )}
+              </div>
+            </Tile>
+          )}
+        </div>
+      </div>
 
       {showDeleteConfirm && (
         <ConfirmDialog

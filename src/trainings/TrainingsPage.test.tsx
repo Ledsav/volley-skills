@@ -87,6 +87,19 @@ describe('TrainingsPage', () => {
     await waitFor(() => expect(trainingsApi.deleteTraining).toHaveBeenCalledWith('t-1'));
   });
 
+  it('opens the builder when the row is clicked, but not when Delete is clicked', async () => {
+    renderPage();
+    await screen.findByText('Passing circuit');
+
+    // Delete stops propagation — the row's open-builder handler must not fire.
+    fireEvent.click(screen.getByText('Delete'));
+    expect(screen.queryByText('builder-stub')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Cancel'));
+
+    fireEvent.click(screen.getByText('Passing circuit').closest('[role="button"]') as HTMLElement);
+    expect(await screen.findByText('builder-stub')).toBeInTheDocument();
+  });
+
   it('opens the bulk-import dialog from the Import button', async () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));

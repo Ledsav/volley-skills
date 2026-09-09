@@ -137,16 +137,36 @@ export function TrainingsPage() {
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
         {loaded && trainings.length === 0 && <p className="p-4 text-slate">No trainings found.</p>}
         {trainings.map((training) => (
-          <div key={training.id} className="flex items-center justify-between gap-4 p-4">
-            <button type="button" onClick={() => setDialog({ mode: 'edit', training })} className="text-left">
+          <div
+            key={training.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setDialog({ mode: 'edit', training })}
+            onKeyDown={(e) => {
+              if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                setDialog({ mode: 'edit', training });
+              }
+            }}
+            className="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-bg"
+          >
+            <div className="text-left">
               <span className="font-medium tabular-nums text-ink">{training.businessId}</span>
               <span className="ml-2 text-ink">{training.name}</span>
               <p className="mt-1 text-sm text-slate">
                 {training.ageGroupTarget || '—'} · {training.exercises.length} exercise(s) ·{' '}
                 {training.exercises.reduce((s, e) => s + e.durationMinutes, 0)} min
               </p>
-            </button>
-            <Button variant="ghost" size="sm" onClick={() => { setDeleteError(null); setPendingDelete(training); }}>
+            </div>
+            <Button
+              variant="dangerGhost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteError(null);
+                setPendingDelete(training);
+              }}
+            >
               Delete
             </Button>
           </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GuardiansSection } from './GuardiansSection';
@@ -6,6 +7,32 @@ import type { Player } from '../types/player';
 
 vi.mock('./playersApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+
+function GuardiansHarness({
+  player,
+  onPlayerUpdated = vi.fn(),
+  isAdmin = true,
+}: {
+  player: Player;
+  onPlayerUpdated?: (p: Player) => void;
+  isAdmin?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      {isAdmin && <button onClick={() => setEditing(true)}>Edit</button>}
+      <GuardiansSection
+        teamId="team-1"
+        playerId="player-1"
+        player={player}
+        onPlayerUpdated={onPlayerUpdated}
+        isAdmin={isAdmin}
+        editing={editing}
+        onEditingChange={setEditing}
+      />
+    </>
+  );
+}
 
 const basePlayer: Player = {
   id: 'player-1',
@@ -43,7 +70,7 @@ const basePlayer: Player = {
 describe('GuardiansSection', () => {
   it('shows guardians read-only and hides Edit when isAdmin is false', () => {
     render(
-      <GuardiansSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} isAdmin={false} />
+      <GuardiansHarness player={basePlayer} isAdmin={false} />
     );
 
     expect(screen.getByText(/Jane Doe/)).toBeInTheDocument();
@@ -55,13 +82,7 @@ describe('GuardiansSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <GuardiansSection
-        teamId="team-1"
-        playerId="player-1"
-        player={basePlayer}
-        onPlayerUpdated={onPlayerUpdated}
-        isAdmin={true}
-      />
+      <GuardiansHarness player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -82,7 +103,7 @@ describe('GuardiansSection', () => {
 
   it('discards edits when Cancel is clicked, instead of leaving them for the next edit session', () => {
     render(
-      <GuardiansSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} isAdmin={true} />
+      <GuardiansHarness player={basePlayer} />
     );
 
     fireEvent.click(screen.getByText('Edit'));

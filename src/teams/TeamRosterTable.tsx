@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LevelPill } from '../components/LevelPill';
-import { listPlayers } from '../players/playersApi';
+import { deletePlayer, listPlayers } from '../players/playersApi';
 import type { Player } from '../types/player';
 
 const NUMERIC_HEADER_CLASS =
@@ -13,12 +14,16 @@ const NUMERIC_CELL_CLASS = 'px-3 py-2 text-right tabular-nums text-ink';
 interface TeamRosterTableProps {
   teamId: string;
   onPlayersChange?: (players: Player[]) => void;
+  /** Fired after a player is removed, so a parent can surface a notice. */
+  onRosterChanged?: () => void;
 }
 
-export function TeamRosterTable({ teamId, onPlayersChange }: TeamRosterTableProps) {
+export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: TeamRosterTableProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Player | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function loadFirstPage() {
     const page = await listPlayers(teamId);
@@ -40,6 +45,25 @@ export function TeamRosterTable({ teamId, onPlayersChange }: TeamRosterTableProp
     setHasMore(page.hasMore);
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleteError(null);
+    try {
+      await deletePlayer(teamId, pendingDelete.id);
+    } catch {
+      setDeleteError('Could not remove this player. Please try again.');
+      return;
+    }
+    const removedId = pendingDelete.id;
+    setPlayers((current) => {
+      const next = current.filter((p) => p.id !== removedId);
+      onPlayersChange?.(next);
+      return next;
+    });
+    setPendingDelete(null);
+    onRosterChanged?.();
+  }
+
   useEffect(() => {
     void loadFirstPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,26 +76,39 @@ export function TeamRosterTable({ teamId, onPlayersChange }: TeamRosterTableProp
           squeezed table (design system §UX table guidance). */}
       <div className="flex flex-col gap-3 sm:hidden">
         {players.map((player) => (
-          <Link
+          <div
             key={player.id}
-            to={`/teams/${teamId}/players/${player.id}`}
             data-testid="roster-mobile-card"
-            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-4 shadow-card active:bg-bg"
+            className="flex items-center gap-2 rounded-lg border border-border bg-surface shadow-card"
           >
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-2">
-                <span className="shrink-0 tabular-nums text-sm text-slate">#{player.number}</span>
-                <span className="truncate font-medium text-ink">{player.fullName}</span>
+            <Link
+              to={`/teams/${teamId}/players/${player.id}`}
+              className="flex min-w-0 flex-1 items-center justify-between gap-3 p-4 active:bg-bg"
+            >
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className="shrink-0 tabular-nums text-sm text-slate">#{player.number}</span>
+                  <span className="truncate font-medium text-ink">{player.fullName}</span>
+                </div>
+                <p className="mt-0.5 truncate text-sm text-slate" title={player.position}>
+                  {player.position}
+                </p>
               </div>
-              <p className="mt-0.5 truncate text-sm text-slate" title={player.position}>
-                {player.position}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="tabular-nums font-semibold text-ink">{player.avgScore?.toFixed(1) ?? '—'}</span>
-              <LevelPill level={player.level} />
-            </div>
-          </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="tabular-nums font-semibold text-ink">{player.avgScore?.toFixed(1) ?? '—'}</span>
+                <LevelPill level={player.level} />
+              </div>
+            </Link>
+            <Button
+              variant="dangerGhost"
+              size="sm"
+              className="mr-2"
+              onClick={() => setPendingDelete(player)}
+              aria-label={`Remove ${player.fullName}`}
+            >
+              Remove
+            </Button>
+          </div>
         ))}
       </div>
 
@@ -93,6 +130,9 @@ export function TeamRosterTable({ teamId, onPlayersChange }: TeamRosterTableProp
               </th>
               <th className={`${NUMERIC_HEADER_CLASS} whitespace-nowrap`}>Skill avg</th>
               <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Level</th>
+              <th className="px-3 py-2 text-right">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -113,6 +153,16 @@ export function TeamRosterTable({ teamId, onPlayersChange }: TeamRosterTableProp
                 <td className="px-3 py-2">
                   <LevelPill level={player.level} />
                 </td>
+                <td className="px-3 py-2 text-right">
+                  <Button
+                    variant="dangerGhost"
+                    size="sm"
+                    onClick={() => setPendingDelete(player)}
+                    aria-label={`Remove ${player.fullName}`}
+                  >
+                    Remove
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -123,6 +173,20 @@ export function TeamRosterTable({ teamId, onPlayersChange }: TeamRosterTableProp
         <Button variant="secondary" onClick={() => void loadMore()} className="mt-4">
           Load more
         </Button>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Remove ${pendingDelete.fullName}?`}
+          message="This permanently deletes their player card, skills, development plan, and physical-test history. This cannot be undone."
+          confirmLabel="Yes, remove player"
+          onConfirm={() => void confirmDelete()}
+          onCancel={() => {
+            setPendingDelete(null);
+            setDeleteError(null);
+          }}
+          error={deleteError}
+        />
       )}
     </div>
   );

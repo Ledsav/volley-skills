@@ -71,7 +71,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               <li key={email} className="flex items-center justify-between py-3">
                 <span className="text-ink">{email}</span>
                 {team.adminEmails.length > 1 && (
-                  <Button variant="destructive" size="sm" onClick={() => void handleRemove(email)}>
+                  <Button variant="dangerGhost" size="sm" onClick={() => void handleRemove(email)}>
                     Remove
                   </Button>
                 )}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
@@ -6,6 +7,33 @@ import type { Player } from '../types/player';
 
 vi.mock('./playersApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+
+/** Harness that supplies the controlled `editing` state plus a header-style trigger. */
+function SkillsHarness({
+  player,
+  onPlayerUpdated = vi.fn(),
+  isAdmin = true,
+}: {
+  player: Player;
+  onPlayerUpdated?: (p: Player) => void;
+  isAdmin?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      {isAdmin && <button onClick={() => setEditing(true)}>Edit skills</button>}
+      <PlayerSkillsSection
+        teamId="team-1"
+        playerId="player-1"
+        player={player}
+        onPlayerUpdated={onPlayerUpdated}
+        isAdmin={isAdmin}
+        editing={editing}
+        onEditingChange={setEditing}
+      />
+    </>
+  );
+}
 
 const basePlayer: Player = {
   id: 'player-1',
@@ -45,10 +73,9 @@ describe('PlayerSkillsSection', () => {
     vi.spyOn(playersApi, 'updatePlayerSkills').mockResolvedValue(undefined);
     const onPlayerUpdated = vi.fn();
 
-    render(
-      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
-    );
+    render(<SkillsHarness player={basePlayer} onPlayerUpdated={onPlayerUpdated} />);
 
+    fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
     fireEvent.change(screen.getByLabelText('Attack'), { target: { value: '8' } });
     fireEvent.click(screen.getByText('Save skills'));
@@ -72,10 +99,9 @@ describe('PlayerSkillsSection', () => {
     vi.spyOn(playersApi, 'updatePlayerSkills').mockRejectedValue({ code: 'permission-denied' });
     const onPlayerUpdated = vi.fn();
 
-    render(
-      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
-    );
+    render(<SkillsHarness player={basePlayer} onPlayerUpdated={onPlayerUpdated} />);
 
+    fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '99' } });
     fireEvent.click(screen.getByText('Save skills'));
 
@@ -84,10 +110,9 @@ describe('PlayerSkillsSection', () => {
   });
 
   it('marks a skill as a focus area via the priority checkbox', () => {
-    render(
-      <PlayerSkillsSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={vi.fn()} isAdmin />
-    );
+    render(<SkillsHarness player={basePlayer} />);
 
+    fireEvent.click(screen.getByText('Edit skills'));
     const checkboxes = screen.getAllByLabelText('Focus area');
     fireEvent.click(checkboxes[0]);
     expect(checkboxes[0]).toBeChecked();
@@ -99,17 +124,10 @@ describe('PlayerSkillsSection', () => {
       skills: { ...basePlayer.skills, serve: { score: 6, notes: '', priority: false } },
     };
 
-    render(
-      <PlayerSkillsSection
-        teamId="team-1"
-        playerId="player-1"
-        player={scoredPlayer}
-        onPlayerUpdated={vi.fn()}
-        isAdmin={false}
-      />
-    );
+    render(<SkillsHarness player={scoredPlayer} isAdmin={false} />);
 
     expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
+    expect(screen.queryByText('Edit skills')).not.toBeInTheDocument();
     expect(screen.queryAllByLabelText('Focus area')).toHaveLength(0);
     expect(screen.queryByText('Save skills')).not.toBeInTheDocument();
     expect(screen.getByText('6')).toBeInTheDocument();

@@ -9,6 +9,14 @@ import { TEAM_IMPORT_EXAMPLE, validateTeamRows } from './teamsImport';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import type { Team } from '../types/team';
 
+/** Up to two letters from a team name, for the card monogram. */
+function teamMonogram(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 export function TeamsListPage() {
   const { appUser } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -45,11 +53,11 @@ export function TeamsListPage() {
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
         <div className="flex gap-2">
           {appUser?.role === 'admin' && (
-            <Button variant="secondary" onClick={() => setShowImport(true)}>
+            <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
               Import
             </Button>
           )}
-          <Button variant="primary" onClick={() => setShowCreate(true)}>
+          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
             Create team
           </Button>
         </div>
@@ -67,12 +75,25 @@ export function TeamsListPage() {
             <Link
               key={team.id}
               to={`/teams/${team.id}`}
-              className="rounded-lg border border-border bg-surface p-4 shadow-card hover:border-blue"
+              className="group flex flex-col rounded-lg border border-border bg-surface p-4 shadow-card transition-all duration-150 hover:border-blue hover:shadow-pop"
             >
-              <div className="font-semibold text-ink">{team.name}</div>
-              <p className="mt-1 text-sm text-slate">
-                {team.club} · {team.ageGroup} · {team.season}
-              </p>
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-navy/10 text-sm font-bold text-navy"
+                >
+                  {teamMonogram(team.name)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-semibold text-ink group-hover:text-blue">{team.name}</div>
+                  <p className="mt-0.5 truncate text-sm text-slate">
+                    {team.club} · {team.ageGroup}
+                  </p>
+                </div>
+              </div>
+              <span className="mt-3 inline-flex w-fit rounded-full bg-bg px-2 py-0.5 text-xs font-medium tabular-nums text-slate">
+                Season {team.season}
+              </span>
               {team.description && <p className="mt-2 line-clamp-2 text-sm text-slate">{team.description}</p>}
             </Link>
           ))}

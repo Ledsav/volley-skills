@@ -41,7 +41,8 @@ describe('TeamsListPage', () => {
     );
 
     expect(await screen.findByText('U17 Girls')).toBeInTheDocument();
-    expect(screen.getByText('VCB · U17 · 2026-27')).toBeInTheDocument();
+    expect(screen.getByText('VCB · U17')).toBeInTheDocument();
+    expect(screen.getByText('Season 2026-27')).toBeInTheDocument();
   });
 
   it('opens the bulk-import dialog from the Import button', async () => {

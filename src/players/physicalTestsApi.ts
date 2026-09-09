@@ -1,6 +1,8 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   limit,
   orderBy,
@@ -15,6 +17,7 @@ import type { NewPhysicalTestInput, PhysicalTest, PhysicalTestType } from '../ty
 
 const HISTORY_PAGE_SIZE = 10;
 const FULL_HISTORY_CAP = 500;
+const TREND_SERIES_CAP = 60;
 
 export async function createPhysicalTest(
   teamId: string,
@@ -68,4 +71,21 @@ export async function listHistoryByType(
   const tests = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PhysicalTest);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { tests, lastDoc };
+}
+
+/** Oldest-first series for one test type, for plotting a trend chart. */
+export async function listSeriesByType(
+  teamId: string,
+  playerId: string,
+  testType: PhysicalTestType,
+  cap = TREND_SERIES_CAP
+): Promise<PhysicalTest[]> {
+  const base = collection(db, 'teams', teamId, 'players', playerId, 'physicalTests');
+  const q = query(base, where('testType', '==', testType), orderBy('date', 'asc'), limit(cap));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PhysicalTest);
+}
+
+export async function deletePhysicalTest(teamId: string, playerId: string, testId: string): Promise<void> {
+  await deleteDoc(doc(db, 'teams', teamId, 'players', playerId, 'physicalTests', testId));
 }

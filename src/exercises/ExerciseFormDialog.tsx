@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
+import { EditButton } from '../components/EditButton';
 import { Input, Textarea } from '../components/Input';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import { DiagramLightbox } from '../diagrams/DiagramLightbox';
@@ -67,16 +69,8 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label={exercise ? 'Edit exercise' : 'New exercise'}
-        className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-pop"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">
-          {exercise ? 'Edit exercise' : 'New exercise'}
-        </h2>
-
+    <Dialog title={exercise ? 'Edit exercise' : 'New exercise'} onClose={onClose}>
+      <form onSubmit={handleSubmit} aria-label={exercise ? 'Edit exercise' : 'New exercise'}>
         <label htmlFor="exercise-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
@@ -112,13 +106,10 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           <div className="mt-4">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-medium text-ink">Diagrams</span>
-              <Button
-                variant="secondary"
-                size="sm"
+              <EditButton
+                label="Edit diagrams"
                 onClick={() => navigate(`/exercises/${exercise.id}/diagram`)}
-              >
-                Edit diagrams
-              </Button>
+              />
             </div>
             {diagrams.length > 0 && (
               <div className="flex gap-2 overflow-x-auto">
@@ -169,6 +160,6 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           </Button>
         </div>
       </form>
-    </div>
+    </Dialog>
   );
 }

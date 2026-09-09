@@ -155,7 +155,7 @@ export function ExercisesPage() {
               </div>
             </div>
             <Button
-              variant="ghost"
+              variant="dangerGhost"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();

@@ -139,9 +139,9 @@ service cloud.firestore {
               get(/databases/$(database)/documents/teams/$(teamId)/players/$(playerId)).data.viewerEmails
           );
           allow create, update: if request.auth != null && isTeamAdmin();
-          // Deletable only so a player's own hard-delete can clean up their test
-          // history (GDPR erasure, see docs/.../volley-skills-app-design.md §10) —
-          // there is no standalone "delete one test result" feature.
+          // Team admins can delete a single entry from the history view, and this
+          // also lets a player's own hard-delete clean up their test history
+          // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
           allow delete: if request.auth != null && isTeamAdmin();
         }
       }

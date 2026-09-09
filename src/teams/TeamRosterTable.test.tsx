@@ -106,6 +106,72 @@ describe('TeamRosterTable', () => {
     }
   });
 
+  it('removes a player from the list after the delete is confirmed', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('player-1', 1, 'Test Player'), makePlayer('player-2', 2, 'Other Player')],
+      lastDoc: null,
+      hasMore: false,
+    });
+    const deleteSpy = vi.spyOn(playersApi, 'deletePlayer').mockResolvedValue(undefined);
+    const onPlayersChange = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" onPlayersChange={onPlayersChange} />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Test Player');
+    fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Remove Test Player' }));
+    fireEvent.click(screen.getByText('Yes, remove player'));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1', 'player-1'));
+    await waitFor(() => expect(screen.queryAllByText('Test Player')).toHaveLength(0));
+    expect(screen.getAllByText('Other Player').length).toBeGreaterThan(0);
+    expect(onPlayersChange).toHaveBeenLastCalledWith([expect.objectContaining({ id: 'player-2' })]);
+  });
+
+  it('keeps the Remove control outside the player-card link so it never navigates', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('player-1', 1, 'Test Player')],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Test Player');
+    for (const button of screen.getAllByRole('button', { name: 'Remove Test Player' })) {
+      expect(button.closest('a')).toBeNull();
+    }
+  });
+
+  it('shows an error and keeps the player when the delete fails', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('player-1', 1, 'Test Player')],
+      lastDoc: null,
+      hasMore: false,
+    });
+    vi.spyOn(playersApi, 'deletePlayer').mockRejectedValue({ code: 'permission-denied' });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Test Player');
+    fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Remove Test Player' }));
+    fireEvent.click(screen.getByText('Yes, remove player'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not remove/i);
+    expect(screen.getAllByText('Test Player').length).toBeGreaterThan(0);
+  });
+
   it('loads the next page when "Load more" is clicked', async () => {
     const lastDocStub = { id: 'player-1' } as never;
     vi.spyOn(playersApi, 'listPlayers')

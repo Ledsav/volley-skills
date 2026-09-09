@@ -10,23 +10,19 @@ import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImport';
 import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
+import { Tab } from '../components/Tab';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
-type Tab = 'overview' | 'calendar' | 'plan' | 'settings';
-
-const tabClass = (active: boolean) =>
-  `border-b-2 px-1 py-3 text-sm font-medium ${
-    active ? 'border-blue text-blue' : 'border-transparent text-slate hover:text-ink'
-  }`;
+type TeamTab = 'overview' | 'calendar' | 'plan' | 'settings';
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const { firebaseUser } = useAuth();
   const [team, setTeam] = useState<Team | null>(null);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<TeamTab>('overview');
   const [error, setError] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
@@ -59,18 +55,18 @@ export function TeamPage() {
         <p className="mt-1 text-slate">{team.description}</p>
 
         <nav className="mt-4 flex gap-6 overflow-x-auto border-b border-border">
-          <button onClick={() => setTab('overview')} className={`${tabClass(tab === 'overview')} shrink-0`}>
+          <Tab active={tab === 'overview'} onClick={() => setTab('overview')}>
             Overview
-          </button>
-          <button onClick={() => setTab('calendar')} className={`${tabClass(tab === 'calendar')} shrink-0`}>
+          </Tab>
+          <Tab active={tab === 'calendar'} onClick={() => setTab('calendar')}>
             Calendar
-          </button>
-          <button onClick={() => setTab('plan')} className={`${tabClass(tab === 'plan')} shrink-0`}>
+          </Tab>
+          <Tab active={tab === 'plan'} onClick={() => setTab('plan')}>
             Development Plan
-          </button>
-          <button onClick={() => setTab('settings')} className={`${tabClass(tab === 'settings')} shrink-0`}>
+          </Tab>
+          <Tab active={tab === 'settings'} onClick={() => setTab('settings')}>
             Settings
-          </button>
+          </Tab>
         </nav>
 
         <div className="mt-6">
@@ -86,7 +82,15 @@ export function TeamPage() {
                 </Button>
               </div>
               {importNotice && <p className="mb-4 text-sm text-green">{importNotice}</p>}
-              <TeamRosterTable key={rosterRefreshKey} teamId={teamId} onPlayersChange={setRosterPlayers} />
+              <TeamRosterTable
+                key={rosterRefreshKey}
+                teamId={teamId}
+                onPlayersChange={setRosterPlayers}
+                onRosterChanged={() => {
+                  setImportNotice('Player removed.');
+                  window.setTimeout(() => setImportNotice(null), 4000);
+                }}
+              />
             </>
           )}
           {tab === 'calendar' && <TeamCalendarTab teamId={teamId} />}

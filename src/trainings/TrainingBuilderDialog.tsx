@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { getExercisesByIds, listExercises } from '../exercises/exercisesApi';
@@ -124,16 +125,8 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label={training ? 'Edit training' : 'New training'}
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-pop"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">
-          {training ? `Edit ${training.businessId}` : 'New training'}
-        </h2>
-
+    <Dialog title={training ? `Edit ${training.businessId}` : 'New training'} size="lg" onClose={onClose}>
+      <form onSubmit={handleSubmit} aria-label={training ? 'Edit training' : 'New training'}>
         <label htmlFor="training-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
@@ -257,6 +250,6 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
           </Button>
         </div>
       </form>
-    </div>
+    </Dialog>
   );
 }

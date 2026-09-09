@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PlayerContactSection } from './PlayerContactSection';
@@ -6,6 +7,32 @@ import type { Player } from '../types/player';
 
 vi.mock('./playersApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+
+function ContactHarness({
+  player,
+  onPlayerUpdated = vi.fn(),
+  isAdmin = true,
+}: {
+  player: Player;
+  onPlayerUpdated?: (p: Player) => void;
+  isAdmin?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      {isAdmin && <button onClick={() => setEditing(true)}>Edit</button>}
+      <PlayerContactSection
+        teamId="team-1"
+        playerId="player-1"
+        player={player}
+        onPlayerUpdated={onPlayerUpdated}
+        isAdmin={isAdmin}
+        editing={editing}
+        onEditingChange={setEditing}
+      />
+    </>
+  );
+}
 
 const basePlayer: Player = {
   id: 'player-1',
@@ -46,7 +73,7 @@ describe('PlayerContactSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
+      <ContactHarness player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -68,7 +95,7 @@ describe('PlayerContactSection', () => {
     const onPlayerUpdated = vi.fn();
 
     render(
-      <PlayerContactSection teamId="team-1" playerId="player-1" player={basePlayer} onPlayerUpdated={onPlayerUpdated} isAdmin />
+      <ContactHarness player={basePlayer} onPlayerUpdated={onPlayerUpdated} />
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -80,18 +107,11 @@ describe('PlayerContactSection', () => {
   });
 
   it('hides the edit affordance for a non-admin viewer', () => {
-    render(
-      <PlayerContactSection
-        teamId="team-1"
-        playerId="player-1"
-        player={basePlayer}
-        onPlayerUpdated={vi.fn()}
-        isAdmin={false}
-      />
-    );
+    render(<ContactHarness player={basePlayer} isAdmin={false} />);
 
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
-    expect(screen.getByText('Name: Test Player')).toBeInTheDocument();
+    expect(screen.getByText('OH')).toBeInTheDocument();
+    expect(screen.getByText('00352 000 000')).toBeInTheDocument();
   });
 });

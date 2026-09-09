@@ -182,7 +182,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
               />
             </div>
             {guardians.length > 1 && (
-              <Button variant="ghost" size="sm" onClick={() => removeGuardian(index)}>
+              <Button variant="dangerGhost" size="sm" onClick={() => removeGuardian(index)}>
                 Remove guardian
               </Button>
             )}

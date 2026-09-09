@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input } from '../components/Input';
 import { updatePlayerContact } from './playersApi';
 import type { Player } from '../types/player';
@@ -10,6 +11,8 @@ interface PlayerContactSectionProps {
   player: Player;
   onPlayerUpdated: (player: Player) => void;
   isAdmin: boolean;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
 }
 
 export function PlayerContactSection({
@@ -18,12 +21,22 @@ export function PlayerContactSection({
   player,
   onPlayerUpdated,
   isAdmin,
+  editing,
+  onEditingChange,
 }: PlayerContactSectionProps) {
-  const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(player.fullName);
   const [position, setPosition] = useState(player.position);
   const [playerPhone, setPlayerPhone] = useState(player.playerPhone);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setFullName(player.fullName);
+      setPosition(player.position);
+      setPlayerPhone(player.playerPhone);
+      setError(null);
+    }
+  }, [editing, player.fullName, player.position, player.playerPhone]);
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
@@ -35,75 +48,72 @@ export function PlayerContactSection({
       return;
     }
     onPlayerUpdated({ ...player, fullName, position, playerPhone });
-    setEditing(false);
-  }
-
-  if (!editing || !isAdmin) {
-    return (
-      <section className="p-6">
-        <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Contact & Registration</h2>
-        <p className="mt-3 text-slate">Name: {player.fullName}</p>
-        <p className="mt-1 text-slate">Position: {player.position}</p>
-        <p className="mt-1 text-slate">Phone: {player.playerPhone}</p>
-        {isAdmin && (
-          <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="mt-4">
-            Edit
-          </Button>
-        )}
-      </section>
-    );
+    onEditingChange(false);
   }
 
   return (
-    <form
-      onSubmit={handleSave}
-      aria-label="Edit contact information"
-      className="p-6"
-    >
-      <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
-        Name
-      </label>
-      <Input
-        id="player-name"
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        required
-        className="mb-3 w-full"
-      />
+    <div className="flex h-full flex-col">
+      <dl className="grid grid-cols-[5rem_1fr] gap-x-3 gap-y-2 text-sm">
+        <dt className="text-slate">Position</dt>
+        <dd className="font-medium text-ink">{player.position || '—'}</dd>
+        <dt className="text-slate">Phone</dt>
+        <dd className="font-medium text-ink">{player.playerPhone || '—'}</dd>
+        <dt className="text-slate">License</dt>
+        <dd className="font-medium tabular-nums text-ink">{player.licenseNumber || '—'}</dd>
+        <dt className="text-slate">Nationality</dt>
+        <dd className="font-medium text-ink">{player.nationality || '—'}</dd>
+      </dl>
 
-      <label htmlFor="player-position" className="mb-1 block text-sm font-medium text-ink">
-        Position
-      </label>
-      <Input
-        id="player-position"
-        value={position}
-        onChange={(e) => setPosition(e.target.value)}
-        className="mb-3 w-full"
-      />
+      {editing && isAdmin && (
+        <Dialog title="Edit contact & registration" onClose={() => onEditingChange(false)}>
+          <form onSubmit={handleSave} aria-label="Edit contact information">
+            <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
+              Name
+            </label>
+            <Input
+              id="player-name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="mb-3 w-full"
+            />
 
-      <label htmlFor="player-phone" className="mb-1 block text-sm font-medium text-ink">
-        Phone
-      </label>
-      <Input
-        id="player-phone"
-        value={playerPhone}
-        onChange={(e) => setPlayerPhone(e.target.value)}
-        className="mb-4 w-full"
-      />
+            <label htmlFor="player-position" className="mb-1 block text-sm font-medium text-ink">
+              Position
+            </label>
+            <Input
+              id="player-position"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              className="mb-3 w-full"
+            />
 
-      <div className="flex gap-3">
-        <Button variant="primary" type="submit">
-          Save
-        </Button>
-        <Button variant="ghost" onClick={() => setEditing(false)}>
-          Cancel
-        </Button>
-      </div>
-      {error && (
-        <p role="alert" className="mt-3 text-sm text-red">
-          {error}
-        </p>
+            <label htmlFor="player-phone" className="mb-1 block text-sm font-medium text-ink">
+              Phone
+            </label>
+            <Input
+              id="player-phone"
+              value={playerPhone}
+              onChange={(e) => setPlayerPhone(e.target.value)}
+              className="mb-4 w-full"
+            />
+
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => onEditingChange(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                Save
+              </Button>
+            </div>
+            {error && (
+              <p role="alert" className="mt-3 text-sm text-red">
+                {error}
+              </p>
+            )}
+          </form>
+        </Dialog>
       )}
-    </form>
+    </div>
   );
 }

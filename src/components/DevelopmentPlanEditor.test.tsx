@@ -1,9 +1,35 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DevelopmentPlanEditor } from './DevelopmentPlanEditor';
 import type { DevelopmentPlan } from '../types/developmentPlan';
 
 const emptyPlan: DevelopmentPlan = { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' };
+
+/** Supplies the controlled `editing` state plus a header-style trigger. */
+function PlanHarness({
+  plan,
+  onSave = vi.fn().mockResolvedValue(undefined),
+  isAdmin = true,
+}: {
+  plan: DevelopmentPlan;
+  onSave?: (plan: DevelopmentPlan) => Promise<void>;
+  isAdmin?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      {isAdmin && <button onClick={() => setEditing(true)}>Edit</button>}
+      <DevelopmentPlanEditor
+        plan={plan}
+        onSave={onSave}
+        isAdmin={isAdmin}
+        editing={editing}
+        onEditingChange={setEditing}
+      />
+    </>
+  );
+}
 
 describe('DevelopmentPlanEditor', () => {
   it('shows objectives read-only and hides Edit when isAdmin is false', () => {
@@ -13,7 +39,7 @@ describe('DevelopmentPlanEditor', () => {
       generalNotes: 'Focused player',
     };
 
-    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={false} />);
+    render(<PlanHarness plan={plan} isAdmin={false} />);
 
     expect(screen.getByText(/Improve serve/)).toBeInTheDocument();
     expect(screen.getByText('In progress')).toBeInTheDocument();
@@ -29,7 +55,7 @@ describe('DevelopmentPlanEditor', () => {
       generalNotes: '',
     };
 
-    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={false} />);
+    render(<PlanHarness plan={plan} isAdmin={false} />);
 
     // The title stands alone — it's not glued to its metadata with " — ".
     expect(screen.getByText('Improve serve accuracy')).toBeInTheDocument();
@@ -45,14 +71,14 @@ describe('DevelopmentPlanEditor', () => {
       generalNotes: '',
     };
 
-    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={false} />);
+    render(<PlanHarness plan={plan} isAdmin={false} />);
 
     expect(screen.queryByText(/—\s*$/)).not.toBeInTheDocument();
   });
 
   it('adds a short-term objective and saves the whole plan', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<DevelopmentPlanEditor plan={emptyPlan} onSave={onSave} isAdmin={true} />);
+    render(<PlanHarness plan={emptyPlan} onSave={onSave} />);
 
     fireEvent.click(screen.getByText('Edit'));
     fireEvent.click(screen.getByText('+ Add short-term objective'));
@@ -74,7 +100,7 @@ describe('DevelopmentPlanEditor', () => {
 
   it('shows a save error without discarding edits', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('nope'));
-    render(<DevelopmentPlanEditor plan={emptyPlan} onSave={onSave} isAdmin={true} />);
+    render(<PlanHarness plan={emptyPlan} onSave={onSave} />);
 
     fireEvent.click(screen.getByText('Edit'));
     fireEvent.click(screen.getByText('Save'));
@@ -88,7 +114,7 @@ describe('DevelopmentPlanEditor', () => {
       seasonObjectives: [],
       generalNotes: 'Original notes',
     };
-    render(<DevelopmentPlanEditor plan={plan} onSave={vi.fn()} isAdmin={true} />);
+    render(<PlanHarness plan={plan} />);
 
     fireEvent.click(screen.getByText('Edit'));
     fireEvent.change(screen.getByLabelText('Objective'), { target: { value: 'Abandoned edit' } });
@@ -96,5 +122,12 @@ describe('DevelopmentPlanEditor', () => {
 
     fireEvent.click(screen.getByText('Edit'));
     expect(screen.getByLabelText('Objective')).toHaveValue('Improve serve');
+  });
+
+  it('manages its own edit state when the editing prop is omitted (team plan tab)', () => {
+    render(<DevelopmentPlanEditor plan={emptyPlan} onSave={vi.fn().mockResolvedValue(undefined)} isAdmin />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('dialog', { name: 'Edit development plan' })).toBeInTheDocument();
   });
 });

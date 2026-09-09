@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiagramEditorPage } from './DiagramEditorPage';
@@ -22,6 +22,10 @@ function renderPage() {
 
 describe('DiagramEditorPage', () => {
   beforeEach(() => {
+    // Reset call history between tests: the save-on-unmount safety net means a
+    // test that leaves the editor dirty records a saveDiagramSet call on cleanup,
+    // which would otherwise leak into the next test's call count.
+    vi.clearAllMocks();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never,
@@ -60,6 +64,21 @@ describe('DiagramEditorPage', () => {
     await waitFor(() => expect(save).toBeEnabled());
     fireEvent.click(save);
     await waitFor(() => expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1));
+    // Let the save settle (dispatch `saved` → dirty clears → button re-disables)
+    // so the now-live save-on-unmount safety net doesn't flush a second call.
+    await waitFor(() => expect(save).toBeDisabled());
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('flushes an unsaved change to saveDiagramSet when the editor unmounts', async () => {
+    const { unmount } = renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeEnabled());
+    await act(async () => {
+      unmount();
+    });
+    await waitFor(() => expect(diagramsApi.saveDiagramSet).toHaveBeenCalled());
   });
 
   it('renders a load error instead of the editor when listDiagrams rejects', async () => {

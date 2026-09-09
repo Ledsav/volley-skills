@@ -25,6 +25,41 @@ describe('diagramReducer', () => {
     expect(s.dirtyIds.has('d1')).toBe(true);
   });
 
+  it('translateItem shifts a point item, every line point, and both arrow endpoints', () => {
+    const cone = { ...createItem('cone', { x: 10, y: 10 }), id: 'c' };
+    const line = { ...createItem('line', { x: 0, y: 0 }), id: 'l' };
+    const arrow = { ...createItem('arrow', { x: 0, y: 0 }), id: 'a' };
+    let s = loaded();
+    for (const item of [cone, line, arrow]) s = diagramReducer(s, { type: 'addItem', item });
+
+    const l0 = line.type === 'line' ? line.points.map((p) => ({ ...p })) : [];
+    const from0 = arrow.type === 'arrow' ? { ...arrow.from } : { x: 0, y: 0 };
+    const to0 = arrow.type === 'arrow' ? { ...arrow.to } : { x: 0, y: 0 };
+
+    s = diagramReducer(s, { type: 'translateItem', id: 'c', dx: 5, dy: -3 });
+    s = diagramReducer(s, { type: 'translateItem', id: 'l', dx: 5, dy: -3 });
+    s = diagramReducer(s, { type: 'translateItem', id: 'a', dx: 5, dy: -3 });
+
+    const items = s.diagrams[0].scene.items;
+    const ic = items.find((i) => i.id === 'c')!;
+    expect({ x: ic.x, y: ic.y }).toEqual({ x: 15, y: 7 });
+    const il = items.find((i) => i.id === 'l')!;
+    if (il.type !== 'line') throw new Error('expected a line');
+    expect(il.points).toEqual(l0.map((p) => ({ x: p.x + 5, y: p.y - 3 })));
+    const ia = items.find((i) => i.id === 'a')!;
+    if (ia.type !== 'arrow') throw new Error('expected an arrow');
+    expect(ia.from).toEqual({ x: from0.x + 5, y: from0.y - 3 });
+    expect(ia.to).toEqual({ x: to0.x + 5, y: to0.y - 3 });
+  });
+
+  it('translateItem with a zero delta is a no-op (same state reference, no undo frame)', () => {
+    const s = diagramReducer(loaded(), { type: 'addItem', item: { ...createItem('cone', { x: 5, y: 5 }), id: 'c' } });
+    const undoLen = s.undo.length;
+    const next = diagramReducer(s, { type: 'translateItem', id: 'c', dx: 0, dy: 0 });
+    expect(next).toBe(s);
+    expect(next.undo.length).toBe(undoLen);
+  });
+
   it('moveItem / transformItem / setItemProp mutate only the target item', () => {
     const a = { ...createItem('cone', { x: 10, y: 10 }), id: 'a' };
     const b = { ...createItem('cone', { x: 50, y: 50 }), id: 'b' };
@@ -75,6 +110,25 @@ describe('diagramReducer', () => {
     expect(s.deletedIds).toEqual(['d1']); // unsaved-new one not recorded
   });
 
+  it('deleteDiagram re-dirties survivors whose order actually shifted', () => {
+    let s = diagramReducer(initialEditorState, {
+      type: 'loaded',
+      diagrams: [
+        { id: 'a', persisted: true, title: 'A', order: 0, scene: emptyScene('full') },
+        { id: 'b', persisted: true, title: 'B', order: 1, scene: emptyScene('full') },
+        { id: 'c', persisted: true, title: 'C', order: 2, scene: emptyScene('full') },
+      ],
+    });
+    // Delete the middle one: 'a' keeps order 0, 'c' shifts 2 -> 1.
+    s = diagramReducer(s, { type: 'deleteDiagram', id: 'b' });
+    expect(s.dirtyIds.has('a')).toBe(false);
+    expect(s.dirtyIds.has('c')).toBe(true);
+    expect(s.diagrams.map((d) => [d.id, d.order])).toEqual([
+      ['a', 0],
+      ['c', 1],
+    ]);
+  });
+
   it('undo restores the previous scene and redo reapplies; stack caps at 30', () => {
     let s = loaded();
     for (let i = 0; i < 35; i += 1) {
@@ -97,18 +151,41 @@ describe('diagramReducer', () => {
     expect(s.dirtyIds.has('d1')).toBe(true);
   });
 
-  it('saved swaps temp ids for real ids and clears dirty/deleted', () => {
+  it('saved swaps temp ids for real ids and clears dirty/deleted for the committed set', () => {
     let s = loaded();
     s = diagramReducer(s, { type: 'addDiagram' });
     const tempId = s.activeDiagramId!;
     s = diagramReducer(s, { type: 'deleteDiagram', id: 'd1' });
-    s = diagramReducer(s, { type: 'saved', idMap: { [tempId]: 'real-9' } });
+    s = diagramReducer(s, {
+      type: 'saved',
+      idMap: { [tempId]: 'real-9' },
+      committedIds: ['d1', tempId],
+    });
     expect(s.diagrams[0].id).toBe('real-9');
     expect(s.diagrams[0].persisted).toBe(true);
     expect(s.dirtyIds.size).toBe(0);
     expect(s.deletedIds).toEqual([]);
     expect(s.activeDiagramId).toBe('real-9');
     expect(s.diagrams.find((d) => d.id === s.activeDiagramId)).toBeTruthy();
+  });
+
+  it('saved only cleans the committed diagrams; edits made during the save stay dirty', () => {
+    let s = loaded();
+    s = diagramReducer(s, { type: 'addDiagram' });
+    const bId = s.activeDiagramId!;
+    // Edit A (the persisted d1) — this is what buildSaveOps captures.
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'd1' });
+    s = diagramReducer(s, { type: 'addItem', item: { ...createItem('cone', { x: 1, y: 1 }), id: 'ca' } });
+    const ops = buildSaveOps(s);
+    expect(ops.updates.map((u) => u.id)).toEqual(['d1']);
+    // Edit B while the save is "in flight".
+    s = diagramReducer(s, { type: 'selectDiagram', id: bId });
+    s = diagramReducer(s, { type: 'addItem', item: { ...createItem('ball', { x: 2, y: 2 }), id: 'bb' } });
+    // The save resolves — only A (d1) was committed.
+    s = diagramReducer(s, { type: 'saved', idMap: {}, committedIds: ['d1'] });
+    expect(s.dirtyIds.has('d1')).toBe(false);
+    expect(s.dirtyIds.has(bId)).toBe(true);
+    expect(s.diagrams.find((d) => d.id === bId)?.persisted).toBe(false);
   });
 });
 

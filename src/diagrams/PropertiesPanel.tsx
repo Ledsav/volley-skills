@@ -154,29 +154,33 @@ export function PropertiesPanel({ item, dispatch }: Props) {
       <div className="flex flex-wrap gap-1">
         <button
           type="button"
+          aria-label="Nudge left"
           className="rounded-md border border-border px-2 py-1"
-          onClick={() => dispatch({ type: 'moveItem', id: item.id, x: item.x - 1, y: item.y })}
+          onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: -1, dy: 0 })}
         >
           ←
         </button>
         <button
           type="button"
+          aria-label="Nudge right"
           className="rounded-md border border-border px-2 py-1"
-          onClick={() => dispatch({ type: 'moveItem', id: item.id, x: item.x + 1, y: item.y })}
+          onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 1, dy: 0 })}
         >
           →
         </button>
         <button
           type="button"
+          aria-label="Nudge up"
           className="rounded-md border border-border px-2 py-1"
-          onClick={() => dispatch({ type: 'moveItem', id: item.id, x: item.x, y: item.y - 1 })}
+          onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 0, dy: -1 })}
         >
           ↑
         </button>
         <button
           type="button"
+          aria-label="Nudge down"
           className="rounded-md border border-border px-2 py-1"
-          onClick={() => dispatch({ type: 'moveItem', id: item.id, x: item.x, y: item.y + 1 })}
+          onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 0, dy: 1 })}
         >
           ↓
         </button>

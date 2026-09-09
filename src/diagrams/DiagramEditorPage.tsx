@@ -35,11 +35,21 @@ export function DiagramEditorPage() {
     return () => window.clearTimeout(timer);
   }, [state, dirty, save]);
 
-  // Save on unmount if still dirty.
-  useEffect(() => () => {
-    if (dirty) void save();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Save on unmount if still dirty. Mirror `dirty`/`save` into refs each render
+  // so the unmount cleanup reads the latest values, not the first-render closure
+  // (where `dirty` is always false). This is the in-app-nav safety net.
+  const dirtyRef = useRef(dirty);
+  const saveRef = useRef(save);
+  useEffect(() => {
+    dirtyRef.current = dirty;
+    saveRef.current = save;
+  });
+  useEffect(
+    () => () => {
+      if (dirtyRef.current) void saveRef.current();
+    },
+    [],
+  );
 
   // Warn on tab close while dirty.
   useEffect(() => {
@@ -60,7 +70,12 @@ export function DiagramEditorPage() {
 
   const addFromPalette = useCallback(
     (type: DiagramItemType) => {
-      const at = { x: 50, y: 50 };
+      const stage = document.querySelector('[data-canvas-stage]') as HTMLElement | null;
+      let at = { x: 50, y: 50 };
+      if (stage && stageApi.current) {
+        const r = stage.getBoundingClientRect();
+        at = stageApi.current.screenToCourt(r.left + r.width / 2, r.top + r.height / 2);
+      }
       dispatch({ type: 'addItem', item: createItem(type, at) });
     },
     [dispatch],
@@ -69,18 +84,25 @@ export function DiagramEditorPage() {
   const beginDrag = useCallback(
     (id: string, e: React.PointerEvent) => {
       dispatch({ type: 'selectItem', id });
-      const startClient = { x: e.clientX, y: e.clientY };
-      const item = activeDiagram?.scene.items.find((i) => i.id === id);
-      if (!item) return;
-      const origin = { x: item.x, y: item.y };
+      const api = stageApi.current;
+      if (!api) return;
+      // Translate by the delta since the previous move so line/arrow geometry
+      // moves as a unit too (they have no single x/y to set absolutely).
+      let last = api.screenToCourt(e.clientX, e.clientY);
       const move = (ev: PointerEvent) => {
-        const api = stageApi.current;
-        if (!api) return;
-        const a = api.screenToCourt(startClient.x, startClient.y);
-        const b = api.screenToCourt(ev.clientX, ev.clientY);
-        const nx = origin.x + (b.x - a.x);
-        const ny = origin.y + (b.y - a.y);
-        dispatch({ type: 'moveItem', id, x: snapOn ? snap(nx) : nx, y: snapOn ? snap(ny) : ny });
+        const cur = stageApi.current?.screenToCourt(ev.clientX, ev.clientY);
+        if (!cur) return;
+        let dx = cur.x - last.x;
+        let dy = cur.y - last.y;
+        if (snapOn) {
+          dx = snap(dx);
+          dy = snap(dy);
+        }
+        if (dx === 0 && dy === 0) return;
+        dispatch({ type: 'translateItem', id, dx, dy });
+        // Advance the reference by what we actually applied so sub-grid motion
+        // accumulates until it crosses the next snap step.
+        last = { x: last.x + dx, y: last.y + dy };
       };
       const up = () => {
         window.removeEventListener('pointermove', move);
@@ -89,7 +111,7 @@ export function DiagramEditorPage() {
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     },
-    [activeDiagram, dispatch, snapOn],
+    [dispatch, snapOn],
   );
 
   if (loadError) {

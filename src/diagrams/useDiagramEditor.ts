@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '../types/diagram';
 import { emptyScene, newId } from './sceneFactory';
 import { listDiagrams, saveDiagramSet, type DiagramSaveOps } from './diagramsApi';
+import { invalidateDiagramThumbnail } from './DiagramThumbnail';
 
 const UNDO_LIMIT = 30;
 
@@ -33,6 +34,7 @@ export type EditorAction =
   | { type: 'selectItem'; id: string | null }
   | { type: 'addItem'; item: DiagramItem }
   | { type: 'moveItem'; id: string; x: number; y: number }
+  | { type: 'translateItem'; id: string; dx: number; dy: number }
   | { type: 'transformItem'; id: string; rotation: number; size: number }
   | { type: 'setItemProp'; id: string; patch: Partial<DiagramItem> }
   | { type: 'deleteItem'; id: string }
@@ -41,7 +43,7 @@ export type EditorAction =
   | { type: 'toggleZones' }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'saved'; idMap: Record<string, string> };
+  | { type: 'saved'; idMap: Record<string, string>; committedIds: string[] };
 
 export const initialEditorState: EditorState = {
   diagrams: [],
@@ -144,11 +146,16 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
     case 'deleteDiagram': {
       const target = state.diagrams.find((d) => d.id === action.id);
       if (!target) return state;
-      const diagrams = state.diagrams
-        .filter((d) => d.id !== action.id)
-        .map((d, k) => ({ ...d, order: k }));
       const dirtyIds = new Set(state.dirtyIds);
       dirtyIds.delete(action.id);
+      const diagrams = state.diagrams
+        .filter((d) => d.id !== action.id)
+        .map((d, k) => {
+          // A renumbered survivor has an unsaved `order` change — like
+          // reorderDiagram, mark it dirty so the next save persists it.
+          if (d.order !== k) dirtyIds.add(d.id);
+          return { ...d, order: k };
+        });
       return {
         ...state,
         diagrams,
@@ -175,6 +182,26 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       return mutateActive(state, (scene) =>
         patchItems(scene, action.id, (it) => ({ ...it, x: action.x, y: action.y })),
       );
+    case 'translateItem': {
+      // A tap that doesn't move must not burn an undo frame or dirty the scene.
+      if (action.dx === 0 && action.dy === 0) return state;
+      const { dx, dy } = action;
+      return mutateActive(state, (scene) =>
+        patchItems(scene, action.id, (it) => {
+          if (it.type === 'line') {
+            return { ...it, points: it.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
+          }
+          if (it.type === 'arrow') {
+            return {
+              ...it,
+              from: { x: it.from.x + dx, y: it.from.y + dy },
+              to: { x: it.to.x + dx, y: it.to.y + dy },
+            };
+          }
+          return { ...it, x: it.x + dx, y: it.y + dy };
+        }),
+      );
+    }
     case 'transformItem':
       return mutateActive(state, (scene) =>
         patchItems(scene, action.id, (it) => ({ ...it, rotation: action.rotation, size: action.size })),
@@ -228,19 +255,30 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       };
     }
     case 'saved': {
+      // Scope the "clean" transition to exactly what this save committed.
+      // Edits (and new diagrams) made while the save was in flight must survive:
+      // an uncommitted new diagram keeps its temp id + persisted:false so the
+      // next save creates it, instead of being marked persisted with no idMap
+      // entry and then failing every later update.
+      const committed = new Set(action.committedIds);
+      const wasCommitted = (id: string) => committed.has(id) || id in action.idMap;
       const diagrams = state.diagrams.map((d) => ({
         ...d,
         id: action.idMap[d.id] ?? d.id,
-        persisted: true,
+        persisted: wasCommitted(d.id) ? true : d.persisted,
       }));
+      const dirtyIds = new Set<string>();
+      state.dirtyIds.forEach((id) => {
+        if (!wasCommitted(id)) dirtyIds.add(id);
+      });
       return {
         ...state,
         diagrams,
         activeDiagramId: state.activeDiagramId
           ? action.idMap[state.activeDiagramId] ?? state.activeDiagramId
           : null,
-        dirtyIds: new Set(),
-        deletedIds: [],
+        dirtyIds,
+        deletedIds: state.deletedIds.filter((id) => !committed.has(id)),
         undo: [],
         redo: [],
       };
@@ -265,6 +303,7 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -291,15 +330,26 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   }, [exerciseId]);
 
   const save = useCallback(async () => {
+    // In-flight guard: never let a second save overlap the first. If the state
+    // is still dirty after this one resolves, the 3s autosave picks it up.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaveError(null);
     setSaving(true);
     try {
       const ops = buildSaveOps(state);
+      const committedIds = [
+        ...ops.creates.map((c) => c.tempId),
+        ...ops.updates.map((u) => u.id),
+        ...ops.deletes,
+      ];
       const { idMap } = await saveDiagramSet(exerciseId, ops, uid);
-      dispatch({ type: 'saved', idMap });
+      dispatch({ type: 'saved', idMap, committedIds });
+      invalidateDiagramThumbnail(exerciseId);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save diagrams. Please try again.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, [state, exerciseId, uid]);

@@ -9,6 +9,12 @@ export function clearDiagramThumbnailCache() {
   cache.clear();
 }
 
+/** Drop one exercise's cached thumbnail so the next mount refetches it — call
+ *  this after a diagram save so the `/exercises` row stops showing "no diagram". */
+export function invalidateDiagramThumbnail(exerciseId: string) {
+  cache.delete(exerciseId);
+}
+
 export function DiagramThumbnail({ exerciseId, className }: { exerciseId: string; className?: string }) {
   const [diagram, setDiagram] = useState<Diagram | null | undefined>(
     cache.has(exerciseId) ? cache.get(exerciseId) : undefined,

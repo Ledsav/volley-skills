@@ -135,9 +135,30 @@ describe('exercisesApi', () => {
   });
 
   it('deletes an exercise', async () => {
-    mockDeleteDoc.mockResolvedValue(undefined);
+    const del = vi.fn();
+    const commit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set: vi.fn(), update: vi.fn(), delete: del, commit });
+    mockGetDocs.mockResolvedValue({ docs: [] });
     await deleteExercise('ex-1');
-    expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
+    expect(del).toHaveBeenCalledWith('doc-ref');
+    expect(commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes an exercise together with its diagrams subcollection in one batch', async () => {
+    const set = vi.fn();
+    const del = vi.fn();
+    const commit = vi.fn().mockResolvedValue(undefined);
+    mockWriteBatch.mockReturnValue({ set, update: vi.fn(), delete: del, commit });
+    mockGetDocs.mockResolvedValue({
+      docs: [{ ref: 'diagram-ref-1' }, { ref: 'diagram-ref-2' }],
+    });
+
+    await deleteExercise('ex-1');
+
+    expect(del).toHaveBeenCalledWith('diagram-ref-1');
+    expect(del).toHaveBeenCalledWith('diagram-ref-2');
+    expect(del).toHaveBeenCalledWith('doc-ref'); // the exercise doc itself
+    expect(commit).toHaveBeenCalledTimes(1);
   });
 
   it('lists exercises without a category filter, paginated', async () => {

@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getCountFromServer,
   getDoc,
@@ -51,7 +50,11 @@ export async function updateExercise(exerciseId: string, updates: Partial<NewExe
 }
 
 export async function deleteExercise(exerciseId: string): Promise<void> {
-  await deleteDoc(doc(db, 'exercises', exerciseId));
+  const diagrams = await getDocs(collection(db, 'exercises', exerciseId, 'diagrams'));
+  const batch = writeBatch(db);
+  diagrams.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(doc(db, 'exercises', exerciseId));
+  await withBackoff(() => batch.commit());
 }
 
 export interface ExercisesPage {

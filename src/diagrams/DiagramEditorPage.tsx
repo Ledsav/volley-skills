@@ -8,6 +8,7 @@ import { Palette } from './Palette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
 import { createItem } from './sceneFactory';
+import { computeHandleTransform } from './transformMath';
 import { useDiagramEditor } from './useDiagramEditor';
 import { SCENE_LIMITS, type DiagramItemType } from '../types/diagram';
 
@@ -134,6 +135,42 @@ export function DiagramEditorPage() {
     [dispatch, snapOn],
   );
 
+  const beginTransform = useCallback(
+    (id: string, e: React.PointerEvent) => {
+      dispatch({ type: 'selectItem', id });
+      const api = stageApi.current;
+      if (!api) return;
+      const item = activeDiagram?.scene.items.find((i) => i.id === id);
+      if (!item) return;
+      // Capture the drag origin once: the element centre, the pointer's court
+      // position, and the item's size/rotation at grab time.
+      const center = { x: item.x, y: item.y };
+      const start = api.screenToCourt(e.clientX, e.clientY);
+      const startSize = item.size;
+      const startRotation = item.rotation;
+      const move = (ev: PointerEvent) => {
+        const current = stageApi.current?.screenToCourt(ev.clientX, ev.clientY);
+        if (!current) return;
+        const { size, rotation } = computeHandleTransform({
+          center,
+          start,
+          current,
+          startSize,
+          startRotation,
+          snapRotation: snapOn,
+        });
+        dispatch({ type: 'transformItem', id, rotation, size });
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    },
+    [dispatch, snapOn, activeDiagram],
+  );
+
   if (loadError) {
     return (
       <div className="p-6">
@@ -195,6 +232,7 @@ export function DiagramEditorPage() {
                 interactive
                 selectedId={state.selectedItemId}
                 onItemPointerDown={beginDrag}
+                onTransformHandlePointerDown={beginTransform}
                 onBackgroundPointerDown={() => dispatch({ type: 'selectItem', id: null })}
               />
             </CanvasStage>

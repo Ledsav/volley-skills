@@ -9,6 +9,7 @@ interface DiagramSvgProps {
   selectedId?: string | null;
   onItemPointerDown?: (id: string, e: PointerEvent) => void;
   onBackgroundPointerDown?: (e: PointerEvent) => void;
+  onTransformHandlePointerDown?: (id: string, e: PointerEvent) => void;
   className?: string;
 }
 
@@ -37,6 +38,7 @@ export function DiagramSvg({
   selectedId = null,
   onItemPointerDown,
   onBackgroundPointerDown,
+  onTransformHandlePointerDown,
   className,
 }: DiagramSvgProps) {
   const selected = interactive && selectedId ? scene.items.find((i) => i.id === selectedId) ?? null : null;
@@ -83,6 +85,10 @@ export function DiagramSvg({
       {selected &&
         (() => {
           const b = bbox(selected);
+          const onHandleDown = (e: PointerEvent) => {
+            e.stopPropagation();
+            onTransformHandlePointerDown?.(selected.id, e);
+          };
           return (
             <g style={{ pointerEvents: 'none' }}>
               <rect
@@ -109,7 +115,26 @@ export function DiagramSvg({
                   />
                 ))
               ) : (
-                <circle data-transform-handle cx={b.x + b.w} cy={b.y} r={1.8} fill="rgb(var(--color-blue))" />
+                // Resize + rotate handle. Re-enable pointer events on just this
+                // group (the outline + endpoint dots stay decorative). The large
+                // transparent circle gives touch a ~44px target.
+                <g style={{ pointerEvents: 'auto', cursor: 'grab' }}>
+                  <circle
+                    cx={b.x + b.w}
+                    cy={b.y}
+                    r={4}
+                    fill="transparent"
+                    onPointerDown={onHandleDown}
+                  />
+                  <circle
+                    data-transform-handle
+                    cx={b.x + b.w}
+                    cy={b.y}
+                    r={1.8}
+                    fill="rgb(var(--color-blue))"
+                    onPointerDown={onHandleDown}
+                  />
+                </g>
               )}
             </g>
           );

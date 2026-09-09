@@ -50,4 +50,35 @@ describe('DiagramSvg', () => {
     const { container } = render(<DiagramSvg scene={withItems([arrow])} interactive selectedId="ar" />);
     expect(container.querySelectorAll('[data-endpoint-handle]')).toHaveLength(2);
   });
+
+  it('renders a transform handle for a selected point item and reports its pointerdown', () => {
+    const a = { ...createItem('cone', { x: 20, y: 20 }), id: 'a' };
+    const onTransformHandlePointerDown = vi.fn();
+    const onItemPointerDown = vi.fn();
+    const onBackgroundPointerDown = vi.fn();
+    const { container } = render(
+      <DiagramSvg
+        scene={withItems([a])}
+        interactive
+        selectedId="a"
+        onItemPointerDown={onItemPointerDown}
+        onBackgroundPointerDown={onBackgroundPointerDown}
+        onTransformHandlePointerDown={onTransformHandlePointerDown}
+      />,
+    );
+    const handle = container.querySelector('[data-transform-handle]');
+    expect(handle).not.toBeNull();
+
+    fireEvent.pointerDown(handle!);
+    expect(onTransformHandlePointerDown).toHaveBeenCalledWith('a', expect.anything());
+    // stopPropagation: pressing the handle is not an item drag nor a background click.
+    expect(onItemPointerDown).not.toHaveBeenCalled();
+    expect(onBackgroundPointerDown).not.toHaveBeenCalled();
+  });
+
+  it('does not render a transform handle for a selected line/arrow (endpoints only)', () => {
+    const arrow = { ...createItem('arrow', { x: 10, y: 10 }), id: 'ar' };
+    const { container } = render(<DiagramSvg scene={withItems([arrow])} interactive selectedId="ar" />);
+    expect(container.querySelector('[data-transform-handle]')).toBeNull();
+  });
 });

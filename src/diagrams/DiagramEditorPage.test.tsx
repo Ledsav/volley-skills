@@ -105,6 +105,34 @@ describe('DiagramEditorPage', () => {
     expect(await screen.findByText(/could not load diagrams/i)).toBeInTheDocument();
   });
 
+  it('resizes the selected point item by dragging its transform handle', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = document.querySelector('[data-canvas-stage]')!;
+    const cone = () => stage.querySelector('[data-item-type="cone"]');
+    await waitFor(() => expect(cone()).not.toBeNull());
+    expect(cone()!.getAttribute('transform')).toContain('scale(1)');
+
+    // jsdom lacks a PointerEvent constructor and its getBoundingClientRect is
+    // all-zeros, so use MouseEvent (carries clientX/Y) typed as pointer* events.
+    // screenToCourt is then linear in clientX; moving x=10 → x=40 quadruples the
+    // radius from centre, so `size` clamps to its 2× ceiling.
+    const handle = stage.querySelector('[data-transform-handle]')!;
+    await act(async () => {
+      handle.dispatchEvent(new MouseEvent('pointerdown', { clientX: 10, clientY: 0, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 40, clientY: 0 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointerup', {}));
+    });
+
+    await waitFor(() => expect(cone()!.getAttribute('transform')).toMatch(/scale\(2\)/));
+  });
+
   it('confirms before leaving via "‹ Exercises" when the editor is dirty', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');

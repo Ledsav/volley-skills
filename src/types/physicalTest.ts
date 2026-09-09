@@ -115,6 +115,14 @@ export const PHYSICAL_TEST_LABELS: Record<PhysicalTestType, string> = {
   strength: 'Strength',
 };
 
+export const STRENGTH_EXERCISE_LABELS: Record<WeightedExercise | BodyweightExercise, string> = {
+  trapBarDeadlift: 'Trap-bar deadlift',
+  squat: 'Squat',
+  gobletSquat: 'Goblet squat',
+  pushUps: 'Push-ups',
+  splitSquat: 'Split squat',
+};
+
 export const PHYSICAL_TEST_ORDER: PhysicalTestType[] = [
   'growth',
   'cmj',

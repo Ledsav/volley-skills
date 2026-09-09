@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
+import { ExerciseFormDialog } from './ExerciseFormDialog';
 import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
-import { ExerciseFormDialog } from './ExerciseFormDialog';
 
 const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
   EXERCISE_CATEGORIES.map((c) => [c.key, c.label])

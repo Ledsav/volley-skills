@@ -1,10 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAuth } from '../auth/AuthContext';
+import { clearDiagramClipboard } from './diagramClipboard';
 import { DiagramEditorPage } from './DiagramEditorPage';
 import * as diagramsApi from './diagramsApi';
-import { clearDiagramClipboard } from './diagramClipboard';
-import { useAuth } from '../auth/AuthContext';
 
 vi.mock('./diagramsApi');
 vi.mock('../auth/AuthContext');

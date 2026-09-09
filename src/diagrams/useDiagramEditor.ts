@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '../types/diagram';
-import { emptyScene, newId } from './sceneFactory';
 import { listDiagrams, saveDiagramSet, type DiagramSaveOps } from './diagramsApi';
 import { invalidateDiagramThumbnail } from './DiagramThumbnail';
+import { emptyScene, newId } from './sceneFactory';
 
 const UNDO_LIMIT = 30;
 

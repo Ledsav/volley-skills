@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { diagramReducer, initialEditorState, buildSaveOps, type EditorState } from './useDiagramEditor';
-import { emptyScene, createItem } from './sceneFactory';
 import type { Scene } from '../types/diagram';
+import { createItem, emptyScene } from './sceneFactory';
+import { buildSaveOps, diagramReducer, initialEditorState, type EditorState } from './useDiagramEditor';
 
 function loaded(scene: Scene = emptyScene('full')): EditorState {
   return diagramReducer(initialEditorState, {

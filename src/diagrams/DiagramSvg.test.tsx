@@ -1,8 +1,8 @@
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { Scene } from '../types/diagram';
 import { DiagramSvg } from './DiagramSvg';
 import { createItem, emptyScene } from './sceneFactory';
-import type { Scene } from '../types/diagram';
 
 const withItems = (items: Scene['items']): Scene => ({ ...emptyScene('full'), items });
 

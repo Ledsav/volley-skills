@@ -1,7 +1,7 @@
 import type { PointerEvent } from 'react';
-import { CourtBackdrop } from './primitives/CourtBackdrop';
-import { renderItem } from './primitives';
 import type { DiagramItem, Scene } from '../types/diagram';
+import { renderItem } from './primitives';
+import { CourtBackdrop } from './primitives/CourtBackdrop';
 
 interface DiagramSvgProps {
   scene: Scene;

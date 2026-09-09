@@ -55,6 +55,21 @@ describe('ExercisesPage', () => {
     expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
   });
 
+  it('opens the edit dialog on keyboard Enter on the row, but not on Enter on the Delete button', async () => {
+    render(<ExercisesPage />);
+    await screen.findByText('Pepper');
+
+    const row = screen.getByText('Pepper').closest('[role="button"]') as HTMLElement;
+
+    // Enter bubbling up from the nested Delete button must NOT open the edit dialog.
+    fireEvent.keyDown(screen.getByText('Delete'), { key: 'Enter' });
+    expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
+
+    // Enter on the row element itself DOES open it.
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
+  });
+
   it('reloads with a category filter when a category chip is clicked', async () => {
     render(<ExercisesPage />);
     await screen.findByText('Pepper');

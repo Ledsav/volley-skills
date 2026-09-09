@@ -189,6 +189,85 @@ describe('diagramReducer', () => {
   });
 });
 
+describe('moveEndpoint', () => {
+  it('moves only arrow endpoint 0 (from) or endpoint 1 (to)', () => {
+    const arrow = { ...createItem('arrow', { x: 0, y: 0 }), id: 'a' };
+    let s = diagramReducer(loaded(), { type: 'addItem', item: arrow });
+    const a0 = s.diagrams[0].scene.items[0];
+    if (a0.type !== 'arrow') throw new Error('expected an arrow');
+    const to0 = { ...a0.to };
+
+    s = diagramReducer(s, { type: 'moveEndpoint', id: 'a', index: 0, x: 5, y: 7 });
+    let ia = s.diagrams[0].scene.items[0];
+    if (ia.type !== 'arrow') throw new Error('expected an arrow');
+    expect(ia.from).toEqual({ x: 5, y: 7 });
+    expect(ia.to).toEqual(to0);
+
+    s = diagramReducer(s, { type: 'moveEndpoint', id: 'a', index: 1, x: 20, y: 30 });
+    ia = s.diagrams[0].scene.items[0];
+    if (ia.type !== 'arrow') throw new Error('expected an arrow');
+    expect(ia.from).toEqual({ x: 5, y: 7 });
+    expect(ia.to).toEqual({ x: 20, y: 30 });
+  });
+
+  it('ignores an out-of-range endpoint index on an arrow (same state reference)', () => {
+    const arrow = { ...createItem('arrow', { x: 0, y: 0 }), id: 'a' };
+    const s = diagramReducer(loaded(), { type: 'addItem', item: arrow });
+    expect(diagramReducer(s, { type: 'moveEndpoint', id: 'a', index: 2, x: 1, y: 1 })).toBe(s);
+  });
+
+  it('moves only points[index] on a line, leaving the other points untouched', () => {
+    const line = {
+      ...createItem('line', { x: 0, y: 0 }),
+      id: 'l',
+      points: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 20, y: 0 },
+      ],
+    };
+    let s = diagramReducer(loaded(), { type: 'addItem', item: line });
+    s = diagramReducer(s, { type: 'moveEndpoint', id: 'l', index: 1, x: 12, y: 8 });
+    const il = s.diagrams[0].scene.items[0];
+    if (il.type !== 'line') throw new Error('expected a line');
+    expect(il.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 12, y: 8 },
+      { x: 20, y: 0 },
+    ]);
+  });
+
+  it('ignores an out-of-range index on a line (same state reference)', () => {
+    const line = { ...createItem('line', { x: 0, y: 0 }), id: 'l' };
+    const s = diagramReducer(loaded(), { type: 'addItem', item: line });
+    expect(diagramReducer(s, { type: 'moveEndpoint', id: 'l', index: 5, x: 1, y: 1 })).toBe(s);
+    expect(diagramReducer(s, { type: 'moveEndpoint', id: 'l', index: -1, x: 1, y: 1 })).toBe(s);
+  });
+
+  it('is a no-op for a point item like a cone (same state reference)', () => {
+    const cone = { ...createItem('cone', { x: 5, y: 5 }), id: 'c' };
+    const s = diagramReducer(loaded(), { type: 'addItem', item: cone });
+    expect(diagramReducer(s, { type: 'moveEndpoint', id: 'c', index: 0, x: 9, y: 9 })).toBe(s);
+  });
+
+  it('moving an endpoint to its current position burns no undo frame (same state reference)', () => {
+    const arrow = { ...createItem('arrow', { x: 0, y: 0 }), id: 'a' };
+    const s = diagramReducer(loaded(), { type: 'addItem', item: arrow });
+    const a0 = s.diagrams[0].scene.items[0];
+    if (a0.type !== 'arrow') throw new Error('expected an arrow');
+    const undoLen = s.undo.length;
+    const next = diagramReducer(s, {
+      type: 'moveEndpoint',
+      id: 'a',
+      index: 1,
+      x: a0.to.x,
+      y: a0.to.y,
+    });
+    expect(next).toBe(s);
+    expect(next.undo.length).toBe(undoLen);
+  });
+});
+
 describe('buildSaveOps', () => {
   it('splits diagrams into creates (unpersisted), updates (persisted + dirty) and deletes', () => {
     let s2 = loaded();

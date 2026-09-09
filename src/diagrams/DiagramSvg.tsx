@@ -10,6 +10,7 @@ interface DiagramSvgProps {
   onItemPointerDown?: (id: string, e: PointerEvent) => void;
   onBackgroundPointerDown?: (e: PointerEvent) => void;
   onTransformHandlePointerDown?: (id: string, e: PointerEvent) => void;
+  onEndpointPointerDown?: (id: string, index: number, e: PointerEvent) => void;
   className?: string;
 }
 
@@ -39,6 +40,7 @@ export function DiagramSvg({
   onItemPointerDown,
   onBackgroundPointerDown,
   onTransformHandlePointerDown,
+  onEndpointPointerDown,
   className,
 }: DiagramSvgProps) {
   const selected = interactive && selectedId ? scene.items.find((i) => i.id === selectedId) ?? null : null;
@@ -89,6 +91,7 @@ export function DiagramSvg({
             e.stopPropagation();
             onTransformHandlePointerDown?.(selected.id, e);
           };
+          const endpointsInteractive = interactive && !!onEndpointPointerDown;
           return (
             <g style={{ pointerEvents: 'none' }}>
               <rect
@@ -103,17 +106,49 @@ export function DiagramSvg({
                 strokeDasharray="2 1.5"
               />
               {endpoints(selected).length > 0 ? (
-                endpoints(selected).map((p, i) => (
-                  <circle
-                    key={i}
-                    data-endpoint-handle
-                    data-endpoint-index={i}
-                    cx={p.x}
-                    cy={p.y}
-                    r={1.8}
-                    fill="rgb(var(--color-blue))"
-                  />
-                ))
+                endpoints(selected).map((p, i) => {
+                  if (!endpointsInteractive) {
+                    return (
+                      <circle
+                        key={i}
+                        data-endpoint-handle
+                        data-endpoint-index={i}
+                        cx={p.x}
+                        cy={p.y}
+                        r={1.8}
+                        fill="rgb(var(--color-blue))"
+                      />
+                    );
+                  }
+                  // Drag handle for one endpoint. Re-enable pointer events on
+                  // just this group; the large transparent circle gives touch a
+                  // ~44px target behind the visible dot.
+                  const onDown = (e: PointerEvent) => {
+                    e.stopPropagation();
+                    onEndpointPointerDown?.(selected.id, i, e);
+                  };
+                  return (
+                    <g key={i} style={{ pointerEvents: 'auto', cursor: 'grab' }}>
+                      <circle
+                        data-endpoint-index={i}
+                        cx={p.x}
+                        cy={p.y}
+                        r={4}
+                        fill="transparent"
+                        onPointerDown={onDown}
+                      />
+                      <circle
+                        data-endpoint-handle
+                        data-endpoint-index={i}
+                        cx={p.x}
+                        cy={p.y}
+                        r={1.8}
+                        fill="rgb(var(--color-blue))"
+                        onPointerDown={onDown}
+                      />
+                    </g>
+                  );
+                })
               ) : (
                 // Resize + rotate handle. Re-enable pointer events on just this
                 // group (the outline + endpoint dots stay decorative). The large

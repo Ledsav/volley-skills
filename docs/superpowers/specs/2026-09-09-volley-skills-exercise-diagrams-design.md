@@ -174,7 +174,7 @@ Discriminated union on `type`. **Common fields** on every item:
 | `ladder` | `rungs` int 3–10; `length` number 5–40 (court units) | drawn along the item's local x-axis, rotated by `rotation` |
 | `net` | `length` number 5–60 | standalone net (e.g. on a `blank` court); the court preset draws its own centre net independently |
 | `pole` | — | |
-| `line` | `points` array of `{x,y}`, length 2–12; `style` `"solid" \| "dashed"`; `thickness` number 1–4 | drags as a whole shape (all points shift together); per-endpoint editing deferred (§11) |
+| `line` | `points` array of `{x,y}`, length 2–12; `style` `"solid" \| "dashed"`; `thickness` number 1–4 | drags as a whole shape (all points shift together) or by a single endpoint dot (`moveEndpoint`) |
 | `arrow` | `from` `{x,y}`; `to` `{x,y}`; `curved` bool; `style` `"pass" \| "shot" \| "run"`; `head` `"single" \| "double"` | `pass` solid, `shot` heavy solid, `run` dashed; `curved` renders a quadratic curve with an auto control point |
 | `text` | `content` string 1–60 chars; `fontSize` number 2–8 (court units) | free-floating label |
 | `zoneLabel` | `zone` int 1–6 | a movable "1".."6" marker, distinct from `scene.showZones` |
@@ -234,8 +234,8 @@ interface DiagramSvgProps {
      gets `onPointerDown={e => onItemPointerDown(item.id, e)}`.
   3. When `interactive && selectedId`: a selection outline around the selected
      item's bounding box plus **one** combined rotate/resize handle at a corner.
-     Line/arrow selection instead shows endpoint markers (not individually
-     draggable yet — see §11).
+     Line/arrow selection instead shows draggable endpoint markers (grabbing one
+     dispatches `moveEndpoint` — see §6.2).
 - **Pure.** No `useEffect`, no data access, no router, no auth. Safe to render
   many times on a page (list thumbnails) and safe for a future
   `renderToStaticMarkup` string export.
@@ -276,8 +276,10 @@ interface DiagramSvgProps {
 - Dragging a token dispatches `translateItem` (a per-move `{dx,dy}` delta, snapped
   to the grid when Snap is on); dragging the transform handle dispatches
   `transformItem` (rotation + size together). A line/arrow drags as a whole
-  (every point / `from`+`to` shift by the same delta) — per-endpoint handle
-  dragging is a documented deferral (see §11).
+  (every point / `from`+`to` shift by the same delta); dragging one of its
+  endpoint dots dispatches `moveEndpoint` (the absolute court position of that
+  endpoint, snapped when Snap is on — arrow index 0→`from`, 1→`to`; line →
+  `points[index]`), reshaping the segment's length and angle at once.
 
 ### 6.3 State — `useDiagramEditor`
 
@@ -477,11 +479,13 @@ reducer actions its handlers dispatch are.
 
 ## 11. Known limitations (documented, not addressed here)
 
-- Line/arrow endpoints are not individually draggable yet — the whole shape moves
-  as a unit; per-endpoint editing is deferred.
+- Line/arrow endpoints are individually draggable (grab an endpoint dot →
+  `moveEndpoint`, reshaping length + angle); the whole shape can still be moved as
+  a unit via `translateItem`. Numeric per-field endpoint editors are still
+  deferred (next bullet).
 - The properties panel does not yet expose every type-specific field
   (`text.fontSize`, `net.length`, `ladder.length`, `line.thickness`/`style`,
-  `arrow.curved`/`head`, `line`/`arrow` points); those values take their
+  `arrow.curved`/`head`, `line`/`arrow` points as numbers); those values take their
   `createItem` defaults until edited via import. Deferred.
 - `Net`/`Pole` ignore `color`; `Text`/`Line`/`Arrow` ignore `size`; `ZoneLabel`
   ignores `rotation` — the panel hides or should hide those controls for those

@@ -135,6 +135,37 @@ export function DiagramEditorPage() {
     [dispatch, snapOn],
   );
 
+  const beginEndpointDrag = useCallback(
+    (id: string, index: number) => {
+      dispatch({ type: 'selectItem', id });
+      const api = stageApi.current;
+      if (!api) return;
+      // Endpoints are absolute court positions (a line/arrow has no single x/y),
+      // so dispatch the snapped absolute pointer position each move.
+      let last: { x: number; y: number } | null = null;
+      const move = (ev: PointerEvent) => {
+        const p = stageApi.current?.screenToCourt(ev.clientX, ev.clientY);
+        if (!p) return;
+        let x = p.x;
+        let y = p.y;
+        if (snapOn) {
+          x = snap(x);
+          y = snap(y);
+        }
+        if (last && last.x === x && last.y === y) return;
+        last = { x, y };
+        dispatch({ type: 'moveEndpoint', id, index, x, y });
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    },
+    [dispatch, snapOn],
+  );
+
   const beginTransform = useCallback(
     (id: string, e: React.PointerEvent) => {
       dispatch({ type: 'selectItem', id });
@@ -241,6 +272,7 @@ export function DiagramEditorPage() {
                 selectedId={state.selectedItemId}
                 onItemPointerDown={beginDrag}
                 onTransformHandlePointerDown={beginTransform}
+                onEndpointPointerDown={beginEndpointDrag}
                 onBackgroundPointerDown={() => dispatch({ type: 'selectItem', id: null })}
               />
             </CanvasStage>

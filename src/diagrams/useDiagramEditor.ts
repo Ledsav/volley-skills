@@ -35,6 +35,7 @@ export type EditorAction =
   | { type: 'addItem'; item: DiagramItem }
   | { type: 'moveItem'; id: string; x: number; y: number }
   | { type: 'translateItem'; id: string; dx: number; dy: number }
+  | { type: 'moveEndpoint'; id: string; index: number; x: number; y: number }
   | { type: 'transformItem'; id: string; rotation: number; size: number }
   | { type: 'setItemProp'; id: string; patch: Partial<DiagramItem> }
   | { type: 'deleteItem'; id: string }
@@ -201,6 +202,31 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
           return { ...it, x: it.x + dx, y: it.y + dy };
         }),
       );
+    }
+    case 'moveEndpoint': {
+      const { id, index, x, y } = action;
+      return mutateActive(state, (scene) => {
+        const item = scene.items.find((it) => it.id === id);
+        if (!item) return scene;
+        let nextItem: DiagramItem | null = null;
+        if (item.type === 'arrow') {
+          if (index === 0 && (item.from.x !== x || item.from.y !== y)) {
+            nextItem = { ...item, from: { x, y } };
+          } else if (index === 1 && (item.to.x !== x || item.to.y !== y)) {
+            nextItem = { ...item, to: { x, y } };
+          }
+        } else if (item.type === 'line') {
+          const cur = item.points[index];
+          if (cur && (cur.x !== x || cur.y !== y)) {
+            nextItem = { ...item, points: item.points.map((p, i) => (i === index ? { x, y } : p)) };
+          }
+        }
+        // No target, wrong item type, bad index, or the endpoint is already
+        // there: return the scene unchanged so mutateActive skips undo + dirty.
+        if (!nextItem) return scene;
+        const replacement = nextItem;
+        return { ...scene, items: scene.items.map((it) => (it.id === id ? replacement : it)) };
+      });
     }
     case 'transformItem':
       return mutateActive(state, (scene) =>

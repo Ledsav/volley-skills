@@ -139,6 +139,39 @@ describe('DiagramEditorPage', () => {
     });
   });
 
+  it('reshapes an arrow by dragging its endpoint dot', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Arrow' }));
+
+    const stage = document.querySelector('[data-canvas-stage]')!;
+    const path = () => stage.querySelector('[data-item-type="arrow"] path');
+    await waitFor(() => expect(path()).not.toBeNull());
+    const before = path()!.getAttribute('d');
+
+    // jsdom: no PointerEvent ctor, and getBoundingClientRect is all-zeros so the
+    // letterbox offset makes screenToCourt map clientX c -> (c + 0.5) * 100.
+    // clientX -0.1 / clientY -0.25 therefore lands the `to` endpoint on (40, 25).
+    // Use MouseEvent typed as pointer* events, same as the transform-handle test.
+    const handle = stage.querySelector('[data-endpoint-index="1"]')!;
+    await act(async () => {
+      handle.dispatchEvent(new MouseEvent('pointerdown', { clientX: 0, clientY: 0, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: -0.1, clientY: -0.25 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointerup', {}));
+    });
+
+    await waitFor(() => {
+      const d = path()!.getAttribute('d')!;
+      expect(d).not.toBe(before);
+      // `from` (M 50 50) is untouched; only the dragged `to` endpoint moved.
+      expect(d).toBe('M 50 50 L 40 25');
+    });
+  });
+
   it('confirms before leaving via "‹ Exercises" when the editor is dirty', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');

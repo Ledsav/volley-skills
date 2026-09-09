@@ -148,6 +148,11 @@ export function DiagramEditorPage() {
       const start = api.screenToCourt(e.clientX, e.clientY);
       const startSize = item.size;
       const startRotation = item.rotation;
+      // Skip dispatches that wouldn't change anything: `transformItem` always
+      // produces a fresh scene (so `mutateActive` can't short-circuit it), and
+      // every push burns an undo frame. Mirrors `beginDrag`'s dx/dy===0 guard.
+      let lastSize = startSize;
+      let lastRotation = startRotation;
       const move = (ev: PointerEvent) => {
         const current = stageApi.current?.screenToCourt(ev.clientX, ev.clientY);
         if (!current) return;
@@ -159,6 +164,9 @@ export function DiagramEditorPage() {
           startRotation,
           snapRotation: snapOn,
         });
+        if (size === lastSize && rotation === lastRotation) return;
+        lastSize = size;
+        lastRotation = rotation;
         dispatch({ type: 'transformItem', id, rotation, size });
       };
       const up = () => {

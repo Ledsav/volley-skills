@@ -105,7 +105,7 @@ describe('DiagramEditorPage', () => {
     expect(await screen.findByText(/could not load diagrams/i)).toBeInTheDocument();
   });
 
-  it('resizes the selected point item by dragging its transform handle', async () => {
+  it('resizes and rotates the selected point item by dragging its transform handle', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
     fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
@@ -113,24 +113,30 @@ describe('DiagramEditorPage', () => {
     const stage = document.querySelector('[data-canvas-stage]')!;
     const cone = () => stage.querySelector('[data-item-type="cone"]');
     await waitFor(() => expect(cone()).not.toBeNull());
+    expect(cone()!.getAttribute('transform')).toContain('rotate(0)');
     expect(cone()!.getAttribute('transform')).toContain('scale(1)');
 
     // jsdom lacks a PointerEvent constructor and its getBoundingClientRect is
     // all-zeros, so use MouseEvent (carries clientX/Y) typed as pointer* events.
-    // screenToCourt is then linear in clientX; moving x=10 → x=40 quadruples the
-    // radius from centre, so `size` clamps to its 2× ceiling.
+    // screenToCourt is then linear in client coords; the pointer starts on the
+    // +x axis from the centre and ends up-and-out, so the same drag pushes the
+    // radius past 2× (size clamps to 2) AND sweeps a ~37° arc (snaps to 30°).
     const handle = stage.querySelector('[data-transform-handle]')!;
     await act(async () => {
       handle.dispatchEvent(new MouseEvent('pointerdown', { clientX: 10, clientY: 0, bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 40, clientY: 0 }));
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 40, clientY: 30 }));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('pointerup', {}));
     });
 
-    await waitFor(() => expect(cone()!.getAttribute('transform')).toMatch(/scale\(2\)/));
+    await waitFor(() => {
+      const t = cone()!.getAttribute('transform')!;
+      expect(t).toMatch(/scale\(2\)/);
+      expect(t).toMatch(/rotate\(30\)/);
+    });
   });
 
   it('confirms before leaving via "‹ Exercises" when the editor is dirty', async () => {

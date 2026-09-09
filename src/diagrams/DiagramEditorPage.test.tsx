@@ -3,6 +3,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiagramEditorPage } from './DiagramEditorPage';
 import * as diagramsApi from './diagramsApi';
+import { clearDiagramClipboard } from './diagramClipboard';
 import { useAuth } from '../auth/AuthContext';
 
 vi.mock('./diagramsApi');
@@ -26,6 +27,9 @@ describe('DiagramEditorPage', () => {
     // test that leaves the editor dirty records a saveDiagramSet call on cleanup,
     // which would otherwise leak into the next test's call count.
     vi.clearAllMocks();
+    // The clipboard is a module-level singleton — reset it so a copy in one test
+    // can't make a later paste-test pass for the wrong reason.
+    clearDiagramClipboard();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never,
@@ -170,6 +174,95 @@ describe('DiagramEditorPage', () => {
       // `from` (M 50 50) is untouched; only the dragged `to` endpoint moved.
       expect(d).toBe('M 50 50 L 40 25');
     });
+  });
+
+  it('copies the selected item with Ctrl+C and pastes an offset clone with Ctrl+V', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const cones = () => stage().querySelectorAll('[data-item-type="cone"]');
+    await waitFor(() => expect(cones()).toHaveLength(1));
+
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+
+    await waitFor(() => expect(cones()).toHaveLength(2));
+    // In jsdom screenToCourt maps client (0,0) to court (50,50), so the original
+    // cone sits at (50,50) and the pasted clone is shifted to (52.5, 52.5)...
+    expect(
+      [...cones()].some((c) => c.getAttribute('transform')?.includes('translate(52.5 52.5)')),
+    ).toBe(true);
+    // ...and the selection outline follows the new clone (bbox x = 52.5 - 6).
+    expect(stage().querySelector('[data-selection-outline]')!.getAttribute('x')).toBe('46.5');
+  });
+
+  it('duplicates the selected item in place with Ctrl+D', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+
+    const balls = () => document.querySelectorAll('[data-canvas-stage] [data-item-type="ball"]');
+    await waitFor(() => expect(balls()).toHaveLength(1));
+
+    fireEvent.keyDown(window, { key: 'd', ctrlKey: true });
+    await waitFor(() => expect(balls()).toHaveLength(2));
+  });
+
+  it('deletes the selected item with the Delete key and clears the selection', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    await waitFor(() => expect(stage().querySelector('[data-item-type="cone"]')).not.toBeNull());
+
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(stage().querySelector('[data-item-type="cone"]')).toBeNull());
+    expect(stage().querySelector('[data-selection-outline]')).toBeNull();
+  });
+
+  it('opens a right-click menu on an item and its Duplicate action adds a copy', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const cone = () => stage().querySelector('[data-item-type="cone"]')!;
+    await waitFor(() => expect(cone()).not.toBeNull());
+    // Deselect first so the menu is what re-selects the right-clicked item.
+    fireEvent.pointerDown(stage().querySelector('svg')!);
+
+    fireEvent.contextMenu(cone(), { clientX: 40, clientY: 40 });
+
+    const menu = await screen.findByRole('menu');
+    const dup = screen.getByRole('menuitem', { name: 'Duplicate' });
+    expect(menu).toBeInTheDocument();
+    expect(dup).toBeEnabled();
+
+    fireEvent.click(dup);
+    await waitFor(() =>
+      expect(stage().querySelectorAll('[data-item-type="cone"]')).toHaveLength(2),
+    );
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('ignores clipboard shortcuts while the diagram-title input is focused', async () => {
+    renderPage();
+    const title = await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    await waitFor(() => expect(stage().querySelectorAll('[data-item-type="cone"]')).toHaveLength(1));
+
+    // Ctrl+C then Ctrl+V from inside the <input> must not touch the canvas...
+    fireEvent.keyDown(title, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(title, { key: 'v', ctrlKey: true });
+    // ...and neither must Delete.
+    fireEvent.keyDown(title, { key: 'Delete' });
+
+    expect(stage().querySelectorAll('[data-item-type="cone"]')).toHaveLength(1);
   });
 
   it('confirms before leaving via "‹ Exercises" when the editor is dirty', async () => {

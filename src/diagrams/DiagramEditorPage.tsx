@@ -7,7 +7,9 @@ import { DiagramTabs } from './DiagramTabs';
 import { Palette } from './Palette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
-import { createItem } from './sceneFactory';
+import { CanvasContextMenu, type MenuAction } from './CanvasContextMenu';
+import { createItem, cloneItemAt } from './sceneFactory';
+import { getDiagramClipboard, setDiagramClipboard } from './diagramClipboard';
 import { computeHandleTransform } from './transformMath';
 import { useDiagramEditor } from './useDiagramEditor';
 import { SCENE_LIMITS, type DiagramItemType } from '../types/diagram';
@@ -24,6 +26,7 @@ export function DiagramEditorPage() {
   const stageApi = useRef<{ screenToCourt: (x: number, y: number) => { x: number; y: number } } | null>(null);
   const [snapOn, setSnapOn] = useState(true);
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
   const handleStageReady = useCallback((api: { screenToCourt: (x: number, y: number) => { x: number; y: number } }) => {
     stageApi.current = api;
@@ -52,12 +55,24 @@ export function DiagramEditorPage() {
     [],
   );
 
-  // Undo / redo keyboard shortcuts. Ignore while typing in a field so title
-  // editing keeps its native Ctrl/Cmd+Z.
+  // Undo / redo + clipboard keyboard shortcuts. Ignore while typing in a field
+  // so title editing keeps its native Ctrl/Cmd+Z, Backspace, etc.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      const selectedId = state.selectedItemId;
+      const items = activeDiagram?.scene.items ?? [];
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedId) {
+          e.preventDefault();
+          dispatch({ type: 'deleteItem', id: selectedId });
+        }
+        return;
+      }
+
       if (!e.ctrlKey && !e.metaKey) return;
       const key = e.key.toLowerCase();
       if (key === 'z' && !e.shiftKey) {
@@ -66,11 +81,29 @@ export function DiagramEditorPage() {
       } else if ((key === 'z' && e.shiftKey) || key === 'y') {
         e.preventDefault();
         dispatch({ type: 'redo' });
+      } else if (key === 'c') {
+        const item = items.find((i) => i.id === selectedId);
+        if (item) {
+          e.preventDefault();
+          setDiagramClipboard(item);
+        }
+      } else if (key === 'v') {
+        const clip = getDiagramClipboard();
+        if (clip) {
+          e.preventDefault();
+          dispatch({ type: 'addItem', item: cloneItemAt(clip, 2.5, 2.5) });
+        }
+      } else if (key === 'd') {
+        const item = items.find((i) => i.id === selectedId);
+        if (item) {
+          e.preventDefault();
+          dispatch({ type: 'addItem', item: cloneItemAt(item, 2.5, 2.5) });
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [dispatch]);
+  }, [dispatch, state.selectedItemId, activeDiagram]);
 
   // Warn on tab close while dirty.
   useEffect(() => {
@@ -210,6 +243,57 @@ export function DiagramEditorPage() {
     [dispatch, snapOn, activeDiagram],
   );
 
+  const selectedItem =
+    activeDiagram?.scene.items.find((i) => i.id === state.selectedItemId) ?? null;
+
+  const menuActions: MenuAction[] = [
+    {
+      label: 'Copy',
+      disabled: !selectedItem,
+      onSelect: () => {
+        if (selectedItem) setDiagramClipboard(selectedItem);
+      },
+    },
+    {
+      label: 'Paste',
+      disabled: !getDiagramClipboard(),
+      onSelect: () => {
+        const clip = getDiagramClipboard();
+        if (clip) dispatch({ type: 'addItem', item: cloneItemAt(clip, 2.5, 2.5) });
+      },
+    },
+    {
+      label: 'Duplicate',
+      disabled: !selectedItem,
+      onSelect: () => {
+        if (selectedItem) dispatch({ type: 'addItem', item: cloneItemAt(selectedItem, 2.5, 2.5) });
+      },
+    },
+    {
+      label: 'Delete',
+      disabled: !selectedItem,
+      onSelect: () => {
+        if (state.selectedItemId) dispatch({ type: 'deleteItem', id: state.selectedItemId });
+      },
+    },
+    {
+      label: 'Bring forward',
+      disabled: !selectedItem,
+      onSelect: () => {
+        if (state.selectedItemId)
+          dispatch({ type: 'reorderItem', id: state.selectedItemId, to: 'forward' });
+      },
+    },
+    {
+      label: 'Send backward',
+      disabled: !selectedItem,
+      onSelect: () => {
+        if (state.selectedItemId)
+          dispatch({ type: 'reorderItem', id: state.selectedItemId, to: 'backward' });
+      },
+    },
+  ];
+
   if (loadError) {
     return (
       <div className="p-6">
@@ -264,7 +348,15 @@ export function DiagramEditorPage() {
             <Palette onAdd={addFromPalette} variant="rail" />
           </aside>
 
-          <div className="relative overflow-hidden">
+          <div
+            className="relative overflow-hidden"
+            onContextMenu={(e) => {
+              e.preventDefault();
+              const id = (e.target as Element).closest('[data-item-id]')?.getAttribute('data-item-id');
+              if (id) dispatch({ type: 'selectItem', id });
+              setMenu({ x: e.clientX, y: e.clientY });
+            }}
+          >
             <CanvasStage onReady={handleStageReady}>
               <DiagramSvg
                 scene={activeDiagram.scene}
@@ -276,6 +368,14 @@ export function DiagramEditorPage() {
                 onBackgroundPointerDown={() => dispatch({ type: 'selectItem', id: null })}
               />
             </CanvasStage>
+            {menu && (
+              <CanvasContextMenu
+                x={menu.x}
+                y={menu.y}
+                actions={menuActions}
+                onClose={() => setMenu(null)}
+              />
+            )}
           </div>
 
           <aside className="border-t border-border bg-surface lg:border-l lg:border-t-0">
@@ -294,10 +394,7 @@ export function DiagramEditorPage() {
                 </div>
               )}
             </div>
-            <PropertiesPanel
-              item={activeDiagram.scene.items.find((i) => i.id === state.selectedItemId) ?? null}
-              dispatch={dispatch}
-            />
+            <PropertiesPanel item={selectedItem} dispatch={dispatch} />
           </aside>
         </div>
       ) : (

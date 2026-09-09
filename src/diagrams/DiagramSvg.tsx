@@ -7,6 +7,7 @@ interface DiagramSvgProps {
   scene: Scene;
   interactive?: boolean;
   selectedIds?: string[];
+  marqueeRect?: { x: number; y: number; w: number; h: number } | null;
   onItemPointerDown?: (id: string, e: PointerEvent) => void;
   onBackgroundPointerDown?: (e: PointerEvent) => void;
   onTransformHandlePointerDown?: (id: string, e: PointerEvent) => void;
@@ -20,7 +21,7 @@ function endpoints(item: DiagramItem): { x: number; y: number }[] {
   return [];
 }
 
-function bbox(item: DiagramItem): { x: number; y: number; w: number; h: number } {
+export function bbox(item: DiagramItem): { x: number; y: number; w: number; h: number } {
   const pts = endpoints(item);
   if (pts.length > 0) {
     const xs = pts.map((p) => p.x);
@@ -37,6 +38,7 @@ export function DiagramSvg({
   scene,
   interactive = false,
   selectedIds = [],
+  marqueeRect = null,
   onItemPointerDown,
   onBackgroundPointerDown,
   onTransformHandlePointerDown,
@@ -184,6 +186,21 @@ export function DiagramSvg({
               );
             })()}
         </g>
+      )}
+
+      {interactive && marqueeRect && (
+        <rect
+          data-marquee-rect
+          x={marqueeRect.x}
+          y={marqueeRect.y}
+          width={marqueeRect.w}
+          height={marqueeRect.h}
+          fill="rgb(var(--color-blue) / 0.1)"
+          stroke="rgb(var(--color-blue))"
+          strokeWidth={0.4}
+          strokeDasharray="1.5 1"
+          style={{ pointerEvents: 'none' }}
+        />
       )}
     </svg>
   );

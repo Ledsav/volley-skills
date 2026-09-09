@@ -154,4 +154,25 @@ describe('DiagramSvg', () => {
     const inert = render(<DiagramSvg scene={withItems([a])} selectedIds={['a']} />);
     expect(inert.container.querySelector('[data-selection-outline]')).toBeNull();
   });
+
+  it('draws the marquee rect when interactive and marqueeRect is set', () => {
+    const { container } = render(
+      <DiagramSvg scene={emptyScene('full')} interactive marqueeRect={{ x: 10, y: 10, w: 20, h: 15 }} />,
+    );
+    const rect = container.querySelector('[data-marquee-rect]');
+    expect(rect).not.toBeNull();
+    expect(rect!.getAttribute('width')).toBe('20');
+    expect(rect!.getAttribute('height')).toBe('15');
+  });
+
+  it('does not draw the marquee rect when null or not interactive', () => {
+    const { container } = render(
+      <DiagramSvg scene={emptyScene('full')} interactive marqueeRect={null} />,
+    );
+    expect(container.querySelector('[data-marquee-rect]')).toBeNull();
+    const inert = render(
+      <DiagramSvg scene={emptyScene('full')} marqueeRect={{ x: 0, y: 0, w: 10, h: 10 }} />,
+    );
+    expect(inert.container.querySelector('[data-marquee-rect]')).toBeNull();
+  });
 });

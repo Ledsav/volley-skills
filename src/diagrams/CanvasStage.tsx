@@ -35,6 +35,9 @@ export function CanvasStage({ children, onReady }: Props) {
       onDrag: ({ delta: [dx, dy], pinching, event }) => {
         if (pinching) return;
         if (startedOnItem(event.target)) return;
+        // Shift+drag on the background draws a marquee-select box instead of
+        // panning (see DiagramEditorPage's beginMarquee).
+        if ('shiftKey' in event && event.shiftKey) return;
         setT((s) => ({ ...s, x: s.x + dx, y: s.y + dy }));
       },
       onPinch: ({ offset: [s] }) => setT((cur) => ({ ...cur, scale: Math.max(MIN, Math.min(MAX, s)) })),

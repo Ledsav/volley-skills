@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
-import { DiagramSvg } from './DiagramSvg';
+import { DiagramSvg, bbox } from './DiagramSvg';
 import { DiagramTabs } from './DiagramTabs';
 import { Palette } from './Palette';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -17,6 +17,12 @@ import { SCENE_LIMITS, type CourtPreset, type DiagramItemType } from '../types/d
 const SNAP = 2.5;
 const snap = (v: number) => Math.round(v / SNAP) * SNAP;
 
+type Rect = { x: number; y: number; w: number; h: number };
+
+function intersects(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
 export function DiagramEditorPage() {
   const { exerciseId = '' } = useParams();
   const navigate = useNavigate();
@@ -27,6 +33,7 @@ export function DiagramEditorPage() {
   const [snapOn, setSnapOn] = useState(true);
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [marqueeRect, setMarqueeRect] = useState<Rect | null>(null);
 
   const handleStageReady = useCallback((api: { screenToCourt: (x: number, y: number) => { x: number; y: number } }) => {
     stageApi.current = api;
@@ -169,6 +176,42 @@ export function DiagramEditorPage() {
       window.addEventListener('pointerup', up);
     },
     [dispatch, snapOn],
+  );
+
+  // Shift+drag on empty canvas draws a rubber-band box; items whose bbox
+  // intersects it on release are ADDED to the selection (Shift already means
+  // "additive" for item clicks). A plain drag on empty canvas still pans.
+  const beginMarquee = useCallback(
+    (e: React.PointerEvent) => {
+      const api = stageApi.current;
+      if (!api) return;
+      const start = api.screenToCourt(e.clientX, e.clientY);
+      setMarqueeRect({ x: start.x, y: start.y, w: 0, h: 0 });
+      const move = (ev: PointerEvent) => {
+        const cur = stageApi.current?.screenToCourt(ev.clientX, ev.clientY);
+        if (!cur) return;
+        setMarqueeRect({
+          x: Math.min(start.x, cur.x),
+          y: Math.min(start.y, cur.y),
+          w: Math.abs(cur.x - start.x),
+          h: Math.abs(cur.y - start.y),
+        });
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        setMarqueeRect((rect) => {
+          if (rect) {
+            const hits = (activeDiagram?.scene.items ?? []).filter((it) => intersects(bbox(it), rect));
+            if (hits.length) dispatch({ type: 'addToSelection', ids: hits.map((it) => it.id) });
+          }
+          return null;
+        });
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    },
+    [dispatch, activeDiagram],
   );
 
   const onItemPointerDown = useCallback(
@@ -419,10 +462,17 @@ export function DiagramEditorPage() {
                 scene={activeDiagram.scene}
                 interactive
                 selectedIds={state.selectedIds}
+                marqueeRect={marqueeRect}
                 onItemPointerDown={onItemPointerDown}
                 onTransformHandlePointerDown={beginTransform}
                 onEndpointPointerDown={beginEndpointDrag}
-                onBackgroundPointerDown={() => dispatch({ type: 'selectItem', id: null })}
+                onBackgroundPointerDown={(e) => {
+                  if (e.shiftKey) {
+                    beginMarquee(e);
+                    return;
+                  }
+                  dispatch({ type: 'selectItem', id: null });
+                }}
               />
             </CanvasStage>
             {menu && (

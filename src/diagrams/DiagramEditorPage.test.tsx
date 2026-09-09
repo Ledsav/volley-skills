@@ -431,4 +431,84 @@ describe('DiagramEditorPage', () => {
 
     await waitFor(() => expect(cones()).toHaveLength(0));
   });
+
+  it('shift-drag on empty canvas shows a marquee rect that follows the pointer and clears on release', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const svg = document.querySelector('[data-canvas-stage] svg')!;
+
+    await act(async () => {
+      svg.dispatchEvent(
+        new MouseEvent('pointerdown', { clientX: -0.4, clientY: -0.4, shiftKey: true, bubbles: true }),
+      );
+    });
+    expect(document.querySelector('[data-marquee-rect]')).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 0.1, clientY: 0.1 }));
+    });
+    const rect = document.querySelector('[data-marquee-rect]')!;
+    expect(rect.getAttribute('width')).toBe('50');
+    expect(rect.getAttribute('height')).toBe('50');
+
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointerup', {}));
+    });
+    expect(document.querySelector('[data-marquee-rect]')).toBeNull();
+  });
+
+  it('shift-drag marquee selects every item its box touches', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const svg = () => stage().querySelector('svg')!;
+    await waitFor(() => expect(stage().querySelector('[data-item-type="cone"]')).not.toBeNull());
+
+    // Clear the auto-selection from adding the cone, then marquee over its
+    // (50,50)-centred bbox: jsdom's screenToCourt maps clientX c -> (c + 0.5) * 100.
+    fireEvent.pointerDown(svg());
+    expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(0);
+
+    await act(async () => {
+      svg().dispatchEvent(
+        new MouseEvent('pointerdown', { clientX: -0.4, clientY: -0.4, shiftKey: true, bubbles: true }),
+      );
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 0.1, clientY: 0.1 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointerup', {}));
+    });
+
+    expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(1);
+  });
+
+  it('a marquee drawn over empty space selects nothing and does not clear the existing selection', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+
+    const stage = () => document.querySelector('[data-canvas-stage]')!;
+    const svg = () => stage().querySelector('svg')!;
+    await waitFor(() => expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(1));
+
+    // Box (0,0)-(5,5) is nowhere near the cone's (44,44)-(56,56) bbox.
+    await act(async () => {
+      svg().dispatchEvent(
+        new MouseEvent('pointerdown', { clientX: -0.5, clientY: -0.5, shiftKey: true, bubbles: true }),
+      );
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: -0.45, clientY: -0.45 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointerup', {}));
+    });
+
+    // The cone stays selected — a miss is additive-safe, not a clear.
+    expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(1);
+  });
 });

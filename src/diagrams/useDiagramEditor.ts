@@ -37,6 +37,7 @@ export type EditorAction =
   | { type: 'selectItem'; id: string | null }
   | { type: 'toggleSelect'; id: string }
   | { type: 'selectAll' }
+  | { type: 'addToSelection'; ids: string[] }
   | { type: 'addItem'; item: DiagramItem }
   | { type: 'pasteItems'; items: DiagramItem[] }
   | { type: 'moveItem'; id: string; x: number; y: number }
@@ -219,6 +220,10 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       const active = state.diagrams.find((d) => d.id === state.activeDiagramId);
       if (!active) return state;
       return withSelection(state, active.scene.items.map((it) => it.id));
+    }
+    case 'addToSelection': {
+      if (action.ids.length === 0) return state;
+      return withSelection(state, [...new Set([...state.selectedIds, ...action.ids])]);
     }
     case 'addItem': {
       const next = mutateActive(state, (scene) =>

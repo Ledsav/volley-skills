@@ -318,6 +318,20 @@ describe('multi-selection', () => {
     expect(s.selectedIds).toEqual([]);
   });
 
+  it('addToSelection unions new ids into the current selection without duplicates', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: 'a' });
+    s = diagramReducer(s, { type: 'addToSelection', ids: ['a', 'b', 'c'] });
+    expect(s.selectedIds).toEqual(['a', 'b', 'c']);
+    expect(s.selectedItemId).toBeNull();
+  });
+
+  it('addToSelection with an empty list is a no-op (same state reference)', () => {
+    let s = threeItems();
+    s = diagramReducer(s, { type: 'selectItem', id: 'a' });
+    expect(diagramReducer(s, { type: 'addToSelection', ids: [] })).toBe(s);
+  });
+
   it('deleteSelected removes every selected item in one undo frame and clears the selection', () => {
     let s = threeItems();
     s = diagramReducer(s, { type: 'selectItem', id: 'a' });

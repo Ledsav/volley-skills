@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A web app for **Volley Club Belair (VCB)** that replaces a per-player spreadsheet
 (`reference/VCB_U17_PlayerCards_2026-27.xlsx`) with a tool to manage teams, player
 profiles (skills + development plans + physical testing), a club-wide
-exercise/training library, and per-team training calendars. **Single club, not
-multi-tenant.** Players are minors, and guardian contact data is stored — this
-drives the consent/privacy requirements.
+exercise/training library (with a court-diagram builder per exercise), and
+per-team training calendars. **Single club, not multi-tenant.** Players are
+minors, and guardian contact data is stored — this drives the consent/privacy
+requirements.
 
 The authoritative specs live in `docs/superpowers/`:
 
@@ -95,6 +96,7 @@ not a subcollection scan. **When adding a query, add the matching index.**
 
 `src/App.tsx` wraps everything in `AuthProvider`; `RequireAuth` gates the
 authenticated shell and `RequireAdmin` gates `/exercises`, `/trainings`,
+`/exercises/:exerciseId/diagram` (the lazy-loaded court-diagram editor),
 `/admin/guides`. Two roles: `admin` (full management) and `viewer` (read-only,
 single player card — invite flow is still TBD, so only `admin` works end to end).
 A user's role is set on their `users/{uid}` doc on first sign-in; `role: 'admin'`
@@ -104,13 +106,15 @@ that collection is never client-readable).
 ### Firestore model shape (see spec §5 for the full contract)
 
 Team-scoped: `teams/{teamId}` → `players/{playerId}` → `physicalTests/{testId}`,
-plus `teams/{teamId}/calendar/{sessionId}`. Club-global: `exercises/{id}`,
-`trainings/{id}` (+ `counters/trainings` for transactional `businessId`),
-`skillGuide/config`, `physicalTestGuide/config`. Access is email-keyed
-(`adminEmails`, `viewerEmails`) rather than uid-keyed so granting access needs no
-uid lookup. Player docs denormalize `teamName`/`ageGroup`/`season` so a viewer
-never needs to read the team doc. Dates are ISO `"YYYY-MM-DD"` strings (calendar,
-physical tests) to allow lexicographic range queries — not `Timestamp`.
+plus `teams/{teamId}/calendar/{sessionId}`. Club-global: `exercises/{id}`
+(+ an ordered `exercises/{id}/diagrams/{diagramId}` subcollection of court
+diagrams — admin-only, no index), `trainings/{id}` (+ `counters/trainings` for
+transactional `businessId`), `skillGuide/config`, `physicalTestGuide/config`.
+Access is email-keyed (`adminEmails`, `viewerEmails`) rather than uid-keyed so
+granting access needs no uid lookup. Player docs denormalize
+`teamName`/`ageGroup`/`season` so a viewer never needs to read the team doc.
+Dates are ISO `"YYYY-MM-DD"` strings (calendar, physical tests) to allow
+lexicographic range queries — not `Timestamp`.
 
 Any rules change must be covered by a test in `tests/rules/` — those tests are the
 real verification of the security boundary.

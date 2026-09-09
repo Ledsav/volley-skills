@@ -35,6 +35,9 @@ export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label={current.title}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/70 p-4"
     >
       <div className="flex w-full max-w-3xl items-center justify-between text-white">
@@ -43,7 +46,7 @@ export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
           <X className="h-5 w-5" />
         </button>
       </div>
-      <div className="my-3 w-full max-w-3xl rounded-lg bg-surface p-4">
+      <div className="my-3 aspect-square w-full max-w-[min(90vw,70vh)] overflow-hidden rounded-lg bg-surface p-4">
         <DiagramSvg scene={current.scene} />
       </div>
       {diagrams.length > 1 && (

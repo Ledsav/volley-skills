@@ -51,6 +51,21 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
     }
   }
 
+  async function handleCreateAndDraw() {
+    if (!name.trim()) {
+      setError('Name is required.');
+      return;
+    }
+    if (!firebaseUser) return;
+    setError(null);
+    try {
+      const id = await createExercise({ name: name.trim(), description, category }, firebaseUser.uid);
+      navigate(`/exercises/${id}/diagram`);
+    } catch {
+      setError('Could not create the exercise. Please try again.');
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form
@@ -144,6 +159,11 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
+          {!exercise && (
+            <Button variant="secondary" onClick={handleCreateAndDraw}>
+              Create &amp; add diagrams
+            </Button>
+          )}
           <Button variant="primary" type="submit">
             Save
           </Button>

@@ -38,7 +38,21 @@ describe('ExercisesPage', () => {
     expect(nameEl).toBeInTheDocument();
     // The category-filter <select> also contains a "Warm-up" <option>, so scope
     // the badge assertion to the exercise row rather than the whole document.
-    expect(nameEl.closest('button')).toHaveTextContent('Warm-up');
+    // The name is a <span> in a wrapper <div> (the row itself is the clickable
+    // element now), so scope to that wrapper instead of a <button> ancestor.
+    expect(nameEl.closest('div')).toHaveTextContent('Warm-up');
+  });
+
+  it('opens the edit dialog when the row is clicked, but not when Delete is clicked', async () => {
+    render(<ExercisesPage />);
+    await screen.findByText('Pepper');
+
+    fireEvent.click(screen.getByText('Delete'));
+    // Delete stops propagation — the row's open-dialog handler must not fire.
+    expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Pepper'));
+    expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
   });
 
   it('reloads with a category filter when a category chip is clicked', async () => {

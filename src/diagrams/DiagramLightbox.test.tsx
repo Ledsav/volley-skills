@@ -26,3 +26,14 @@ it('closes on the close button and on Escape', () => {
   fireEvent.keyDown(window, { key: 'Escape' });
   expect(onClose).toHaveBeenCalled();
 });
+
+it('closes on a click on the backdrop but not on the title text', () => {
+  const onClose = vi.fn();
+  render(<DiagramLightbox diagrams={diagrams} startIndex={0} onClose={onClose} />);
+
+  fireEvent.click(screen.getByText('Setup'));
+  expect(onClose).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole('dialog'));
+  expect(onClose).toHaveBeenCalledTimes(1);
+});

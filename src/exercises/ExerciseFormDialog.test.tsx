@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExerciseFormDialog } from './ExerciseFormDialog';
 import * as exercisesApi from './exercisesApi';
@@ -112,5 +112,57 @@ describe('ExerciseFormDialog', () => {
     vi.mocked(useAuth).mockReturnValue({ firebaseUser: { uid: 'u' } as never, appUser: null, loading: false, authError: null });
     render(<MemoryRouter><ExerciseFormDialog onClose={vi.fn()} onSaved={vi.fn()} /></MemoryRouter>);
     expect(screen.queryByRole('button', { name: /edit diagrams/i })).not.toBeInTheDocument();
+  });
+
+  it('creates the exercise and navigates to its diagram editor from "Create & add diagrams"', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid' } as never,
+      appUser: null,
+      loading: false,
+      authError: null,
+    });
+    const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-42');
+    const onSaved = vi.fn();
+
+    function LocationDisplay() {
+      return <div data-testid="pathname">{useLocation().pathname}</div>;
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/exercises']}>
+        <Routes>
+          <Route path="/exercises" element={<ExerciseFormDialog onClose={vi.fn()} onSaved={onSaved} />} />
+          <Route path="*" element={<LocationDisplay />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pepper' } });
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'attack' } });
+    fireEvent.click(screen.getByText('Create & add diagrams'));
+
+    await waitFor(() =>
+      expect(createSpy).toHaveBeenCalledWith(
+        { name: 'Pepper', description: '', category: 'attack' },
+        'coach-uid'
+      )
+    );
+    await waitFor(() => expect(screen.getByTestId('pathname')).toHaveTextContent('/exercises/ex-42/diagram'));
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('does not show "Create & add diagrams" in edit mode', async () => {
+    vi.mocked(useAuth).mockReturnValue({ firebaseUser: null, appUser: null, loading: false, authError: null });
+    render(
+      <MemoryRouter>
+        <ExerciseFormDialog
+          exercise={{ id: 'ex-1', name: 'Pepper', description: '', category: 'warmup', createdBy: 'x', createdAt: null }}
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    await screen.findByRole('button', { name: /edit diagrams/i });
+    expect(screen.queryByText('Create & add diagrams')).not.toBeInTheDocument();
   });
 });

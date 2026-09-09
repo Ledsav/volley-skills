@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
@@ -13,6 +14,10 @@ import { ExercisesPage } from './exercises/ExercisesPage';
 import { TrainingsPage } from './trainings/TrainingsPage';
 import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
+
+const DiagramEditorPage = lazy(() =>
+  import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
+);
 
 function AuthenticatedLayout() {
   return (
@@ -58,6 +63,16 @@ export function App() {
               element={
                 <RequireAdmin>
                   <TrainingsPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/exercises/:exerciseId/diagram"
+              element={
+                <RequireAdmin>
+                  <Suspense fallback={<div className="p-6 text-slate">Loading editor…</div>}>
+                    <DiagramEditorPage />
+                  </Suspense>
                 </RequireAdmin>
               }
             />

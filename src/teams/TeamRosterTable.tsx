@@ -158,54 +158,64 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
         </p>
       )}
 
-      {/* Mobile (<640px): a tap-friendly card per player — a wide table forces
-          horizontal scroll on a phone, so this is a separate layout, not a
-          squeezed table (design system §UX table guidance). */}
+      {/* Mobile (<640px): a stacked card per player — a wide table forces
+          horizontal scroll on a phone, so this is a separate layout with every
+          stat on its own labelled line, not a squeezed table (design system
+          §UX table guidance). */}
       <div className="flex flex-col gap-3 sm:hidden">
         {visiblePlayers.map((player) => (
           <div
             key={player.id}
             data-testid="roster-mobile-card"
-            className="flex items-center gap-2 rounded-lg border border-border bg-surface shadow-card"
+            className="rounded-lg border border-border bg-surface p-4 shadow-card"
           >
-            <label
-              className="flex shrink-0 items-center pl-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span className="sr-only">Starting: {player.fullName}</span>
-              <input
-                type="checkbox"
-                checked={player.starting}
-                onChange={(e) => void toggleStarting(player, e.target.checked)}
-              />
-            </label>
-            <Link
-              to={`/teams/${teamId}/players/${player.id}`}
-              className="flex min-w-0 flex-1 items-center justify-between gap-3 p-4 active:bg-bg"
-            >
-              <div className="min-w-0">
-                <span className="block truncate font-medium text-ink">{player.fullName}</span>
-                <p className="mt-0.5 truncate text-sm text-slate">
-                  {POSITION_LABELS[player.positionCategory]}
-                  {ageFromDob(player.dob ?? '') !== null &&
-                    ` · ${player.dob} (${ageFromDob(player.dob ?? '')}y)`}
-                  {player.starting && ' · Starting'}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="tabular-nums font-semibold text-ink">{player.avgScore?.toFixed(1) ?? '—'}</span>
-                <LevelPill level={player.level} />
-              </div>
-            </Link>
-            <Button
-              variant="dangerGhost"
-              size="sm"
-              className="mr-2"
-              onClick={() => setPendingDelete(player)}
-              aria-label={`Remove ${player.fullName}`}
-            >
-              Remove
-            </Button>
+            <div className="flex items-start justify-between gap-3">
+              <Link
+                to={`/teams/${teamId}/players/${player.id}`}
+                className="flex min-w-0 items-baseline gap-2 active:opacity-70"
+              >
+                {player.number != null && (
+                  <span className="shrink-0 tabular-nums text-sm font-semibold text-slate">
+                    {`#${player.number}`}
+                  </span>
+                )}
+                <span className="font-medium text-ink">{player.fullName}</span>
+              </Link>
+              <LevelPill level={player.level} />
+            </div>
+
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-slate">Position</dt>
+              <dd className="text-ink">{POSITION_LABELS[player.positionCategory]}</dd>
+
+              <dt className="text-slate">Born</dt>
+              <dd className="text-ink">
+                <BornCell dob={player.dob ?? ''} />
+              </dd>
+
+              <dt className="text-slate">Skill avg</dt>
+              <dd className="tabular-nums text-ink">{player.avgScore?.toFixed(1) ?? '—'}</dd>
+            </dl>
+
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={player.starting}
+                  onChange={(e) => void toggleStarting(player, e.target.checked)}
+                />
+                <span className="sr-only">Starting: {player.fullName}</span>
+                <span aria-hidden="true">Starting</span>
+              </label>
+              <Button
+                variant="dangerGhost"
+                size="sm"
+                onClick={() => setPendingDelete(player)}
+                aria-label={`Remove ${player.fullName}`}
+              >
+                Remove
+              </Button>
+            </div>
           </div>
         ))}
       </div>

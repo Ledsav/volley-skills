@@ -49,12 +49,12 @@ export function TeamPage() {
   if (!team || !teamId) return <p className="p-6 text-slate">Loading team...</p>;
 
   return (
-    <div className="w-full bg-bg p-6 lg:p-8">
-      <div className="mb-6 rounded-lg border border-border bg-surface p-6 shadow-card">
+    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{team.name}</h1>
         <p className="mt-1 text-slate">{team.description}</p>
 
-        <nav className="mt-4 flex gap-6 overflow-x-auto border-b border-border">
+        <nav className="mt-4 flex gap-4 overflow-x-auto border-b border-border sm:gap-6">
           <Tab active={tab === 'overview'} onClick={() => setTab('overview')}>
             Overview
           </Tab>
@@ -73,11 +73,21 @@ export function TeamPage() {
           {tab === 'overview' && (
             <>
               <TeamStatsRow players={rosterPlayers} />
-              <div className="mb-4 flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setShowImportPlayers(true)}>
+              <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowImportPlayers(true)}
+                >
                   Import players
                 </Button>
-                <Button variant="primary" size="sm" onClick={() => setShowAddPlayer(true)}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowAddPlayer(true)}
+                >
                   + Add player
                 </Button>
               </div>

@@ -166,14 +166,20 @@ describe('PlayerSkillsSection', () => {
     expect(icons[0].closest('span')).toHaveTextContent('Attack');
   });
 
-  it('shows an info tooltip with the guide definition next to a skill', async () => {
+  it('reveals a guide-definition tooltip when the info button is focused', async () => {
     render(<SkillsHarness player={basePlayer} isAdmin={false} />);
 
     const trigger = await screen.findByRole('button', { name: 'Serve scoring guide' });
-    const tip = trigger.parentElement?.querySelector('[role="tooltip"]');
-    expect(tip).not.toBeNull();
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    fireEvent.focus(trigger);
+
+    const tip = await screen.findByRole('tooltip');
     expect(tip).toHaveTextContent('Jump serve with pace.');
     expect(tip).toHaveTextContent('Count % of serves in over 10 attempts.');
+
+    fireEvent.blur(trigger);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('renders scores read-only and hides the edit affordances for a non-admin viewer', async () => {

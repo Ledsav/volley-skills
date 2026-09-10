@@ -3,12 +3,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { TeamRosterTable } from './TeamRosterTable';
 import * as playersApi from '../players/playersApi';
-import type { Player } from '../types/player';
+import type { Player, PositionCategory } from '../types/player';
 
 vi.mock('../players/playersApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 
-function makePlayer(id: string, number: number, fullName: string, position = 'OH'): Player {
+function makePlayer(
+  id: string,
+  number: number,
+  fullName: string,
+  positionCategory: PositionCategory = 'OH',
+  extra: Partial<Player> = {}
+): Player {
   return {
     id,
     number,
@@ -16,7 +22,8 @@ function makePlayer(id: string, number: number, fullName: string, position = 'OH
     dob: '2012-01-01',
     nationality: 'BEL',
     licenseNumber: 'J-000001',
-    position,
+    positionCategory,
+    starting: false,
     playerPhone: '',
     guardians: [],
     viewerEmails: [],
@@ -40,6 +47,7 @@ function makePlayer(id: string, number: number, fullName: string, position = 'OH
     createdBy: 'coach-uid',
     createdAt: null,
     updatedAt: null,
+    ...extra,
   };
 }
 
@@ -86,9 +94,9 @@ describe('TeamRosterTable', () => {
     expect(within(cards[0]).getByText('Advanced')).toBeInTheDocument();
   });
 
-  it('truncates a long free-text position instead of distorting the row, with the full text in a title attribute', async () => {
+  it('shows the position-category label for each player', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
-      players: [makePlayer('player-1', 1, 'Test Player', 'All-round (developing)')],
+      players: [makePlayer('player-1', 1, 'Test Player', 'MB')],
       lastDoc: null,
       hasMore: false,
     });
@@ -99,11 +107,8 @@ describe('TeamRosterTable', () => {
       </MemoryRouter>
     );
 
-    const positions = await screen.findAllByTitle('All-round (developing)');
-    expect(positions.length).toBeGreaterThan(0);
-    for (const el of positions) {
-      expect(el).toHaveClass('truncate');
-    }
+    await screen.findAllByText('Test Player');
+    expect(within(screen.getByRole('table')).getByText('Middle')).toBeInTheDocument();
   });
 
   it('removes a player from the list after the delete is confirmed', async () => {
@@ -170,6 +175,105 @@ describe('TeamRosterTable', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not remove/i);
     expect(screen.getAllByText('Test Player').length).toBeGreaterThan(0);
+  });
+
+  it('filters the roster by a case-insensitive search over name and position category', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('p1', 1, 'Ana Silva', 'S'),
+        makePlayer('p2', 2, 'Bea Costa', 'MB'),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Ana Silva');
+    fireEvent.change(screen.getByRole('searchbox', { name: /search/i }), { target: { value: 'mb' } });
+
+    await waitFor(() => expect(screen.queryAllByText('Ana Silva')).toHaveLength(0));
+    expect(screen.getAllByText('Bea Costa').length).toBeGreaterThan(0);
+  });
+
+  it('orders the table by skill average, highest first, when that sort is chosen', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('low', 1, 'Low Score', 'OH', { avgScore: 4.1 }),
+        makePlayer('high', 2, 'High Score', 'OH', { avgScore: 8.7 }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Low Score');
+    fireEvent.change(screen.getByRole('combobox', { name: /sort/i }), { target: { value: 'skill' } });
+
+    await waitFor(() => {
+      const names = within(screen.getByRole('table'))
+        .getAllByRole('link')
+        .map((a) => a.textContent);
+      expect(names).toEqual(['High Score', 'Low Score']);
+    });
+  });
+
+  it('defaults to the lineup order: starters first, then setter before outside', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('sub', 1, 'Sub Setter', 'S', { starting: false }),
+        makePlayer('oh', 2, 'Starting OH', 'OH', { starting: true }),
+        makePlayer('setter', 3, 'Starting Setter', 'S', { starting: true }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Sub Setter');
+
+    await waitFor(() => {
+      const names = within(screen.getByRole('table'))
+        .getAllByRole('link')
+        .map((a) => a.textContent);
+      expect(names).toEqual(['Starting Setter', 'Starting OH', 'Sub Setter']);
+    });
+    expect((screen.getByRole('combobox', { name: /sort/i }) as HTMLSelectElement).value).toBe('lineup');
+  });
+
+  it('toggles a player starting flag through the roster checkbox', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('p1', 1, 'Test Player', 'OH', { starting: false })],
+      lastDoc: null,
+      hasMore: false,
+    });
+    const startingSpy = vi.spyOn(playersApi, 'setPlayerStarting').mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Test Player');
+    const checkbox = within(screen.getByRole('table')).getByRole('checkbox', { name: /starting.*test player/i });
+    fireEvent.click(checkbox);
+
+    await waitFor(() => expect(startingSpy).toHaveBeenCalledWith('team-1', 'p1', true));
   });
 
   it('loads the next page when "Load more" is clicked', async () => {

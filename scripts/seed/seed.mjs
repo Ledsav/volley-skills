@@ -183,12 +183,15 @@ async function main() {
   for (const p of players) {
     const avgScore = computeAvgScore(p.skills);
     batch.set(teamRef.collection('players').doc(), {
-      number: p.number,
+      // Real shirt numbers aren't known yet — seed 0 ("unset"); a coach assigns
+      // them per player in the app. The field/concept still exists.
+      number: 0,
       fullName: p.fullName,
       dob: p.dob,
       nationality: p.nationality,
       licenseNumber: p.licenseNumber,
-      position: p.position,
+      positionCategory: p.positionCategory ?? 'TBD',
+      starting: false,
       playerPhone: p.playerPhone,
       guardians: p.guardians,
       viewerEmails: [],

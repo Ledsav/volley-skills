@@ -1,6 +1,6 @@
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
-import { SKILL_KEYS, type Guardian, type SkillKey } from '../types/player';
+import { POSITION_CATEGORIES, SKILL_KEYS, type Guardian, type PositionCategory, type SkillKey } from '../types/player';
 
 export interface PlayerImportInput {
   number: number;
@@ -8,15 +8,16 @@ export interface PlayerImportInput {
   dob: string;
   nationality: string;
   licenseNumber: string;
-  position: string;
+  positionCategory: PositionCategory;
   playerPhone: string;
   guardians: Guardian[];
   skills: Record<SkillKey, number | null>;
 }
 
 const RELATIONS: Guardian['relation'][] = ['mother', 'father', 'other'];
+const POSITION_CATEGORY_VALUES = POSITION_CATEGORIES.map((c) => c.value);
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
-const OPTIONAL_TEXT_FIELDS = ['nationality', 'licenseNumber', 'position', 'playerPhone'] as const;
+const OPTIONAL_TEXT_FIELDS = ['nationality', 'licenseNumber', 'playerPhone'] as const;
 
 export const PLAYER_IMPORT_EXAMPLE = `[
   {
@@ -25,7 +26,7 @@ export const PLAYER_IMPORT_EXAMPLE = `[
     "dob": "2010-04-12",
     "nationality": "LU",
     "licenseNumber": "12345",
-    "position": "Outside hitter",
+    "positionCategory": "OH",
     "playerPhone": "",
     "guardians": [
       { "relation": "mother", "name": "Mary Doe", "phone": "+352 000 000", "email": "mary@example.com" }
@@ -78,6 +79,15 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
       if (row[field] === undefined) text[field] = '';
       else if (typeof row[field] === 'string') text[field] = row[field] as string;
       else fail(`row ${n}: "${field}" must be text`);
+    }
+
+    let positionCategory: PositionCategory = 'TBD';
+    if (row.positionCategory !== undefined) {
+      if (POSITION_CATEGORY_VALUES.includes(row.positionCategory as PositionCategory)) {
+        positionCategory = row.positionCategory as PositionCategory;
+      } else {
+        fail(`row ${n}: "positionCategory" must be one of ${POSITION_CATEGORY_VALUES.join(', ')}`);
+      }
     }
 
     const guardians: Guardian[] = [];
@@ -133,7 +143,7 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
         dob,
         nationality: text.nationality,
         licenseNumber: text.licenseNumber,
-        position: text.position,
+        positionCategory,
         playerPhone: text.playerPhone,
         guardians,
         skills,

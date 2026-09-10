@@ -18,7 +18,14 @@ import { db } from '../firebase/config';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { computeAvgScore, computeLevel } from './skillMath';
-import { SKILL_KEYS, type Player, type SkillKey, type Guardian, type Skills } from '../types/player';
+import {
+  SKILL_KEYS,
+  type Player,
+  type PositionCategory,
+  type SkillKey,
+  type Guardian,
+  type Skills,
+} from '../types/player';
 import type { Team } from '../types/team';
 import type { DevelopmentPlan } from '../types/developmentPlan';
 import type { PlayerImportInput } from './playersImport';
@@ -42,9 +49,19 @@ export interface NewPlayerInput {
   dob: string;
   nationality: string;
   licenseNumber: string;
-  position: string;
+  positionCategory?: PositionCategory;
   playerPhone: string;
   guardians: Guardian[];
+}
+
+/** Older player docs predate the lineup fields; fill sensible defaults on read. */
+function hydratePlayer(id: string, data: Record<string, unknown>): Player {
+  return {
+    positionCategory: 'TBD',
+    starting: false,
+    ...data,
+    id,
+  } as Player;
 }
 
 export async function createPlayer(
@@ -56,6 +73,8 @@ export async function createPlayer(
 ): Promise<string> {
   const docRef = await addDoc(collection(db, 'teams', teamId, 'players'), {
     ...input,
+    positionCategory: input.positionCategory ?? 'TBD',
+    starting: false,
     viewerEmails: [],
     teamName: team.name,
     ageGroup: team.ageGroup,
@@ -95,6 +114,8 @@ export async function bulkCreatePlayers(
     const ref = doc(collection(db, 'teams', teamId, 'players'));
     batch.set(ref, {
       ...contact,
+      positionCategory: contact.positionCategory ?? 'TBD',
+      starting: false,
       viewerEmails: [],
       teamName: team.name,
       ageGroup: team.ageGroup,
@@ -125,7 +146,7 @@ export async function listPlayers(teamId: string, afterDoc: QueryDocumentSnapsho
     ? query(base, orderBy('number'), startAfter(afterDoc), limit(PLAYERS_PAGE_SIZE))
     : query(base, orderBy('number'), limit(PLAYERS_PAGE_SIZE));
   const snapshot = await getDocs(q);
-  const players = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Player);
+  const players = snapshot.docs.map((d) => hydratePlayer(d.id, d.data()));
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { players, lastDoc, hasMore: snapshot.docs.length === PLAYERS_PAGE_SIZE };
 }
@@ -133,15 +154,19 @@ export async function listPlayers(teamId: string, afterDoc: QueryDocumentSnapsho
 export async function getPlayer(teamId: string, playerId: string): Promise<Player | null> {
   const snapshot = await getDoc(doc(db, 'teams', teamId, 'players', playerId));
   if (!snapshot.exists()) return null;
-  return { id: snapshot.id, ...snapshot.data() } as Player;
+  return hydratePlayer(snapshot.id, snapshot.data());
 }
 
 export async function updatePlayerContact(
   teamId: string,
   playerId: string,
-  updates: Partial<NewPlayerInput>
+  updates: Partial<NewPlayerInput> & { starting?: boolean }
 ): Promise<void> {
   await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { ...updates, updatedAt: serverTimestamp() });
+}
+
+export async function setPlayerStarting(teamId: string, playerId: string, starting: boolean): Promise<void> {
+  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { starting, updatedAt: serverTimestamp() });
 }
 
 export async function updatePlayerGuardians(teamId: string, playerId: string, guardians: Guardian[]): Promise<void> {

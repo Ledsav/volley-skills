@@ -179,15 +179,29 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
       )}
 
       {item.type === 'text' && (
-        <label className="block">
-          <span className="mb-1 block font-medium text-ink">Text</span>
-          <input
-            value={item.content}
-            maxLength={SCENE_LIMITS.textLength}
-            onChange={(e) => set({ content: e.target.value })}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1"
-          />
-        </label>
+        <>
+          <label className="block">
+            <span className="mb-1 block font-medium text-ink">Text</span>
+            <input
+              value={item.content}
+              maxLength={SCENE_LIMITS.textLength}
+              onChange={(e) => set({ content: e.target.value })}
+              className="w-full rounded-md border border-border bg-surface px-2 py-1"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-medium text-ink">Font size: {item.fontSize}</span>
+            <input
+              type="range"
+              min={2}
+              max={8}
+              step={1}
+              value={item.fontSize}
+              onChange={(e) => set({ fontSize: Number(e.target.value) })}
+              className="w-full"
+            />
+          </label>
+        </>
       )}
 
       {item.type === 'ladder' && (

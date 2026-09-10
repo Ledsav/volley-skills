@@ -32,7 +32,7 @@ jobs:
         run: npm test
 
       # Firestore Security Rules tests need a JVM for the emulator.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21

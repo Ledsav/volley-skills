@@ -202,7 +202,7 @@ describe('TeamRosterTable', () => {
     expect(screen.getAllByText('Bea Costa').length).toBeGreaterThan(0);
   });
 
-  it('shows each player age computed from the date of birth, and can sort oldest first', async () => {
+  it('shows each player birthdate with the age beside it, and can sort oldest first by birthdate', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [
         makePlayer('younger', 1, 'Younger Player', 'OH', { dob: '2012-01-01' }),
@@ -220,14 +220,42 @@ describe('TeamRosterTable', () => {
 
     await screen.findAllByText('Older Player');
     const table = within(screen.getByRole('table'));
-    expect(table.getByText('Age')).toBeInTheDocument();
-    expect(table.getByText(`${ageFromDob('2008-01-01')}y`)).toBeInTheDocument();
-    expect(table.getByText(`${ageFromDob('2012-01-01')}y`)).toBeInTheDocument();
+    expect(table.getByText('Born')).toBeInTheDocument();
+    expect(table.getByText('2008-01-01')).toBeInTheDocument();
+    expect(table.getByText('2012-01-01')).toBeInTheDocument();
+    expect(table.getByText(`· ${ageFromDob('2008-01-01')}y`)).toBeInTheDocument();
+    expect(table.getByText(`· ${ageFromDob('2012-01-01')}y`)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('combobox', { name: /sort/i }), { target: { value: 'age' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /sort/i }), { target: { value: 'birthdate' } });
     await waitFor(() => {
       const names = table.getAllByRole('link').map((a) => a.textContent);
       expect(names).toEqual(['Older Player', 'Younger Player']);
+    });
+  });
+
+  it('orders same-age players by their actual birthdate when sorting by birthdate', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('nov', 1, 'November Player', 'OH', { dob: '2009-11-30' }),
+        makePlayer('jan', 2, 'January Player', 'OH', { dob: '2009-01-15' }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('January Player');
+    fireEvent.change(screen.getByRole('combobox', { name: /sort/i }), { target: { value: 'birthdate' } });
+    await waitFor(() => {
+      const names = within(screen.getByRole('table'))
+        .getAllByRole('link')
+        .map((a) => a.textContent);
+      expect(names).toEqual(['January Player', 'November Player']);
     });
   });
 

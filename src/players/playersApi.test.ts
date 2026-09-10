@@ -1,5 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { bulkCreatePlayers, createPlayer, deletePlayer, listPlayers, updatePlayerDevelopmentPlan } from './playersApi';
+import {
+  bulkCreatePlayers,
+  createPlayer,
+  deletePlayer,
+  listPlayers,
+  setPlayerStarting,
+  updatePlayerContact,
+  updatePlayerDevelopmentPlan,
+} from './playersApi';
 import type { Team } from '../types/team';
 
 const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
@@ -62,7 +70,7 @@ describe('playersApi', () => {
         dob: '2012-01-01',
         nationality: 'BEL',
         licenseNumber: 'J-000001',
-        position: 'OH',
+        positionCategory: 'OH',
         playerPhone: '',
         guardians: [{ relation: 'mother', name: 'Jane Doe', phone: '+352 000 000', email: 'jane@example.com' }],
       },
@@ -80,11 +88,35 @@ describe('playersApi', () => {
       viewerEmails: [],
       avgScore: null,
       level: null,
+      positionCategory: 'OH',
+      starting: false,
       guardians: [{ relation: 'mother', name: 'Jane Doe', phone: '+352 000 000', email: 'jane@example.com' }],
       consent: { given: true, confirmedBy: 'coach@example.com' },
       skills: { serve: { score: null, notes: '', priority: false } },
     });
     expect(payload.consent.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('defaults a new player to the TBD position category when none is given', async () => {
+    mockAddDoc.mockResolvedValue({ id: 'player-2' });
+
+    await createPlayer(
+      'team-1',
+      team,
+      {
+        number: 9,
+        fullName: 'No Position',
+        dob: '2012-01-01',
+        nationality: 'BEL',
+        licenseNumber: 'J-000009',
+        playerPhone: '',
+        guardians: [],
+      },
+      'coach-uid',
+      'coach@example.com'
+    );
+
+    expect(mockAddDoc.mock.calls[0][1]).toMatchObject({ positionCategory: 'TBD', starting: false });
   });
 
   it('bulk-creates players with computed skills, forced consent-not-given, and denormalised team fields', async () => {
@@ -107,7 +139,7 @@ describe('playersApi', () => {
           dob: '',
           nationality: '',
           licenseNumber: '',
-          position: '',
+          positionCategory: 'TBD',
           playerPhone: '',
           guardians: [],
           skills: allSix,
@@ -118,7 +150,7 @@ describe('playersApi', () => {
           dob: '',
           nationality: '',
           licenseNumber: '',
-          position: '',
+          positionCategory: 'TBD',
           playerPhone: '',
           guardians: [],
           skills: allSix,
@@ -167,7 +199,7 @@ describe('playersApi', () => {
           dob: '',
           nationality: '',
           licenseNumber: '',
-          position: '',
+          positionCategory: 'TBD',
           playerPhone: '',
           guardians: [],
           skills: { serve: 6, attack: 6, set: 6, defence: 6, reception: 6, jump: 6, speed: 6, iq: 6 },
@@ -192,7 +224,7 @@ describe('playersApi', () => {
       dob: '',
       nationality: '',
       licenseNumber: '',
-      position: '',
+      positionCategory: 'TBD',
       playerPhone: '',
       guardians: [],
       skills: { serve: null, attack: null, set: null, defence: null, reception: null, jump: null, speed: null, iq: null },
@@ -218,13 +250,44 @@ describe('playersApi', () => {
     expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
   });
 
-  it('lists players ordered by number', async () => {
+  it('lists players ordered by number, filling in lineup fields absent from older docs', async () => {
     mockGetDocs.mockResolvedValue({ docs: [{ id: 'player-1', data: () => ({ fullName: 'Test Player' }) }] });
 
     const { players, lastDoc } = await listPlayers('team-1');
 
-    expect(players).toEqual([{ id: 'player-1', fullName: 'Test Player' }]);
+    expect(players).toEqual([
+      { id: 'player-1', fullName: 'Test Player', positionCategory: 'TBD', starting: false },
+    ]);
     expect(lastDoc).toEqual({ id: 'player-1', data: expect.any(Function) });
+  });
+
+  it('keeps the lineup fields already stored on a player doc', async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [{ id: 'player-1', data: () => ({ fullName: 'Test Player', positionCategory: 'S', starting: true }) }],
+    });
+
+    const { players } = await listPlayers('team-1');
+
+    expect(players[0]).toMatchObject({ positionCategory: 'S', starting: true });
+  });
+
+  it('sets a player starting flag on its own', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await setPlayerStarting('team-1', 'player-1', true);
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', { starting: true, updatedAt: 'server-timestamp' });
+  });
+
+  it('updates a player position category and starting flag through the contact update', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await updatePlayerContact('team-1', 'player-1', { positionCategory: 'MB', starting: true });
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(
+      'doc-ref',
+      expect.objectContaining({ positionCategory: 'MB', starting: true })
+    );
   });
 
   it('updates the player development plan', async () => {

@@ -60,11 +60,13 @@ async function main() {
 
   const snapshot = existsSync(SNAPSHOT_PATH) ? JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) : {};
 
+  const { FieldPath, FieldValue } = admin.firestore;
   const db = admin.firestore();
   const players = await db.collectionGroup('players').get();
 
   let scanned = 0;
   let toPatch = 0;
+  let junkCleaned = 0;
   const batch = db.batch();
 
   players.forEach((doc) => {
@@ -76,11 +78,18 @@ async function main() {
     if (data.starting === undefined) patch.starting = false;
 
     if (data.skills && data.skills.block === undefined) {
+      // A wrongly-written literal "skills.block" top-level field may hold the value.
+      const junk = data['skills.block'];
       const snapScore = snapshot[data.fullName]?.block;
-      const score = typeof snapScore === 'number' ? snapScore : BLOCK_DEFAULT;
-      const nextSkills = { ...data.skills, block: { score, notes: '', priority: false } };
-      patch['skills.block'] = { score, notes: '', priority: false };
-      const avg = computeAvgScore(nextSkills);
+      const score =
+        typeof junk?.score === 'number'
+          ? junk.score
+          : typeof snapScore === 'number'
+            ? snapScore
+            : BLOCK_DEFAULT;
+      // Nested map + merge:true deep-merges `block` into the real `skills` map.
+      patch.skills = { block: { score, notes: '', priority: false } };
+      const avg = computeAvgScore({ ...data.skills, block: { score, notes: '', priority: false } });
       patch.avgScore = avg;
       patch.level = computeLevel(avg);
     }
@@ -88,6 +97,12 @@ async function main() {
     if (Object.keys(patch).length > 0) {
       toPatch += 1;
       batch.set(doc.ref, patch, { merge: true });
+    }
+
+    // Remove the bogus top-level field left by the earlier dotted-key write.
+    if (data['skills.block'] !== undefined) {
+      junkCleaned += 1;
+      batch.update(doc.ref, new FieldPath('skills.block'), FieldValue.delete());
     }
   });
 
@@ -107,11 +122,11 @@ async function main() {
   }
 
   console.log(
-    `Scanned ${scanned} player docs; ${toPatch} need a patch.` +
+    `Scanned ${scanned} player docs; ${toPatch} need a patch, ${junkCleaned} carry a stray "skills.block" field to remove.` +
       ` skillGuide/config: ${guidePatched ? 'Block entry added' : 'no change'}.`
   );
 
-  if (toPatch === 0 && !guidePatched) {
+  if (toPatch === 0 && junkCleaned === 0 && !guidePatched) {
     console.log('Nothing to do.');
     return;
   }
@@ -121,7 +136,7 @@ async function main() {
   }
 
   await batch.commit();
-  console.log(`Patched ${toPatch} player docs${guidePatched ? ' + skillGuide/config' : ''}.`);
+  console.log(`Patched ${toPatch} player docs (${junkCleaned} junk field(s) removed)${guidePatched ? ' + skillGuide/config' : ''}.`);
 }
 
 main().catch((err) => {

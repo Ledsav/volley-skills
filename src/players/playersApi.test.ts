@@ -250,15 +250,48 @@ describe('playersApi', () => {
     expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
   });
 
-  it('lists players ordered by number, filling in lineup fields absent from older docs', async () => {
+  it('lists players ordered by number, filling in lineup + skill fields absent from older docs', async () => {
     mockGetDocs.mockResolvedValue({ docs: [{ id: 'player-1', data: () => ({ fullName: 'Test Player' }) }] });
 
     const { players, lastDoc } = await listPlayers('team-1');
 
-    expect(players).toEqual([
-      { id: 'player-1', fullName: 'Test Player', positionCategory: 'TBD', starting: false },
-    ]);
+    expect(players[0]).toMatchObject({
+      id: 'player-1',
+      fullName: 'Test Player',
+      positionCategory: 'TBD',
+      starting: false,
+    });
+    expect(players[0].skills.block).toEqual({ score: null, notes: '', priority: false });
+    expect(Object.keys(players[0].skills)).toHaveLength(9);
     expect(lastDoc).toEqual({ id: 'player-1', data: expect.any(Function) });
+  });
+
+  it('adds the missing block skill to an 8-skill doc without disturbing the others', async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        {
+          id: 'player-1',
+          data: () => ({
+            fullName: 'Test Player',
+            skills: {
+              serve: { score: 7, notes: 'jump serve', priority: true },
+              attack: { score: 5, notes: '', priority: false },
+              set: { score: null, notes: '', priority: false },
+              defence: { score: null, notes: '', priority: false },
+              reception: { score: null, notes: '', priority: false },
+              jump: { score: null, notes: '', priority: false },
+              speed: { score: null, notes: '', priority: false },
+              iq: { score: null, notes: '', priority: false },
+            },
+          }),
+        },
+      ],
+    });
+
+    const { players } = await listPlayers('team-1');
+
+    expect(players[0].skills.serve).toEqual({ score: 7, notes: 'jump serve', priority: true });
+    expect(players[0].skills.block).toEqual({ score: null, notes: '', priority: false });
   });
 
   it('keeps the lineup fields already stored on a player doc', async () => {

@@ -55,12 +55,21 @@ export interface NewPlayerInput {
   guardians: Guardian[];
 }
 
-/** Older player docs predate the lineup fields; fill sensible defaults on read. */
+/**
+ * Older player docs predate later fields (the lineup fields, the `block` skill).
+ * Fill sensible defaults on read so the UI never dereferences an undefined entry.
+ */
 function hydratePlayer(id: string, data: Record<string, unknown>): Player {
+  const rawSkills = (data.skills ?? {}) as Partial<Skills>;
+  const skills = {} as Skills;
+  for (const key of SKILL_KEYS) {
+    skills[key] = rawSkills[key] ?? { score: null, notes: '', priority: false };
+  }
   return {
     positionCategory: 'TBD',
     starting: false,
     ...data,
+    skills,
     id,
   } as Player;
 }

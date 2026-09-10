@@ -1,6 +1,14 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { cellScore, cellText, parseDob, parseWorkbook, splitCriteria, SKILL_KEYS } from './parseWorkbook.mjs';
+import {
+  cellScore,
+  cellText,
+  parseDob,
+  parseWorkbook,
+  splitCriteria,
+  toPositionCategory,
+  SKILL_KEYS,
+} from './parseWorkbook.mjs';
 
 const WORKBOOK = 'reference/VCB_U17_PlayerCards_2026-27.xlsx';
 
@@ -57,6 +65,37 @@ describe('splitCriteria', () => {
 
   it('returns [] for an empty cell', () => {
     expect(splitCriteria('')).toEqual([]);
+  });
+});
+
+describe('toPositionCategory', () => {
+  it('maps English and French position names to a category code', () => {
+    expect(toPositionCategory('Outside hitter')).toBe('OH');
+    expect(toPositionCategory('Réceptionneur-attaquant')).toBe('OH');
+    expect(toPositionCategory('Setter')).toBe('S');
+    expect(toPositionCategory('Passeur')).toBe('S');
+    expect(toPositionCategory('Opposite')).toBe('O');
+    expect(toPositionCategory('Pointu')).toBe('O');
+    expect(toPositionCategory('Middle blocker')).toBe('MB');
+    expect(toPositionCategory('Central')).toBe('MB');
+    expect(toPositionCategory('Libero')).toBe('L');
+    expect(toPositionCategory('Libéro')).toBe('L');
+    expect(toPositionCategory('All-round (developing)')).toBe('U');
+  });
+
+  it('recognises the bare short codes the workbook already uses', () => {
+    expect(toPositionCategory('S')).toBe('S');
+    expect(toPositionCategory('OH')).toBe('OH');
+    expect(toPositionCategory('MB')).toBe('MB');
+    expect(toPositionCategory('OH/OP')).toBe('OH');
+    expect(toPositionCategory('OP')).toBe('O');
+    expect(toPositionCategory('UNIVERSAL')).toBe('U');
+  });
+
+  it('falls back to TBD for blank or unrecognised text', () => {
+    expect(toPositionCategory('')).toBe('TBD');
+    expect(toPositionCategory('coach')).toBe('TBD');
+    expect(toPositionCategory('Beginner')).toBe('TBD');
   });
 });
 

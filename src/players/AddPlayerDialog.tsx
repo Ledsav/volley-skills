@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, FIELD_CLASS } from '../components/Input';
 import { createPlayer } from './playersApi';
-import type { Guardian } from '../types/player';
+import { POSITION_CATEGORIES, type Guardian, type PositionCategory } from '../types/player';
 import type { Team } from '../types/team';
 
 interface AddPlayerDialogProps {
@@ -27,7 +27,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   const [dob, setDob] = useState('');
   const [nationality, setNationality] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
-  const [position, setPosition] = useState('');
+  const [positionCategory, setPositionCategory] = useState<PositionCategory>('TBD');
   const [playerPhone, setPlayerPhone] = useState('');
   const [guardians, setGuardians] = useState<Guardian[]>([emptyGuardian()]);
   const [consentGiven, setConsentGiven] = useState(false);
@@ -59,7 +59,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           dob,
           nationality,
           licenseNumber,
-          position,
+          positionCategory,
           playerPhone,
           guardians,
         },
@@ -118,10 +118,21 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
         </div>
 
         <div className={fieldClass}>
-          <label htmlFor="player-position" className={labelClass}>
+          <label htmlFor="player-position-category" className={labelClass}>
             Position
           </label>
-          <Input id="player-position" value={position} onChange={(e) => setPosition(e.target.value)} />
+          <select
+            id="player-position-category"
+            className={FIELD_CLASS}
+            value={positionCategory}
+            onChange={(e) => setPositionCategory(e.target.value as PositionCategory)}
+          >
+            {POSITION_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className={fieldClass}>

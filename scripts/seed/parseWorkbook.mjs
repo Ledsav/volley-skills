@@ -36,6 +36,35 @@ const SKILL_GUIDE_LABELS = {
 
 export const SKILL_KEYS = ['serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
 
+/**
+ * Map the workbook's free-text "Position" cell to a structured category
+ * (see src/types/player.ts PositionCategory). Best-effort keyword match over
+ * English + French terms; anything unrecognised becomes 'TBD'.
+ */
+export function toPositionCategory(text) {
+  const raw = cellText(text).trim();
+  if (raw === '') return 'TBD';
+
+  // The workbook often uses the short codes directly, sometimes doubled up
+  // ("OH/OP"); take the first token and match it exactly.
+  const code = raw.toUpperCase().split(/[\s/,;+&-]+/)[0];
+  if (code === 'S') return 'S';
+  if (code === 'OH') return 'OH';
+  if (code === 'O' || code === 'OP' || code === 'OPP') return 'O';
+  if (code === 'MB') return 'MB';
+  if (code === 'L') return 'L';
+  if (code === 'U') return 'U';
+
+  const s = raw.toLowerCase();
+  if (/lib[eé]ro/.test(s)) return 'L';
+  if (/sett|passeu|passe\b|zuspiel/.test(s)) return 'S';
+  if (/oppos|pointu|diagonal/.test(s)) return 'O';
+  if (/middle|central|mitte|centre/.test(s)) return 'MB';
+  if (/outside|r[eé]cept|aile|wing|spiker|attaquant/.test(s)) return 'OH';
+  if (/universal|polyvalent|all[- ]?round/.test(s)) return 'U';
+  return 'TBD';
+}
+
 const EMPTY_SKILL = () => ({ score: null, notes: '', priority: false });
 
 /** Flatten an ExcelJS cell value (string | number | Date | richText | formula) to a trimmed string. */
@@ -186,7 +215,7 @@ function parsePlayerSheet(sheet) {
     dob: parseDob(sheet.getRow(labelRowIndex(sheet, 'Date of Birth')).getCell(2).value),
     nationality: valueForLabel(sheet, 'Nationality'),
     licenseNumber: valueForLabel(sheet, 'License #'),
-    position: valueForLabel(sheet, 'Position'),
+    positionCategory: toPositionCategory(valueForLabel(sheet, 'Position')),
     playerPhone: valueForLabel(sheet, 'Player Phone'),
     guardians,
     skills,

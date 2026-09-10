@@ -1,5 +1,7 @@
 import { getInitials } from './nameFormat';
-import type { Player } from '../types/player';
+import { POSITION_CATEGORIES, type Player } from '../types/player';
+
+const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.value, c.label]));
 
 interface PlayerIdentityCardProps {
   player: Player;
@@ -17,7 +19,9 @@ export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold leading-tight tracking-[-0.01em]">{player.fullName}</h1>
           <p className="mt-0.5 text-sm text-white/70">
-            #{player.number} · {player.position || 'Position TBD'}
+            {player.number ? `#${player.number} · ` : ''}
+            {POSITION_LABELS[player.positionCategory]}
+            {player.starting && ' · Starting'}
           </p>
         </div>
       </div>

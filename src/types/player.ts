@@ -25,6 +25,24 @@ export type Skills = Record<SkillKey, SkillEntry>;
 
 export type Level = 'Beginner' | 'Developing' | 'Advanced' | 'Elite';
 
+/**
+ * Structured on-court role, used to order a roster into a lineup. Lineup order
+ * (see rosterSort.ts) is setter, outside, opposite, middle, libero, then
+ * unassigned, with "universal" (an all-round player with no fixed position)
+ * sorted dead last.
+ */
+export type PositionCategory = 'S' | 'OH' | 'O' | 'MB' | 'L' | 'U' | 'TBD';
+
+export const POSITION_CATEGORIES: { value: PositionCategory; label: string }[] = [
+  { value: 'S', label: 'Setter' },
+  { value: 'OH', label: 'Outside' },
+  { value: 'O', label: 'Opposite' },
+  { value: 'MB', label: 'Middle' },
+  { value: 'L', label: 'Libero' },
+  { value: 'U', label: 'Universal' },
+  { value: 'TBD', label: 'TBD' },
+];
+
 export interface Player {
   id: string;
   number: number;
@@ -32,7 +50,8 @@ export interface Player {
   dob: string;
   nationality: string;
   licenseNumber: string;
-  position: string;
+  positionCategory: PositionCategory;
+  starting: boolean;
   playerPhone: string;
   guardians: Guardian[];
   viewerEmails: string[];

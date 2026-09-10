@@ -62,6 +62,47 @@ describe('AddPlayerDialog', () => {
     );
   });
 
+  it('submits the chosen position category, defaulting to TBD', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
+      appUser: null,
+      loading: false,
+      authError: null,
+    });
+    const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockResolvedValue('player-1');
+    const onCreated = vi.fn();
+
+    render(<AddPlayerDialog teamId="team-1" team={team} onClose={vi.fn()} onCreated={onCreated} />);
+
+    fireEvent.change(screen.getByLabelText('Number'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Player' } });
+    fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: '2012-01-01' } });
+    fireEvent.change(screen.getByLabelText('Guardian name'), { target: { value: 'Jane Doe' } });
+    fireEvent.click(screen.getByLabelText(/confirm parental\/guardian consent/i));
+
+    fireEvent.click(screen.getByText('Create'));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(createPlayerSpy).toHaveBeenLastCalledWith(
+      'team-1',
+      team,
+      expect.objectContaining({ positionCategory: 'TBD' }),
+      'coach-uid',
+      'coach@example.com'
+    );
+
+    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'L' } });
+    fireEvent.click(screen.getByText('Create'));
+    await waitFor(() =>
+      expect(createPlayerSpy).toHaveBeenLastCalledWith(
+        'team-1',
+        team,
+        expect.objectContaining({ positionCategory: 'L' }),
+        'coach-uid',
+        'coach@example.com'
+      )
+    );
+  });
+
   it('does not submit when consent is not confirmed', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,

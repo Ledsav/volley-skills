@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Target } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { InfoTooltip } from '../components/InfoTooltip';
@@ -133,7 +134,7 @@ export function PlayerSkillsSection({
           {SKILL_ORDER.map((key) => {
             const { score, priority } = player.skills[key] ?? { score: null, priority: false };
             return (
-              <li key={key} className="grid grid-cols-[5rem_2rem_1fr] items-center gap-x-3 gap-y-1">
+              <li key={key} className="grid grid-cols-[6.5rem_2rem_1fr] items-center gap-x-2">
                 <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange' : 'text-ink'}`}>
                   {SKILL_LABELS[key]}
                   {guide[key] && (
@@ -141,14 +142,16 @@ export function PlayerSkillsSection({
                       <SkillGuideHint entry={guide[key]} />
                     </InfoTooltip>
                   )}
+                  {priority && (
+                    <Target
+                      role="img"
+                      aria-label="Focus area"
+                      className="h-3.5 w-3.5 shrink-0 text-orange"
+                    />
+                  )}
                 </span>
                 <span className="text-right text-sm tabular-nums text-ink">{score ?? '—'}</span>
                 <SkillMeter score={score} />
-                {priority && (
-                  <span className="col-span-3 w-fit justify-self-start rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange">
-                    Focus area
-                  </span>
-                )}
               </li>
             );
           })}

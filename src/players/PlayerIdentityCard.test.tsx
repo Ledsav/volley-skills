@@ -10,7 +10,8 @@ const basePlayer: Player = {
   dob: '2011-03-04',
   nationality: 'BEL',
   licenseNumber: 'J-000123',
-  position: 'Outside hitter',
+  positionCategory: 'OH',
+  starting: false,
   playerPhone: '',
   guardians: [],
   viewerEmails: [],
@@ -43,7 +44,7 @@ describe('PlayerIdentityCard', () => {
     expect(screen.getByText('Alex Rivera')).toBeInTheDocument();
     expect(screen.getByText('AR')).toBeInTheDocument();
     expect(screen.getByText(/#7/)).toBeInTheDocument();
-    expect(screen.getByText(/Outside hitter/)).toBeInTheDocument();
+    expect(screen.getByText(/Outside/)).toBeInTheDocument();
     expect(screen.getByText('U17 A')).toBeInTheDocument();
     expect(screen.getByText('2026-27')).toBeInTheDocument();
     expect(screen.getByText('J-000123')).toBeInTheDocument();

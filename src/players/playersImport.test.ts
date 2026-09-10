@@ -17,12 +17,21 @@ describe('validatePlayerRows', () => {
         dob: '',
         nationality: '',
         licenseNumber: '',
-        position: '',
+        positionCategory: 'TBD',
         playerPhone: '',
         guardians: [],
         skills: NULL_SKILLS,
       },
     ]);
+  });
+
+  it('accepts a valid position category and rejects an unknown one', () => {
+    expect(validatePlayerRows([{ number: 1, fullName: 'A', positionCategory: 'MB' }]).inputs[0].positionCategory).toBe(
+      'MB'
+    );
+    const bad = validatePlayerRows([{ number: 1, fullName: 'A', positionCategory: 'wing' }]);
+    expect(bad.inputs).toEqual([]);
+    expect(bad.errors[0]).toMatch(/positionCategory/);
   });
 
   it('reports a missing or non-numeric number', () => {

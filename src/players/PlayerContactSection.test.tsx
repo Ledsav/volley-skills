@@ -41,7 +41,8 @@ const basePlayer: Player = {
   dob: '2012-01-01',
   nationality: 'BEL',
   licenseNumber: 'J-000001',
-  position: 'OH',
+  positionCategory: 'OH',
+  starting: false,
   playerPhone: '00352 000 000',
   guardians: [],
   viewerEmails: [],
@@ -68,7 +69,7 @@ const basePlayer: Player = {
 };
 
 describe('PlayerContactSection', () => {
-  it('edits and saves the name, position, and phone', async () => {
+  it('edits and saves the name and phone', async () => {
     vi.spyOn(playersApi, 'updatePlayerContact').mockResolvedValue(undefined);
     const onPlayerUpdated = vi.fn();
 
@@ -83,11 +84,63 @@ describe('PlayerContactSection', () => {
     await waitFor(() =>
       expect(playersApi.updatePlayerContact).toHaveBeenCalledWith('team-1', 'player-1', {
         fullName: 'Updated Name',
-        position: 'OH',
+        number: 7,
+        positionCategory: 'OH',
+        starting: false,
         playerPhone: '00352 000 000',
       })
     );
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ fullName: 'Updated Name' }));
+  });
+
+  it('edits and saves the shirt number', async () => {
+    vi.spyOn(playersApi, 'updatePlayerContact').mockResolvedValue(undefined);
+    const onPlayerUpdated = vi.fn();
+
+    render(<ContactHarness player={{ ...basePlayer, number: 0 }} onPlayerUpdated={onPlayerUpdated} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText(/shirt number/i), { target: { value: '9' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(playersApi.updatePlayerContact).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        expect.objectContaining({ number: 9 })
+      )
+    );
+    expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }));
+  });
+
+  it('edits and saves the position category and starting flag', async () => {
+    vi.spyOn(playersApi, 'updatePlayerContact').mockResolvedValue(undefined);
+    const onPlayerUpdated = vi.fn();
+
+    render(<ContactHarness player={basePlayer} onPlayerUpdated={onPlayerUpdated} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'S' } });
+    fireEvent.click(screen.getByLabelText(/starting/i));
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(playersApi.updatePlayerContact).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        expect.objectContaining({ positionCategory: 'S', starting: true })
+      )
+    );
+    expect(onPlayerUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ positionCategory: 'S', starting: true })
+    );
+  });
+
+  it('shows the position category and lineup status in the read view', () => {
+    render(<ContactHarness player={{ ...basePlayer, positionCategory: 'MB', starting: true }} isAdmin={false} />);
+
+    expect(screen.getByText('Middle')).toBeInTheDocument();
+    expect(screen.getByText(/starting/i)).toBeInTheDocument();
   });
 
   it('shows an error message and stays in edit mode when the save is rejected', async () => {
@@ -111,7 +164,7 @@ describe('PlayerContactSection', () => {
 
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
-    expect(screen.getByText('OH')).toBeInTheDocument();
+    expect(screen.getByText('Outside')).toBeInTheDocument();
     expect(screen.getByText('00352 000 000')).toBeInTheDocument();
   });
 });

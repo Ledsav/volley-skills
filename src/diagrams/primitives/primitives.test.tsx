@@ -12,6 +12,7 @@ import type {
   LineItem,
   PlayerItem,
   PlayerView,
+  TextItem,
 } from '../../types/diagram';
 
 const svg = (child: React.ReactNode) => render(<svg viewBox="0 0 100 100">{child}</svg>).container;
@@ -140,5 +141,11 @@ describe('Line / Arrow width follows the size control', () => {
     expect(wide.querySelector('path')?.getAttribute('stroke-width')).toBe('3.2');
     const thin = svg(renderItem(arrow({ style: 'pass', size: 0.5 })));
     expect(thin.querySelector('path')?.getAttribute('stroke-width')).toBe('0.5');
+  });
+
+  it('text scales with the size control via the group transform', () => {
+    const item = { ...(createItem('text', { x: 10, y: 10 }) as TextItem), size: 1.5, rotation: 20 };
+    const container = svg(renderItem(item));
+    expect(container.querySelector('[data-item-type="text"]')?.getAttribute('transform')).toContain('scale(1.5)');
   });
 });

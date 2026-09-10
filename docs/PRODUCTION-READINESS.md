@@ -55,6 +55,17 @@ Last reviewed: 2026-09-09
 - [x] **Verify no analytics/tracking slipped in** — grepped source on 2026-09-09:
       no gtag / GA / GTM / Sentry / posthog / segment / `firebase/analytics`.
       Re-grep the built `dist/` before shipping a bundle with new deps.
+- [x] **Enable Auth sign-in providers** — a fresh Firebase project has every
+      provider off. Enabled in the console on 2026-09-10: **Google** (with a
+      support email) and **Email/Password** with **Email link (passwordless)**.
+      Both are used by `src/auth/LoginPage.tsx`.
+- [x] **CSP must allow the Google Identity origins** — `signInWithPopup`
+      (`GoogleAuthProvider`) injects `https://apis.google.com/js/api.js`, so the
+      first tight CSP broke Google sign-in. `firebase.json` now allows
+      `apis.google.com` / `www.gstatic.com` (script), `apis.google.com` /
+      `accounts.google.com` (frame), `apis.google.com` (connect),
+      `*.googleusercontent.com` (img avatars). Verified sign-in works
+      2026-09-10.
 
 ## B. At / right after the first deploy
 

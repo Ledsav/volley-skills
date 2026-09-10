@@ -145,7 +145,7 @@ describe('PlayerSkillsSection', () => {
     expect(checkboxes[0]).toBeChecked();
   });
 
-  it('labels a priority skill with a Focus area tag kept inside that skill row', async () => {
+  it('marks a priority skill with an inline focus-area icon in that skill row', async () => {
     const focusPlayer: Player = {
       ...basePlayer,
       skills: {
@@ -158,14 +158,12 @@ describe('PlayerSkillsSection', () => {
     render(<SkillsHarness player={focusPlayer} isAdmin={false} />);
     await screen.findByRole('button', { name: /scoring guide/i });
 
-    const tags = screen.getAllByText('Focus area');
-    expect(tags).toHaveLength(2);
-    for (const tag of tags) {
-      const row = tag.closest('li');
-      expect(row).not.toBeNull();
-    }
-    expect(within(tags[0].closest('li') as HTMLElement).getByText('Attack')).toBeInTheDocument();
-    expect(within(tags[1].closest('li') as HTMLElement).getByText('IQ')).toBeInTheDocument();
+    const icons = screen.getAllByRole('img', { name: 'Focus area' });
+    expect(icons).toHaveLength(2);
+    expect(within(icons[0].closest('li') as HTMLElement).getByText('Attack')).toBeInTheDocument();
+    expect(within(icons[1].closest('li') as HTMLElement).getByText('IQ')).toBeInTheDocument();
+    // it is inline on the label line, not a separate row
+    expect(icons[0].closest('span')).toHaveTextContent('Attack');
   });
 
   it('shows an info tooltip with the guide definition next to a skill', async () => {

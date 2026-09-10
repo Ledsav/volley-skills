@@ -99,6 +99,24 @@ describe('TeamSettingsTab', () => {
     expect(onTeamUpdated).not.toHaveBeenCalled();
   });
 
+  it('stacks each settings section for mobile so nothing is cramped side by side', () => {
+    const team = { ...baseTeam, adminEmails: ['coach@example.com', 'assistant@example.com'] };
+    renderSettings(team, vi.fn());
+
+    const adminRow = screen.getByText('assistant@example.com').closest('li') as HTMLElement;
+    expect(adminRow.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(adminRow.className).toContain('sm:flex-row');
+
+    const grant = screen.getByRole('button', { name: 'Grant access' });
+    expect((grant.parentElement as HTMLElement).className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(grant.className).toContain('w-full');
+    expect(grant.className).toContain('sm:w-auto');
+
+    const dangerRow = screen.getByRole('button', { name: 'Delete team' }).parentElement as HTMLElement;
+    expect(dangerRow.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(dangerRow.className).toContain('sm:flex-row');
+  });
+
   it('does not show a remove button when there is only one admin', () => {
     renderSettings(baseTeam, vi.fn());
     expect(screen.queryByText('Remove')).not.toBeInTheDocument();

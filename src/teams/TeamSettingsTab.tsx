@@ -68,10 +68,18 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Admins</h2>
           <ul className="divide-y divide-border">
             {team.adminEmails.map((email) => (
-              <li key={email} className="flex items-center justify-between py-3">
-                <span className="text-ink">{email}</span>
+              <li
+                key={email}
+                className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              >
+                <span className="break-words text-ink">{email}</span>
                 {team.adminEmails.length > 1 && (
-                  <Button variant="dangerGhost" size="sm" onClick={() => void handleRemove(email)}>
+                  <Button
+                    variant="dangerGhost"
+                    size="sm"
+                    className="self-end sm:self-auto"
+                    onClick={() => void handleRemove(email)}
+                  >
                     Remove
                   </Button>
                 )}
@@ -84,7 +92,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           <label htmlFor="new-admin-email" className="mb-1 block text-sm font-medium text-ink">
             Add admin by email
           </label>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
             <Input
               id="new-admin-email"
               type="email"
@@ -92,7 +100,12 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               onChange={(e) => setNewAdminEmail(e.target.value)}
               required
             />
-            <Button variant="primary" type="submit" className="shrink-0">
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              className="w-full shrink-0 sm:w-auto"
+            >
               Grant access
             </Button>
           </div>
@@ -103,12 +116,19 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           )}
         </form>
 
-        <div className="flex items-center justify-between gap-4 p-4">
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
-            <p className="mt-1 text-slate">Deleting a team also removes its roster and every player's records.</p>
+            <p className="mt-1 text-sm text-slate">
+              Deleting a team also removes its roster and every player's records.
+            </p>
           </div>
-          <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setShowDeleteConfirm(true)}>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full shrink-0 sm:w-auto"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
             Delete team
           </Button>
         </div>

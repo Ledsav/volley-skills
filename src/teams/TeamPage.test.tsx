@@ -77,6 +77,26 @@ describe('TeamPage', () => {
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
   });
 
+  it('tightens the page chrome and stacks the roster action buttons on mobile', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+
+    const { container } = renderTeamPage();
+    const addBtn = await screen.findByRole('button', { name: '+ Add player' });
+
+    const page = container.firstChild as HTMLElement;
+    expect(page.className).toContain('p-4');
+    expect(page.className).toContain('sm:p-6');
+
+    const innerCard = screen.getByRole('heading', { name: 'U17 Boys' }).parentElement as HTMLElement;
+    expect(innerCard.className).toContain('p-4');
+    expect(innerCard.className).toContain('sm:p-6');
+
+    const actions = addBtn.parentElement as HTMLElement;
+    expect(actions.className).toMatch(/(^|\s)grid-cols-2(\s|$)/);
+    expect(actions.className).toContain('sm:flex');
+  });
+
   it('opens the player bulk-import dialog from the overview tab', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });

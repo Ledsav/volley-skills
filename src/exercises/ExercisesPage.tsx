@@ -79,14 +79,24 @@ export function ExercisesPage() {
   }
 
   return (
-    <div className="w-full bg-bg p-6 lg:p-8">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Exercises</h1>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowImport(true)}
+          >
             Import
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setDialog({ mode: 'new' })}
+          >
             New exercise
           </Button>
         </div>
@@ -126,8 +136,14 @@ export function ExercisesPage() {
 
       {notice && <p className="mb-4 text-sm text-green">{notice}</p>}
 
-      <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        {loaded && exercises.length === 0 && <p className="p-4 text-slate">No exercises yet.</p>}
+      {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
+          one bordered container with hairline dividers between rows. */}
+      <div className="space-y-3 sm:space-y-0 sm:divide-y sm:divide-border sm:rounded-lg sm:border sm:border-border sm:bg-surface sm:shadow-card">
+        {loaded && exercises.length === 0 && (
+          <p className="rounded-lg border border-border bg-surface p-4 text-slate shadow-card sm:rounded-none sm:border-0 sm:shadow-none">
+            No exercises yet.
+          </p>
+        )}
         {exercises.map((exercise) => (
           <div
             key={exercise.id}
@@ -140,30 +156,36 @@ export function ExercisesPage() {
                 setDialog({ mode: 'edit', exercise });
               }
             }}
-            className="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-bg"
+            className="flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card hover:bg-bg sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none"
           >
             <div className="flex items-start gap-3">
               <DiagramThumbnail exerciseId={exercise.id} />
-              <div className="text-left">
-                <span className="font-medium text-ink">{exercise.name}</span>
-                <span className="ml-2 rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
-                  {CATEGORY_LABEL[exercise.category]}
-                </span>
+              <div className="min-w-0 text-left">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-medium text-ink">{exercise.name}</span>
+                  <span className="rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
+                    {CATEGORY_LABEL[exercise.category]}
+                  </span>
+                </div>
                 {exercise.description && (
-                  <p className="mt-1 line-clamp-1 text-sm text-slate">{exercise.description}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate sm:line-clamp-1">
+                    {exercise.description}
+                  </p>
                 )}
               </div>
             </div>
-            <Button
-              variant="dangerGhost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                void askDelete(exercise);
-              }}
-            >
-              Delete
-            </Button>
+            <div className="flex justify-end border-t border-border pt-3 sm:border-0 sm:pt-0">
+              <Button
+                variant="dangerGhost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void askDelete(exercise);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         ))}
       </div>

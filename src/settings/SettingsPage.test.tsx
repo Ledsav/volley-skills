@@ -37,6 +37,22 @@ describe('SettingsPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
   });
 
+  it('stacks each settings row for mobile with a full-width control', () => {
+    renderSettings();
+
+    const signOut = screen.getByRole('button', { name: 'Sign out' });
+    const accountSection = signOut.closest('section') as HTMLElement;
+    expect(accountSection.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(accountSection.className).toContain('sm:flex-row');
+    expect(signOut.className).toContain('w-full');
+    expect(signOut.className).toContain('sm:w-auto');
+
+    const themeBtn = screen.getByRole('button', { name: /dark mode|light mode/i });
+    const appearanceSection = themeBtn.closest('section') as HTMLElement;
+    expect(appearanceSection.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(themeBtn.className).toContain('w-full');
+  });
+
   it('links to the privacy policy', () => {
     renderSettings();
     expect(screen.getByText('Privacy policy')).toHaveAttribute('href', '/privacy');

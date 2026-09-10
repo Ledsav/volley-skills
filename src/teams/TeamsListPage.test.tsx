@@ -45,6 +45,36 @@ describe('TeamsListPage', () => {
     expect(screen.getByText('Season 2026-27')).toBeInTheDocument();
   });
 
+  it('adapts the page header and gutter for mobile: title stacks above a full-width action row', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      firebaseUser: { email: 'coach@example.com' } as never,
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      loading: false,
+      authError: null,
+    });
+    vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+
+    const { container } = render(
+      <MemoryRouter>
+        <TeamsListPage />
+      </MemoryRouter>
+    );
+
+    const heading = await screen.findByRole('heading', { name: 'Teams' });
+
+    const page = container.firstChild as HTMLElement;
+    expect(page.className).toContain('p-4');
+    expect(page.className).toContain('sm:p-6');
+
+    const header = heading.parentElement as HTMLElement;
+    expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(header.className).toContain('sm:flex-row');
+
+    const actions = screen.getByRole('button', { name: 'Create team' }).parentElement as HTMLElement;
+    expect(actions.className).toContain('grid-cols-2');
+    expect(actions.className).toContain('sm:flex');
+  });
+
   it('opens the bulk-import dialog from the Import button', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,

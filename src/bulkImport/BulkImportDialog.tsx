@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Textarea } from '../components/Input';
 import { parseJsonArray } from './parseJsonArray';
 import type { ValidationResult } from './types';
@@ -120,13 +121,8 @@ export function BulkImportDialog<TInput>({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        role="dialog"
-        aria-label={title}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
-      >
-        <h2 className="mb-1 text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+    <Dialog title={title} onClose={onClose} size="lg">
+      <div>
         {hint && <p className="mb-3 text-sm text-slate">{hint}</p>}
 
         <details className="mb-3 text-sm text-slate">
@@ -205,6 +201,6 @@ export function BulkImportDialog<TInput>({
           </Button>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

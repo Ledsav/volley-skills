@@ -79,14 +79,31 @@ describe('sortRoster', () => {
     expect(sortRoster(roster, 'skill').map((p) => p.id)).toEqual(['a', 'b']);
   });
 
-  it('orders by age, oldest first, players without a date of birth last', () => {
+  it('orders by birthdate, oldest first, players without a date of birth last', () => {
     const roster = [
       player({ id: 'young', number: 1, dob: '2013-01-01' }),
       player({ id: 'nodob', number: 2, dob: '' }),
       player({ id: 'old', number: 3, dob: '2009-01-01' }),
       player({ id: 'mid', number: 4, dob: '2011-01-01' }),
     ];
-    expect(sortRoster(roster, 'age').map((p) => p.id)).toEqual(['old', 'mid', 'young', 'nodob']);
+    expect(sortRoster(roster, 'birthdate').map((p) => p.id)).toEqual(['old', 'mid', 'young', 'nodob']);
+  });
+
+  it('orders two same-age players by their actual birthdate, not just the year', () => {
+    const roster = [
+      player({ id: 'nov', number: 1, dob: '2009-11-30' }),
+      player({ id: 'jan', number: 2, dob: '2009-01-15' }),
+      player({ id: 'jun', number: 3, dob: '2009-06-20' }),
+    ];
+    expect(sortRoster(roster, 'birthdate').map((p) => p.id)).toEqual(['jan', 'jun', 'nov']);
+  });
+
+  it('sorts a player with an invalid birthdate last', () => {
+    const roster = [
+      player({ id: 'bad', number: 1, dob: '2009-13-40' }),
+      player({ id: 'ok', number: 2, dob: '2010-05-05' }),
+    ];
+    expect(sortRoster(roster, 'birthdate').map((p) => p.id)).toEqual(['ok', 'bad']);
   });
 
   it('for the lineup, puts starters first, then orders by position, then by number', () => {

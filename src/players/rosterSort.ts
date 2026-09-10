@@ -1,7 +1,7 @@
 import type { Player, PositionCategory } from '../types/player';
 import { ageFromDob } from './age';
 
-export type RosterSort = 'number' | 'skill' | 'lineup' | 'age';
+export type RosterSort = 'number' | 'skill' | 'lineup' | 'birthdate';
 
 // Lineup order: specialist roles first, then unassigned, and finally "universal"
 // (an all-round player with no fixed position) dead last.
@@ -45,14 +45,22 @@ function bySkillDesc(a: Player, b: Player): number {
   return bv - av;
 }
 
-// Oldest player first; anyone without a usable date of birth sorts last.
-function byAgeDesc(a: Player, b: Player): number {
-  const av = ageFromDob(a.dob ?? '');
-  const bv = ageFromDob(b.dob ?? '');
+// Usable ISO date of birth, or null when it is empty or not a real calendar
+// date — those players sort last.
+function birthKey(p: Player): string | null {
+  const dob = p.dob ?? '';
+  return ageFromDob(dob) === null ? null : dob;
+}
+
+// Oldest player first, compared on the actual birthdate (ISO strings sort
+// chronologically) so players of the same age still order by their real date.
+function byBirthdateAsc(a: Player, b: Player): number {
+  const av = birthKey(a);
+  const bv = birthKey(b);
   if (av === bv) return 0;
   if (av === null) return 1;
   if (bv === null) return -1;
-  return bv - av;
+  return av < bv ? -1 : 1;
 }
 
 // Shirt numbers aren't always assigned yet (seeded as 0), so fall back to a
@@ -69,8 +77,8 @@ export function sortRoster(players: Player[], sort: RosterSort): Player[] {
   switch (sort) {
     case 'skill':
       return copy.sort((a, b) => bySkillDesc(a, b) || byNumberThenName(a, b));
-    case 'age':
-      return copy.sort((a, b) => byAgeDesc(a, b) || byNumberThenName(a, b));
+    case 'birthdate':
+      return copy.sort((a, b) => byBirthdateAsc(a, b) || byNumberThenName(a, b));
     case 'lineup':
       return copy.sort(
         (a, b) =>

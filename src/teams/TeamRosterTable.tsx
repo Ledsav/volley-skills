@@ -21,8 +21,20 @@ const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.val
 const SORT_OPTIONS: { value: RosterSort; label: string }[] = [
   { value: 'lineup', label: 'Lineup' },
   { value: 'skill', label: 'Skill level' },
-  { value: 'age', label: 'Age' },
+  { value: 'birthdate', label: 'Birthdate' },
 ];
+
+/** ISO birthdate with the current age beside it, or an em dash when unknown. */
+function BornCell({ dob }: { dob: string }) {
+  const age = ageFromDob(dob);
+  if (age === null) return <>—</>;
+  return (
+    <>
+      <span className="tabular-nums">{dob}</span>
+      <span className="text-slate"> · {age}y</span>
+    </>
+  );
+}
 
 interface TeamRosterTableProps {
   teamId: string;
@@ -175,7 +187,8 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
                 <span className="block truncate font-medium text-ink">{player.fullName}</span>
                 <p className="mt-0.5 truncate text-sm text-slate">
                   {POSITION_LABELS[player.positionCategory]}
-                  {ageFromDob(player.dob ?? '') !== null && ` · ${ageFromDob(player.dob ?? '')}y`}
+                  {ageFromDob(player.dob ?? '') !== null &&
+                    ` · ${player.dob} (${ageFromDob(player.dob ?? '')}y)`}
                   {player.starting && ' · Starting'}
                 </p>
               </div>
@@ -213,7 +226,9 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
               <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
                 Position
               </th>
-              <th className={`${NUMERIC_HEADER_CLASS} whitespace-nowrap`}>Age</th>
+              <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
+                Born
+              </th>
               <th className={`${NUMERIC_HEADER_CLASS} whitespace-nowrap`}>Skill avg</th>
               <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Level</th>
               <th className="px-3 py-2 text-right">
@@ -242,8 +257,8 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
                 <td className="px-3 py-2 text-ink">
                   <span className="block max-w-[10rem] truncate">{POSITION_LABELS[player.positionCategory]}</span>
                 </td>
-                <td className={NUMERIC_CELL_CLASS}>
-                  {ageFromDob(player.dob ?? '') !== null ? `${ageFromDob(player.dob ?? '')}y` : '—'}
+                <td className="whitespace-nowrap px-3 py-2 text-ink">
+                  <BornCell dob={player.dob ?? ''} />
                 </td>
                 <td className={NUMERIC_CELL_CLASS}>{player.avgScore?.toFixed(1) ?? '—'}</td>
                 <td className="px-3 py-2">

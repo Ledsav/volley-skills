@@ -5,8 +5,9 @@ dist
 .env.local
 serviceAccountKey.json
 .firebase
-firebase-debug.log
-firestore-debug.log
+firebase-debug*.log
+firestore-debug*.log
+ui-debug*.log
 .tsbuild/
 *.tsbuildinfo
 reference/

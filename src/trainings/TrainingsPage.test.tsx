@@ -51,6 +51,17 @@ describe('TrainingsPage', () => {
     expect(screen.getByText('TR-0007')).toBeInTheDocument();
   });
 
+  it('stacks each training entry as a card on mobile, with Delete on its own row', async () => {
+    renderPage();
+    const entry = (await screen.findByText('Passing circuit')).closest('[role="button"]') as HTMLElement;
+    expect(entry.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(entry.className).toContain('sm:flex-row');
+    // each entry carries its own border + shadow on mobile, dropped at >=sm
+    expect(entry.className).toMatch(/(^|\s)border(\s|$)/);
+    expect(entry.className).toContain('shadow-card');
+    expect(entry.className).toContain('sm:border-0');
+  });
+
   it('switches to the single business-id lookup when that field is filled', async () => {
     renderPage();
     await screen.findByText('Passing circuit');

@@ -134,8 +134,14 @@ export function TrainingsPage() {
 
       {notice && <p className="mb-4 text-sm text-green">{notice}</p>}
 
-      <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        {loaded && trainings.length === 0 && <p className="p-4 text-slate">No trainings found.</p>}
+      {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
+          one bordered container with hairline dividers between rows. */}
+      <div className="space-y-3 sm:space-y-0 sm:divide-y sm:divide-border sm:rounded-lg sm:border sm:border-border sm:bg-surface sm:shadow-card">
+        {loaded && trainings.length === 0 && (
+          <p className="rounded-lg border border-border bg-surface p-4 text-slate shadow-card sm:rounded-none sm:border-0 sm:shadow-none">
+            No trainings found.
+          </p>
+        )}
         {trainings.map((training) => (
           <div
             key={training.id}
@@ -148,27 +154,31 @@ export function TrainingsPage() {
                 setDialog({ mode: 'edit', training });
               }
             }}
-            className="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-bg"
+            className="flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card hover:bg-bg sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none"
           >
-            <div className="text-left">
-              <span className="font-medium tabular-nums text-ink">{training.businessId}</span>
-              <span className="ml-2 text-ink">{training.name}</span>
+            <div className="min-w-0 text-left">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium tabular-nums text-ink">{training.businessId}</span>
+                <span className="text-ink">{training.name}</span>
+              </div>
               <p className="mt-1 text-sm text-slate">
                 {training.ageGroupTarget || '—'} · {training.exercises.length} exercise(s) ·{' '}
                 {training.exercises.reduce((s, e) => s + e.durationMinutes, 0)} min
               </p>
             </div>
-            <Button
-              variant="dangerGhost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleteError(null);
-                setPendingDelete(training);
-              }}
-            >
-              Delete
-            </Button>
+            <div className="flex justify-end border-t border-border pt-3 sm:border-0 sm:pt-0">
+              <Button
+                variant="dangerGhost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteError(null);
+                  setPendingDelete(training);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         ))}
       </div>

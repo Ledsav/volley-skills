@@ -43,6 +43,23 @@ describe('ExercisesPage', () => {
     expect(nameEl.closest('div')).toHaveTextContent('Warm-up');
   });
 
+  it('adapts the page header and gutter for mobile: title stacks above a full-width action row', async () => {
+    const { container } = render(<ExercisesPage />);
+    const heading = await screen.findByRole('heading', { name: 'Exercises' });
+
+    const page = container.firstChild as HTMLElement;
+    expect(page.className).toContain('p-4');
+    expect(page.className).toContain('sm:p-6');
+
+    const header = heading.parentElement as HTMLElement;
+    expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);
+    expect(header.className).toContain('sm:flex-row');
+
+    const actions = screen.getByRole('button', { name: 'Import' }).parentElement as HTMLElement;
+    expect(actions.className).toContain('grid-cols-2');
+    expect(actions.className).toContain('sm:flex');
+  });
+
   it('stacks each exercise entry as a card on mobile, with the description un-clamped', async () => {
     render(<ExercisesPage />);
     const entry = (await screen.findByText('Pepper')).closest('[role="button"]') as HTMLElement;

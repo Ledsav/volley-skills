@@ -79,14 +79,24 @@ export function ExercisesPage() {
   }
 
   return (
-    <div className="w-full bg-bg p-6 lg:p-8">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Exercises</h1>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowImport(true)}
+          >
             Import
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setDialog({ mode: 'new' })}>
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setDialog({ mode: 'new' })}
+          >
             New exercise
           </Button>
         </div>

@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { TeamRosterTable } from './TeamRosterTable';
 import * as playersApi from '../players/playersApi';
+import { ageFromDob } from '../players/age';
 import type { Player, PositionCategory } from '../types/player';
 
 vi.mock('../players/playersApi');
@@ -33,6 +34,7 @@ function makePlayer(
     skills: {
       serve: { score: 6, notes: '', priority: false },
       attack: { score: 7, notes: '', priority: false },
+      block: { score: null, notes: '', priority: false },
       set: { score: null, notes: '', priority: false },
       defence: { score: null, notes: '', priority: false },
       reception: { score: null, notes: '', priority: false },
@@ -198,6 +200,35 @@ describe('TeamRosterTable', () => {
 
     await waitFor(() => expect(screen.queryAllByText('Ana Silva')).toHaveLength(0));
     expect(screen.getAllByText('Bea Costa').length).toBeGreaterThan(0);
+  });
+
+  it('shows each player age computed from the date of birth, and can sort oldest first', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('younger', 1, 'Younger Player', 'OH', { dob: '2012-01-01' }),
+        makePlayer('older', 2, 'Older Player', 'OH', { dob: '2008-01-01' }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    await screen.findAllByText('Older Player');
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Age')).toBeInTheDocument();
+    expect(table.getByText(`${ageFromDob('2008-01-01')}y`)).toBeInTheDocument();
+    expect(table.getByText(`${ageFromDob('2012-01-01')}y`)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: /sort/i }), { target: { value: 'age' } });
+    await waitFor(() => {
+      const names = table.getAllByRole('link').map((a) => a.textContent);
+      expect(names).toEqual(['Older Player', 'Younger Player']);
+    });
   });
 
   it('orders the table by skill average, highest first, when that sort is chosen', async () => {

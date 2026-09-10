@@ -126,7 +126,7 @@ describe('playersApi', () => {
 
     const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
     const allSix = {
-      serve: 6, attack: 6, set: 6, defence: 6,
+      serve: 6, attack: 6, block: 6, set: 6, defence: 6,
       reception: 6, jump: 6, speed: 6, iq: 6,
     };
     const count = await bulkCreatePlayers(
@@ -202,7 +202,7 @@ describe('playersApi', () => {
           positionCategory: 'TBD',
           playerPhone: '',
           guardians: [],
-          skills: { serve: 6, attack: 6, set: 6, defence: 6, reception: 6, jump: 6, speed: 6, iq: 6 },
+          skills: { serve: 6, attack: 6, block: 6, set: 6, defence: 6, reception: 6, jump: 6, speed: 6, iq: 6 },
         },
       ],
       'coach-uid'
@@ -227,7 +227,7 @@ describe('playersApi', () => {
       positionCategory: 'TBD',
       playerPhone: '',
       guardians: [],
-      skills: { serve: null, attack: null, set: null, defence: null, reception: null, jump: null, speed: null, iq: null },
+      skills: { serve: null, attack: null, block: null, set: null, defence: null, reception: null, jump: null, speed: null, iq: null },
     })) as never;
 
     await expect(bulkCreatePlayers('team-1', team, rows, 'coach-uid')).rejects.toThrow(/capped at 100 entries/);

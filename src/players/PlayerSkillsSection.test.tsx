@@ -1,12 +1,36 @@
 import { useState } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import * as playersApi from './playersApi';
+import * as skillGuideApi from '../skillGuide/skillGuideApi';
 import type { Player } from '../types/player';
 
 vi.mock('./playersApi');
+vi.mock('../skillGuide/skillGuideApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+
+const guideConfig = {
+  skills: [
+    {
+      key: 'serve' as const,
+      label: 'Serve',
+      ranges: [
+        { min: 1, max: 3, description: 'Inconsistent, many faults.' },
+        { min: 4, max: 6, description: 'Regular float serve.' },
+        { min: 7, max: 8, description: 'Tactical serving.' },
+        { min: 9, max: 10, description: 'Jump serve with pace.' },
+      ],
+      howToEvaluate: 'Count % of serves in over 10 attempts.',
+    },
+  ],
+  updatedBy: 'coach',
+  updatedAt: null,
+};
+
+beforeEach(() => {
+  vi.mocked(skillGuideApi.getSkillGuide).mockResolvedValue(guideConfig);
+});
 
 /** Harness that supplies the controlled `editing` state plus a header-style trigger. */
 function SkillsHarness({
@@ -53,6 +77,7 @@ const basePlayer: Player = {
   skills: {
     serve: { score: null, notes: '', priority: false },
     attack: { score: null, notes: '', priority: false },
+    block: { score: null, notes: '', priority: false },
     set: { score: null, notes: '', priority: false },
     defence: { score: null, notes: '', priority: false },
     reception: { score: null, notes: '', priority: false },
@@ -110,8 +135,9 @@ describe('PlayerSkillsSection', () => {
     expect(onPlayerUpdated).not.toHaveBeenCalled();
   });
 
-  it('marks a skill as a focus area via the priority checkbox', () => {
+  it('marks a skill as a focus area via the priority checkbox', async () => {
     render(<SkillsHarness player={basePlayer} />);
+    await screen.findByRole('button', { name: /scoring guide/i });
 
     fireEvent.click(screen.getByText('Edit skills'));
     const checkboxes = screen.getAllByLabelText('Focus area');
@@ -119,13 +145,47 @@ describe('PlayerSkillsSection', () => {
     expect(checkboxes[0]).toBeChecked();
   });
 
-  it('renders scores read-only and hides the edit affordances for a non-admin viewer', () => {
+  it('labels a priority skill with a Focus area tag kept inside that skill row', async () => {
+    const focusPlayer: Player = {
+      ...basePlayer,
+      skills: {
+        ...basePlayer.skills,
+        attack: { score: 6, notes: '', priority: true },
+        iq: { score: 7, notes: '', priority: true },
+      },
+    };
+
+    render(<SkillsHarness player={focusPlayer} isAdmin={false} />);
+    await screen.findByRole('button', { name: /scoring guide/i });
+
+    const tags = screen.getAllByText('Focus area');
+    expect(tags).toHaveLength(2);
+    for (const tag of tags) {
+      const row = tag.closest('li');
+      expect(row).not.toBeNull();
+    }
+    expect(within(tags[0].closest('li') as HTMLElement).getByText('Attack')).toBeInTheDocument();
+    expect(within(tags[1].closest('li') as HTMLElement).getByText('IQ')).toBeInTheDocument();
+  });
+
+  it('shows an info tooltip with the guide definition next to a skill', async () => {
+    render(<SkillsHarness player={basePlayer} isAdmin={false} />);
+
+    const trigger = await screen.findByRole('button', { name: 'Serve scoring guide' });
+    const tip = trigger.parentElement?.querySelector('[role="tooltip"]');
+    expect(tip).not.toBeNull();
+    expect(tip).toHaveTextContent('Jump serve with pace.');
+    expect(tip).toHaveTextContent('Count % of serves in over 10 attempts.');
+  });
+
+  it('renders scores read-only and hides the edit affordances for a non-admin viewer', async () => {
     const scoredPlayer: Player = {
       ...basePlayer,
       skills: { ...basePlayer.skills, serve: { score: 6, notes: '', priority: false } },
     };
 
     render(<SkillsHarness player={scoredPlayer} isAdmin={false} />);
+    await screen.findByRole('button', { name: /scoring guide/i });
 
     expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
     expect(screen.queryByText('Edit skills')).not.toBeInTheDocument();

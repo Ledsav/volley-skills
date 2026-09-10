@@ -33,6 +33,18 @@ export const DEFAULT_SKILL_GUIDE: SkillGuideEntry[] = [
       'Track kill %, error % in 3-set match or blocking drill. Observe approach timing, arm speed, and ability to redirect hit.',
   },
   {
+    key: 'block',
+    label: 'Block',
+    ranges: [
+      { min: 1, max: 3, description: 'Late timing, hands short of the net, frequent tools and roofs against.' },
+      { min: 4, max: 6, description: 'Reads the setter, times a stationary block, seals the net on quick balls.' },
+      { min: 7, max: 8, description: 'Moves and closes a two-person block, takes away line or angle on call.' },
+      { min: 9, max: 10, description: 'Reads the hitter early, presses and rebounds, stuffs or channels most attacks.' },
+    ],
+    howToEvaluate:
+      'Count stuff blocks, touches, and block errors over a set or blocking drill. Judge timing, hand penetration over the net, and closing with a second blocker.',
+  },
+  {
     key: 'set',
     label: 'Set',
     ranges: [

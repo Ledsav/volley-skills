@@ -17,16 +17,17 @@ describe('getSkillGuide', () => {
     mockGetDoc.mockReset();
   });
 
-  it('falls back to the default 8-skill guide when no config doc exists yet', async () => {
+  it('falls back to the default 9-skill guide when no config doc exists yet', async () => {
     mockGetDoc.mockResolvedValue({ exists: () => false });
 
     const guide = await getSkillGuide();
 
     expect(guide.skills).toEqual(DEFAULT_SKILL_GUIDE);
-    expect(guide.skills).toHaveLength(8);
+    expect(guide.skills).toHaveLength(9);
     expect(guide.skills.map((s) => s.key)).toEqual([
       'serve',
       'attack',
+      'block',
       'set',
       'defence',
       'reception',

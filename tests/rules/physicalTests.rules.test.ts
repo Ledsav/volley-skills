@@ -10,7 +10,7 @@ async function seedTeamPlayerAndTest(env: Awaited<ReturnType<typeof getTestEnv>>
       fullName: 'Test Player',
       viewerEmails: ['parent@example.com'],
       skills: {
-        serve: { score: null }, attack: { score: null }, set: { score: null }, defence: { score: null },
+        serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
         reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
       },
     });

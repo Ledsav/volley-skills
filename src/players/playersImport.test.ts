@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validatePlayerRows } from './playersImport';
 
 const NULL_SKILLS = {
-  serve: null, attack: null, set: null, defence: null,
+  serve: null, attack: null, block: null, set: null, defence: null,
   reception: null, jump: null, speed: null, iq: null,
 };
 

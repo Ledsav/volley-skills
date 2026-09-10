@@ -120,7 +120,7 @@ export function PlayerSkillsSection({
       <div className="grid gap-4 sm:grid-cols-[minmax(0,220px)_1fr] sm:items-center">
         <div>
           <SkillRadarChart
-            scores={SKILL_ORDER.map((key) => player.skills[key].score)}
+            scores={SKILL_ORDER.map((key) => player.skills[key]?.score ?? null)}
             labels={SKILL_ORDER.map((key) => SKILL_LABELS[key])}
             level={player.level}
           />
@@ -131,7 +131,7 @@ export function PlayerSkillsSection({
         </div>
         <ul className="flex flex-col gap-3">
           {SKILL_ORDER.map((key) => {
-            const { score, priority } = player.skills[key];
+            const { score, priority } = player.skills[key] ?? { score: null, priority: false };
             return (
               <li key={key} className="grid grid-cols-[5rem_2rem_1fr] items-center gap-x-3 gap-y-1">
                 <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange' : 'text-ink'}`}>

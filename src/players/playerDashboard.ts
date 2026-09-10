@@ -4,12 +4,12 @@ import { SKILL_KEYS, type SkillKey, type Skills } from '../types/player';
 
 /** Skills flagged as a focus area (priority), in canonical skill order. */
 export function focusAreaKeys(skills: Skills): SkillKey[] {
-  return SKILL_KEYS.filter((key) => skills[key].priority);
+  return SKILL_KEYS.filter((key) => skills[key]?.priority);
 }
 
 /** How many of the skills have a numeric score recorded. */
 export function ratedSkillCount(skills: Skills): number {
-  return SKILL_KEYS.filter((key) => skills[key].score !== null && skills[key].score !== undefined).length;
+  return SKILL_KEYS.filter((key) => skills[key]?.score != null).length;
 }
 
 /**

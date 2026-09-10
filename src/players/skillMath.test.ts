@@ -3,7 +3,7 @@ import { computeAvgScore, computeLevel, computeTeamAvgScore } from './skillMath'
 import type { Player, Skills } from '../types/player';
 
 function skillsWith(scores: Partial<Record<keyof Skills, number | null>>): Skills {
-  const keys: (keyof Skills)[] = ['serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
+  const keys: (keyof Skills)[] = ['serve', 'attack', 'block', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
   const skills = {} as Skills;
   for (const key of keys) {
     skills[key] = { score: scores[key] ?? null, notes: '', priority: false };
@@ -20,10 +20,10 @@ describe('computeAvgScore', () => {
     expect(computeAvgScore(skillsWith({ serve: 6, attack: 8 }))).toBe(7);
   });
 
-  it('averages all 8 skills when fully scored', () => {
+  it('averages all 9 skills when fully scored', () => {
     expect(
       computeAvgScore(
-        skillsWith({ serve: 5, attack: 5, set: 5, defence: 5, reception: 5, jump: 5, speed: 5, iq: 5 })
+        skillsWith({ serve: 5, attack: 5, block: 5, set: 5, defence: 5, reception: 5, jump: 5, speed: 5, iq: 5 })
       )
     ).toBe(5);
   });

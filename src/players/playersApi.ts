@@ -35,6 +35,7 @@ const PLAYERS_PAGE_SIZE = 25;
 const EMPTY_SKILLS: Record<SkillKey, { score: null; notes: string; priority: boolean }> = {
   serve: { score: null, notes: '', priority: false },
   attack: { score: null, notes: '', priority: false },
+  block: { score: null, notes: '', priority: false },
   set: { score: null, notes: '', priority: false },
   defence: { score: null, notes: '', priority: false },
   reception: { score: null, notes: '', priority: false },

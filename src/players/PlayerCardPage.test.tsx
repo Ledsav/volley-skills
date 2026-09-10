@@ -54,6 +54,7 @@ const basePlayer: Player = {
   skills: {
     serve: { score: null, notes: '', priority: false },
     attack: { score: null, notes: '', priority: false },
+    block: { score: null, notes: '', priority: false },
     set: { score: null, notes: '', priority: false },
     defence: { score: null, notes: '', priority: false },
     reception: { score: null, notes: '', priority: false },

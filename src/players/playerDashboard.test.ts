@@ -11,7 +11,7 @@ import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import type { Skills } from '../types/player';
 
 function makeSkills(overrides: Partial<Record<keyof Skills, boolean>> = {}): Skills {
-  const keys: (keyof Skills)[] = ['serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
+  const keys: (keyof Skills)[] = ['serve', 'attack', 'block', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
   return Object.fromEntries(
     keys.map((key) => [key, { score: null, notes: '', priority: overrides[key] ?? false }])
   ) as Skills;

@@ -9,10 +9,19 @@ export interface Guardian {
   email: string;
 }
 
-export type SkillKey = 'serve' | 'attack' | 'set' | 'defence' | 'reception' | 'jump' | 'speed' | 'iq';
+export type SkillKey =
+  | 'serve'
+  | 'attack'
+  | 'block'
+  | 'set'
+  | 'defence'
+  | 'reception'
+  | 'jump'
+  | 'speed'
+  | 'iq';
 
 export const SKILL_KEYS: SkillKey[] = [
-  'serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq',
+  'serve', 'attack', 'block', 'set', 'defence', 'reception', 'jump', 'speed', 'iq',
 ];
 
 export interface SkillEntry {

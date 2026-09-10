@@ -116,6 +116,22 @@ async function main() {
     process.exit(1);
   }
 
+  // Overlay the live-roster snapshot (scripts/seed/skillsSnapshot.json, keyed by
+  // fullName) so a fresh seed reproduces production's scores instead of the
+  // mostly-blank workbook. Skills absent from the snapshot keep the parsed value.
+  const SNAPSHOT_PATH = 'scripts/seed/skillsSnapshot.json';
+  const snapshot = existsSync(SNAPSHOT_PATH) ? JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) : {};
+  let overlaid = 0;
+  for (const p of players) {
+    const scores = snapshot[p.fullName];
+    if (!scores) continue;
+    overlaid += 1;
+    for (const k of SKILL_KEYS) {
+      if (scores[k] !== undefined) p.skills[k] = { ...p.skills[k], score: scores[k] };
+    }
+  }
+  console.log(`Applied skill snapshot to ${overlaid}/${players.length} players.`);
+
   // --- Guards ----------------------------------------------------------
   const teamsSnap = await db.collection('teams').limit(1).get();
   if (!teamsSnap.empty) {

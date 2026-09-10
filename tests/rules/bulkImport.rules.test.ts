@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, it } from 'vitest';
 import { getTestEnv } from './testEnv';
 
 const NULL_SKILLS = {
-  serve: { score: null }, attack: { score: null }, set: { score: null }, defence: { score: null },
+  serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
   reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
 };
 

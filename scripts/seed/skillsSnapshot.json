@@ -1,0 +1,222 @@
+{
+  "Alexandra GRAAS": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Anastasia ZARDONI": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Anna SILMONT": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Annabella ADAM": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Anouk BEN SADOUN": {
+    "serve": 6,
+    "attack": 6,
+    "block": 5,
+    "set": 8,
+    "defence": 6,
+    "reception": 6,
+    "jump": 6,
+    "speed": 5,
+    "iq": 7
+  },
+  "Caterina PIFERI": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Charlotte BLANVALET": {
+    "serve": 7,
+    "attack": 4,
+    "block": 5,
+    "set": 4,
+    "defence": 4,
+    "reception": 4,
+    "jump": 4,
+    "speed": 5,
+    "iq": 6
+  },
+  "Chloé HENS": {
+    "serve": 7,
+    "attack": 8,
+    "block": 5,
+    "set": 6,
+    "defence": 8,
+    "reception": 7,
+    "jump": 9,
+    "speed": 8,
+    "iq": 8
+  },
+  "Claire THOMÉ": {
+    "serve": 3,
+    "attack": 5,
+    "block": 5,
+    "set": 5,
+    "defence": 6,
+    "reception": 6,
+    "jump": 7,
+    "speed": 6,
+    "iq": 7
+  },
+  "Esme Rose PEACOCK": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Hazel KESSLER": {
+    "serve": 9,
+    "attack": 7,
+    "block": 5,
+    "set": 6,
+    "defence": 6,
+    "reception": 6,
+    "jump": 9,
+    "speed": 8,
+    "iq": 5
+  },
+  "Laetitia HARVEY": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Margherita BOCCARDO": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Paula GARCIA DE MIGEL FERNANDEZ": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Runa SOLVANG": {
+    "serve": null,
+    "attack": null,
+    "block": 5,
+    "set": null,
+    "defence": null,
+    "reception": null,
+    "jump": null,
+    "speed": null,
+    "iq": null
+  },
+  "Sabrina LUNCA": {
+    "serve": 7,
+    "attack": 6,
+    "block": 5,
+    "set": 5,
+    "defence": 5,
+    "reception": 5,
+    "jump": 3,
+    "speed": 6,
+    "iq": 6
+  },
+  "Sofia PETTENATI": {
+    "serve": 5,
+    "attack": 4,
+    "block": 5,
+    "set": 6,
+    "defence": 7,
+    "reception": 7,
+    "jump": 4,
+    "speed": 6,
+    "iq": 6
+  },
+  "Sophie TURBA": {
+    "serve": 3,
+    "attack": 3,
+    "block": 5,
+    "set": 4,
+    "defence": 4,
+    "reception": 4,
+    "jump": 3,
+    "speed": 3,
+    "iq": 3
+  },
+  "Victoria D'ANGELO": {
+    "serve": 6,
+    "attack": 6,
+    "block": 5,
+    "set": 6,
+    "defence": 7,
+    "reception": 8,
+    "jump": 7,
+    "speed": 7,
+    "iq": 7
+  },
+  "Vivian CAREY": {
+    "serve": 7,
+    "attack": 7,
+    "block": 5,
+    "set": 6,
+    "defence": 7,
+    "reception": 7,
+    "jump": 6,
+    "speed": 6,
+    "iq": 7
+  }
+}

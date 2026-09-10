@@ -1,5 +1,5 @@
 import { focusAreaKeys, latestTestDate, openObjectiveCount, ratedSkillCount } from './playerDashboard';
-import type { Player } from '../types/player';
+import { SKILL_KEYS, type Player } from '../types/player';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 
 interface PlayerKpiTilesProps {
@@ -25,7 +25,11 @@ export function PlayerKpiTiles({ player, latestByType }: PlayerKpiTilesProps) {
 
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatTile label="Skills rated" value={`${rated} / 8`} hint={rated === 8 ? 'Complete' : 'In progress'} />
+      <StatTile
+        label="Skills rated"
+        value={`${rated} / ${SKILL_KEYS.length}`}
+        hint={rated === SKILL_KEYS.length ? 'Complete' : 'In progress'}
+      />
       <StatTile label="Focus areas" value={String(focus)} hint={focus === 0 ? 'None flagged' : 'Priority skills'} />
       <StatTile label="Open objectives" value={String(open)} hint="Not yet completed" />
       <StatTile label="Last physical test" value={lastTest ?? '—'} hint={lastTest ? 'Most recent entry' : 'No entries yet'} />

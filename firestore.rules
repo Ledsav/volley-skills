@@ -118,6 +118,7 @@ service cloud.firestore {
         function validSkills(skills) {
           return validScore(skills.serve.score) &&
             validScore(skills.attack.score) &&
+            validScore(skills.block.score) &&
             validScore(skills.set.score) &&
             validScore(skills.defence.score) &&
             validScore(skills.reception.score) &&

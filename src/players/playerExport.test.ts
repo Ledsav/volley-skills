@@ -20,6 +20,7 @@ const player = {
   skills: {
     serve: { score: 8, notes: 'strong jump serve', priority: false },
     attack: { score: 6, notes: '', priority: true },
+    block: { score: null, notes: '', priority: false },
     set: { score: null, notes: '', priority: false },
     defence: { score: null, notes: '', priority: false },
     reception: { score: null, notes: '', priority: false },

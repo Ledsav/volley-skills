@@ -22,6 +22,7 @@ const basePlayer: Player = {
   skills: {
     serve: { score: 6, notes: '', priority: true },
     attack: { score: 7, notes: '', priority: true },
+    block: { score: null, notes: '', priority: false },
     set: { score: null, notes: '', priority: false },
     defence: { score: null, notes: '', priority: false },
     reception: { score: null, notes: '', priority: false },
@@ -58,7 +59,7 @@ describe('PlayerKpiTiles', () => {
     render(<PlayerKpiTiles player={basePlayer} latestByType={{ cmj }} />);
 
     expect(screen.getByText('Skills rated')).toBeInTheDocument();
-    expect(screen.getByText('2 / 8')).toBeInTheDocument();
+    expect(screen.getByText('2 / 9')).toBeInTheDocument();
 
     expect(screen.getByText('Focus areas')).toBeInTheDocument();
     expect(screen.getByText('Open objectives')).toBeInTheDocument();

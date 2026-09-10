@@ -10,7 +10,7 @@ async function seedTeamAndPlayer(env: Awaited<ReturnType<typeof getTestEnv>>) {
       fullName: 'Test Player',
       viewerEmails: ['parent@example.com'],
       skills: {
-        serve: { score: null }, attack: { score: null }, set: { score: null }, defence: { score: null },
+        serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
         reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
       },
     });
@@ -59,7 +59,7 @@ describe('player rules', () => {
         fullName: 'Team B Player',
         viewerEmails: [],
         skills: {
-          serve: { score: null }, attack: { score: null }, set: { score: null }, defence: { score: null },
+          serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
           reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
         },
       });
@@ -74,7 +74,7 @@ describe('player rules', () => {
   it('allows a score within 1-10, denies a score outside that range', async () => {
     const env = await getTestEnv();
     const validSkills = {
-      serve: { score: 7 }, attack: { score: null }, set: { score: null }, defence: { score: null },
+      serve: { score: 7 }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
       reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
     };
     const invalidSkills = { ...validSkills, serve: { score: 11 } };
@@ -82,6 +82,19 @@ describe('player rules', () => {
     const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
     await assertSucceeds(adminDb.doc('teams/team-1/players/player-1').update({ skills: validSkills }));
     await assertFails(adminDb.doc('teams/team-1/players/player-1').update({ skills: invalidSkills }));
+  });
+
+  it('validates the block skill score like every other skill', async () => {
+    const env = await getTestEnv();
+    const base = {
+      serve: { score: null }, attack: { score: null }, block: { score: 6 }, set: { score: null }, defence: { score: null },
+      reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
+    };
+    const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(adminDb.doc('teams/team-1/players/player-1').update({ skills: base }));
+    await assertFails(
+      adminDb.doc('teams/team-1/players/player-1').update({ skills: { ...base, block: { score: 0 } } })
+    );
   });
 
   it('lets the team admin delete the player, denies the linked viewer', async () => {

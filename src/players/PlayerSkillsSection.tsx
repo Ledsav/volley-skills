@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
+import { InfoTooltip } from '../components/InfoTooltip';
 import { Input } from '../components/Input';
 import { SkillMeter } from '../components/SkillMeter';
+import { getSkillGuide } from '../skillGuide/skillGuideApi';
+import type { SkillGuideEntry } from '../types/skillGuide';
 import type { Player, SkillKey, Skills } from '../types/player';
 import { updatePlayerSkills } from './playersApi';
 import { computeAvgScore, computeLevel } from './skillMath';
@@ -11,6 +14,7 @@ import { SkillRadarChart } from './SkillRadarChart';
 const SKILL_LABELS: Record<SkillKey, string> = {
   serve: 'Serve',
   attack: 'Attack',
+  block: 'Block',
   set: 'Set',
   defence: 'Defence',
   reception: 'Reception',
@@ -20,6 +24,26 @@ const SKILL_LABELS: Record<SkillKey, string> = {
 };
 
 const SKILL_ORDER = Object.keys(SKILL_LABELS) as SkillKey[];
+
+/** The scoring-guide reminder shown in a skill's ⓘ tooltip. */
+function SkillGuideHint({ entry }: { entry: SkillGuideEntry }) {
+  return (
+    <>
+      <p className="mb-1 font-semibold text-ink">{entry.label}</p>
+      <ul className="space-y-0.5">
+        {entry.ranges.map((range) => (
+          <li key={`${range.min}-${range.max}`}>
+            <span className="tabular-nums text-slate">
+              {range.min}–{range.max}
+            </span>{' '}
+            {range.description}
+          </li>
+        ))}
+      </ul>
+      {entry.howToEvaluate && <p className="mt-2 text-slate">{entry.howToEvaluate}</p>}
+    </>
+  );
+}
 
 interface PlayerSkillsSectionProps {
   teamId: string;
@@ -42,6 +66,21 @@ export function PlayerSkillsSection({
 }: PlayerSkillsSectionProps) {
   const [skills, setSkills] = useState<Skills>(player.skills);
   const [error, setError] = useState<string | null>(null);
+  const [guide, setGuide] = useState<Record<string, SkillGuideEntry>>({});
+
+  useEffect(() => {
+    let active = true;
+    getSkillGuide()
+      .then((config) => {
+        if (active) setGuide(Object.fromEntries(config.skills.map((s) => [s.key, s])));
+      })
+      .catch(() => {
+        /* guide is optional — the tooltips just won't render */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing) {
@@ -91,18 +130,28 @@ export function PlayerSkillsSection({
           </p>
         </div>
         <ul className="flex flex-col gap-3">
-          {SKILL_ORDER.map((key) => (
-            <li key={key} className="grid grid-cols-[4.5rem_2rem_1fr] items-center gap-x-3">
-              <span className="text-sm font-medium text-ink">{SKILL_LABELS[key]}</span>
-              <span className="text-right text-sm tabular-nums text-ink">{player.skills[key].score ?? '—'}</span>
-              <SkillMeter score={player.skills[key].score} />
-              {player.skills[key].priority && (
-                <span className="col-span-3 -mt-1.5 justify-self-start rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange">
-                  Focus area
+          {SKILL_ORDER.map((key) => {
+            const { score, priority } = player.skills[key];
+            return (
+              <li key={key} className="grid grid-cols-[5rem_2rem_1fr] items-center gap-x-3 gap-y-1">
+                <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange' : 'text-ink'}`}>
+                  {SKILL_LABELS[key]}
+                  {guide[key] && (
+                    <InfoTooltip label={`${SKILL_LABELS[key]} scoring guide`}>
+                      <SkillGuideHint entry={guide[key]} />
+                    </InfoTooltip>
+                  )}
                 </span>
-              )}
-            </li>
-          ))}
+                <span className="text-right text-sm tabular-nums text-ink">{score ?? '—'}</span>
+                <SkillMeter score={score} />
+                {priority && (
+                  <span className="col-span-3 w-fit justify-self-start rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange">
+                    Focus area
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
 
@@ -117,11 +166,18 @@ export function PlayerSkillsSection({
               {SKILL_ORDER.map((key) => (
                 <div
                   key={key}
-                  className="grid grid-cols-[6rem_5rem] items-center gap-x-4 gap-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[6rem_5rem_1fr_auto]"
+                  className="grid grid-cols-[7rem_5rem] items-center gap-x-4 gap-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[7rem_5rem_1fr_auto]"
                 >
-                  <label htmlFor={`skill-${key}`} className="text-sm font-medium text-ink">
-                    {SKILL_LABELS[key]}
-                  </label>
+                  <span className="flex items-center gap-1">
+                    <label htmlFor={`skill-${key}`} className="text-sm font-medium text-ink">
+                      {SKILL_LABELS[key]}
+                    </label>
+                    {guide[key] && (
+                      <InfoTooltip label={`${SKILL_LABELS[key]} scoring guide`}>
+                        <SkillGuideHint entry={guide[key]} />
+                      </InfoTooltip>
+                    )}
+                  </span>
                   <Input
                     id={`skill-${key}`}
                     type="number"

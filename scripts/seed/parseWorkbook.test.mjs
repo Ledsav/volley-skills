@@ -100,7 +100,7 @@ describe('toPositionCategory', () => {
 });
 
 describe.skipIf(!existsSync(WORKBOOK))('parseWorkbook (against the real gitignored workbook)', () => {
-  it('produces one team, an 8-skill guide, and 20 players in data-model shape', async () => {
+  it('produces one team, a 9-skill guide (Block injected), and 20 players in data-model shape', async () => {
     const { team, skillGuide, players } = await parseWorkbook(WORKBOOK);
 
     expect(team).toMatchObject({ name: 'U17', ageGroup: 'U17', season: '2026-2027' });

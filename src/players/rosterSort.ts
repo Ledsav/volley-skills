@@ -1,6 +1,7 @@
 import type { Player, PositionCategory } from '../types/player';
+import { ageFromDob } from './age';
 
-export type RosterSort = 'number' | 'skill' | 'lineup';
+export type RosterSort = 'number' | 'skill' | 'lineup' | 'age';
 
 // Lineup order: specialist roles first, then unassigned, and finally "universal"
 // (an all-round player with no fixed position) dead last.
@@ -44,6 +45,16 @@ function bySkillDesc(a: Player, b: Player): number {
   return bv - av;
 }
 
+// Oldest player first; anyone without a usable date of birth sorts last.
+function byAgeDesc(a: Player, b: Player): number {
+  const av = ageFromDob(a.dob ?? '');
+  const bv = ageFromDob(b.dob ?? '');
+  if (av === bv) return 0;
+  if (av === null) return 1;
+  if (bv === null) return -1;
+  return bv - av;
+}
+
 // Shirt numbers aren't always assigned yet (seeded as 0), so fall back to a
 // stable alphabetical order rather than Firestore document order.
 function byNumberThenName(a: Player, b: Player): number {
@@ -58,6 +69,8 @@ export function sortRoster(players: Player[], sort: RosterSort): Player[] {
   switch (sort) {
     case 'skill':
       return copy.sort((a, b) => bySkillDesc(a, b) || byNumberThenName(a, b));
+    case 'age':
+      return copy.sort((a, b) => byAgeDesc(a, b) || byNumberThenName(a, b));
     case 'lineup':
       return copy.sort(
         (a, b) =>

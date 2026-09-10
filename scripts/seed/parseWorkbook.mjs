@@ -15,6 +15,7 @@ import ExcelJS from 'exceljs';
 const SKILL_ROW_LABELS = {
   SERVE: 'serve',
   ATTACK: 'attack',
+  BLOCK: 'block',
   SET: 'set',
   DEFENCE: 'defence',
   RECEPTION: 'reception',
@@ -26,6 +27,7 @@ const SKILL_ROW_LABELS = {
 const SKILL_GUIDE_LABELS = {
   Serve: 'serve',
   Attack: 'attack',
+  Block: 'block',
   Set: 'set',
   Defence: 'defence',
   Reception: 'reception',
@@ -34,7 +36,7 @@ const SKILL_GUIDE_LABELS = {
   IQ: 'iq',
 };
 
-export const SKILL_KEYS = ['serve', 'attack', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
+export const SKILL_KEYS = ['serve', 'attack', 'block', 'set', 'defence', 'reception', 'jump', 'speed', 'iq'];
 
 /**
  * Map the workbook's free-text "Position" cell to a structured category
@@ -236,6 +238,22 @@ function parsePlayerSheet(sheet) {
   };
 }
 
+// The migration workbook predates the Block skill, so its "Skills Guide" sheet
+// has no Block row. Inject this default (editable in-app afterwards) so the
+// seeded guide covers all SKILL_KEYS.
+export const BLOCK_GUIDE_DEFAULT = {
+  key: 'block',
+  label: 'Block',
+  ranges: [
+    { min: 1, max: 3, description: 'Late timing, hands short of the net, frequent tools and roofs against.' },
+    { min: 4, max: 6, description: 'Reads the setter, times a stationary block, seals the net on quick balls.' },
+    { min: 7, max: 8, description: 'Moves and closes a two-person block, takes away line or angle on call.' },
+    { min: 9, max: 10, description: 'Reads the hitter early, presses and rebounds, stuffs or channels most attacks.' },
+  ],
+  howToEvaluate:
+    'Count stuff blocks, touches, and block errors over a set or blocking drill. Judge timing, hand penetration over the net, and closing with a second blocker.',
+};
+
 function parseSkillGuide(sheet) {
   const skills = [];
   for (let r = 1; r <= sheet.rowCount; r++) {
@@ -249,6 +267,10 @@ function parseSkillGuide(sheet) {
       ranges: splitCriteria(row.getCell(2).value),
       howToEvaluate: cellText(row.getCell(3).value),
     });
+  }
+  if (!skills.some((s) => s.key === 'block')) {
+    const at = skills.findIndex((s) => s.key === 'attack');
+    skills.splice(at === -1 ? skills.length : at + 1, 0, BLOCK_GUIDE_DEFAULT);
   }
   return skills;
 }

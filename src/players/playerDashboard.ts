@@ -7,7 +7,7 @@ export function focusAreaKeys(skills: Skills): SkillKey[] {
   return SKILL_KEYS.filter((key) => skills[key].priority);
 }
 
-/** How many of the eight skills have a numeric score recorded. */
+/** How many of the skills have a numeric score recorded. */
 export function ratedSkillCount(skills: Skills): number {
   return SKILL_KEYS.filter((key) => skills[key].score !== null && skills[key].score !== undefined).length;
 }

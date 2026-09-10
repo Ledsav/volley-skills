@@ -96,6 +96,33 @@ describe('TeamRosterTable', () => {
     expect(within(cards[0]).getByText('Advanced')).toBeInTheDocument();
   });
 
+  it('lays out the mobile card as labelled fields so every stat stays readable', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('player-1', 7, 'Marie Dubois', 'MB', { dob: '2009-04-12', avgScore: 6.5 }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    const card = within((await screen.findAllByTestId('roster-mobile-card'))[0]);
+    expect(card.getByText('#7')).toBeInTheDocument();
+    expect(card.getByText('Position')).toBeInTheDocument();
+    expect(card.getByText('Middle')).toBeInTheDocument();
+    expect(card.getByText('Born')).toBeInTheDocument();
+    expect(card.getByText('2009-04-12', { exact: false })).toBeInTheDocument();
+    expect(card.getByText('Skill avg')).toBeInTheDocument();
+    expect(card.getByText('6.5')).toBeInTheDocument();
+    // the starting toggle carries a visible label, not just a screen-reader one
+    expect(card.getByText('Starting')).toBeInTheDocument();
+  });
+
   it('shows the position-category label for each player', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [makePlayer('player-1', 1, 'Test Player', 'MB')],

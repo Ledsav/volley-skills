@@ -48,16 +48,30 @@ export function TeamsListPage() {
   }, [appUser?.email]);
 
   return (
-    <div className="w-full bg-bg p-6 lg:p-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
-        <div className="flex gap-2">
+        <div
+          className={`grid gap-2 sm:flex ${
+            appUser?.role === 'admin' ? 'grid-cols-2' : 'grid-cols-1'
+          }`}
+        >
           {appUser?.role === 'admin' && (
-            <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowImport(true)}
+            >
               Import
             </Button>
           )}
-          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowCreate(true)}
+          >
             Create team
           </Button>
         </div>

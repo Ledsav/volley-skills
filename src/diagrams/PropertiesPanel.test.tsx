@@ -18,6 +18,30 @@ describe('PropertiesPanel', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'p1', patch: { label: 'OH' } });
   });
 
+  it('toggles an arrow between straight and curved', () => {
+    const dispatch = vi.fn();
+    const item = { ...createItem('arrow', { x: 10, y: 10 }), id: 'a1', curved: false };
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
+    fireEvent.click(screen.getByLabelText('Curved'));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'a1', patch: { curved: true } });
+  });
+
+  it('changes an arrowhead style', () => {
+    const dispatch = vi.fn();
+    const item = { ...createItem('arrow', { x: 10, y: 10 }), id: 'a1' };
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
+    fireEvent.change(screen.getByLabelText('Arrowhead'), { target: { value: 'double' } });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'a1', patch: { head: 'double' } });
+  });
+
+  it('edits the font size of a text item', () => {
+    const dispatch = vi.fn();
+    const item = { ...createItem('text', { x: 10, y: 10 }), id: 't1' };
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
+    fireEvent.change(screen.getByLabelText(/font size/i), { target: { value: '7' } });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 't1', patch: { fontSize: 7 } });
+  });
+
   it('changes colour from a swatch', () => {
     const dispatch = vi.fn();
     const item = { ...createItem('cone', { x: 10, y: 10 }), id: 'c1' };

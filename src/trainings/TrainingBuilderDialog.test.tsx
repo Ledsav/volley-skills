@@ -9,9 +9,16 @@ vi.mock('./trainingsApi');
 vi.mock('../exercises/exercisesApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../diagrams/DiagramThumbnail', () => ({
+  DiagramThumbnail: ({ exerciseId }: { exerciseId: string }) => (
+    <div data-testid="diagram-thumb" data-exercise-id={exerciseId} />
+  ),
+}));
 
-const exOne = { id: 'ex-1', name: 'Pepper', description: '', category: 'warmup' as const, createdBy: 'x', createdAt: null };
+const exOne = { id: 'ex-1', name: 'Pepper', description: 'Two players, controlled rally.', category: 'warmup' as const, createdBy: 'x', createdAt: null };
 const exTwo = { id: 'ex-2', name: 'Serve targets', description: '', category: 'service' as const, createdBy: 'x', createdAt: null };
+
+const addBtn = (name: string) => screen.getByRole('button', { name: `Add ${name}` });
 
 describe('TrainingBuilderDialog', () => {
   beforeEach(() => {
@@ -34,9 +41,9 @@ describe('TrainingBuilderDialog', () => {
     fireEvent.change(screen.getByLabelText('Age group target'), { target: { value: 'U17' } });
 
     fireEvent.click(screen.getByText('Add exercise'));
-    fireEvent.click(await screen.findByText('Pepper'));
-    fireEvent.click(screen.getByText('Add exercise'));
-    fireEvent.click(await screen.findByText('Serve targets'));
+    await screen.findByRole('button', { name: 'Add Pepper' });
+    fireEvent.click(addBtn('Pepper'));
+    fireEvent.click(addBtn('Serve targets'));
 
     fireEvent.change(screen.getByLabelText('Duration for exercise 1 (min)'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('Duration for exercise 2 (min)'), { target: { value: '18' } });
@@ -65,9 +72,9 @@ describe('TrainingBuilderDialog', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
     fireEvent.click(screen.getByText('Add exercise'));
-    fireEvent.click(await screen.findByText('Pepper'));
-    fireEvent.click(screen.getByText('Add exercise'));
-    fireEvent.click(await screen.findByText('Serve targets'));
+    await screen.findByRole('button', { name: 'Add Pepper' });
+    fireEvent.click(addBtn('Pepper'));
+    fireEvent.click(addBtn('Serve targets'));
 
     fireEvent.click(screen.getByLabelText('Move exercise 2 up'));
     fireEvent.click(screen.getByText('Save'));
@@ -127,14 +134,14 @@ describe('TrainingBuilderDialog', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
 
     fireEvent.click(screen.getByText('Add exercise'));
-    await screen.findByText('Pepper');
+    await screen.findByRole('button', { name: 'Add Pepper' });
     expect(screen.queryByText('Block footwork')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Load more'));
 
-    await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(firstPageLastDoc));
+    await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(firstPageLastDoc, null));
 
-    fireEvent.click(await screen.findByText('Block footwork'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Block footwork' }));
 
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() =>
@@ -179,11 +186,49 @@ describe('TrainingBuilderDialog', () => {
     render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
     fireEvent.click(screen.getByText('Add exercise'));
-    fireEvent.click(await screen.findByText('Pepper'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Pepper' }));
 
-    const list = screen.getByRole('list');
+    const list = screen.getByRole('list', { name: 'Training exercises' });
     expect(within(list).getByText('Pepper')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Remove exercise 1'));
     expect(within(list).queryByText('Pepper')).not.toBeInTheDocument();
+  });
+
+  it('filters the picker by category and resets pagination', async () => {
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
+
+    fireEvent.click(screen.getByText('Add exercise'));
+    await screen.findByRole('button', { name: 'Add Pepper' });
+    expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, null);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Service', pressed: false }));
+
+    await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, 'service'));
+    expect(screen.getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
+  });
+
+  it('expands a picker row to show its full description and a thumbnail', async () => {
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
+
+    fireEvent.click(screen.getByText('Add exercise'));
+    const expand = await screen.findByRole('button', { name: 'Expand Pepper' });
+    fireEvent.click(expand);
+
+    expect(screen.getByRole('button', { name: 'Collapse Pepper' })).toBeInTheDocument();
+    expect(screen.getByText('Two players, controlled rally.')).toBeInTheDocument();
+    expect(screen.getByTestId('diagram-thumb')).toHaveAttribute('data-exercise-id', 'ex-1');
+  });
+
+  it('keeps the picker open after adding so several exercises can be picked', async () => {
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
+
+    fireEvent.click(screen.getByText('Add exercise'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Pepper' }));
+
+    expect(screen.getByRole('button', { name: 'Add Serve targets' })).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Training exercises' })).getByText('Pepper')).toBeInTheDocument();
   });
 });

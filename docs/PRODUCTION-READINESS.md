@@ -12,41 +12,49 @@ Status legend: `[ ]` todo · `[x]` done · `[~]` in progress / partial
 
 Last reviewed: 2026-09-09
 
+## Decisions locked (2026-09-09)
+
+- **One Firebase project** — `volley-skills` serves dev and prod. No separate
+  `volley-skills-prod`.
+- **Custom domain** — `volley.albertovaldesrey.com` (apex stays on GitHub Pages).
+- **CI/CD** — GitHub Actions. `ci.yml` on every PR (lint / build / unit tests /
+  rules tests); `deploy.yml` on merge to `main` (build + `firebase deploy --only
+  hosting,firestore:rules,firestore:indexes`).
+- **Firebase web config is committed** (`.env.production`) rather than held as six
+  GitHub secrets — not secret per spec §11, repo is public by design. The only
+  real CI secret is `FIREBASE_SERVICE_ACCOUNT`.
+- **App Check / reCAPTCHA / monitoring alerts deferred** to section B — lean v1,
+  app is effectively private to the operator for now.
+
 ---
 
 ## A. Before the first deploy (blocking)
 
-These make a hosted build possible and correct. None are done yet.
-
-- [ ] **Hosting config in `firebase.json`** — add a `hosting` block: `public`
-      pointing at the Vite build output (`dist`), and an SPA rewrite
-      (`"rewrites": [{ "source": "**", "destination": "/index.html" }]`) — the
-      app uses `BrowserRouter`, so without this every deep link 404s.
-      *Trigger: the moment you decide to host.*
-- [ ] **CSP headers via `firebase.json`** — `headers` block with a
-      Content-Security-Policy (app design spec §10.4). Scope it to Firebase +
-      Google auth/reCAPTCHA origins.
-- [ ] **Deployment path** — either a `firebase deploy` you run by hand, or the
-      intended GitHub Actions workflow (`.github/workflows/` does not exist yet)
-      that builds and deploys on merge to `main`.
-- [ ] **CI build secrets** — `VITE_FIREBASE_*` (all six) as GitHub Actions
-      secrets, passed into the build step. Without them the deployed bundle has
-      no Firebase config.
-- [ ] **Deploy Firestore rules + indexes to the live project** —
-      `firebase deploy --only firestore:rules,firestore:indexes`. Today only the
-      emulator has them applied; the live `volley-skills` project may be stale.
-- [ ] **Decide: one project or two** — dev currently talks to the live
-      `volley-skills` project directly (unless `VITE_USE_EMULATOR=true`). Decide
-      whether prod is the same project or a separate `volley-skills-prod`. If
-      separate: second `.firebaserc` alias, second set of CI secrets, second
-      App Check registration.
-- [ ] **Prod seed (one-time)** — `node scripts/seed/seed.mjs --prod --admin <email>`
-      with a gitignored `serviceAccountKey.json` at the repo root. Guarded to run
-      once (`--force` to override). Seeds one team, `skillGuide/config`, and the
-      20 player docs from the `.xlsx`.
-- [ ] **Verify no analytics/tracking slipped in** — hard constraint (minors'
-      data). Grep the bundle for gtag / analytics / Sentry / posthog before the
-      first deploy.
+- [x] **Hosting config in `firebase.json`** — `hosting` block added: `public:
+      "dist"`, SPA rewrite, security headers, cache headers.
+- [x] **CSP headers via `firebase.json`** — `Content-Security-Policy` +
+      `X-Content-Type-Options` / `Referrer-Policy` / `X-Frame-Options` /
+      `Permissions-Policy` in the `headers` block. `script-src 'self'` (the
+      no-flash theme script was moved to `public/theme-init.js` to keep it
+      inline-free); `connect-src` scoped to `*.googleapis.com` + the auth-helper
+      frame. **Verify against the deployed app** — tighten/loosen if the console
+      logs a violation.
+- [x] **Deployment path** — `.github/workflows/ci.yml` + `deploy.yml`.
+- [x] **CI secret** — `VITE_FIREBASE_*` committed in `.env.production`; the
+      service-account JSON was uploaded by `firebase init hosting:github` as the
+      GitHub secret **`FIREBASE_SERVICE_ACCOUNT_VOLLEY_SKILLS`**, which
+      `deploy.yml` references.
+- [x] **Deploy Firestore rules + indexes to the live project** — done once from
+      the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
+- [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.
+- [ ] **Prod seed (one-time)** — `node scripts/seed/seed.mjs --prod --admin
+      alberto.valdes.rey.official@gmail.com`. Needs a gitignored
+      `serviceAccountKey.json` at the repo root (console → Project Settings →
+      Service Accounts → Generate new private key). Seeds one team,
+      `skillGuide/config`, `adminAllowlist/<email>`, and the 20 player docs.
+- [x] **Verify no analytics/tracking slipped in** — grepped source on 2026-09-09:
+      no gtag / GA / GTM / Sentry / posthog / segment / `firebase/analytics`.
+      Re-grep the built `dist/` before shipping a bundle with new deps.
 
 ## B. At / right after the first deploy
 
@@ -64,13 +72,25 @@ for the detailed steps.
       `firestore.googleapis.com/document/{read,write,delete}_count` at ~60% of
       the daily Spark cap. Notification channel = your email.
 - [ ] **Confirm Firebase quota-warning emails** reach the project owners.
-- [ ] **Privacy policy content review** — `src/legal/PrivacyPage.tsx` is wired at
-      `/privacy`; confirm its text actually covers what data is collected, why,
-      who sees it, retention, a data-request contact, and that subjects are
-      minors / guardians are the consent party (app design spec §10.1).
+- [~] **Privacy policy content review** — `src/legal/PrivacyPage.tsx` at
+      `/privacy` now has a real data-request contact
+      (`alberto.valdes.rey.official@gmail.com`) and an "internal use, parent
+      access not enabled" banner. A **formal legal review is still owed** before
+      any guardian sign-in (app design spec §10.1).
+
+### Custom domain + auth (console — no CLI for these)
+
+- [ ] **Connect `volley.albertovaldesrey.com`** — Firebase console → Hosting →
+      Add custom domain. It issues a TXT (verification) + an A record.
+- [ ] **Add the DNS records** it gives you at the `albertovaldesrey.com`
+      registrar. Apex + GitHub Pages records are untouched; this only adds the
+      `volley` subdomain.
+- [ ] **Authorized domains** — Firebase console → Authentication → Settings →
+      Authorized domains → add `volley.albertovaldesrey.com`. Magic-link sign-in
+      rejects a continue URL whose domain isn't listed.
 - [ ] **Smoke-test the deployed app** — sign in with the magic link on the real
-      domain (email-link needs the prod `authDomain` in the allowed list), load
-      each page, run one bulk import.
+      domain, load each page, run one bulk import, check the browser console for
+      CSP violations.
 
 ## C. Ongoing / when it makes sense
 

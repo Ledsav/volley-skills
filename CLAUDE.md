@@ -95,13 +95,20 @@ not a subcollection scan. **When adding a query, add the matching index.**
 ### Auth & routing
 
 `src/App.tsx` wraps everything in `AuthProvider`; `RequireAuth` gates the
-authenticated shell and `RequireAdmin` gates `/exercises`, `/trainings`,
+authenticated shell, `RequireSuperAdmin` gates `/admin/access`, and
+`RequireSection` (given a `section` prop) gates `/exercises`,
 `/exercises/:exerciseId/diagram` (the lazy-loaded court-diagram editor),
-`/admin/guides`. Two roles: `admin` (full management) and `viewer` (read-only,
-single player card — invite flow is still TBD, so only `admin` works end to end).
-A user's role is set on their `users/{uid}` doc on first sign-in; `role: 'admin'`
-is only accepted if their email is in `adminAllowlist/{email}` (enforced in rules;
-that collection is never client-readable).
+`/trainings`, `/admin/guides`. Two roles: `superadmin` (full access to
+everything) and `member` (read-only until granted access — invite flow for
+guardians/viewers is still TBD). A member's actual access is resolved per-team
+(email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
+`sectionAccess/{exercises,trainings,guides}.adminEmails`) via
+`useAuth().access` (`src/auth/access.ts`). A user's role is set on their
+`users/{uid}` doc on first sign-in; `role: 'superadmin'` is only accepted if
+their email is in `adminAllowlist/{email}` (enforced in rules; that collection
+is never client-readable). See
+`docs/superpowers/specs/2026-09-11-volley-skills-access-model.md` for the full
+model.
 
 ### Firestore model shape (see spec §5 for the full contract)
 

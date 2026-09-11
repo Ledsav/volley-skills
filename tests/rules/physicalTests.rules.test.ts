@@ -5,6 +5,9 @@ import { getTestEnv } from './testEnv';
 async function seedTeamPlayerAndTest(env: Awaited<ReturnType<typeof getTestEnv>>) {
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
+    await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
+    await db.doc('sectionAccess/trainings').set({ adminEmails: [] });
+    await db.doc('sectionAccess/guides').set({ adminEmails: [] });
     await db.doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
     await db.doc('teams/team-1/players/player-1').set({
       fullName: 'Test Player',

@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { Input } from '../components/Input';
+import { Input, Textarea } from '../components/Input';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { addTeamAdmin, deleteTeam, removeTeamAdmin } from './teamsApi';
+import { useAuth } from '../auth/AuthContext';
+import { deleteTeam, updateTeamInfo } from './teamsApi';
 import type { Team } from '../types/team';
 
 interface TeamSettingsTabProps {
@@ -13,41 +14,29 @@ interface TeamSettingsTabProps {
 
 export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   const navigate = useNavigate();
-  const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { access } = useAuth();
+  const [name, setName] = useState(team.name);
+  const [description, setDescription] = useState(team.description ?? '');
+  const [notes, setNotes] = useState(team.notes ?? '');
+  const [infoError, setInfoError] = useState<string | null>(null);
+  const [savingInfo, setSavingInfo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function handleAdd(event: FormEvent) {
+  async function handleSaveInfo(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    // Firebase Auth always lowercases request.auth.token.email, and the rules
-    // compare it exactly against adminEmails, so store the normalized form.
-    const email = newAdminEmail.trim().toLowerCase();
-    if (!email) return;
-    if (team.adminEmails.includes(email)) {
-      setError('That email is already an admin of this team.');
-      return;
-    }
+    setInfoError(null);
+    setSavingInfo(true);
+    const updates = { name: name.trim(), description: description.trim(), notes: notes.trim() };
     try {
-      await addTeamAdmin(team.id, email, team.adminEmails);
+      await updateTeamInfo(team.id, updates);
     } catch {
-      setError('Could not grant access. Please try again.');
+      setInfoError('Could not save team info. Please try again.');
+      setSavingInfo(false);
       return;
     }
-    onTeamUpdated({ ...team, adminEmails: [...team.adminEmails, email] });
-    setNewAdminEmail('');
-  }
-
-  async function handleRemove(email: string) {
-    setError(null);
-    try {
-      await removeTeamAdmin(team.id, email, team.adminEmails);
-    } catch {
-      setError('Could not remove this admin. Please try again.');
-      return;
-    }
-    onTeamUpdated({ ...team, adminEmails: team.adminEmails.filter((e) => e !== email) });
+    onTeamUpdated({ ...team, ...updates });
+    setSavingInfo(false);
   }
 
   async function handleDelete() {
@@ -64,74 +53,46 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   return (
     <div>
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Admins</h2>
-          <ul className="divide-y divide-border">
-            {team.adminEmails.map((email) => (
-              <li
-                key={email}
-                className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
-              >
-                <span className="break-words text-ink">{email}</span>
-                {team.adminEmails.length > 1 && (
-                  <Button
-                    variant="dangerGhost"
-                    size="sm"
-                    className="self-end sm:self-auto"
-                    onClick={() => void handleRemove(email)}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <form onSubmit={handleAdd} className="p-4">
-          <label htmlFor="new-admin-email" className="mb-1 block text-sm font-medium text-ink">
-            Add admin by email
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-            <Input
-              id="new-admin-email"
-              type="email"
-              value={newAdminEmail}
-              onChange={(e) => setNewAdminEmail(e.target.value)}
-              required
-            />
-            <Button
-              variant="primary"
-              size="sm"
-              type="submit"
-              className="w-full shrink-0 sm:w-auto"
-            >
-              Grant access
-            </Button>
+        <form onSubmit={handleSaveInfo} className="p-4">
+          <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Team info</h2>
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+              Team name
+              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+              Description
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+              Notes
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </label>
           </div>
-          {error && (
-            <p role="alert" className="mt-3 text-sm text-red">
-              {error}
-            </p>
-          )}
+          {infoError && <p role="alert" className="mt-3 text-sm text-red">{infoError}</p>}
+          <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo}>
+            Save team info
+          </Button>
         </form>
 
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
-            <p className="mt-1 text-sm text-slate">
-              Deleting a team also removes its roster and every player's records.
-            </p>
+        {access?.isSuperAdmin && (
+          <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
+              <p className="mt-1 text-sm text-slate">
+                Deleting a team also removes its roster and every player's records.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full shrink-0 sm:w-auto"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete team
+            </Button>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full shrink-0 sm:w-auto"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            Delete team
-          </Button>
-        </div>
+        )}
       </div>
 
       {showDeleteConfirm && (

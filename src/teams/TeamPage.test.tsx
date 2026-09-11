@@ -5,6 +5,7 @@ import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
 import * as playersApi from '../players/playersApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue, superAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 
 vi.mock('./teamsApi');
@@ -43,12 +44,13 @@ function renderTeamPage() {
 
 describe('TeamPage', () => {
   beforeEach(() => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
   });
 
   it('shows an access message instead of loading forever when the read is rejected', async () => {
@@ -95,6 +97,25 @@ describe('TeamPage', () => {
     const actions = addBtn.parentElement as HTMLElement;
     expect(actions.className).toMatch(/(^|\s)grid-cols-2(\s|$)/);
     expect(actions.className).toContain('sm:flex');
+  });
+
+  it('hides the Calendar tab when the user has no trainings access', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue()); // member, no sections
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    expect(screen.queryByText('Calendar')).not.toBeInTheDocument();
+  });
+
+  it('shows the Calendar tab with trainings access', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ access: { isSuperAdmin: false, sections: { exercises: false, trainings: true, guides: false } } })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByText('Calendar')).toBeInTheDocument();
   });
 
   it('opens the player bulk-import dialog from the overview tab', async () => {

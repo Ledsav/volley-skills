@@ -167,8 +167,11 @@ async function main() {
     await db.doc('skillGuide/config').delete().catch(() => {});
     const allow = await db.collection('adminAllowlist').where('addedBy', '==', 'seed-script').get();
     await Promise.all(allow.docs.map((d) => d.ref.delete()));
+    await Promise.all(
+      ['exercises', 'trainings', 'guides'].map((section) => db.doc(`sectionAccess/${section}`).delete().catch(() => {}))
+    );
     console.log(
-      `Reset: removed ${existing.size} previously-seeded team(s), skillGuide/config, ${allow.size} adminAllowlist entr${allow.size === 1 ? 'y' : 'ies'}.`
+      `Reset: removed ${existing.size} previously-seeded team(s), skillGuide/config, ${allow.size} adminAllowlist entr${allow.size === 1 ? 'y' : 'ies'}, sectionAccess/{exercises,trainings,guides}.`
     );
   }
 
@@ -189,6 +192,17 @@ async function main() {
   // couldn't create teams or edit the guide. In prod this doc is normally added
   // via the Firebase console; seeding it here keeps the imported team usable.
   batch.set(db.doc(`adminAllowlist/${args.admin}`), { addedBy: 'seed-script', addedAt: now });
+
+  // sectionAccess/{exercises,trainings,guides} grants club-global admin access
+  // (spec: per-team + per-section grants). Seeding the admin into all three
+  // keeps the imported team's exercises/trainings/guides editable.
+  for (const section of ['exercises', 'trainings', 'guides']) {
+    batch.set(db.doc(`sectionAccess/${section}`), {
+      adminEmails: [args.admin],
+      addedBy: 'seed-script',
+      addedAt: now,
+    }, { merge: true });
+  }
 
   batch.set(db.doc('skillGuide/config'), {
     skills: skillGuide,
@@ -228,7 +242,8 @@ async function main() {
   await batch.commit();
 
   console.log(
-    `\nDone. Wrote team ${teamRef.id}, skillGuide/config, adminAllowlist/${args.admin}, and ${players.length} players.` +
+    `\nDone. Wrote team ${teamRef.id}, skillGuide/config, adminAllowlist/${args.admin}, ` +
+      `sectionAccess/{exercises,trainings,guides}, and ${players.length} players.` +
       `\nSign in as ${args.admin} to manage this team.`
   );
   process.exit(0);

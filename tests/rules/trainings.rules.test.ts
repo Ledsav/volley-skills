@@ -8,8 +8,12 @@ describe('trainings and counters rules', () => {
     await env.clearFirestore();
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
-      await db.doc('users/admin-uid').set({ email: 'coach@example.com', role: 'admin' });
-      await db.doc('users/viewer-uid').set({ email: 'parent@example.com', role: 'viewer' });
+      await db.doc('adminAllowlist/coach@example.com').set({});
+      await db.doc('users/admin-uid').set({ email: 'coach@example.com', role: 'superadmin' });
+      await db.doc('users/viewer-uid').set({ email: 'parent@example.com', role: 'member' });
+      await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
+      await db.doc('sectionAccess/trainings').set({ adminEmails: [] });
+      await db.doc('sectionAccess/guides').set({ adminEmails: [] });
       await db.doc('trainings/training-1').set({
         businessId: 'TR-0001',
         name: 'Passing circuit',

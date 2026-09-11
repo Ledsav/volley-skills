@@ -2,7 +2,8 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
-import { RequireAdmin } from './auth/RequireAdmin';
+import { RequireSuperAdmin } from './auth/RequireSuperAdmin';
+import { RequireSection } from './auth/RequireSection';
 import { AppShell } from './layout/AppShell';
 import { LoginPage } from './auth/LoginPage';
 import { FinishSignInPage } from './auth/FinishSignInPage';
@@ -14,6 +15,7 @@ import { ExercisesPage } from './exercises/ExercisesPage';
 import { TrainingsPage } from './trainings/TrainingsPage';
 import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
+import { AccessManagerPage } from './access/AccessManagerPage';
 
 const DiagramEditorPage = lazy(() =>
   import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
@@ -45,35 +47,43 @@ export function App() {
             <Route
               path="/admin/guides"
               element={
-                <RequireAdmin>
+                <RequireSection section="guides">
                   <GuidesPage />
-                </RequireAdmin>
+                </RequireSection>
               }
             />
             <Route
               path="/exercises"
               element={
-                <RequireAdmin>
+                <RequireSection section="exercises">
                   <ExercisesPage />
-                </RequireAdmin>
+                </RequireSection>
               }
             />
             <Route
               path="/trainings"
               element={
-                <RequireAdmin>
+                <RequireSection section="trainings">
                   <TrainingsPage />
-                </RequireAdmin>
+                </RequireSection>
               }
             />
             <Route
               path="/exercises/:exerciseId/diagram"
               element={
-                <RequireAdmin>
+                <RequireSection section="exercises">
                   <Suspense fallback={<div className="p-6 text-slate">Loading editor…</div>}>
                     <DiagramEditorPage />
                   </Suspense>
-                </RequireAdmin>
+                </RequireSection>
+              }
+            />
+            <Route
+              path="/admin/access"
+              element={
+                <RequireSuperAdmin>
+                  <AccessManagerPage />
+                </RequireSuperAdmin>
               }
             />
           </Route>

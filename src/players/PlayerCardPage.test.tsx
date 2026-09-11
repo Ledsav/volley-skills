@@ -6,6 +6,7 @@ import * as playersApi from './playersApi';
 import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue, superAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
@@ -84,7 +85,7 @@ function renderPlayerCard() {
 describe('PlayerCardPage', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
-    vi.mocked(useAuth).mockReturnValue({ firebaseUser: null, appUser: null, loading: false, authError: null });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null, appUser: null }));
   });
 
   it('shows an access message instead of loading forever when the read is rejected', async () => {
@@ -111,12 +112,13 @@ describe('PlayerCardPage', () => {
   });
 
   it('lets a team admin delete the player and navigates back to the team', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
     vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
@@ -133,12 +135,13 @@ describe('PlayerCardPage', () => {
   });
 
   it('exports the player record as JSON when an admin clicks Export', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
     vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
@@ -155,12 +158,13 @@ describe('PlayerCardPage', () => {
   });
 
   it('surfaces an error and does not download when the export read fails', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
     vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);

@@ -93,14 +93,6 @@ export async function getTeam(teamId: string): Promise<Team | null> {
   return { id: snapshot.id, ...snapshot.data() } as Team;
 }
 
-export async function addTeamAdmin(teamId: string, email: string, currentAdmins: string[]): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId), { adminEmails: [...currentAdmins, email] });
-}
-
-export async function removeTeamAdmin(teamId: string, email: string, currentAdmins: string[]): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId), { adminEmails: currentAdmins.filter((e) => e !== email) });
-}
-
 export async function updateTeamInfo(
   teamId: string,
   updates: Partial<Pick<Team, 'name' | 'description' | 'notes'>>

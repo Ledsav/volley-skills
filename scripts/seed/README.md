@@ -138,5 +138,8 @@ The script prints the target project id (from the key file) before writing. Run 
 |---|---|
 | `teams/{autoId}` | `name` (age group), `club`, `ageGroup`, `season`, empty `description`/`notes`, empty `developmentPlan`, `adminEmails: [<--admin>]`, `createdBy: "seed-script"`, `createdAt` |
 | `adminAllowlist/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` — lets that email become a global admin on sign-in |
+| `sectionAccess/exercises` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/exercises` |
+| `sectionAccess/trainings` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/trainings` |
+| `sectionAccess/guides` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/admin/guides` |
 | `skillGuide/config` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
 | `teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |

@@ -2,11 +2,14 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { ensureUserDoc } from './usersApi';
+import { resolveAccess } from './access';
+import type { Access } from './access';
 import type { AppUser } from '../types/auth';
 
-interface AuthContextValue {
+export interface AuthContextValue {
   firebaseUser: User | null;
   appUser: AppUser | null;
+  access: Access | null;
   loading: boolean;
   authError: string | null;
 }
@@ -14,6 +17,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   firebaseUser: null,
   appUser: null,
+  access: null,
   loading: true,
   authError: null,
 });
@@ -21,6 +25,7 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
+  const [access, setAccess] = useState<Access | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -31,12 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (user && user.email) {
           const resolved = await ensureUserDoc(user.uid, user.email);
           setAppUser(resolved);
+          setAccess(await resolveAccess(resolved));
         } else {
           setAppUser(null);
+          setAccess(null);
         }
         setAuthError(null);
       } catch {
         setAppUser(null);
+        setAccess(null);
         setAuthError('Could not finish signing you in.');
       } finally {
         setLoading(false);
@@ -46,7 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ firebaseUser, appUser, loading, authError }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ firebaseUser, appUser, access, loading, authError }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

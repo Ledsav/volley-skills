@@ -4,6 +4,7 @@ import { saveGrants, emptyGrantSet, listGrantHolders } from './accessApi';
 const arrayUnion = vi.fn((...v: string[]) => ({ __op: 'union', v }));
 const arrayRemove = vi.fn((...v: string[]) => ({ __op: 'remove', v }));
 const update = vi.fn();
+const set = vi.fn();
 const commit = vi.fn().mockResolvedValue(undefined);
 const getDocs = vi.fn();
 const getDoc = vi.fn();
@@ -19,12 +20,12 @@ vi.mock('firebase/firestore', () => ({
   getDoc: (...a: unknown[]) => getDoc(...a),
   arrayUnion: (...v: string[]) => arrayUnion(...v),
   arrayRemove: (...v: string[]) => arrayRemove(...v),
-  writeBatch: () => ({ update, commit }),
+  writeBatch: () => ({ update, set, commit }),
   type: {},
 }));
 vi.mock('../firebase/config', () => ({ db: {} }));
 
-beforeEach(() => { update.mockReset(); commit.mockReset().mockResolvedValue(undefined); });
+beforeEach(() => { update.mockReset(); set.mockReset(); commit.mockReset().mockResolvedValue(undefined); });
 
 describe('saveGrants', () => {
   it('only writes docs whose membership changed', async () => {
@@ -34,11 +35,19 @@ describe('saveGrants', () => {
 
     expect(update).toHaveBeenCalledWith('teams/t3', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
     expect(update).toHaveBeenCalledWith('teams/t1', { adminEmails: { __op: 'remove', v: ['coach@example.com'] } });
-    expect(update).toHaveBeenCalledWith('sectionAccess/trainings', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
-    expect(update).toHaveBeenCalledWith('sectionAccess/exercises', { adminEmails: { __op: 'remove', v: ['coach@example.com'] } });
+    expect(set).toHaveBeenCalledWith(
+      'sectionAccess/trainings',
+      { adminEmails: { __op: 'union', v: ['coach@example.com'] } },
+      { merge: true },
+    );
+    expect(set).toHaveBeenCalledWith(
+      'sectionAccess/exercises',
+      { adminEmails: { __op: 'remove', v: ['coach@example.com'] } },
+      { merge: true },
+    );
     // t2 unchanged, guides unchanged → not written
     expect(update).not.toHaveBeenCalledWith('teams/t2', expect.anything());
-    expect(update).not.toHaveBeenCalledWith('sectionAccess/guides', expect.anything());
+    expect(set).not.toHaveBeenCalledWith('sectionAccess/guides', expect.anything(), expect.anything());
     expect(commit).toHaveBeenCalledTimes(1);
   });
 

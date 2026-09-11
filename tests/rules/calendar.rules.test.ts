@@ -8,6 +8,7 @@ describe('calendar rules', () => {
     await env.clearFirestore();
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
+      await db.doc('adminAllowlist/super@example.com').set({});
       await db.doc('sectionAccess/trainings').set({ adminEmails: ['coach@example.com'] });
       await db.doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
       await db.doc('teams/team-2').set({ name: 'U15', adminEmails: ['other-coach@example.com'] });
@@ -115,6 +116,23 @@ describe('calendar rules', () => {
       })
     );
     await assertFails(otherDb.doc('teams/team-1/calendar/session-1').delete());
+  });
+
+  it('lets a super-admin who is NOT in adminEmails read, create, and delete sessions', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();
+    await assertSucceeds(db.doc('teams/team-1/calendar/session-1').get());
+    await assertSucceeds(
+      db.collection('teams/team-1/calendar').add({
+        date: '2026-09-12',
+        trainingId: 't-2',
+        trainingBusinessId: 'TR-0008',
+        trainingName: 'Serve & pass',
+        notes: '',
+        createdBy: 'super-uid',
+      })
+    );
+    await assertSucceeds(db.doc('teams/team-1/calendar/session-1').delete());
   });
 
   it('denies creating a session whose date is not a string', async () => {

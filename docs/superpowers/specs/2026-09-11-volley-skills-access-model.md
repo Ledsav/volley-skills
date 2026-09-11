@@ -104,12 +104,20 @@ function canGuides()         { return isSuperAdmin() || inSection('guides'); }
 allow read:  if isSuperAdmin()
              || (request.auth != null && request.auth.token.email in resource.data.adminEmails);
 allow write: if isSuperAdmin()
-             && request.resource.data.keys().hasOnly(['adminEmails'])
              && request.resource.data.adminEmails is list;
 ```
 
 A member reading a section they are not in gets `permission-denied`; the client
 treats that as "not granted" (§6.2), not an error.
+
+Extra audit-metadata fields (`addedBy`/`addedAt` from `scripts/seed/seed.mjs`,
+`migratedAt` from `scripts/migrate/2026-09-11-section-access.mjs`) are
+intentionally permitted on write — there is no `keys().hasOnly(...)` clause —
+since only a super-admin can ever write here and such fields carry no
+privilege. (An earlier version of this rule did restrict to `['adminEmails']`
+only; that broke every client write once a doc carried seed/migration metadata,
+because `update()` binds `request.resource.data` to the full post-merge
+document. Fixed 2026-09-11.)
 
 ### 5.2 Libraries
 
@@ -171,16 +179,39 @@ remove themselves later from the Access page. The rule only requires
 
 ### 5.6 `teams/{teamId}/players/**` and `physicalTests/**`
 
-**Unchanged.** `isTeamAdmin()` still `get()`s `teams/{teamId}.adminEmails`; a team
-grant is unchanged in meaning. Viewer read paths via `viewerEmails` unchanged.
+`isTeamAdmin()` still `get()`s `teams/{teamId}.adminEmails`; a team grant is
+unchanged in meaning. Viewer read paths via `viewerEmails` unchanged.
+
+`isTeamAdmin()` (defined locally inside `players/{playerId}`) now also accepts
+`isSuperAdmin()`:
+
+```
+function isTeamAdmin() {
+  return isSuperAdmin() || request.auth.token.email in
+    get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
+}
+```
+
+This resolves the contradiction with §3 ("Super-admin: full access to every
+team + section") — without it, a super-admin who isn't also listed in a given
+team's `adminEmails` was denied on that team's players/physicalTests, which
+broke `deleteTeam` (deletes all players before the team doc) for any
+super-admin not personally in `adminEmails`. Fixed 2026-09-11.
 
 ### 5.7 `teams/{teamId}/calendar/{sessionId}`
 
 ```
-function isTeamAdmin() { ... }          // unchanged
+function isTeamAdmin() {                // local to this match block
+  return request.auth != null && (isSuperAdmin() || request.auth.token.email in
+    get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+}
 allow read, create, delete: if isTeamAdmin() && canTrainings();
 allow update: if false;                 // unchanged
 ```
+
+Same super-admin escape hatch as §5.6, fixed 2026-09-11. A super-admin also
+automatically satisfies `canTrainings()`, so this match block needs no other
+change.
 
 `create` keeps `createdBy == request.auth.uid && date is string`. Heaviest
 rule-eval on this path: `get(team)` + `get(sectionAccess/trainings)` = 2 `get()`s,
@@ -360,16 +391,24 @@ three section docs so the dev/emulator admin is fully functional. Update
 
 ## 9. Rollout order
 
-1. Rules + rules tests (behind the current app, which still uses `isAdmin()` —
-   land rules first only if back-fill has run, otherwise land together).
-2. `sectionAccess` seed + migration script.
-3. Types (`UserRole`), `ensureUserDoc`, access context.
-4. Route guards + nav.
-5. `AccessManagerPage` + `accessApi`.
-6. `TeamSettingsTab` / `TeamsListPage` / `TeamPage` (Calendar tab) edits.
-7. Remove `RequireAdmin`, `addTeamAdmin`, `removeTeamAdmin`.
+Development order (this repo, before any prod deploy): rules + rules tests,
+`sectionAccess` seed + migration script, types (`UserRole`)/`ensureUserDoc`/
+access context, route guards + nav, `AccessManagerPage` + `accessApi`,
+`TeamSettingsTab`/`TeamsListPage`/`TeamPage` (Calendar tab) edits, then remove
+`RequireAdmin`, `addTeamAdmin`, `removeTeamAdmin`.
 
-Migration (§7.1) runs against prod between steps and before the new client ships.
+**Prod deploy order is the reverse of "rules first": the migration script
+(§7.1) must run BEFORE the new `firestore.rules` are deployed, never after.**
+The migration uses the Admin SDK, so it bypasses rules entirely and works fine
+against the *old* rules. If the new rules land first, there is a window —
+until the migration creates `sectionAccess/*` and relabels `users.role` —
+where `inSection()` denies everyone, and (more severely) the `users/{uid}`
+create rule only accepts `role: 'member'`/`'superadmin'`, so the old client
+(still being served) trying `role: 'admin'` then falling back to `role:
+'viewer'` gets both denied and a brand-new user can't sign in at all. So the
+order is: **1) run the migration script against prod, 2) deploy the new
+`firestore.rules`, 3) ship the new client build.** See
+`docs/PRODUCTION-READINESS.md` for the operational checklist item.
 
 ## 10. Open questions
 

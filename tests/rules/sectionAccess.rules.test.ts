@@ -50,10 +50,26 @@ describe('sectionAccess + section-gated libraries', () => {
     await assertFails(db.doc('sectionAccess/trainings').get());
   });
 
-  it('rejects a super-admin write with a bad shape', async () => {
+  it('rejects a non-list adminEmails on write', async () => {
     const db = await ctx('super-uid', 'super@example.com');
     await assertFails(db.doc('sectionAccess/guides').update({ adminEmails: 'nope' }));
-    await assertFails(db.doc('sectionAccess/guides').update({ adminEmails: [], extra: 1 }));
+    await assertSucceeds(db.doc('sectionAccess/guides').update({ adminEmails: [], extra: 1 }));
+  });
+
+  it('lets a super-admin update a section doc that already carries seed/migration metadata', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (c) =>
+      c.firestore().doc('sectionAccess/exercises').set({
+        adminEmails: ['ex@example.com'],
+        addedBy: 'seed-script',
+        addedAt: new Date(),
+        migratedAt: new Date(),
+      })
+    );
+    const db = await ctx('super-uid', 'super@example.com');
+    await assertSucceeds(
+      db.doc('sectionAccess/exercises').set({ adminEmails: ['new@example.com'] }, { merge: true })
+    );
   });
 
   it('grants exercises CRUD to an exercises-granted member', async () => {

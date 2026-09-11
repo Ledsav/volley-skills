@@ -10,6 +10,7 @@ if (!isProd) { console.error('Pass --prod to run.'); process.exit(1); }
 
 const key = JSON.parse(readFileSync('serviceAccountKey.json', 'utf8'));
 initializeApp({ credential: cert(key) });
+console.log(`Target: PROD project "${key.project_id}"`);
 const db = getFirestore();
 
 const emails = new Set();

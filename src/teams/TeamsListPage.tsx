@@ -18,7 +18,7 @@ function teamMonogram(name: string): string {
 }
 
 export function TeamsListPage() {
-  const { appUser } = useAuth();
+  const { appUser, access } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -53,10 +53,10 @@ export function TeamsListPage() {
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
         <div
           className={`grid gap-2 sm:flex ${
-            appUser?.role === 'superadmin' ? 'grid-cols-2' : 'grid-cols-1'
+            access?.isSuperAdmin ? 'grid-cols-2' : 'grid-cols-1'
           }`}
         >
-          {appUser?.role === 'superadmin' && (
+          {access?.isSuperAdmin && (
             <Button
               variant="secondary"
               size="sm"
@@ -66,14 +66,16 @@ export function TeamsListPage() {
               Import
             </Button>
           )}
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setShowCreate(true)}
-          >
-            Create team
-          </Button>
+          {access?.isSuperAdmin && (
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowCreate(true)}
+            >
+              Create team
+            </Button>
+          )}
         </div>
       </div>
 
@@ -81,7 +83,7 @@ export function TeamsListPage() {
 
       {teams.length === 0 ? (
         <div className="rounded-lg border border-border bg-surface p-6 text-center text-sm text-slate shadow-card">
-          No teams yet.
+          {access?.isSuperAdmin ? 'No teams yet.' : 'No teams assigned yet — ask your club admin.'}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

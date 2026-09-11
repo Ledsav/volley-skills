@@ -107,22 +107,32 @@ export function AccessManagerPage() {
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
           <div className="mb-3 flex flex-col gap-2">
             <label htmlFor="new-person" className="text-sm font-medium text-ink">Add person by email</label>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2">
               <Input id="new-person" type="email" value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)} className="w-full sm:w-auto sm:flex-1" />
-              <Button variant="primary" size="sm" className="w-full sm:w-auto" onClick={addPerson}>Add person</Button>
+                onChange={(e) => setNewEmail(e.target.value)} className="w-full" />
+              <Button variant="primary" size="sm" className="w-full" onClick={addPerson}>Add person</Button>
             </div>
           </div>
-          <ul className="divide-y divide-border">
-            {holders.map((h) => (
-              <li key={h.email}>
-                <button type="button" onClick={() => select(h.email)}
-                  className={`w-full px-1 py-2 text-left text-sm ${selected === h.email ? 'font-semibold text-blue' : 'text-ink'}`}>
-                  {h.email}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {holders.length > 0 && (
+            <p className="mb-2 text-sm font-medium text-ink">People with access</p>
+          )}
+          {holders.length === 0 ? (
+            <p className="text-sm text-slate">No one has been granted access yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {holders.map((h) => (
+                <li key={h.email}>
+                  <button type="button" onClick={() => select(h.email)} title={h.email}
+                    aria-current={selected === h.email}
+                    className={`block w-full truncate rounded-md px-2 py-2 text-left text-sm ${
+                      selected === h.email ? 'bg-blue/10 font-semibold text-blue' : 'text-ink hover:bg-bg'
+                    }`}>
+                    {h.email}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <p className="mt-3 border-t border-border pt-3 text-xs text-slate">
             Super-admins (full access) are managed directly in Firestore
             (<code>adminAllowlist</code>) and are not listed here.
@@ -131,10 +141,12 @@ export function AccessManagerPage() {
 
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
           {!selected ? (
-            <p className="text-sm text-slate">Select a person to manage their access.</p>
+            holders.length > 0 && (
+              <p className="text-sm text-slate">Select a person to manage their access.</p>
+            )
           ) : (
             <>
-              <h2 className="mb-4 text-lg font-semibold text-ink">{selected}</h2>
+              <h2 className="mb-4 break-all text-lg font-semibold text-ink">{selected}</h2>
 
               <fieldset className="mb-4">
                 <legend className="mb-2 text-sm font-medium text-ink">Sections</legend>

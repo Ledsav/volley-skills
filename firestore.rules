@@ -1,11 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Retained only for the teams/{teamId} create gate; Task 2 removes it.
-    function isAdmin() {
-      return request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
     function isSuperAdmin() {
       return request.auth != null
         && exists(/databases/$(database)/documents/adminAllowlist/$(request.auth.token.email));
@@ -104,27 +99,23 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.keys().hasOnly(['email', 'role'])
         && (
-          request.resource.data.role == 'viewer' ||
-          (request.resource.data.role == 'admin' &&
-            exists(/databases/$(database)/documents/adminAllowlist/$(request.auth.token.email)))
+          request.resource.data.role == 'member' ||
+          (request.resource.data.role == 'superadmin' && isSuperAdmin())
         );
       allow update, delete: if false;
     }
 
     match /teams/{teamId} {
-      allow read: if request.auth != null
-        && request.auth.token.email in resource.data.adminEmails;
-      // isAdmin() keeps adminAllowlist the sole gate on becoming an admin:
-      // without it any signed-in viewer could create a team and be its admin.
-      allow create: if request.auth != null
-        && isAdmin()
-        && request.auth.token.email in request.resource.data.adminEmails
-        && request.resource.data.createdBy == request.auth.uid;
-      allow update: if request.auth != null
-        && request.auth.token.email in resource.data.adminEmails
-        && request.resource.data.adminEmails.size() > 0;
-      allow delete: if request.auth != null
-        && request.auth.token.email in resource.data.adminEmails;
+      allow read:   if isSuperAdmin()
+                    || (request.auth != null && request.auth.token.email in resource.data.adminEmails);
+      allow create: if isSuperAdmin()
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.adminEmails is list;
+      allow update: if isSuperAdmin()
+                    || (request.auth != null
+                        && request.auth.token.email in resource.data.adminEmails
+                        && request.resource.data.adminEmails == resource.data.adminEmails);
+      allow delete: if isSuperAdmin();
 
       match /players/{playerId} {
         function isTeamAdmin() {
@@ -173,12 +164,12 @@ service cloud.firestore {
           return request.auth != null && request.auth.token.email in
             get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
         }
-        allow read: if isTeamAdmin();
-        allow create: if isTeamAdmin()
+        allow read: if isTeamAdmin() && canTrainings();
+        allow create: if isTeamAdmin() && canTrainings()
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.date is string;
         allow update: if false;
-        allow delete: if isTeamAdmin();
+        allow delete: if isTeamAdmin() && canTrainings();
       }
     }
   }

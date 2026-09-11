@@ -8,6 +8,7 @@ describe('calendar rules', () => {
     await env.clearFirestore();
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
+      await db.doc('sectionAccess/trainings').set({ adminEmails: ['coach@example.com'] });
       await db.doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
       await db.doc('teams/team-2').set({ name: 'U15', adminEmails: ['other-coach@example.com'] });
       await db.doc('teams/team-1/players/player-1').set({
@@ -61,6 +62,25 @@ describe('calendar rules', () => {
 
     const strangerDb = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
     await assertFails(strangerDb.doc('teams/team-1/calendar/session-1').get());
+  });
+
+  it('denies a team admin who has no trainings access', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (c) =>
+      c.firestore().doc('sectionAccess/trainings').set({ adminEmails: [] }) // revoke
+    );
+    const db = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertFails(db.doc('teams/team-1/calendar/session-1').get());
+    await assertFails(
+      db.collection('teams/team-1/calendar').add({
+        date: '2026-09-12',
+        trainingId: 't-2',
+        trainingBusinessId: 'TR-0008',
+        trainingName: 'x',
+        notes: '',
+        createdBy: 'coach-uid',
+      })
+    );
   });
 
   it('denies creating a session whose createdBy is not the caller', async () => {

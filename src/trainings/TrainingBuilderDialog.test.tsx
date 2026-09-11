@@ -4,6 +4,7 @@ import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import * as trainingsApi from './trainingsApi';
 import * as exercisesApi from '../exercises/exercisesApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue } from '../test/authValue';
 
 vi.mock('./trainingsApi');
 vi.mock('../exercises/exercisesApi');
@@ -23,12 +24,7 @@ const addBtn = (name: string) => screen.getByRole('button', { name: `Add ${name}
 describe('TrainingBuilderDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never }));
     vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exOne, exTwo], lastDoc: null, hasMore: false });
     vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([]);
   });

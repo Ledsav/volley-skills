@@ -9,12 +9,17 @@ vi.mock('./TrainingBuilderDialog', () => ({
   TrainingBuilderDialog: ({ onSaved }: { onSaved: () => void }) => <button onClick={onSaved}>builder-stub</button>,
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({
-    firebaseUser: { uid: 'coach-uid' },
-    appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-  }),
-}));
+vi.mock('../auth/AuthContext', async () => {
+  const { authValue, superAdminAccess } = await import('../test/authValue');
+  return {
+    useAuth: () =>
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' as const },
+        access: superAdminAccess,
+      }),
+  };
+});
 
 const training = {
   id: 't-1',

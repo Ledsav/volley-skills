@@ -22,6 +22,7 @@ describe('RequireAdmin', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
       appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+      access: null,
       loading: false,
       authError: null,
     });
@@ -35,6 +36,7 @@ describe('RequireAdmin', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'parent-uid', email: 'parent@example.com' } as never,
       appUser: { uid: 'parent-uid', email: 'parent@example.com', role: 'member' },
+      access: null,
       loading: false,
       authError: null,
     });

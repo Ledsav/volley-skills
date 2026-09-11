@@ -5,6 +5,7 @@ import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
 import * as playersApi from '../players/playersApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue, superAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 
 vi.mock('./teamsApi');
@@ -43,12 +44,13 @@ function renderTeamPage() {
 
 describe('TeamPage', () => {
   beforeEach(() => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
   });
 
   it('shows an access message instead of loading forever when the read is rejected', async () => {

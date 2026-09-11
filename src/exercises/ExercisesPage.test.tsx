@@ -10,12 +10,17 @@ vi.mock('./ExerciseFormDialog', () => ({
   ),
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({
-    firebaseUser: { uid: 'coach-uid' },
-    appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-  }),
-}));
+vi.mock('../auth/AuthContext', async () => {
+  const { authValue, superAdminAccess } = await import('../test/authValue');
+  return {
+    useAuth: () =>
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' as const },
+        access: superAdminAccess,
+      }),
+  };
+});
 
 const exercise = {
   id: 'ex-1',

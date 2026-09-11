@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/AuthContext';
+import { authValue } from '../test/authValue';
 import { clearDiagramClipboard } from './diagramClipboard';
 import { DiagramEditorPage } from './DiagramEditorPage';
 import * as diagramsApi from './diagramsApi';
@@ -31,12 +32,7 @@ describe('DiagramEditorPage', () => {
     // can't make a later paste-test pass for the wrong reason.
     clearDiagramClipboard();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never }));
     vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([
       { id: 'd1', title: 'Setup', order: 0, scene: { v: 1, court: 'full', showZones: false, items: [] }, updatedBy: 'x', updatedAt: null },
     ]);

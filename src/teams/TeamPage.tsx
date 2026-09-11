@@ -20,7 +20,8 @@ type TeamTab = 'overview' | 'calendar' | 'plan' | 'settings';
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, access } = useAuth();
+  const canCalendar = !!access?.sections.trainings;
   const [team, setTeam] = useState<Team | null>(null);
   const [tab, setTab] = useState<TeamTab>('overview');
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,8 @@ export function TeamPage() {
 
   if (!team || !teamId) return <p className="p-6 text-slate">Loading team...</p>;
 
+  const activeTab = tab === 'calendar' && !canCalendar ? 'overview' : tab;
+
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
@@ -55,22 +58,24 @@ export function TeamPage() {
         <p className="mt-1 text-slate">{team.description}</p>
 
         <nav className="mt-4 flex gap-4 overflow-x-auto border-b border-border sm:gap-6">
-          <Tab active={tab === 'overview'} onClick={() => setTab('overview')}>
+          <Tab active={activeTab === 'overview'} onClick={() => setTab('overview')}>
             Overview
           </Tab>
-          <Tab active={tab === 'calendar'} onClick={() => setTab('calendar')}>
-            Calendar
-          </Tab>
-          <Tab active={tab === 'plan'} onClick={() => setTab('plan')}>
+          {canCalendar && (
+            <Tab active={activeTab === 'calendar'} onClick={() => setTab('calendar')}>
+              Calendar
+            </Tab>
+          )}
+          <Tab active={activeTab === 'plan'} onClick={() => setTab('plan')}>
             Development Plan
           </Tab>
-          <Tab active={tab === 'settings'} onClick={() => setTab('settings')}>
+          <Tab active={activeTab === 'settings'} onClick={() => setTab('settings')}>
             Settings
           </Tab>
         </nav>
 
         <div className="mt-6">
-          {tab === 'overview' && (
+          {activeTab === 'overview' && (
             <>
               <TeamStatsRow players={rosterPlayers} />
               <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
@@ -103,15 +108,15 @@ export function TeamPage() {
               />
             </>
           )}
-          {tab === 'calendar' && <TeamCalendarTab teamId={teamId} />}
-          {tab === 'plan' && (
+          {activeTab === 'calendar' && canCalendar && <TeamCalendarTab teamId={teamId} />}
+          {activeTab === 'plan' && (
             <DevelopmentPlanEditor
               plan={team.developmentPlan}
               onSave={(plan) => updateTeamDevelopmentPlan(teamId, plan).then(() => setTeam({ ...team, developmentPlan: plan }))}
               isAdmin={true}
             />
           )}
-          {tab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
+          {activeTab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
         </div>
       </div>
       {showAddPlayer && (

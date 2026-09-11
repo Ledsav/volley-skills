@@ -99,6 +99,25 @@ describe('TeamPage', () => {
     expect(actions.className).toContain('sm:flex');
   });
 
+  it('hides the Calendar tab when the user has no trainings access', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue()); // member, no sections
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    expect(screen.queryByText('Calendar')).not.toBeInTheDocument();
+  });
+
+  it('shows the Calendar tab with trainings access', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ access: { isSuperAdmin: false, sections: { exercises: false, trainings: true, guides: false } } })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByText('Calendar')).toBeInTheDocument();
+  });
+
   it('opens the player bulk-import dialog from the overview tab', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });

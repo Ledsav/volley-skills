@@ -1,17 +1,11 @@
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, ClipboardList, Dumbbell, LogOut, Settings, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Users } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { useAuth } from '../auth/AuthContext';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import logo from '../assets/logo.png';
-
-const NAV_ITEMS = [
-  { to: '/teams', label: 'Teams', Icon: Users },
-  { to: '/exercises', label: 'Exercises', Icon: Dumbbell },
-  { to: '/trainings', label: 'Trainings', Icon: ClipboardList },
-  { to: '/admin/guides', label: 'Guides', Icon: BookOpen },
-];
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
@@ -27,6 +21,15 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const { access } = useAuth();
+
+  const navItems = [
+    { to: '/teams', label: 'Teams', Icon: Users, show: true },
+    { to: '/exercises', label: 'Exercises', Icon: Dumbbell, show: !!access?.sections.exercises },
+    { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
+    { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides },
+    { to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isSuperAdmin },
+  ].filter((item) => item.show);
 
   async function handleSignOut() {
     await signOut(auth);
@@ -41,7 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-lg font-semibold tracking-[-0.01em] text-white">Volley Skills</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {NAV_ITEMS.map(({ to, label, Icon }) => (
+          {navItems.map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} className={sidebarLinkClass}>
               <Icon size={20} strokeWidth={1.5} />
               {label}
@@ -64,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex-1 pb-16 lg:pb-0">{children}</div>
 
       <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
-        {NAV_ITEMS.map(({ to, label, Icon }) => (
+        {navItems.map(({ to, label, Icon }) => (
           <NavLink key={to} to={to} className={bottomTabClass}>
             <Icon size={22} strokeWidth={1.5} />
             {label}

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SkillGuideEditor } from './SkillGuideEditor';
 import * as skillGuideApi from './skillGuideApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue, superAdminAccess } from '../test/authValue';
 
 vi.mock('./skillGuideApi');
 vi.mock('../auth/AuthContext');
@@ -10,12 +11,13 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 
 describe('SkillGuideEditor', () => {
   it('loads the guide, edits a range description, and saves', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
       skills: [
         {
@@ -50,12 +52,13 @@ describe('SkillGuideEditor', () => {
   });
 
   it('shows an error message when the save is rejected', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
       skills: [
         {
@@ -79,12 +82,13 @@ describe('SkillGuideEditor', () => {
   });
 
   it('shows an error and no form when loading the guide fails', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockRejectedValue({ code: 'unavailable' });
 
     render(<SkillGuideEditor />);
@@ -94,12 +98,13 @@ describe('SkillGuideEditor', () => {
   });
 
   it('disables Save until the guide has loaded', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     let resolveLoad: (value: { skills: never[]; updatedBy: string; updatedAt: null }) => void = () => {};
     const pending = new Promise((resolve) => {
       resolveLoad = resolve;

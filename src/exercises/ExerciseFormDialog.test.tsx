@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExerciseFormDialog } from './ExerciseFormDialog';
 import * as exercisesApi from './exercisesApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue } from '../test/authValue';
 
 vi.mock('./exercisesApi');
 vi.mock('../auth/AuthContext');
@@ -18,12 +19,7 @@ describe('ExerciseFormDialog', () => {
   });
 
   it('creates a new exercise from the form fields', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
     const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-1');
     const onSaved = vi.fn();
 
@@ -46,7 +42,7 @@ describe('ExerciseFormDialog', () => {
   });
 
   it('updates an existing exercise without needing an auth uid', async () => {
-    vi.mocked(useAuth).mockReturnValue({ firebaseUser: null, appUser: null, loading: false, authError: null });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null }));
     const updateSpy = vi.spyOn(exercisesApi, 'updateExercise').mockResolvedValue(undefined);
 
     render(
@@ -68,12 +64,7 @@ describe('ExerciseFormDialog', () => {
   });
 
   it('blocks submission with an empty name', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never }));
     const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-1');
 
     render(
@@ -88,7 +79,7 @@ describe('ExerciseFormDialog', () => {
   });
 
   it('shows an Edit diagrams button and a diagram strip in edit mode', async () => {
-    vi.mocked(useAuth).mockReturnValue({ firebaseUser: null, appUser: null, loading: false, authError: null });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null }));
     const diagramsApi = await import('../diagrams/diagramsApi');
     vi.spyOn(diagramsApi, 'listDiagrams').mockResolvedValue([
       { id: 'd1', title: 'Setup', order: 0, updatedBy: 'x', updatedAt: null, scene: { v: 1, court: 'full', showZones: false, items: [] } },
@@ -109,18 +100,13 @@ describe('ExerciseFormDialog', () => {
   });
 
   it('does not show Edit diagrams when creating a new exercise', () => {
-    vi.mocked(useAuth).mockReturnValue({ firebaseUser: { uid: 'u' } as never, appUser: null, loading: false, authError: null });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'u' } as never }));
     render(<MemoryRouter><ExerciseFormDialog onClose={vi.fn()} onSaved={vi.fn()} /></MemoryRouter>);
     expect(screen.queryByRole('button', { name: /edit diagrams/i })).not.toBeInTheDocument();
   });
 
   it('creates the exercise and navigates to its diagram editor from "Create & add diagrams"', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never }));
     const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-42');
     const onSaved = vi.fn();
 
@@ -152,7 +138,7 @@ describe('ExerciseFormDialog', () => {
   });
 
   it('does not show "Create & add diagrams" in edit mode', async () => {
-    vi.mocked(useAuth).mockReturnValue({ firebaseUser: null, appUser: null, loading: false, authError: null });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null }));
     render(
       <MemoryRouter>
         <ExerciseFormDialog

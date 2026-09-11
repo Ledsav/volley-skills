@@ -28,7 +28,7 @@ describe('TeamsListPage', () => {
   it('renders each team as a card with its age group and season', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });
@@ -48,7 +48,7 @@ describe('TeamsListPage', () => {
   it('adapts the page header and gutter for mobile: title stacks above a full-width action row', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });
@@ -78,7 +78,7 @@ describe('TeamsListPage', () => {
   it('opens the bulk-import dialog from the Import button', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });

@@ -53,10 +53,10 @@ export function TeamsListPage() {
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
         <div
           className={`grid gap-2 sm:flex ${
-            appUser?.role === 'admin' ? 'grid-cols-2' : 'grid-cols-1'
+            appUser?.role === 'superadmin' ? 'grid-cols-2' : 'grid-cols-1'
           }`}
         >
-          {appUser?.role === 'admin' && (
+          {appUser?.role === 'superadmin' && (
             <Button
               variant="secondary"
               size="sm"

@@ -18,10 +18,10 @@ function renderGuard() {
 }
 
 describe('RequireAdmin', () => {
-  it('renders the page for a global admin', () => {
+  it('renders the page for a super-admin', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });
@@ -31,10 +31,10 @@ describe('RequireAdmin', () => {
     expect(screen.getByText('Admin content')).toBeInTheDocument();
   });
 
-  it('denies an authenticated viewer', () => {
+  it('denies a member', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'parent-uid', email: 'parent@example.com' } as never,
-      appUser: { uid: 'parent-uid', email: 'parent@example.com', role: 'viewer' },
+      appUser: { uid: 'parent-uid', email: 'parent@example.com', role: 'member' },
       loading: false,
       authError: null,
     });

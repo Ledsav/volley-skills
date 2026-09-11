@@ -26,7 +26,19 @@ describe('ensureUserDoc', () => {
 
     const result = await ensureUserDoc('uid-1', 'coach@example.com');
 
-    expect(result).toEqual({ uid: 'uid-1', email: 'coach@example.com', role: 'admin' });
+    expect(result).toEqual({ uid: 'uid-1', email: 'coach@example.com', role: 'superadmin' });
+    expect(mockSetDoc).not.toHaveBeenCalled();
+  });
+
+  it('maps a legacy stored role viewer to member', async () => {
+    mockGetDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ email: 'parent@example.com', role: 'viewer' }),
+    });
+
+    const result = await ensureUserDoc('uid-1b', 'parent@example.com');
+
+    expect(result).toEqual({ uid: 'uid-1b', email: 'parent@example.com', role: 'member' });
     expect(mockSetDoc).not.toHaveBeenCalled();
   });
 
@@ -36,8 +48,12 @@ describe('ensureUserDoc', () => {
 
     const result = await ensureUserDoc('uid-2', 'coach@example.com');
 
-    expect(result).toEqual({ uid: 'uid-2', email: 'coach@example.com', role: 'admin' });
+    expect(result).toEqual({ uid: 'uid-2', email: 'coach@example.com', role: 'superadmin' });
     expect(mockSetDoc).toHaveBeenCalledTimes(1);
+    expect(mockSetDoc).toHaveBeenCalledWith('doc-ref', {
+      email: 'coach@example.com',
+      role: 'superadmin',
+    });
   });
 
   it('falls back to role viewer when the admin write is permission-denied', async () => {
@@ -48,8 +64,12 @@ describe('ensureUserDoc', () => {
 
     const result = await ensureUserDoc('uid-3', 'parent@example.com');
 
-    expect(result).toEqual({ uid: 'uid-3', email: 'parent@example.com', role: 'viewer' });
+    expect(result).toEqual({ uid: 'uid-3', email: 'parent@example.com', role: 'member' });
     expect(mockSetDoc).toHaveBeenCalledTimes(2);
+    expect(mockSetDoc).toHaveBeenLastCalledWith('doc-ref', {
+      email: 'parent@example.com',
+      role: 'member',
+    });
   });
 
   it('rethrows non-permission errors instead of silently falling back', async () => {

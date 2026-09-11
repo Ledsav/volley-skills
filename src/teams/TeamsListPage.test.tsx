@@ -97,4 +97,17 @@ describe('TeamsListPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
     expect(screen.getByRole('dialog', { name: /Import teams/ })).toBeInTheDocument();
   });
+
+  it('hides Create team and Import from a member', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [], lastDoc: null, hasMore: false });
+    render(
+      <MemoryRouter>
+        <TeamsListPage />
+      </MemoryRouter>
+    );
+    await screen.findByText('No teams assigned yet — ask your club admin.');
+    expect(screen.queryByRole('button', { name: 'Create team' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Import' })).not.toBeInTheDocument();
+  });
 });

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import * as teamsApi from './teamsApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue } from '../test/authValue';
 
 vi.mock('./teamsApi');
 vi.mock('../auth/AuthContext');
@@ -10,12 +11,9 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 
 describe('CreateTeamDialog', () => {
   it('submits the form fields to createTeam and calls onCreated', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+    );
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockResolvedValue('team-1');
     const onCreated = vi.fn();
 
@@ -36,12 +34,9 @@ describe('CreateTeamDialog', () => {
   });
 
   it('shows an error message when createTeam is rejected', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+    );
     vi.spyOn(teamsApi, 'createTeam').mockRejectedValue({ code: 'permission-denied' });
     const onCreated = vi.fn();
 

@@ -4,6 +4,7 @@ import { AssignTrainingDialog } from './AssignTrainingDialog';
 import * as calendarApi from './calendarApi';
 import * as trainingsApi from '../trainings/trainingsApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue } from '../test/authValue';
 
 vi.mock('./calendarApi');
 vi.mock('../trainings/trainingsApi');
@@ -25,12 +26,7 @@ const training = {
 describe('AssignTrainingDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: null,
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never }));
     vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null, hasMore: false });
   });
 

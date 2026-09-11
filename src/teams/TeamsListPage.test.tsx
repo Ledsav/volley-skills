@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TeamsListPage } from './TeamsListPage';
 import * as teamsApi from './teamsApi';
 import { useAuth } from '../auth/AuthContext';
+import { authValue, superAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 
 vi.mock('./teamsApi');
@@ -26,12 +27,13 @@ const team: Team = {
 
 describe('TeamsListPage', () => {
   it('renders each team as a card with its age group and season', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
 
     render(
@@ -46,12 +48,13 @@ describe('TeamsListPage', () => {
   });
 
   it('adapts the page header and gutter for mobile: title stacks above a full-width action row', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
 
     const { container } = render(
@@ -76,12 +79,13 @@ describe('TeamsListPage', () => {
   });
 
   it('opens the bulk-import dialog from the Import button', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-      loading: false,
-      authError: null,
-    });
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
     vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
 
     render(

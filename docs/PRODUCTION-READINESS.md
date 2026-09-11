@@ -52,6 +52,10 @@ Last reviewed: 2026-09-09
       `serviceAccountKey.json` at the repo root (console → Project Settings →
       Service Accounts → Generate new private key). Seeds one team,
       `skillGuide/config`, `adminAllowlist/<email>`, and the 20 player docs.
+- [ ] **Run `node scripts/migrate/2026-09-11-section-access.mjs --prod`** after
+      deploying the new `firestore.rules` and before shipping the new client
+      (creates `sectionAccess/*`, back-fills existing admins, relabels
+      `users.role`).
 - [x] **Verify no analytics/tracking slipped in** — grepped source on 2026-09-09:
       no gtag / GA / GTM / Sentry / posthog / segment / `firebase/analytics`.
       Re-grep the built `dist/` before shipping a bundle with new deps.

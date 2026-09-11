@@ -81,10 +81,10 @@ export async function saveGrants(email: string, next: GrantSet, prev: GrantSet):
   }
   for (const section of SECTION_KEYS) {
     if (next.sections[section] && !prev.sections[section]) {
-      batch.update(doc(db, 'sectionAccess', section), { adminEmails: arrayUnion(email) });
+      batch.set(doc(db, 'sectionAccess', section), { adminEmails: arrayUnion(email) }, { merge: true });
     }
     if (!next.sections[section] && prev.sections[section]) {
-      batch.update(doc(db, 'sectionAccess', section), { adminEmails: arrayRemove(email) });
+      batch.set(doc(db, 'sectionAccess', section), { adminEmails: arrayRemove(email) }, { merge: true });
     }
   }
   await batch.commit();

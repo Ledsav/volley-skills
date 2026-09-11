@@ -68,6 +68,12 @@ describe('teams rules', () => {
     await assertFails(outsiderDb.doc('teams/team-1').update({ name: 'Hacked' }));
   });
 
+  it('lets a super-admin read a team they do not administer', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();
+    await assertSucceeds(db.doc('teams/team-1').get());
+  });
+
   it('lets a super-admin change adminEmails on any team', async () => {
     const env = await getTestEnv();
     const db = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();

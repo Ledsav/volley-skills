@@ -201,7 +201,7 @@ async function main() {
       adminEmails: [args.admin],
       addedBy: 'seed-script',
       addedAt: now,
-    });
+    }, { merge: true });
   }
 
   batch.set(db.doc('skillGuide/config'), {

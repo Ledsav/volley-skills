@@ -5,6 +5,7 @@ import { getTestEnv } from './testEnv';
 async function seedTeamAndPlayer(env: Awaited<ReturnType<typeof getTestEnv>>) {
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
+    await db.doc('adminAllowlist/super@example.com').set({});
     await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
     await db.doc('sectionAccess/trainings').set({ adminEmails: [] });
     await db.doc('sectionAccess/guides').set({ adminEmails: [] });
@@ -107,5 +108,13 @@ describe('player rules', () => {
 
     const adminDb = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
     await assertSucceeds(adminDb.doc('teams/team-1/players/player-1').delete());
+  });
+
+  it('lets a super-admin who is NOT in adminEmails read, write, and delete the player', async () => {
+    const env = await getTestEnv();
+    const superDb = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();
+    await assertSucceeds(superDb.doc('teams/team-1/players/player-1').get());
+    await assertSucceeds(superDb.doc('teams/team-1/players/player-1').update({ fullName: 'Super Edit' }));
+    await assertSucceeds(superDb.doc('teams/team-1/players/player-1').delete());
   });
 });

@@ -12,7 +12,7 @@ describe('PhysicalTestGuideEditor', () => {
   it('loads the guide, edits a protocol, and saves', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });
@@ -40,7 +40,7 @@ describe('PhysicalTestGuideEditor', () => {
   it('shows an error and no form when loading the guide fails', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });

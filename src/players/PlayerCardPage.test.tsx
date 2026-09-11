@@ -113,7 +113,7 @@ describe('PlayerCardPage', () => {
   it('lets a team admin delete the player and navigates back to the team', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });
@@ -135,7 +135,7 @@ describe('PlayerCardPage', () => {
   it('exports the player record as JSON when an admin clicks Export', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });
@@ -157,7 +157,7 @@ describe('PlayerCardPage', () => {
   it('surfaces an error and does not download when the export read fails', async () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });

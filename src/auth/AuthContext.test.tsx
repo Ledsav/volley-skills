@@ -40,7 +40,7 @@ describe('AuthProvider', () => {
   });
 
   it('resolves the app user and leaves authError null on success', async () => {
-    mockEnsureUserDoc.mockResolvedValueOnce({ uid: 'coach-uid', email: 'coach@example.com', role: 'admin' });
+    mockEnsureUserDoc.mockResolvedValueOnce({ uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' });
 
     render(
       <AuthProvider>
@@ -48,7 +48,7 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
 
-    await waitFor(() => expect(screen.getByText('appUser: admin')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('appUser: superadmin')).toBeInTheDocument());
     expect(screen.getByText('authError: none')).toBeInTheDocument();
     expect(screen.getByText('loading: false')).toBeInTheDocument();
   });

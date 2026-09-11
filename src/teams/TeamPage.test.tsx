@@ -45,7 +45,7 @@ describe('TeamPage', () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });

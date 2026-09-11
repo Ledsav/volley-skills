@@ -6,7 +6,7 @@ import { RequireAuth } from './RequireAuth';
 function AdminOnly({ children }: { children: ReactNode }) {
   const { appUser } = useAuth();
 
-  if (appUser?.role !== 'admin') {
+  if (appUser?.role !== 'superadmin') {
     return (
       <AuthShell>
         <p role="alert" className="text-red">

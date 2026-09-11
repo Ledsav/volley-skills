@@ -36,7 +36,7 @@ describe('RequireAuth', () => {
   it('renders the protected content for a signed-in user', () => {
     vi.mocked(useAuth).mockReturnValue({
       firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
       loading: false,
       authError: null,
     });

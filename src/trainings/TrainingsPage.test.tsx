@@ -12,7 +12,7 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     firebaseUser: { uid: 'coach-uid' },
-    appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'admin' },
+    appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
   }),
 }));
 

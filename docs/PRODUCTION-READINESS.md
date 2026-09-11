@@ -52,10 +52,15 @@ Last reviewed: 2026-09-09
       `serviceAccountKey.json` at the repo root (console → Project Settings →
       Service Accounts → Generate new private key). Seeds one team,
       `skillGuide/config`, `adminAllowlist/<email>`, and the 20 player docs.
-- [ ] **Run `node scripts/migrate/2026-09-11-section-access.mjs --prod`** after
-      deploying the new `firestore.rules` and before shipping the new client
-      (creates `sectionAccess/*`, back-fills existing admins, relabels
-      `users.role`).
+- [ ] **Run `node scripts/migrate/2026-09-11-section-access.mjs --prod` BEFORE
+      deploying the new `firestore.rules`** (creates `sectionAccess/*`,
+      back-fills existing admins, relabels `users.role`). Order matters: run
+      the migration script first — it uses the Admin SDK and works fine under
+      the *old* rules — THEN deploy the new `firestore.rules`, THEN ship the
+      new client build. Deploying the rules before the migration breaks new
+      user sign-in (the `users` create rule denies both the old `role:
+      'admin'` and `role: 'viewer'` writes) until the migration creates the
+      `sectionAccess/*` docs and relabels existing users.
 - [x] **Verify no analytics/tracking slipped in** — grepped source on 2026-09-09:
       no gtag / GA / GTM / Sentry / posthog / segment / `firebase/analytics`.
       Re-grep the built `dist/` before shipping a bundle with new deps.
@@ -109,6 +114,16 @@ for the detailed steps.
 
 ## C. Ongoing / when it makes sense
 
+- [ ] **Revoking a super-admin needs a manual follow-up** — removing an email
+      from `adminAllowlist` is not enough on its own: their cached
+      `users/{uid}` doc still has `role: 'superadmin'` (that field is
+      immutable by design, `allow update, delete: if false`), so their client
+      keeps showing the full super-admin UI, though every write is now
+      silently denied by the rules (the security boundary holds; only the UX
+      is confusing). To fully revoke, also delete (or edit) their
+      `users/{uid}` doc via the Firebase console or Admin SDK so they get
+      re-resolved as `member` on next sign-in.
+      *Trigger: whenever someone is removed from `adminAllowlist`.*
 - [ ] **Viewer (guardian) invite flow** — per CLAUDE.md this is still TBD; only
       `admin` works end to end today. Needed before you tell any parent they can
       log in. Its own design + build.

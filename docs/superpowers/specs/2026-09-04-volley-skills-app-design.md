@@ -181,6 +181,8 @@ teams/{teamId}/calendar/{sessionId}   — subcollection per team
 
 ## 6. Authorization Model
 
+> **Superseded** by `docs/superpowers/specs/2026-09-11-volley-skills-access-model.md` (the section-scoped access model — `superadmin`/`member` roles, per-team + per-section grants). The section below describes the original `admin`/`viewer` design and is kept for history only.
+
 All authorization is enforced in **Firestore Security Rules**, reading role/membership data directly from documents (no custom auth claims, no Cloud Functions — keeps the whole app on Firebase's free tier).
 
 1. **`adminAllowlist`**: never readable or writable by any client. Sole gate on who can become an admin.

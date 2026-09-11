@@ -3,11 +3,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import * as teamsApi from './teamsApi';
+import { authValue, superAdminAccess } from '../test/authValue';
+import { useAuth } from '../auth/AuthContext';
 import type { Team } from '../types/team';
 
 const mockNavigate = vi.fn();
 
 vi.mock('./teamsApi');
+vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
@@ -39,87 +42,38 @@ function renderSettings(team: Team, onTeamUpdated: (team: Team) => void) {
 describe('TeamSettingsTab', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: superAdminAccess }));
   });
 
-  it('adds a new admin email and reflects it in the list', async () => {
-    vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
-    const onTeamUpdated = vi.fn();
-
-    renderSettings(baseTeam, onTeamUpdated);
-    fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'assistant@example.com' } });
-    fireEvent.click(screen.getByText('Grant access'));
-
-    await waitFor(() =>
-      expect(onTeamUpdated).toHaveBeenCalledWith(
-        expect.objectContaining({ adminEmails: ['coach@example.com', 'assistant@example.com'] })
-      )
-    );
-  });
-
-  it('trims and lowercases the entered email before granting access', async () => {
-    const addSpy = vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
-    const onTeamUpdated = vi.fn();
-
-    renderSettings(baseTeam, onTeamUpdated);
-    fireEvent.change(screen.getByLabelText('Add admin by email'), {
-      target: { value: '  Assistant@Example.com  ' },
-    });
-    fireEvent.click(screen.getByText('Grant access'));
-
-    await waitFor(() =>
-      expect(addSpy).toHaveBeenCalledWith('team-1', 'assistant@example.com', ['coach@example.com'])
-    );
-    expect(onTeamUpdated).toHaveBeenCalledWith(
-      expect.objectContaining({ adminEmails: ['coach@example.com', 'assistant@example.com'] })
-    );
-  });
-
-  it('does not re-add an email that is already an admin', async () => {
-    const addSpy = vi.spyOn(teamsApi, 'addTeamAdmin').mockResolvedValue(undefined);
-    const onTeamUpdated = vi.fn();
-
-    renderSettings(baseTeam, onTeamUpdated);
-    fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'Coach@Example.com' } });
-    fireEvent.click(screen.getByText('Grant access'));
-
-    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
-    expect(addSpy).not.toHaveBeenCalled();
-    expect(onTeamUpdated).not.toHaveBeenCalled();
-  });
-
-  it('shows an error message when granting access is rejected', async () => {
-    vi.spyOn(teamsApi, 'addTeamAdmin').mockRejectedValue({ code: 'permission-denied' });
-    const onTeamUpdated = vi.fn();
-
-    renderSettings(baseTeam, onTeamUpdated);
-    fireEvent.change(screen.getByLabelText('Add admin by email'), { target: { value: 'assistant@example.com' } });
-    fireEvent.click(screen.getByText('Grant access'));
-
-    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
-    expect(onTeamUpdated).not.toHaveBeenCalled();
-  });
-
-  it('stacks each settings section for mobile so nothing is cramped side by side', () => {
-    const team = { ...baseTeam, adminEmails: ['coach@example.com', 'assistant@example.com'] };
-    renderSettings(team, vi.fn());
-
-    const adminRow = screen.getByText('assistant@example.com').closest('li') as HTMLElement;
-    expect(adminRow.className).toMatch(/(^|\s)flex-col(\s|$)/);
-    expect(adminRow.className).toContain('sm:flex-row');
-
-    const grant = screen.getByRole('button', { name: 'Grant access' });
-    expect((grant.parentElement as HTMLElement).className).toMatch(/(^|\s)flex-col(\s|$)/);
-    expect(grant.className).toContain('w-full');
-    expect(grant.className).toContain('sm:w-auto');
-
-    const dangerRow = screen.getByRole('button', { name: 'Delete team' }).parentElement as HTMLElement;
-    expect(dangerRow.className).toMatch(/(^|\s)flex-col(\s|$)/);
-    expect(dangerRow.className).toContain('sm:flex-row');
-  });
-
-  it('does not show a remove button when there is only one admin', () => {
+  it('has no admin-management UI', () => {
     renderSettings(baseTeam, vi.fn());
-    expect(screen.queryByText('Remove')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add admin by email')).not.toBeInTheDocument();
+    expect(screen.queryByText('Admins')).not.toBeInTheDocument();
+  });
+
+  it('saves edited team info', async () => {
+    const updateSpy = vi.spyOn(teamsApi, 'updateTeamInfo').mockResolvedValue(undefined);
+    const onTeamUpdated = vi.fn();
+    renderSettings(baseTeam, onTeamUpdated);
+
+    fireEvent.change(screen.getByLabelText('Team name'), { target: { value: 'U17 Elite' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save team info' }));
+
+    await waitFor(() =>
+      expect(updateSpy).toHaveBeenCalledWith('team-1', { name: 'U17 Elite', description: '', notes: '' })
+    );
+    expect(onTeamUpdated).toHaveBeenCalledWith(expect.objectContaining({ name: 'U17 Elite' }));
+  });
+
+  it('shows Delete team to a super-admin', () => {
+    renderSettings(baseTeam, vi.fn());
+    expect(screen.getByRole('button', { name: 'Delete team' })).toBeInTheDocument();
+  });
+
+  it('hides Delete team from a non-super-admin', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    renderSettings(baseTeam, vi.fn());
+    expect(screen.queryByRole('button', { name: 'Delete team' })).not.toBeInTheDocument();
   });
 
   it('does nothing until the delete team confirmation is accepted', () => {

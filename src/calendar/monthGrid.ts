@@ -24,6 +24,15 @@ export function formatMonthLabel(year: number, month: number): string {
   return `${MONTH_NAMES[month]} ${year}`;
 }
 
+/** Today's date as an ISO "YYYY-MM-DD" string, in the viewer's local timezone
+ *  (grid cell dates represent local calendar days, not UTC ones). */
+export function todayIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
+}
+
 export function buildMonthGrid(year: number, month: number): { date: string; inMonth: boolean }[][] {
   const first = new Date(Date.UTC(year, month, 1));
   const mondayOffset = (first.getUTCDay() + 6) % 7; // Mon=0 … Sun=6

@@ -204,6 +204,23 @@ describe('TrainingBuilderDialog', () => {
     expect(screen.getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
   });
 
+  it('expands an added-exercise row to show its full description and a thumbnail', async () => {
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
+
+    fireEvent.click(screen.getByText('Add exercise'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Pepper' }));
+
+    const list = screen.getByRole('list', { name: 'Training exercises' });
+    expect(within(list).queryByText('Two players, controlled rally.')).not.toBeInTheDocument();
+
+    fireEvent.click(within(list).getByRole('button', { name: 'Expand exercise 1' }));
+    expect(within(list).getByText('Two players, controlled rally.')).toBeInTheDocument();
+
+    fireEvent.click(within(list).getByRole('button', { name: 'Collapse exercise 1' }));
+    expect(within(list).queryByText('Two players, controlled rally.')).not.toBeInTheDocument();
+  });
+
   it('expands a picker row to show its full description and a thumbnail', async () => {
     render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });

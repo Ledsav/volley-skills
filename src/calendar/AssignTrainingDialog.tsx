@@ -1,11 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
+import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
+import { getExercisesByIds } from '../exercises/exercisesApi';
 import { findTrainingByBusinessId, listTrainings } from '../trainings/trainingsApi';
 import type { Training } from '../types/training';
 import { createCalendarSession } from './calendarApi';
+
+interface ExerciseRow {
+  exerciseId: string;
+  durationMinutes: number;
+  name: string | null;
+  description: string;
+}
 
 interface AssignTrainingDialogProps {
   teamId: string;
@@ -22,9 +32,42 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
   const [optionsHasMore, setOptionsHasMore] = useState(false);
   const [businessId, setBusinessId] = useState('');
   const [selected, setSelected] = useState<Training | null>(null);
+  const [selectedExercises, setSelectedExercises] = useState<ExerciseRow[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [optionsLoaded, setOptionsLoaded] = useState(false);
+
+  useEffect(() => {
+    setExpandedId(null);
+    if (!selected) {
+      setSelectedExercises([]);
+      return;
+    }
+    let cancelled = false;
+    void getExercisesByIds(selected.exercises.map((e) => e.exerciseId))
+      .then((found) => {
+        if (cancelled) return;
+        const byId = new Map(found.map((ex) => [ex.id, ex]));
+        setSelectedExercises(
+          selected.exercises
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((e) => ({
+              exerciseId: e.exerciseId,
+              durationMinutes: e.durationMinutes,
+              name: byId.get(e.exerciseId)?.name ?? null,
+              description: byId.get(e.exerciseId)?.description ?? '',
+            }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedExercises([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   useEffect(() => {
     void listTrainings()
@@ -155,6 +198,50 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
             </Button>
           )}
         </fieldset>
+
+        {selected && selectedExercises.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-1 text-sm font-medium text-ink">Exercises in {selected.name}</p>
+            <ul aria-label="Training exercises" className="divide-y divide-border rounded-md border border-border">
+              {selectedExercises.map((row) => {
+                const expanded = expandedId === row.exerciseId;
+                return (
+                  <li key={row.exerciseId} className="p-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        aria-label={
+                          row.name ? (expanded ? `Collapse ${row.name}` : `Expand ${row.name}`) : undefined
+                        }
+                        onClick={() => setExpandedId(expanded ? null : row.exerciseId)}
+                        disabled={!row.name}
+                        className="shrink-0 text-slate hover:text-ink disabled:opacity-30"
+                      >
+                        {expanded ? (
+                          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </button>
+                      <DiagramThumbnail
+                        exerciseId={row.exerciseId}
+                        className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
+                      />
+                      <span className={`flex-1 text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
+                        {row.name ?? '⚠ Deleted exercise'}
+                      </span>
+                      <span className="text-xs tabular-nums text-slate">{row.durationMinutes} min</span>
+                    </div>
+                    {expanded && (
+                      <p className="mt-2 pl-6 text-xs text-slate">{row.description || 'No description.'}</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         <label htmlFor="session-notes" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Notes

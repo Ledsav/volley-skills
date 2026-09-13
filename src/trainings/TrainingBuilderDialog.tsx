@@ -191,14 +191,14 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
               const expanded = expandedRow === i;
               return (
                 <li key={`${row.exerciseId}-${i}`} className="p-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-2">
                     <button
                       type="button"
                       aria-expanded={expanded}
                       aria-label={expanded ? `Collapse exercise ${i + 1}` : `Expand exercise ${i + 1}`}
                       onClick={() => setExpandedRow(expanded ? null : i)}
                       disabled={!row.name}
-                      className="shrink-0 text-slate hover:text-ink disabled:opacity-30"
+                      className="mt-2 shrink-0 text-slate hover:text-ink disabled:opacity-30"
                     >
                       {expanded ? (
                         <ChevronDown className="h-4 w-4" aria-hidden="true" />
@@ -210,42 +210,51 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                       exerciseId={row.exerciseId}
                       className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
                     />
-                    <span className="w-6 text-sm tabular-nums text-slate">{i + 1}</span>
-                    <span className={`flex-1 text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
-                      {row.name ?? '⚠ Deleted exercise'}
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      aria-label={`Duration for exercise ${i + 1} (min)`}
-                      value={row.durationMinutes}
-                      onChange={(e) => setDuration(i, Number(e.target.value))}
-                      className="w-20 rounded-md border border-border px-2 py-1 text-right tabular-nums"
-                    />
-                    <button
-                      type="button"
-                      aria-label={`Move exercise ${i + 1} up`}
-                      onClick={() => move(i, -1)}
-                      className="px-1 text-slate hover:text-ink"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Move exercise ${i + 1} down`}
-                      onClick={() => move(i, 1)}
-                      className="px-1 text-slate hover:text-ink"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Remove exercise ${i + 1}`}
-                      onClick={() => removeRow(i)}
-                      className="px-1 text-red hover:text-red-strong"
-                    >
-                      ✕
-                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 text-sm tabular-nums text-slate">{i + 1}</span>
+                        <span className={`min-w-0 flex-1 truncate text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
+                          {row.name ?? '⚠ Deleted exercise'}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <label className="flex items-center gap-1.5 text-xs text-slate">
+                          <input
+                            type="number"
+                            min={0}
+                            aria-label={`Duration for exercise ${i + 1} (min)`}
+                            value={row.durationMinutes}
+                            onChange={(e) => setDuration(i, Number(e.target.value))}
+                            className="w-16 rounded-md border border-border px-2 py-1 text-right tabular-nums"
+                          />
+                          min
+                        </label>
+                        <button
+                          type="button"
+                          aria-label={`Move exercise ${i + 1} up`}
+                          onClick={() => move(i, -1)}
+                          className="px-1 text-slate hover:text-ink"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Move exercise ${i + 1} down`}
+                          onClick={() => move(i, 1)}
+                          className="px-1 text-slate hover:text-ink"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Remove exercise ${i + 1}`}
+                          onClick={() => removeRow(i)}
+                          className="ml-auto px-1 text-red hover:text-red-strong"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   {expanded && (
                     <p className="mt-2 pl-6 text-xs text-slate">{row.description || 'No description.'}</p>

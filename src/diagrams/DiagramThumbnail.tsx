@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getFirstDiagram } from './diagramsApi';
+import { getFirstDiagram, listDiagrams } from './diagramsApi';
+import { DiagramLightbox } from './DiagramLightbox';
 import { DiagramSvg } from './DiagramSvg';
 import type { Diagram } from '../types/diagram';
 
@@ -19,6 +20,17 @@ export function DiagramThumbnail({ exerciseId, className }: { exerciseId: string
   const [diagram, setDiagram] = useState<Diagram | null | undefined>(
     cache.has(exerciseId) ? cache.get(exerciseId) : undefined,
   );
+  const [lightboxDiagrams, setLightboxDiagrams] = useState<Diagram[] | null>(null);
+
+  async function openLightbox() {
+    if (!diagram) return;
+    try {
+      const all = await listDiagrams(exerciseId);
+      setLightboxDiagrams(all.length > 0 ? all : [diagram]);
+    } catch {
+      setLightboxDiagrams([diagram]);
+    }
+  }
 
   useEffect(() => {
     if (cache.has(exerciseId)) {
@@ -42,8 +54,21 @@ export function DiagramThumbnail({ exerciseId, className }: { exerciseId: string
   if (!diagram) return null;
 
   return (
-    <div className={className ?? 'aspect-square w-16 shrink-0 overflow-hidden rounded-sm border border-border bg-surface'}>
-      <DiagramSvg scene={diagram.scene} />
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={() => void openLightbox()}
+        aria-label={`Expand diagram ${diagram.title}`}
+        className={
+          className ??
+          'aspect-square w-16 shrink-0 overflow-hidden rounded-sm border border-border bg-surface'
+        }
+      >
+        <DiagramSvg scene={diagram.scene} />
+      </button>
+      {lightboxDiagrams && (
+        <DiagramLightbox diagrams={lightboxDiagrams} startIndex={0} onClose={() => setLightboxDiagrams(null)} />
+      )}
+    </>
   );
 }

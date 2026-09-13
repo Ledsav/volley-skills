@@ -23,6 +23,7 @@ const chipClass = (active: boolean) =>
 
 interface Row extends TrainingExercise {
   name: string | null; // null => the exercise no longer exists
+  description: string;
 }
 
 interface TrainingBuilderDialogProps {
@@ -41,6 +42,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerCategory, setPickerCategory] = useState<ExerciseCategory | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [pickerLastDoc, setPickerLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [pickerHasMore, setPickerHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,12 +51,16 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
     if (!training) return;
     void getExercisesByIds(training.exercises.map((e) => e.exerciseId))
       .then((found) => {
-        const byId = new Map(found.map((ex) => [ex.id, ex.name]));
+        const byId = new Map(found.map((ex) => [ex.id, ex]));
         setRows(
           training.exercises
             .slice()
             .sort((a, b) => a.order - b.order)
-            .map((e) => ({ ...e, name: byId.get(e.exerciseId) ?? null }))
+            .map((e) => ({
+              ...e,
+              name: byId.get(e.exerciseId)?.name ?? null,
+              description: byId.get(e.exerciseId)?.description ?? '',
+            }))
         );
       })
       .catch(() => setError('Could not load the exercises for this training. Please reopen the dialog.'));
@@ -92,12 +98,19 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   function addExercise(exercise: Exercise) {
     setRows((current) => [
       ...current,
-      { exerciseId: exercise.id, order: current.length + 1, durationMinutes: 10, name: exercise.name },
+      {
+        exerciseId: exercise.id,
+        order: current.length + 1,
+        durationMinutes: 10,
+        name: exercise.name,
+        description: exercise.description,
+      },
     ]);
     // Picker stays open so several exercises can be added in one pass.
   }
 
   function move(index: number, delta: number) {
+    setExpandedRow(null);
     setRows((current) => {
       const next = current.slice();
       const target = index + delta;
@@ -108,6 +121,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   }
 
   function removeRow(index: number) {
+    setExpandedRow(null);
     setRows((current) => current.filter((_, i) => i !== index));
   }
 
@@ -173,50 +187,72 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
 
           <ul aria-label="Training exercises" className="divide-y divide-border rounded-md border border-border">
             {rows.length === 0 && <li className="p-3 text-sm text-slate">No exercises added yet.</li>}
-            {rows.map((row, i) => (
-              <li key={`${row.exerciseId}-${i}`} className="flex items-center gap-2 p-3">
-                <DiagramThumbnail
-                  exerciseId={row.exerciseId}
-                  className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
-                />
-                <span className="w-6 text-sm tabular-nums text-slate">{i + 1}</span>
-                <span className={`flex-1 text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
-                  {row.name ?? '⚠ Deleted exercise'}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  aria-label={`Duration for exercise ${i + 1} (min)`}
-                  value={row.durationMinutes}
-                  onChange={(e) => setDuration(i, Number(e.target.value))}
-                  className="w-20 rounded-md border border-border px-2 py-1 text-right tabular-nums"
-                />
-                <button
-                  type="button"
-                  aria-label={`Move exercise ${i + 1} up`}
-                  onClick={() => move(i, -1)}
-                  className="px-1 text-slate hover:text-ink"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Move exercise ${i + 1} down`}
-                  onClick={() => move(i, 1)}
-                  className="px-1 text-slate hover:text-ink"
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Remove exercise ${i + 1}`}
-                  onClick={() => removeRow(i)}
-                  className="px-1 text-red hover:text-red-strong"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
+            {rows.map((row, i) => {
+              const expanded = expandedRow === i;
+              return (
+                <li key={`${row.exerciseId}-${i}`} className="p-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-label={expanded ? `Collapse exercise ${i + 1}` : `Expand exercise ${i + 1}`}
+                      onClick={() => setExpandedRow(expanded ? null : i)}
+                      disabled={!row.name}
+                      className="shrink-0 text-slate hover:text-ink disabled:opacity-30"
+                    >
+                      {expanded ? (
+                        <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </button>
+                    <DiagramThumbnail
+                      exerciseId={row.exerciseId}
+                      className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
+                    />
+                    <span className="w-6 text-sm tabular-nums text-slate">{i + 1}</span>
+                    <span className={`flex-1 text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
+                      {row.name ?? '⚠ Deleted exercise'}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      aria-label={`Duration for exercise ${i + 1} (min)`}
+                      value={row.durationMinutes}
+                      onChange={(e) => setDuration(i, Number(e.target.value))}
+                      className="w-20 rounded-md border border-border px-2 py-1 text-right tabular-nums"
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Move exercise ${i + 1} up`}
+                      onClick={() => move(i, -1)}
+                      className="px-1 text-slate hover:text-ink"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move exercise ${i + 1} down`}
+                      onClick={() => move(i, 1)}
+                      className="px-1 text-slate hover:text-ink"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove exercise ${i + 1}`}
+                      onClick={() => removeRow(i)}
+                      className="px-1 text-red hover:text-red-strong"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {expanded && (
+                    <p className="mt-2 pl-6 text-xs text-slate">{row.description || 'No description.'}</p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {pickerOpen ? (

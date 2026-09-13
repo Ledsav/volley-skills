@@ -1,15 +1,22 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AssignTrainingDialog } from './AssignTrainingDialog';
 import * as calendarApi from './calendarApi';
 import * as trainingsApi from '../trainings/trainingsApi';
+import * as exercisesApi from '../exercises/exercisesApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue } from '../test/authValue';
 
 vi.mock('./calendarApi');
 vi.mock('../trainings/trainingsApi');
+vi.mock('../exercises/exercisesApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../diagrams/DiagramThumbnail', () => ({
+  DiagramThumbnail: ({ exerciseId }: { exerciseId: string }) => (
+    <div data-testid="diagram-thumb" data-exercise-id={exerciseId} />
+  ),
+}));
 
 const training = {
   id: 't-1',
@@ -17,8 +24,28 @@ const training = {
   name: 'Passing circuit',
   description: '',
   ageGroupTarget: 'U17',
-  exercises: [],
-  exerciseIds: [],
+  exercises: [
+    { exerciseId: 'ex-1', order: 1, durationMinutes: 12 },
+    { exerciseId: 'ex-2', order: 2, durationMinutes: 8 },
+  ],
+  exerciseIds: ['ex-1', 'ex-2'],
+  createdBy: 'x',
+  createdAt: null,
+};
+
+const exOne = {
+  id: 'ex-1',
+  name: 'Pepper',
+  description: 'Two players, controlled rally.',
+  category: 'warmup' as const,
+  createdBy: 'x',
+  createdAt: null,
+};
+const exTwo = {
+  id: 'ex-2',
+  name: 'Serve targets',
+  description: '',
+  category: 'service' as const,
   createdBy: 'x',
   createdAt: null,
 };
@@ -28,6 +55,7 @@ describe('AssignTrainingDialog', () => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never }));
     vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null, hasMore: false });
+    vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([exOne, exTwo]);
   });
 
   it('creates a session with the picked training denormalized onto it', async () => {
@@ -70,6 +98,7 @@ describe('AssignTrainingDialog', () => {
     await waitFor(() => expect(trainingsApi.listTrainings).toHaveBeenCalledWith(page1LastDoc));
     fireEvent.click(await screen.findByLabelText(/Blocking drills/));
     expect((screen.getByLabelText(/Blocking drills/) as HTMLInputElement).checked).toBe(true);
+    await screen.findByRole('list', { name: 'Training exercises' });
   });
 
   it('surfaces an alert instead of the empty state when the training list fails to load', async () => {
@@ -78,6 +107,20 @@ describe('AssignTrainingDialog', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load trainings/i);
     expect(screen.queryByText('No trainings available.')).not.toBeInTheDocument();
+  });
+
+  it('shows the selected training\'s exercises, expandable to their full description', async () => {
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    fireEvent.click(await screen.findByLabelText(/Passing circuit/));
+
+    const list = await screen.findByRole('list', { name: 'Training exercises' });
+    expect(within(list).getByText('Pepper')).toBeInTheDocument();
+    expect(within(list).getByText('Serve targets')).toBeInTheDocument();
+    expect(within(list).queryByText('Two players, controlled rally.')).not.toBeInTheDocument();
+
+    fireEvent.click(within(list).getByRole('button', { name: 'Expand Pepper' }));
+    expect(within(list).getByText('Two players, controlled rally.')).toBeInTheDocument();
   });
 
   it('blocks assigning when no training is selected', async () => {

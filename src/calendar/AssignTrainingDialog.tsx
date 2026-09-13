@@ -228,10 +228,10 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
                         exerciseId={row.exerciseId}
                         className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
                       />
-                      <span className={`flex-1 text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
+                      <span className={`min-w-0 flex-1 truncate text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
                         {row.name ?? '⚠ Deleted exercise'}
                       </span>
-                      <span className="text-xs tabular-nums text-slate">{row.durationMinutes} min</span>
+                      <span className="shrink-0 text-xs tabular-nums text-slate">{row.durationMinutes} min</span>
                     </div>
                     {expanded && (
                       <p className="mt-2 pl-6 text-xs text-slate">{row.description || 'No description.'}</p>

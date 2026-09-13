@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { addMonths, buildMonthGrid, formatMonthLabel, monthRange } from './monthGrid';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { addMonths, buildMonthGrid, formatMonthLabel, monthRange, todayIso } from './monthGrid';
 
 describe('monthGrid', () => {
   it('builds a Monday-first grid for September 2026 with adjacent-month padding', () => {
@@ -25,5 +25,17 @@ describe('monthGrid', () => {
 
   it('formats a human month label', () => {
     expect(formatMonthLabel(2026, 8)).toBe('September 2026');
+  });
+
+  describe('todayIso', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('formats the system clock as a local-calendar ISO date', () => {
+      // Constructed from local components (not a UTC instant), so this is
+      // independent of the machine's timezone.
+      vi.setSystemTime(new Date(2026, 8, 5, 23, 30, 0));
+      expect(todayIso()).toBe('2026-09-05');
+    });
   });
 });

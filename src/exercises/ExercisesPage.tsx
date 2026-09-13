@@ -159,7 +159,9 @@ export function ExercisesPage() {
             className="flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card hover:bg-bg sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none"
           >
             <div className="flex items-start gap-3">
-              <DiagramThumbnail exerciseId={exercise.id} />
+              <div onClick={(e) => e.stopPropagation()}>
+                <DiagramThumbnail exerciseId={exercise.id} />
+              </div>
               <div className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-medium text-ink">{exercise.name}</span>

@@ -73,6 +73,20 @@ describe('TeamCalendarTab', () => {
     expect(screen.getByText('Mon')).toBeInTheDocument();
   });
 
+  it("highlights today's cell", async () => {
+    render(
+      <MemoryRouter>
+        <TeamCalendarTab teamId="team-1" />
+      </MemoryRouter>
+    );
+    await screen.findByText('TR-0007 · Passing circuit');
+
+    // System time is 2026-09-15 (see beforeEach); the day number is rendered
+    // as a distinguishable node so we can single out today's cell from others.
+    expect(screen.getByLabelText('Today, 2026-09-15')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Today, 2026-09-14')).not.toBeInTheDocument();
+  });
+
   it('offers no add affordance on out-of-month padding cells', async () => {
     render(
       <MemoryRouter>

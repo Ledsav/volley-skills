@@ -5,7 +5,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { CalendarSession } from '../types/calendarSession';
 import { AssignTrainingDialog } from './AssignTrainingDialog';
 import { deleteCalendarSession, listCalendarSessions } from './calendarApi';
-import { addMonths, buildMonthGrid, formatMonthLabel, monthRange } from './monthGrid';
+import { addMonths, buildMonthGrid, formatMonthLabel, monthRange, todayIso } from './monthGrid';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -29,6 +29,7 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
   }, [load]);
 
   const grid = buildMonthGrid(view.year, view.month);
+  const todayStr = todayIso();
   const sessionsByDate = sessions.reduce<Record<string, CalendarSession[]>>((acc, session) => {
     (acc[session.date] ??= []).push(session);
     return acc;
@@ -80,19 +81,34 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
             {d}
           </div>
         ))}
-        {grid.flat().map((cell) => (
+        {grid.flat().map((cell) => {
+          const isToday = cell.inMonth && cell.date === todayStr;
+          return (
           <div
             key={cell.date}
             className={`flex min-h-24 flex-col bg-surface p-1 ${
               cell.inMonth
                 ? 'group transition-colors hover:bg-blue/5 focus-within:bg-blue/5'
                 : 'opacity-40'
-            }`}
+            } ${isToday ? 'ring-1 ring-inset ring-blue' : ''}`}
           >
             {cell.inMonth ? (
               <>
-                <span className="block w-full text-right text-xs tabular-nums text-slate">
-                  {Number(cell.date.slice(-2))}
+                <span
+                  aria-label={isToday ? `Today, ${cell.date}` : undefined}
+                  className={`block w-full text-right text-xs tabular-nums ${
+                    isToday
+                      ? 'font-semibold text-blue'
+                      : 'text-slate'
+                  }`}
+                >
+                  {isToday ? (
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue text-white">
+                      {Number(cell.date.slice(-2))}
+                    </span>
+                  ) : (
+                    Number(cell.date.slice(-2))
+                  )}
                 </span>
                 <ul className="mt-1 space-y-1">
                   {(sessionsByDate[cell.date] ?? []).map((session) => (
@@ -134,7 +150,8 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
               </span>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {assignDate && (

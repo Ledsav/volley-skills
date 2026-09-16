@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startSession, closeSession, getSession, listPastSessions } from './testingSessionsApi';
+import { startSession, closeSession, getSession, listPastSessions, getEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
 
-const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockQuery } = vi.hoisted(() => ({
+const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockQuery, mockSetDoc } = vi.hoisted(() => ({
   mockRunTransaction: vi.fn(),
   mockCollection: vi.fn(() => 'sessions-collection'),
   mockDoc: vi.fn((...args: unknown[]) => ({ type: 'doc', args, id: 'session-1' })),
   mockGetDoc: vi.fn(),
   mockGetDocs: vi.fn(),
   mockQuery: vi.fn((...args: unknown[]) => args),
+  mockSetDoc: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -21,9 +22,12 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
   limit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   serverTimestamp: () => 'server-timestamp',
+  setDoc: mockSetDoc,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
+
+vi.mock('../players/physicalTestsApi', () => ({ createPhysicalTest: vi.fn() }));
 
 describe('testingSessionsApi', () => {
   beforeEach(() => {
@@ -102,5 +106,59 @@ describe('testingSessionsApi', () => {
     expect(queryArgs).toContainEqual({ type: 'where', args: ['status', '==', 'closed'] });
     expect(queryArgs).toContainEqual({ type: 'orderBy', args: ['date', 'desc'] });
     expect(queryArgs).toContainEqual({ type: 'limit', args: [50] });
+  });
+});
+
+describe('testingSessionsApi entries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDoc.mockImplementation((...args: unknown[]) => ({ type: 'doc', args, id: 'player-1__cmj' }));
+  });
+
+  it('lists entries for a session', async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [{ id: 'player-1__cmj', data: () => ({ playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {}, resultTestId: null }) }],
+    });
+
+    const entries = await getEntries('team-1', 'session-1');
+
+    expect(entries).toEqual([
+      { id: 'player-1__cmj', playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {}, resultTestId: null },
+    ]);
+  });
+
+  it('saves in-progress draft data for one player+quality', async () => {
+    mockSetDoc.mockResolvedValue(undefined);
+
+    await saveEntryProgress('team-1', 'session-1', 'player-1', 'cmj', { cmjAttempts: [30] });
+
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        playerId: 'player-1',
+        testType: 'cmj',
+        status: 'in_progress',
+        data: { cmjAttempts: [30] },
+        updatedAt: 'server-timestamp',
+      }),
+      { merge: true }
+    );
+  });
+
+  it('finishes an entry: writes the physicalTest and marks the entry complete', async () => {
+    const { createPhysicalTest } = await import('../players/physicalTestsApi');
+    vi.mocked(createPhysicalTest).mockResolvedValue('test-99');
+    mockSetDoc.mockResolvedValue(undefined);
+
+    const input = { testType: 'cmj' as const, attemptsCm: [30, 34, 32], bestCm: 34, date: '2026-09-16', notes: '' };
+    const resultId = await finishEntry('team-1', 'session-1', 'player-1', 'cmj', input, 'coach-uid');
+
+    expect(resultId).toBe('test-99');
+    expect(createPhysicalTest).toHaveBeenCalledWith('team-1', 'player-1', input, 'coach-uid');
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ status: 'complete', resultTestId: 'test-99', updatedAt: 'server-timestamp' }),
+      { merge: true }
+    );
   });
 });

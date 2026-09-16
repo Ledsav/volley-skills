@@ -8,9 +8,13 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { createPhysicalTest } from '../players/physicalTestsApi';
+import { buildEntryId, type TestingSessionEntry } from '../types/testingSession';
+import type { NewPhysicalTestInput, PhysicalTestType } from '../types/physicalTest';
 import type { TestingSession } from '../types/testingSession';
 
 const PAST_SESSIONS_CAP = 50;
@@ -60,4 +64,40 @@ export async function listPastSessions(teamId: string): Promise<TestingSession[]
     query(base, where('status', '==', 'closed'), orderBy('date', 'desc'), limit(PAST_SESSIONS_CAP))
   );
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as TestingSession);
+}
+
+export async function getEntries(teamId: string, sessionId: string): Promise<TestingSessionEntry[]> {
+  const snapshot = await getDocs(collection(db, 'teams', teamId, 'testingSessions', sessionId, 'entries'));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as TestingSessionEntry);
+}
+
+export async function saveEntryProgress(
+  teamId: string,
+  sessionId: string,
+  playerId: string,
+  testType: PhysicalTestType,
+  data: Record<string, unknown>
+): Promise<void> {
+  const entryId = buildEntryId(playerId, testType);
+  const ref = doc(db, 'teams', teamId, 'testingSessions', sessionId, 'entries', entryId);
+  await setDoc(
+    ref,
+    { playerId, testType, status: 'in_progress', data, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+export async function finishEntry(
+  teamId: string,
+  sessionId: string,
+  playerId: string,
+  testType: PhysicalTestType,
+  input: NewPhysicalTestInput,
+  recordedByUid: string
+): Promise<string> {
+  const resultTestId = await createPhysicalTest(teamId, playerId, input, recordedByUid);
+  const entryId = buildEntryId(playerId, testType);
+  const ref = doc(db, 'teams', teamId, 'testingSessions', sessionId, 'entries', entryId);
+  await setDoc(ref, { status: 'complete', resultTestId, updatedAt: serverTimestamp() }, { merge: true });
+  return resultTestId;
 }

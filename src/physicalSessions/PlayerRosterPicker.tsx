@@ -33,7 +33,7 @@ export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelec
   }
 
   return (
-    <div className="relative w-full sm:w-64 sm:shrink-0">
+    <div className="relative w-full">
       <label htmlFor="roster-search" className="sr-only">Search players</label>
       <Input
         id="roster-search"

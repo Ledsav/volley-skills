@@ -59,23 +59,19 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
 
       {loadError && <p role="alert" className="mb-3 text-sm text-red">{loadError}</p>}
 
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="flex flex-col gap-4">
         <PlayerRosterPicker players={players} entries={entries} selectedPlayerId={selectedPlayerId} onSelect={setSelectedPlayerId} />
-        {selectedPlayerId ? (
-          <div className="flex-1">
-            <QualityTileGrid
-              teamId={teamId}
-              sessionId={session.id}
-              sessionDate={session.date}
-              playerId={selectedPlayerId}
-              playerName={players.find((p) => p.id === selectedPlayerId)?.fullName ?? ''}
-              entriesByPlayerAndType={entriesByPlayerAndType}
-              recordedByUid={recordedByUid}
-              onEntryChanged={() => void load()}
-            />
-          </div>
-        ) : (
-          <p className="flex-1 text-sm text-slate">Select a player to start recording.</p>
+        {selectedPlayerId && (
+          <QualityTileGrid
+            teamId={teamId}
+            sessionId={session.id}
+            sessionDate={session.date}
+            playerId={selectedPlayerId}
+            playerName={players.find((p) => p.id === selectedPlayerId)?.fullName ?? ''}
+            entriesByPlayerAndType={entriesByPlayerAndType}
+            recordedByUid={recordedByUid}
+            onEntryChanged={() => void load()}
+          />
         )}
       </div>
 

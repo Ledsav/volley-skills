@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { Stopwatch } from './Stopwatch';
 import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from '../players/physicalTestFieldLogic';
@@ -32,6 +33,7 @@ interface SessionQualityPanelProps {
   sessionId: string;
   sessionDate: string;
   playerId: string;
+  playerName: string;
   testType: PhysicalTestType;
   entry: TestingSessionEntry | null;
   recordedByUid: string;
@@ -52,6 +54,7 @@ export function SessionQualityPanel({
   sessionId,
   sessionDate,
   playerId,
+  playerName,
   testType,
   entry,
   recordedByUid,
@@ -113,10 +116,7 @@ export function SessionQualityPanel({
   const ready = isPhysicalTestReady(testType, fields);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-pop [scrollbar-gutter:stable]">
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">{PHYSICAL_TEST_LABELS[testType]}</h2>
-
+    <Dialog title={`${PHYSICAL_TEST_LABELS[testType]} — ${playerName}`} onClose={onClose}>
         {testType === 'growth' && (
           <>
             <div className="mb-4">
@@ -321,7 +321,6 @@ export function SessionQualityPanel({
           </Button>
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-red">{error}</p>}
-      </div>
-    </div>
+    </Dialog>
   );
 }

@@ -20,6 +20,20 @@ describe('Stopwatch', () => {
     expect(onRecord.mock.calls[0][0]).toBeCloseTo(2, 1);
   });
 
+  it('records the exact elapsed time at the instant Stop is pressed, not the last 100ms interval tick', () => {
+    const onRecord = vi.fn();
+    render(<Stopwatch onRecord={onRecord} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    act(() => {
+      vi.advanceTimersByTime(2150);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+
+    expect(onRecord).toHaveBeenCalledTimes(1);
+    expect(onRecord.mock.calls[0][0]).toBeCloseTo(2.15, 2);
+  });
+
   it('resets to zero and is ready to start again after stopping', () => {
     const onRecord = vi.fn();
     render(<Stopwatch onRecord={onRecord} />);

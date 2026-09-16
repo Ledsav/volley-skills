@@ -86,4 +86,25 @@ describe('QualityTileGrid', () => {
 
     expect(screen.queryByText('Panel for sprint10m')).not.toBeInTheDocument();
   });
+
+  it('refetches entries when the panel is closed without finishing, so a stale draft is never shown next reopen', () => {
+    const onEntryChanged = vi.fn();
+
+    render(
+      <QualityTileGrid
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        entriesByPlayerAndType={new Map()}
+        recordedByUid="coach-uid"
+        onEntryChanged={onEntryChanged}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /10m Sprint/ }));
+    fireEvent.click(screen.getByText('Close panel'));
+
+    expect(onEntryChanged).toHaveBeenCalledTimes(1);
+  });
 });

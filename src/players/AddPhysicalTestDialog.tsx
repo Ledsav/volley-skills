@@ -2,15 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { AttemptsInput } from '../components/AttemptsInput';
-import { bestOf, computeApproachJump, computeReaction, computeBodyMassRatio } from './physicalTestMath';
+import { computeBodyMassRatio } from './physicalTestMath';
+import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from './physicalTestFieldLogic';
 import { createPhysicalTest, getLatestByType } from './physicalTestsApi';
 import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
-import type {
-  BodyweightExercise,
-  NewPhysicalTestInput,
-  PhysicalTestType,
-  WeightedExercise,
-} from '../types/physicalTest';
+import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -64,85 +60,30 @@ export function AddPhysicalTestDialog({
     event.preventDefault();
     setError(null);
 
-    const attemptsToValidate =
-      testType === 'cmj'
-        ? cmjAttempts
-        : testType === 'broadJump'
-          ? broadJumpAttempts
-          : testType === 'approachJump'
-            ? touchAttempts
-            : testType === 'sprint10m'
-              ? sprintAttempts
-              : testType === 'reaction'
-                ? reactionAttempts
-                : null;
+    const fields: PhysicalTestFields = {
+      heightCm,
+      bodyMassKg,
+      cmjAttempts,
+      broadJumpAttempts,
+      standingReachCm,
+      touchAttempts,
+      sprintAttempts,
+      rightFirstSeconds,
+      leftFirstSeconds,
+      reactionAttempts,
+      strengthMode,
+      weightedExercise,
+      weightKg,
+      bodyweightExercise,
+      reps,
+    };
 
-    if (attemptsToValidate && attemptsToValidate.some((value) => Number.isNaN(value))) {
+    if (!isPhysicalTestReady(testType, fields)) {
       setError('Please fill in every attempt before saving.');
       return;
     }
 
-    let input: NewPhysicalTestInput;
-
-    if (testType === 'growth') {
-      input = { testType: 'growth', heightCm: Number(heightCm), bodyMassKg: Number(bodyMassKg), date, notes };
-    } else if (testType === 'cmj') {
-      input = { testType: 'cmj', attemptsCm: cmjAttempts, bestCm: bestOf(cmjAttempts, 'max'), date, notes };
-    } else if (testType === 'broadJump') {
-      input = {
-        testType: 'broadJump',
-        attemptsCm: broadJumpAttempts,
-        bestCm: bestOf(broadJumpAttempts, 'max'),
-        date,
-        notes,
-      };
-    } else if (testType === 'approachJump') {
-      const { bestTouchCm, approachJumpCm } = computeApproachJump(Number(standingReachCm), touchAttempts);
-      input = {
-        testType: 'approachJump',
-        standingReachCm: Number(standingReachCm),
-        attemptsTouchCm: touchAttempts,
-        bestTouchCm,
-        approachJumpCm,
-        date,
-        notes,
-      };
-    } else if (testType === 'sprint10m') {
-      input = {
-        testType: 'sprint10m',
-        attemptsSeconds: sprintAttempts,
-        bestSeconds: bestOf(sprintAttempts, 'min'),
-        date,
-        notes,
-      };
-    } else if (testType === 'shuttle5105') {
-      input = {
-        testType: 'shuttle5105',
-        rightFirstSeconds: Number(rightFirstSeconds),
-        leftFirstSeconds: Number(leftFirstSeconds),
-        date,
-        notes,
-      };
-    } else if (testType === 'reaction') {
-      const { averageCm, reactionTimeMs } = computeReaction(reactionAttempts);
-      input = { testType: 'reaction', attemptsCm: reactionAttempts, averageCm, reactionTimeMs, date, notes };
-    } else if (testType === 'strength' && strengthMode === 'weighted') {
-      const bodyMassRatio = latestBodyMassKg !== null ? computeBodyMassRatio(Number(weightKg), latestBodyMassKg) : null;
-      input = {
-        testType: 'strength',
-        mode: 'weighted',
-        exercise: weightedExercise,
-        weightKg: Number(weightKg),
-        reps6RM: 6,
-        bodyMassRatio,
-        date,
-        notes,
-      };
-    } else if (testType === 'strength' && strengthMode === 'bodyweight') {
-      input = { testType: 'strength', mode: 'bodyweight', exercise: bodyweightExercise, reps: Number(reps), date, notes };
-    } else {
-      return;
-    }
+    const input = buildPhysicalTestInput(testType, fields, date, notes, latestBodyMassKg);
 
     try {
       await createPhysicalTest(teamId, playerId, input, recordedByUid);

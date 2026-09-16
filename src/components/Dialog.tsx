@@ -17,12 +17,18 @@ const SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
 export function Dialog({ title, onClose, children, size = 'md' }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Focus the panel once on mount only — re-running this on every render (e.g.
+  // because `onClose` is an inline function recreated by the parent) would
+  // steal focus away from an input the user is actively typing into.
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
     }
     document.addEventListener('keydown', onKeyDown);
-    panelRef.current?.focus();
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 

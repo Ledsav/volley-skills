@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { Dialog } from './Dialog';
 
@@ -53,5 +54,26 @@ describe('Dialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps focus on an input inside it when the parent re-renders with a new onClose reference', () => {
+    function Wrapper() {
+      const [value, setValue] = useState('');
+      // Intentionally recreated on every render, like an inline handler would be.
+      const onClose = () => {};
+      return (
+        <Dialog title="Edit contact" onClose={onClose}>
+          <input aria-label="Name" value={value} onChange={(e) => setValue(e.target.value)} />
+        </Dialog>
+      );
+    }
+
+    render(<Wrapper />);
+
+    const input = screen.getByLabelText('Name');
+    input.focus();
+    fireEvent.change(input, { target: { value: 'a' } });
+
+    expect(document.activeElement).toBe(input);
   });
 });

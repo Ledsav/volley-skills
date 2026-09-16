@@ -125,7 +125,6 @@ export function TeamPage() {
             <TeamPhysicalSessionTab
               teamId={teamId}
               team={team}
-              players={rosterPlayers}
               onTeamChanged={setTeam}
             />
           )}

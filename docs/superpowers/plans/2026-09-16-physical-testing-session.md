@@ -522,9 +522,11 @@ export interface Team {
   developmentPlan: DevelopmentPlan;
   createdBy: string;
   createdAt: unknown;
-  activeTestingSessionId: string | null;
+  activeTestingSessionId?: string | null;
 }
 ```
+
+(Deliberately optional, not required: six existing test files elsewhere in the codebase build strictly-typed `Team` literals — `TeamPage.test.tsx`, `TeamsListPage.test.tsx`, `TeamSettingsTab.test.tsx`, `AddPlayerDialog.test.tsx`, `PlayerCardPage.test.tsx`, `playersApi.test.ts` — none of which this plan touches. A required field would fail typecheck in all six. Optional matches how this codebase already handles fields older docs predate, e.g. `hydratePlayer`'s defaulting in `playersApi.ts`. Every consumer in this plan already reads it via truthiness (`!team.activeTestingSessionId`) or an optional cast, so nothing downstream needs to change.)
 
 - [ ] **Step 4: Run test to verify it passes**
 

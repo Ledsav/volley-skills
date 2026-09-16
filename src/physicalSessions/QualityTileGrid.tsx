@@ -70,7 +70,10 @@ export function QualityTileGrid({
           testType={openType}
           entry={entriesByPlayerAndType.get(buildEntryId(playerId, openType)) ?? null}
           recordedByUid={recordedByUid}
-          onClose={() => setOpenType(null)}
+          onClose={() => {
+            setOpenType(null);
+            onEntryChanged();
+          }}
           onFinished={() => {
             setOpenType(null);
             onEntryChanged();

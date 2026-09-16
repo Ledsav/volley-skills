@@ -7,7 +7,12 @@ import type { TestingSession } from '../types/testingSession';
 
 vi.mock('./testingSessionsApi');
 vi.mock('./QualityTileGrid', () => ({
-  QualityTileGrid: ({ playerId }: { playerId: string }) => <div>Qualities for {playerId}</div>,
+  QualityTileGrid: ({ playerId, onEntryChanged }: { playerId: string; onEntryChanged: () => void }) => (
+    <div>
+      <span>Qualities for {playerId}</span>
+      <button onClick={onEntryChanged}>Simulate entry changed</button>
+    </div>
+  ),
 }));
 
 const SESSION: TestingSession = { id: 'session-1', date: '2026-09-16', status: 'open', createdBy: 'coach-uid', createdAt: null, closedAt: null };
@@ -38,5 +43,18 @@ describe('LiveSessionView', () => {
 
     await waitFor(() => expect(closeSpy).toHaveBeenCalledWith('team-1', 'session-1'));
     expect(onSessionClosed).toHaveBeenCalled();
+  });
+
+  it('refetches entries when QualityTileGrid reports an entry changed', async () => {
+    const getEntriesSpy = vi.spyOn(testingSessionsApi, 'getEntries').mockResolvedValue([]);
+
+    render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />);
+
+    await waitFor(() => expect(getEntriesSpy).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByText('Jane Doe'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate entry changed' }));
+
+    await waitFor(() => expect(getEntriesSpy).toHaveBeenCalledTimes(2));
   });
 });

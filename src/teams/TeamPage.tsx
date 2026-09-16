@@ -13,10 +13,11 @@ import { Button } from '../components/Button';
 import { Tab } from '../components/Tab';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
+import { TeamPhysicalSessionTab } from '../physicalSessions/TeamPhysicalSessionTab';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
-type TeamTab = 'overview' | 'calendar' | 'plan' | 'settings';
+type TeamTab = 'overview' | 'calendar' | 'plan' | 'settings' | 'physicalSession';
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -66,6 +67,9 @@ export function TeamPage() {
               Calendar
             </Tab>
           )}
+          <Tab active={activeTab === 'physicalSession'} onClick={() => setTab('physicalSession')}>
+            Physical Session
+          </Tab>
           <Tab active={activeTab === 'plan'} onClick={() => setTab('plan')}>
             Development Plan
           </Tab>
@@ -109,6 +113,13 @@ export function TeamPage() {
             </>
           )}
           {activeTab === 'calendar' && canCalendar && <TeamCalendarTab teamId={teamId} />}
+          {activeTab === 'physicalSession' && (
+            <TeamPhysicalSessionTab
+              teamId={teamId}
+              team={team}
+              onTeamChanged={setTeam}
+            />
+          )}
           {activeTab === 'plan' && (
             <DevelopmentPlanEditor
               plan={team.developmentPlan}

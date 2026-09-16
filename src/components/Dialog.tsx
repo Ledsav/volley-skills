@@ -7,6 +7,12 @@ interface DialogProps {
   children: ReactNode;
   /** `lg` widens the panel for form-heavy content (development plan, skills). */
   size?: 'md' | 'lg';
+  /**
+   * Fills the viewport edge-to-edge below the `sm` breakpoint instead of a
+   * centered card, reverting to the normal centered card from `sm` up. For
+   * content meant to be worked in during a live session on a phone.
+   */
+  mobileSheet?: boolean;
 }
 
 const SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
@@ -14,7 +20,12 @@ const SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
   lg: 'max-w-2xl',
 };
 
-export function Dialog({ title, onClose, children, size = 'md' }: DialogProps) {
+const MOBILE_SHEET_SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
+  md: 'sm:max-w-md',
+  lg: 'sm:max-w-2xl',
+};
+
+export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Focus the panel once on mount only — re-running this on every render (e.g.
@@ -35,7 +46,9 @@ export function Dialog({ title, onClose, children, size = 'md' }: DialogProps) {
   return (
     <div
       data-testid="dialog-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className={`fixed inset-0 z-50 flex bg-black/50 ${
+        mobileSheet ? 'items-stretch justify-stretch p-0 sm:items-center sm:justify-center sm:p-4' : 'items-center justify-center p-4'
+      }`}
       onClick={onClose}
     >
       <div
@@ -45,7 +58,11 @@ export function Dialog({ title, onClose, children, size = 'md' }: DialogProps) {
         aria-label={title}
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className={`flex max-h-[90vh] w-full ${SIZE_CLASS[size]} flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-pop focus:outline-none`}
+        className={`flex w-full flex-col overflow-hidden bg-surface focus:outline-none ${
+          mobileSheet
+            ? `h-full max-h-none rounded-none border-0 shadow-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border sm:border-border sm:shadow-pop ${MOBILE_SHEET_SIZE_CLASS[size]}`
+            : `max-h-[90vh] rounded-lg border border-border shadow-pop ${SIZE_CLASS[size]}`
+        }`}
       >
         <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>

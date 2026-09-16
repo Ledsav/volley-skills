@@ -42,25 +42,29 @@ export function Stopwatch({ onRecord }: StopwatchProps) {
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="tabular-nums text-lg font-semibold text-ink">{(elapsedMs / 1000).toFixed(1)}s</span>
+    <div className="w-full">
+      <div className="mb-2 text-center text-3xl font-semibold tabular-nums text-ink">
+        {(elapsedMs / 1000).toFixed(1)}s
+      </div>
       {!running ? (
-        <Button variant="primary" size="md" onClick={start}>
+        <Button variant="primary" size="md" onClick={start} className="w-full py-4 text-base">
           Start
         </Button>
       ) : (
-        <Button variant="destructive" size="md" onClick={stop}>
+        <Button variant="destructive" size="md" onClick={stop} className="w-full py-4 text-base">
           Stop
         </Button>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={reset}
-        onBlur={() => setConfirmingReset(false)}
-      >
-        {confirmingReset ? 'Confirm reset' : 'Reset'}
-      </Button>
+      <div className="mt-2 flex justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={reset}
+          onBlur={() => setConfirmingReset(false)}
+        >
+          {confirmingReset ? 'Confirm reset' : 'Reset'}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -33,7 +33,8 @@ describe('LiveSessionView', () => {
     render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />);
 
     await waitFor(() => expect(testingSessionsApi.getEntries).toHaveBeenCalledWith('team-1', 'session-1'));
-    fireEvent.click(screen.getByText('Jane Doe'));
+    fireEvent.focus(screen.getByLabelText('Search players'));
+    fireEvent.mouseDown(screen.getByText('Jane Doe'));
 
     expect(screen.getByText('Qualities for player-1 (Jane Doe)')).toBeInTheDocument();
   });
@@ -59,7 +60,8 @@ describe('LiveSessionView', () => {
     render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />);
 
     await waitFor(() => expect(getEntriesSpy).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByText('Jane Doe'));
+    fireEvent.focus(screen.getByLabelText('Search players'));
+    fireEvent.mouseDown(screen.getByText('Jane Doe'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Simulate entry changed' }));
 

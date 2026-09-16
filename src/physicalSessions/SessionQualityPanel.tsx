@@ -116,7 +116,7 @@ export function SessionQualityPanel({
   const ready = isPhysicalTestReady(testType, fields);
 
   return (
-    <Dialog title={`${PHYSICAL_TEST_LABELS[testType]} — ${playerName}`} onClose={onClose}>
+    <Dialog title={`${PHYSICAL_TEST_LABELS[testType]} — ${playerName}`} onClose={onClose} mobileSheet>
         {testType === 'growth' && (
           <>
             <div className="mb-4">
@@ -163,37 +163,33 @@ export function SessionQualityPanel({
 
         {testType === 'shuttle5105' && (
           <>
-            <div className="mb-4">
+            <div className="mb-5">
               <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">Right-first (s)</label>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="shuttle-right"
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  className="w-24"
-                  value={fields.rightFirstSeconds}
-                  onChange={(e) => setFields({ ...fields, rightFirstSeconds: e.target.value })}
-                  onBlur={() => persist(fields)}
-                />
-                <Stopwatch onRecord={(s) => persist({ ...fields, rightFirstSeconds: String(s) })} />
-              </div>
+              <Input
+                id="shuttle-right"
+                type="number"
+                inputMode="decimal"
+                step="any"
+                className="mb-2 w-full"
+                value={fields.rightFirstSeconds}
+                onChange={(e) => setFields({ ...fields, rightFirstSeconds: e.target.value })}
+                onBlur={() => persist(fields)}
+              />
+              <Stopwatch onRecord={(s) => persist({ ...fields, rightFirstSeconds: String(s) })} />
             </div>
-            <div className="mb-4">
+            <div className="mb-5">
               <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">Left-first (s)</label>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="shuttle-left"
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  className="w-24"
-                  value={fields.leftFirstSeconds}
-                  onChange={(e) => setFields({ ...fields, leftFirstSeconds: e.target.value })}
-                  onBlur={() => persist(fields)}
-                />
-                <Stopwatch onRecord={(s) => persist({ ...fields, leftFirstSeconds: String(s) })} />
-              </div>
+              <Input
+                id="shuttle-left"
+                type="number"
+                inputMode="decimal"
+                step="any"
+                className="mb-2 w-full"
+                value={fields.leftFirstSeconds}
+                onChange={(e) => setFields({ ...fields, leftFirstSeconds: e.target.value })}
+                onBlur={() => persist(fields)}
+              />
+              <Stopwatch onRecord={(s) => persist({ ...fields, leftFirstSeconds: String(s) })} />
             </div>
           </>
         )}
@@ -287,24 +283,26 @@ export function SessionQualityPanel({
                 </li>
               ))}
             </ul>
+            {testType === 'sprint10m' && (
+              <div className="mb-3">
+                <Stopwatch onRecord={(s) => { setNewAttempt(String(s)); }} />
+              </div>
+            )}
+            <label htmlFor="new-attempt" className="mb-1 block text-sm font-medium text-ink">{attemptConfig.label}</label>
             <div className="flex items-center gap-3">
-              <label htmlFor="new-attempt" className="sr-only">{attemptConfig.label}</label>
               <Input
                 id="new-attempt"
                 aria-label={attemptConfig.label}
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="w-28"
+                className="flex-1"
                 value={newAttempt}
                 onChange={(e) => setNewAttempt(e.target.value)}
               />
-              <Button variant="secondary" size="md" onClick={addAttempt}>
+              <Button variant="secondary" size="md" onClick={addAttempt} className="shrink-0">
                 + Add attempt
               </Button>
-              {(testType === 'sprint10m') && (
-                <Stopwatch onRecord={(s) => { setNewAttempt(String(s)); }} />
-              )}
             </div>
           </div>
         )}

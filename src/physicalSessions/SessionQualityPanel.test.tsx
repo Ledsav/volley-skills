@@ -125,6 +125,73 @@ describe('SessionQualityPanel', () => {
     );
   });
 
+  it('disables Finish while finishEntry is in flight, to prevent a double-tap creating a duplicate permanent test', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);
+    let resolveFinish!: (id: string) => void;
+    const finishSpy = vi.spyOn(testingSessionsApi, 'finishEntry').mockReturnValue(
+      new Promise((resolve) => {
+        resolveFinish = resolve;
+      })
+    );
+    const onFinished = vi.fn();
+
+    render(
+      <SessionQualityPanel
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        testType="growth"
+        entry={null}
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onFinished={onFinished}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText('Height (cm)'), { target: { value: '160' } });
+    fireEvent.change(screen.getByLabelText('Body mass (kg)'), { target: { value: '55' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    expect(finishSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    expect(finishSpy).toHaveBeenCalledTimes(1);
+
+    resolveFinish('test-1');
+    await waitFor(() => expect(onFinished).toHaveBeenCalled());
+  });
+
+  it('re-enables Finish and warns about a possibly-partial save when finishEntry rejects', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);
+    vi.spyOn(testingSessionsApi, 'finishEntry').mockRejectedValue(new Error('network down'));
+
+    render(
+      <SessionQualityPanel
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        testType="growth"
+        entry={null}
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onFinished={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText('Height (cm)'), { target: { value: '160' } });
+    fireEvent.change(screen.getByLabelText('Body mass (kg)'), { target: { value: '55' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled());
+    expect(screen.getByRole('alert')).toHaveTextContent(/already|partial|check the player card/i);
+  });
+
   it('persists a single-value field on blur, for a non-attempts quality', async () => {
     vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
     const saveSpy = vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);

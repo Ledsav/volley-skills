@@ -63,6 +63,7 @@ export function SessionQualityPanel({
   const [newAttempt, setNewAttempt] = useState('');
   const [latestBodyMassKg, setLatestBodyMassKg] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (testType !== 'strength') return;
@@ -94,13 +95,17 @@ export function SessionQualityPanel({
   }
 
   async function handleFinish() {
+    if (saving) return;
     setError(null);
+    setSaving(true);
     const input = buildPhysicalTestInput(testType, fields, sessionDate, notes, latestBodyMassKg);
     try {
       await finishEntry(teamId, sessionId, playerId, testType, input, recordedByUid);
     } catch {
-      setError('Could not save this quality. Please try again.');
+      setError('Could not confirm this was saved — check the player card before recording it again.');
       return;
+    } finally {
+      setSaving(false);
     }
     onFinished();
   }
@@ -311,7 +316,7 @@ export function SessionQualityPanel({
 
         <div className="flex justify-between gap-3">
           <Button variant="ghost" onClick={onClose}>Close</Button>
-          <Button variant="primary" onClick={() => void handleFinish()} disabled={!ready}>
+          <Button variant="primary" onClick={() => void handleFinish()} disabled={!ready || saving}>
             Finish
           </Button>
         </div>

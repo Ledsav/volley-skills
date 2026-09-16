@@ -41,8 +41,10 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
     <div>
       <div className="mb-6 rounded-lg border border-border bg-surface p-4">
         <label htmlFor="session-date" className="mb-1 block text-sm font-medium text-ink">Date</label>
-        <Input id="session-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mb-3 w-full sm:w-48" />
-        <Button variant="primary" onClick={() => void handleStart()}>Start new session</Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Input id="session-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full sm:w-48" />
+          <Button variant="primary" onClick={() => void handleStart()} className="w-full sm:w-auto">Start new session</Button>
+        </div>
         {error && <p role="alert" className="mt-3 text-sm text-red">{error}</p>}
       </div>
 

@@ -67,14 +67,14 @@ export function TeamPage() {
               Calendar
             </Tab>
           )}
+          <Tab active={activeTab === 'physicalSession'} onClick={() => setTab('physicalSession')}>
+            Physical Session
+          </Tab>
           <Tab active={activeTab === 'plan'} onClick={() => setTab('plan')}>
             Development Plan
           </Tab>
           <Tab active={activeTab === 'settings'} onClick={() => setTab('settings')}>
             Settings
-          </Tab>
-          <Tab active={activeTab === 'physicalSession'} onClick={() => setTab('physicalSession')}>
-            Physical Session
           </Tab>
         </nav>
 
@@ -113,6 +113,13 @@ export function TeamPage() {
             </>
           )}
           {activeTab === 'calendar' && canCalendar && <TeamCalendarTab teamId={teamId} />}
+          {activeTab === 'physicalSession' && (
+            <TeamPhysicalSessionTab
+              teamId={teamId}
+              team={team}
+              onTeamChanged={setTeam}
+            />
+          )}
           {activeTab === 'plan' && (
             <DevelopmentPlanEditor
               plan={team.developmentPlan}
@@ -121,13 +128,6 @@ export function TeamPage() {
             />
           )}
           {activeTab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
-          {activeTab === 'physicalSession' && (
-            <TeamPhysicalSessionTab
-              teamId={teamId}
-              team={team}
-              onTeamChanged={setTeam}
-            />
-          )}
         </div>
       </div>
       {showAddPlayer && (

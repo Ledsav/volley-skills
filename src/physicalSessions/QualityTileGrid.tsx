@@ -9,6 +9,7 @@ interface QualityTileGridProps {
   sessionId: string;
   sessionDate: string;
   playerId: string;
+  playerName: string;
   entriesByPlayerAndType: Map<string, TestingSessionEntry>;
   recordedByUid: string;
   onEntryChanged: () => void;
@@ -24,6 +25,7 @@ export function QualityTileGrid({
   sessionId,
   sessionDate,
   playerId,
+  playerName,
   entriesByPlayerAndType,
   recordedByUid,
   onEntryChanged,
@@ -67,6 +69,7 @@ export function QualityTileGrid({
           sessionId={sessionId}
           sessionDate={sessionDate}
           playerId={playerId}
+          playerName={playerName}
           testType={openType}
           entry={entriesByPlayerAndType.get(buildEntryId(playerId, openType)) ?? null}
           recordedByUid={recordedByUid}

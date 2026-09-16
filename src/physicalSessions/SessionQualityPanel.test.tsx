@@ -20,6 +20,7 @@ describe('SessionQualityPanel', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         testType="cmj"
         entry={null}
         recordedByUid="coach-uid"
@@ -67,6 +68,7 @@ describe('SessionQualityPanel', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         testType="cmj"
         entry={{
           id: 'player-1__cmj',
@@ -99,6 +101,7 @@ describe('SessionQualityPanel', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         testType="strength"
         entry={null}
         recordedByUid="coach-uid"
@@ -142,6 +145,7 @@ describe('SessionQualityPanel', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         testType="growth"
         entry={null}
         recordedByUid="coach-uid"
@@ -175,6 +179,7 @@ describe('SessionQualityPanel', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         testType="growth"
         entry={null}
         recordedByUid="coach-uid"
@@ -192,6 +197,28 @@ describe('SessionQualityPanel', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/already|partial|check the player card/i);
   });
 
+  it('shows the player being recorded, prominently, as an accessible dialog', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+
+    render(
+      <SessionQualityPanel
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        playerName="Jane Doe"
+        testType="cmj"
+        entry={null}
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onFinished={vi.fn()}
+      />
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAccessibleName(/Jane Doe/);
+  });
+
   it('persists a single-value field on blur, for a non-attempts quality', async () => {
     vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
     const saveSpy = vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);
@@ -202,6 +229,7 @@ describe('SessionQualityPanel', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         testType="growth"
         entry={null}
         recordedByUid="coach-uid"

@@ -7,9 +7,17 @@ import type { TestingSession } from '../types/testingSession';
 
 vi.mock('./testingSessionsApi');
 vi.mock('./QualityTileGrid', () => ({
-  QualityTileGrid: ({ playerId, onEntryChanged }: { playerId: string; onEntryChanged: () => void }) => (
+  QualityTileGrid: ({
+    playerId,
+    playerName,
+    onEntryChanged,
+  }: {
+    playerId: string;
+    playerName: string;
+    onEntryChanged: () => void;
+  }) => (
     <div>
-      <span>Qualities for {playerId}</span>
+      <span>Qualities for {playerId} ({playerName})</span>
       <button onClick={onEntryChanged}>Simulate entry changed</button>
     </div>
   ),
@@ -27,7 +35,7 @@ describe('LiveSessionView', () => {
     await waitFor(() => expect(testingSessionsApi.getEntries).toHaveBeenCalledWith('team-1', 'session-1'));
     fireEvent.click(screen.getByText('Jane Doe'));
 
-    expect(screen.getByText('Qualities for player-1')).toBeInTheDocument();
+    expect(screen.getByText('Qualities for player-1 (Jane Doe)')).toBeInTheDocument();
   });
 
   it('closes the session after confirmation', async () => {

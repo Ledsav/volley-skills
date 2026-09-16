@@ -68,6 +68,7 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
               sessionId={session.id}
               sessionDate={session.date}
               playerId={selectedPlayerId}
+              playerName={players.find((p) => p.id === selectedPlayerId)?.fullName ?? ''}
               entriesByPlayerAndType={entriesByPlayerAndType}
               recordedByUid={recordedByUid}
               onEntryChanged={() => void load()}

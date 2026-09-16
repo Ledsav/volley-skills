@@ -4,9 +4,17 @@ import { QualityTileGrid } from './QualityTileGrid';
 import type { TestingSessionEntry } from '../types/testingSession';
 
 vi.mock('./SessionQualityPanel', () => ({
-  SessionQualityPanel: ({ testType, onClose }: { testType: string; onClose: () => void }) => (
+  SessionQualityPanel: ({
+    testType,
+    playerName,
+    onClose,
+  }: {
+    testType: string;
+    playerName: string;
+    onClose: () => void;
+  }) => (
     <div>
-      <span>Panel for {testType}</span>
+      <span>Panel for {testType} ({playerName})</span>
       <button onClick={onClose}>Close panel</button>
     </div>
   ),
@@ -38,6 +46,7 @@ describe('QualityTileGrid', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         entriesByPlayerAndType={entries}
         recordedByUid="coach-uid"
         onEntryChanged={vi.fn()}
@@ -56,6 +65,7 @@ describe('QualityTileGrid', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         entriesByPlayerAndType={new Map()}
         recordedByUid="coach-uid"
         onEntryChanged={vi.fn()}
@@ -64,7 +74,7 @@ describe('QualityTileGrid', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /10m Sprint/ }));
 
-    expect(screen.getByText('Panel for sprint10m')).toBeInTheDocument();
+    expect(screen.getByText('Panel for sprint10m (Jane Doe)')).toBeInTheDocument();
   });
 
   it('does not reopen a quality that is already Done, to avoid recording a duplicate result', () => {
@@ -76,6 +86,7 @@ describe('QualityTileGrid', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         entriesByPlayerAndType={entries}
         recordedByUid="coach-uid"
         onEntryChanged={vi.fn()}
@@ -84,7 +95,26 @@ describe('QualityTileGrid', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /10m Sprint/ }));
 
-    expect(screen.queryByText('Panel for sprint10m')).not.toBeInTheDocument();
+    expect(screen.queryByText('Panel for sprint10m (Jane Doe)')).not.toBeInTheDocument();
+  });
+
+  it('passes the selected player name through to the recording panel', () => {
+    render(
+      <QualityTileGrid
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        playerName="Jane Doe"
+        entriesByPlayerAndType={new Map()}
+        recordedByUid="coach-uid"
+        onEntryChanged={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /10m Sprint/ }));
+
+    expect(screen.getByText('Panel for sprint10m (Jane Doe)')).toBeInTheDocument();
   });
 
   it('refetches entries when the panel is closed without finishing, so a stale draft is never shown next reopen', () => {
@@ -96,6 +126,7 @@ describe('QualityTileGrid', () => {
         sessionId="session-1"
         sessionDate="2026-09-16"
         playerId="player-1"
+        playerName="Jane Doe"
         entriesByPlayerAndType={new Map()}
         recordedByUid="coach-uid"
         onEntryChanged={onEntryChanged}

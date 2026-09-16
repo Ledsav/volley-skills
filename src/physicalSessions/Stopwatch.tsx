@@ -26,7 +26,8 @@ export function Stopwatch({ onRecord }: StopwatchProps) {
 
   function stop() {
     setRunning(false);
-    onRecord(Math.round(elapsedMs) / 1000);
+    const finalMs = Date.now() - startedAtRef.current;
+    onRecord(Math.round(finalMs) / 1000);
     setElapsedMs(0);
   }
 

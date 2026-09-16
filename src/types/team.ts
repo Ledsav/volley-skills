@@ -14,4 +14,5 @@ export interface Team {
   developmentPlan: DevelopmentPlan;
   createdBy: string;
   createdAt: unknown;
+  activeTestingSessionId?: string | null;
 }

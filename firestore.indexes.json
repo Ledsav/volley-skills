@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "testingSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "exercises",
       "queryScope": "COLLECTION",
       "fields": [

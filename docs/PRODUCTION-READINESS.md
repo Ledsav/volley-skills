@@ -164,3 +164,28 @@ From the bulk-import and quota-protection reviews:
 - [ ] **Unbounded delete cascades** — `deleteTeam` / `deletePlayer` do a
       `getDocs` with no `limit` over their subcollections. Bounded in practice by
       roster size; a `limit` + loop makes it safe at any scale.
+- [ ] **Physical testing session drafts have no deletion path** — added with the
+      physical-testing-session feature (2026-09-16). `teams/{teamId}/testingSessions/{sessionId}/entries/{entryId}`
+      stores the same personal measurements of minors as `physicalTests` (height,
+      body mass, jump/sprint values), keyed by `playerId`, but `firestore.rules`
+      grants no `delete` on it at all, and neither `deletePlayer` nor `deleteTeam`
+      cascades into it (`physicalTests` itself IS cascaded on player delete —
+      see the item above and the GDPR-erasure note in the app design spec §10).
+      Needs: a `delete` rule for team admins, a per-player cascade in
+      `deletePlayer` (across all sessions), a team-level cascade in `deleteTeam`,
+      and a rules test. Flagged during the feature's final review; deliberately
+      not fixed in that pass to avoid rushing a compliance-sensitive path.
+      *Trigger: before any real testing-session data is recorded for real minors,
+      or when GDPR erasure is exercised.*
+- [ ] **Physical testing session mobile layout is functional but not fully
+      polished per spec** — the 2026-09-16 spec (§6) envisioned a fuller mobile
+      treatment than shipped. What's done: the roster picker is a search-only
+      combobox (no full list by default), the recording panel is a full-screen
+      sheet below the `sm` breakpoint, and the stopwatch is one big toggle
+      button. Still open: quality tiles show only "Not started"/"In
+      progress"/"Done" rather than "In progress (n of required)"; the past
+      sessions list on the no-active-session screen isn't expandable to show
+      what was recorded, as the spec asked. Low priority — the feature is
+      usable on a phone today.
+      *Trigger: pick up opportunistically, or when a coach reports it's hard to
+      use one-handed in the gym.*

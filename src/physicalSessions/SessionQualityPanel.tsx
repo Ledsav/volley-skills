@@ -6,7 +6,7 @@ import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } 
 import { getLatestByType } from '../players/physicalTestsApi';
 import { saveEntryProgress, finishEntry } from './testingSessionsApi';
 import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
-import type { PhysicalTestType } from '../types/physicalTest';
+import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
 import type { TestingSessionEntry } from '../types/testingSession';
 
 const DEFAULT_FIELDS: PhysicalTestFields = {
@@ -208,30 +208,59 @@ export function SessionQualityPanel({
               </select>
             </div>
             {fields.strengthMode === 'weighted' ? (
-              <div className="mb-4">
-                <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">Weight (kg)</label>
-                <Input
-                  id="strength-weight"
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  value={fields.weightKg}
-                  onChange={(e) => setFields({ ...fields, weightKg: e.target.value })}
-                  onBlur={() => persist(fields)}
-                />
-              </div>
+              <>
+                <div className="mb-4">
+                  <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">Exercise</label>
+                  <select
+                    id="strength-exercise"
+                    className={`${FIELD_CLASS} w-full`}
+                    value={fields.weightedExercise}
+                    onChange={(e) => persist({ ...fields, weightedExercise: e.target.value as WeightedExercise })}
+                  >
+                    <option value="trapBarDeadlift">Trap-bar deadlift</option>
+                    <option value="squat">Squat</option>
+                    <option value="gobletSquat">Goblet squat</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">Weight (kg)</label>
+                  <Input
+                    id="strength-weight"
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    value={fields.weightKg}
+                    onChange={(e) => setFields({ ...fields, weightKg: e.target.value })}
+                    onBlur={() => persist(fields)}
+                  />
+                </div>
+              </>
             ) : (
-              <div className="mb-4">
-                <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">Reps</label>
-                <Input
-                  id="strength-reps"
-                  type="number"
-                  inputMode="numeric"
-                  value={fields.reps}
-                  onChange={(e) => setFields({ ...fields, reps: e.target.value })}
-                  onBlur={() => persist(fields)}
-                />
-              </div>
+              <>
+                <div className="mb-4">
+                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">Exercise</label>
+                  <select
+                    id="strength-bodyweight-exercise"
+                    className={`${FIELD_CLASS} w-full`}
+                    value={fields.bodyweightExercise}
+                    onChange={(e) => persist({ ...fields, bodyweightExercise: e.target.value as BodyweightExercise })}
+                  >
+                    <option value="pushUps">Push-ups</option>
+                    <option value="splitSquat">Split squat</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">Reps</label>
+                  <Input
+                    id="strength-reps"
+                    type="number"
+                    inputMode="numeric"
+                    value={fields.reps}
+                    onChange={(e) => setFields({ ...fields, reps: e.target.value })}
+                    onBlur={() => persist(fields)}
+                  />
+                </div>
+              </>
             )}
           </>
         )}

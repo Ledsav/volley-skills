@@ -87,6 +87,44 @@ describe('SessionQualityPanel', () => {
     expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
   });
 
+  it('records the exercise the coach actually selected for a strength test, not the hardcoded default', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);
+    const finishSpy = vi.spyOn(testingSessionsApi, 'finishEntry').mockResolvedValue('test-1');
+    const onFinished = vi.fn();
+
+    render(
+      <SessionQualityPanel
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        testType="strength"
+        entry={null}
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onFinished={onFinished}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText('Exercise'), { target: { value: 'squat' } });
+    fireEvent.change(screen.getByLabelText('Weight (kg)'), { target: { value: '80' } });
+    fireEvent.blur(screen.getByLabelText('Weight (kg)'));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+
+    await waitFor(() => expect(onFinished).toHaveBeenCalled());
+    expect(finishSpy).toHaveBeenCalledWith(
+      'team-1',
+      'session-1',
+      'player-1',
+      'strength',
+      expect.objectContaining({ exercise: 'squat' }),
+      'coach-uid'
+    );
+  });
+
   it('persists a single-value field on blur, for a non-attempts quality', async () => {
     vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
     const saveSpy = vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);

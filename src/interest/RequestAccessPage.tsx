@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { AuthShell } from '../auth/AuthShell';
@@ -51,7 +52,7 @@ export function RequestAccessPage() {
   }
 
   return (
-    <AuthShell title="Request early access">
+    <AuthShell title="Let's get you set up" navAction={{ to: '/login', label: 'Sign in' }}>
       <p className="mb-4 text-center text-sm text-slate">
         Tell us a bit about you and we&apos;ll reach out when your access is ready.
       </p>
@@ -97,8 +98,9 @@ export function RequestAccessPage() {
           ))}
         </select>
 
-        <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
+        <Button type="submit" variant="primary" className="w-full gap-2" disabled={submitting}>
           Request access
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
 

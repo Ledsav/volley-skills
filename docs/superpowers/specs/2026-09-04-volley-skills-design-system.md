@@ -16,7 +16,7 @@ A live, browsable version of this system (all tokens and components rendered, li
 
 | Token | Hex | Usage |
 |---|---|---|
-| `navy` | `#0F2D5B` | Primary buttons, sidebar, logo mark — highest-emphasis surfaces |
+| `navy` | `#2356A8` | Primary buttons, sidebar, logo mark, auth court background — highest-emphasis surfaces. Brightened from `#0F2D5B` on 2026-09-17 to match the auth page. Dark theme uses `#1C4586`. |
 | `blue` | `#2865F6` | Links, active tab/nav indicator, secondary buttons — the interactive accent |
 | `orange` | `#F97316` | Priority flags, "Attention" status — signal, never decoration |
 | `green` | `#109861` | Success, on-track, elite skill band |
@@ -62,6 +62,8 @@ Single family: **Inter**. One face carries both the marketing header and dense r
 | Stat number | 30 / 34 | ExtraBold (800), tabular |
 
 Large/page/section titles use a slight negative tracking (`-0.01em`) — the only typographic embellishment in the system.
+
+**Wordmark exception (2026-09-17).** The "Volley Skills" logo lockup is the one place Inter is not used: **Barlow Condensed Black Italic** (self-hosted via `@fontsource/barlow-condensed`, Tailwind `font-display`), uppercase, tight tracking, set as a stack — the logo badge stands in for the V of "OLLEY", with "SKILLS" in ball yellow `#F5C518` beneath. The badge is a white rounded square with a slanted navy V catching a yellow ball. Both live in `src/components/Logo.tsx` (`Logo`, `LogoMark`) with fixed hex colours so they don't shift in dark mode; `public/favicon.svg` is the blue-badge variant. Don't use `font-display` for anything else.
 
 ## 4. Spacing, radius, elevation
 
@@ -122,7 +124,7 @@ Suggested `tailwind.config.ts` token extension (values from Section 2–4):
 theme: {
   extend: {
     colors: {
-      navy: '#0F2D5B',
+      navy: '#2356A8',
       blue: { DEFAULT: '#2865F6', strong: '#1E4FDC' },
       orange: { DEFAULT: '#F97316', strong: '#DC5F0A' },
       green: { DEFAULT: '#109861', strong: '#0C7C4F' },

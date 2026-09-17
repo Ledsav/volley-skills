@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { Button } from '../components/Button';
@@ -56,7 +57,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthShell title="Sign in">
+    <AuthShell title="Welcome back" navAction={{ to: '/request-access', label: 'Request access' }}>
       <form onSubmit={handleSubmit}>
         <label htmlFor="email" className="mb-1 block text-sm font-medium text-ink">
           Email
@@ -70,8 +71,9 @@ export function LoginPage() {
           required
           className="mb-4 w-full"
         />
-        <Button type="submit" variant="primary" className="w-full">
+        <Button type="submit" variant="primary" className="w-full gap-2">
           Send sign-in link
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
 

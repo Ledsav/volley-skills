@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Users, type LucideIcon } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { countUnreviewedInterestSignups } from '../interest/interestApi';
 import logo from '../assets/logo.png';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
@@ -22,13 +23,22 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { access } = useAuth();
+  const [pendingSignups, setPendingSignups] = useState(0);
 
-  const navItems = [
+  useEffect(() => {
+    if (!access?.isSuperAdmin) return;
+    void countUnreviewedInterestSignups().then(setPendingSignups);
+  }, [access?.isSuperAdmin]);
+
+  const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number }[] = [
     { to: '/teams', label: 'Teams', Icon: Users, show: true },
     { to: '/exercises', label: 'Exercises', Icon: Dumbbell, show: !!access?.sections.exercises },
     { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
     { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides },
-    { to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isSuperAdmin },
+    {
+      to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isSuperAdmin,
+      badge: pendingSignups > 0 ? pendingSignups : undefined,
+    },
   ].filter((item) => item.show);
 
   async function handleSignOut() {
@@ -44,10 +54,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-lg font-semibold tracking-[-0.01em] text-white">Volley Skills</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {navItems.map(({ to, label, Icon }) => (
+          {navItems.map(({ to, label, Icon, badge }) => (
             <NavLink key={to} to={to} className={sidebarLinkClass}>
               <Icon size={20} strokeWidth={1.5} />
               {label}
+              {!!badge && (
+                <span className="ml-auto rounded-full bg-orange px-1.5 py-0.5 text-xs font-semibold text-white">
+                  {badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -67,9 +82,16 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex-1 pb-16 lg:pb-0">{children}</div>
 
       <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
-        {navItems.map(({ to, label, Icon }) => (
+        {navItems.map(({ to, label, Icon, badge }) => (
           <NavLink key={to} to={to} className={bottomTabClass}>
-            <Icon size={22} strokeWidth={1.5} />
+            <span className="relative">
+              <Icon size={22} strokeWidth={1.5} />
+              {!!badge && (
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange px-1 text-[10px] font-semibold text-white">
+                  {badge}
+                </span>
+              )}
+            </span>
             {label}
           </NavLink>
         ))}

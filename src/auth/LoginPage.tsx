@@ -98,6 +98,12 @@ export function LoginPage() {
       )}
 
       <p className="mt-6 text-center text-sm">
+        <Link to="/request-access" className="text-blue hover:underline">
+          Don&apos;t have access yet? Request early access
+        </Link>
+      </p>
+
+      <p className="mt-3 text-center text-sm">
         <Link to="/privacy" className="text-slate hover:underline">
           Privacy
         </Link>

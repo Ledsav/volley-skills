@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { SECTION_KEYS, type SectionKey } from '../auth/access';
+import { countUnreviewedInterestSignups } from '../interest/interestApi';
 import {
   emptyGrantSet, listAllTeams, listGrantHolders, removeAllGrants, saveGrants,
   type GrantHolder, type GrantSet, type TeamRow,
@@ -25,6 +27,7 @@ export function AccessManagerPage() {
   const [newEmail, setNewEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingSignups, setPendingSignups] = useState(0);
 
   async function reload() {
     setError(null);
@@ -37,6 +40,7 @@ export function AccessManagerPage() {
     }
   }
   useEffect(() => { void reload(); }, []);
+  useEffect(() => { void countUnreviewedInterestSignups().then(setPendingSignups); }, []);
 
   const original = useMemo<GrantSet>(
     () => holders.find((h) => h.email === selected)?.grants ?? emptyGrantSet(),
@@ -102,6 +106,16 @@ export function AccessManagerPage() {
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">Access</h1>
       {error && <p role="alert" className="mb-4 text-red">{error}</p>}
+
+      {pendingSignups > 0 && (
+        <Link
+          to="/admin/interest"
+          className="mb-6 flex items-center justify-between rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 text-sm font-medium text-orange shadow-card hover:bg-orange/15"
+        >
+          {pendingSignups} new interest signup{pendingSignups === 1 ? '' : 's'} waiting for review
+          <span aria-hidden="true">→</span>
+        </Link>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">

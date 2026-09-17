@@ -1,15 +1,26 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AccessManagerPage } from './AccessManagerPage';
 import * as accessApi from './accessApi';
+import * as interestApi from '../interest/interestApi';
 
 vi.mock('./accessApi');
+vi.mock('../interest/interestApi');
 vi.mock('../firebase/config', () => ({ db: {} }));
 
 const teams = [
   { id: 't1', name: 'U15' },
   { id: 't2', name: 'U17' },
 ];
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <AccessManagerPage />
+    </MemoryRouter>
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -22,16 +33,17 @@ beforeEach(() => {
   ]);
   vi.mocked(accessApi.saveGrants).mockResolvedValue(undefined);
   vi.mocked(accessApi.removeAllGrants).mockResolvedValue(undefined);
+  vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(0);
 });
 
 describe('AccessManagerPage', () => {
   it('lists existing grant holders', async () => {
-    render(<AccessManagerPage />);
+    renderPage();
     expect(await screen.findByText('coach@example.com')).toBeInTheDocument();
   });
 
   it('adds a person by email, lowercased, and opens an empty grant panel', async () => {
-    render(<AccessManagerPage />);
+    renderPage();
     await screen.findByText('coach@example.com');
     fireEvent.change(screen.getByLabelText('Add person by email'), { target: { value: '  NEW@Example.com ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
@@ -39,7 +51,7 @@ describe('AccessManagerPage', () => {
   });
 
   it('saves a diff of the toggled grants', async () => {
-    render(<AccessManagerPage />);
+    renderPage();
     fireEvent.click(await screen.findByText('coach@example.com'));
 
     // grant U17 and trainings, revoke exercises
@@ -58,7 +70,7 @@ describe('AccessManagerPage', () => {
   });
 
   it('removes all access for a person', async () => {
-    render(<AccessManagerPage />);
+    renderPage();
     fireEvent.click(await screen.findByText('coach@example.com'));
     fireEvent.click(screen.getByRole('button', { name: 'Remove all access' }));
     await waitFor(() => expect(accessApi.removeAllGrants).toHaveBeenCalledWith('coach@example.com'));
@@ -66,7 +78,13 @@ describe('AccessManagerPage', () => {
 
   it('surfaces an error if teams fail to load', async () => {
     vi.mocked(accessApi.listAllTeams).mockRejectedValueOnce(new Error('permission-denied'));
-    render(<AccessManagerPage />);
+    renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i);
+  });
+
+  it('shows a banner linking to pending interest signups', async () => {
+    vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(3);
+    renderPage();
+    expect(await screen.findByText(/3 new interest signups waiting for review/i)).toBeInTheDocument();
   });
 });

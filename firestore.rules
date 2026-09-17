@@ -91,6 +91,19 @@ service cloud.firestore {
         && request.resource.data.lastSequence >= 0;
     }
 
+    match /interestSignups/{signupId} {
+      allow read, update, delete: if isSuperAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'role', 'reviewed', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.email.size() <= 200
+        && request.resource.data.role in ['coach', 'guardian', 'player', 'other']
+        && request.resource.data.reviewed == false;
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null

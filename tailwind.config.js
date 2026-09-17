@@ -32,7 +32,11 @@ export default {
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         surface: 'rgb(var(--color-surface) / <alpha-value>)',
       },
-      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Wordmark only ("Volley Skills"); everything else stays Inter.
+        display: ['"Barlow Condensed"', 'Inter', 'system-ui', 'sans-serif'],
+      },
       borderRadius: { sm: '6px', md: '9px', lg: '14px' },
       boxShadow: {
         card: '0 1px 2px rgba(15,23,42,.06), 0 1px 0 rgba(15,23,42,.03)',

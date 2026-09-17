@@ -10,7 +10,7 @@
      this they'd render light-mode dark on the dark surface. */
   color-scheme: light;
 
-  --color-navy: 15 45 91; /* #0F2D5B */
+  --color-navy: 35 86 168; /* #2356A8 */
   --color-blue: 40 101 246; /* #2865F6 */
   --color-blue-strong: 30 79 220; /* #1E4FDC */
   --color-orange: 249 115 22; /* #F97316 */
@@ -31,7 +31,7 @@
 .dark {
   color-scheme: dark;
 
-  --color-navy: 33 58 99; /* #213A63 */
+  --color-navy: 28 69 134; /* #1C4586 — same hue as light navy, darkened */
   --color-blue: 112 149 255; /* #7095FF */
   --color-blue-strong: 147 176 255; /* #93B0FF */
   --color-orange: 251 146 60; /* #FB923C */

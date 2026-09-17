@@ -6,7 +6,7 @@ import { auth } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { countUnreviewedInterestSignups } from '../interest/interestApi';
-import logo from '../assets/logo.png';
+import { Logo } from '../components/Logo';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
@@ -49,9 +49,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-bg lg:flex">
       <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto bg-navy p-4 lg:sticky lg:top-0 lg:flex lg:h-screen">
-        <div className="mb-6 flex items-center gap-2 px-3">
-          <img src={logo} alt="" className="h-8 w-8 rounded-full border-2 border-white" />
-          <span className="text-lg font-semibold tracking-[-0.01em] text-white">Volley Skills</span>
+        <div className="mb-6 px-3">
+          <Logo className="text-[28px]" />
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {navItems.map(({ to, label, Icon, badge }) => (

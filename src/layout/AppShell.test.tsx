@@ -9,6 +9,7 @@ const mockSignOut = vi.fn();
 vi.mock('firebase/auth', () => ({ signOut: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../firebase/config', () => ({ auth: {} }));
 vi.mock('../auth/AuthContext');
+vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(0) }));
 
 function renderShell() {
   return render(

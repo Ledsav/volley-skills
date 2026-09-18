@@ -74,9 +74,25 @@ describe('TeamPage', () => {
 
     renderTeamPage();
 
-    fireEvent.click(await screen.findByText('Calendar'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Calendar' }));
 
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
+  });
+
+  it('switches sections from the mobile section picker', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+
+    renderTeamPage();
+
+    const picker = await screen.findByRole('combobox', { name: 'Team section' });
+    expect(picker).toHaveValue('overview');
+    expect(picker.parentElement?.className).toContain('sm:hidden');
+
+    fireEvent.change(picker, { target: { value: 'calendar' } });
+
+    expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Calendar' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('tightens the page chrome and stacks the roster action buttons on mobile', async () => {
@@ -105,7 +121,8 @@ describe('TeamPage', () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
     await screen.findByRole('heading', { name: 'U17 Boys' });
-    expect(screen.queryByText('Calendar')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Calendar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Calendar' })).not.toBeInTheDocument();
   });
 
   it('shows the Calendar tab with trainings access', async () => {
@@ -115,7 +132,8 @@ describe('TeamPage', () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
-    expect(await screen.findByText('Calendar')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Calendar' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Calendar' })).toBeInTheDocument();
   });
 
   it('opens the player bulk-import dialog from the overview tab', async () => {

@@ -158,11 +158,11 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
         </p>
       )}
 
-      {/* Mobile (<640px): a stacked card per player — a wide table forces
-          horizontal scroll on a phone, so this is a separate layout with every
-          stat on its own labelled line, not a squeezed table (design system
-          §UX table guidance). */}
-      <div className="flex flex-col gap-3 sm:hidden">
+      {/* Below xl (<1280px): a card per player — one column on phones, two
+          from `sm`. The table needs ~740px of card width, which it only gets
+          at xl (the sidebar eats the room at lg), so anything narrower would
+          scroll sideways (design system §UX table guidance). */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:hidden">
         {visiblePlayers.map((player) => (
           <div
             key={player.id}
@@ -226,8 +226,9 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
         </p>
       )}
 
-      {/* Tablet/desktop (>=640px): the full table. */}
-      <div className="hidden overflow-x-auto rounded-lg border border-border bg-surface shadow-card sm:block">
+      {/* Wide desktop (>=1280px): the full table. `relative` keeps the header's
+          absolutely-positioned sr-only text inside this box, not the page. */}
+      <div className="relative hidden overflow-x-auto rounded-lg border border-border bg-surface shadow-card xl:block">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-border">

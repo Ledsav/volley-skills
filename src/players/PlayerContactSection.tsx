@@ -63,7 +63,7 @@ export function PlayerContactSection({
 
   return (
     <div className="flex h-full flex-col">
-      <dl className="grid grid-cols-[5rem_1fr] gap-x-3 gap-y-2 text-sm">
+      <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm [&>dd]:break-words">
         <dt className="text-slate">Number</dt>
         <dd className="font-medium tabular-nums text-ink">{player.number ? `#${player.number}` : '—'}</dd>
         <dt className="text-slate">Position</dt>

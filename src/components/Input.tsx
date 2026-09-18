@@ -1,7 +1,9 @@
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 
+// min-w-0 lets a field shrink inside a flex row instead of holding its intrinsic
+// (~20ch) width, which would push siblings off-screen on phones.
 export const FIELD_CLASS =
-  'rounded-md border border-border bg-surface px-3 py-2 text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue';
+  'min-w-0 rounded-md border border-border bg-surface px-3 py-2 text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement>;
 

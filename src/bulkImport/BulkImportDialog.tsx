@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '../components/Button';
+import { CodeBlock } from '../components/CodeBlock';
 import { Dialog } from '../components/Dialog';
 import { Textarea } from '../components/Input';
 import { parseJsonArray } from './parseJsonArray';
@@ -127,9 +128,9 @@ export function BulkImportDialog<TInput>({
 
         <details className="mb-3 text-sm text-slate">
           <summary className="cursor-pointer select-none">Example format</summary>
-          <pre className="mt-2 max-h-60 overflow-auto rounded-md border border-border bg-bg p-3 text-xs text-ink">
-            {exampleJson}
-          </pre>
+          <div className="mt-2">
+            <CodeBlock code={exampleJson} language="JSON" />
+          </div>
         </details>
 
         <label htmlFor="bulk-json" className="mb-1 block text-sm font-medium text-ink">
@@ -153,7 +154,7 @@ export function BulkImportDialog<TInput>({
           type="file"
           accept="application/json,.json"
           onChange={handleFile}
-          className="mt-1 block text-sm text-slate"
+          className="mt-1 block w-full min-w-0 text-sm text-slate"
         />
 
         <div className="mt-3">

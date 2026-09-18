@@ -17,7 +17,6 @@ import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { AccessManagerPage } from './access/AccessManagerPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
-import { InterestSignupsPage } from './interest/InterestSignupsPage';
 
 const DiagramEditorPage = lazy(() =>
   import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
@@ -89,14 +88,8 @@ export function App() {
                 </RequireSuperAdmin>
               }
             />
-            <Route
-              path="/admin/interest"
-              element={
-                <RequireSuperAdmin>
-                  <InterestSignupsPage />
-                </RequireSuperAdmin>
-              }
-            />
+            {/* Old link target: requests now live on the Access page. */}
+            <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
           </Route>
           <Route path="/" element={<Navigate to="/teams" replace />} />
         </Routes>

@@ -96,6 +96,30 @@ describe('TeamRosterTable', () => {
     expect(within(cards[0]).getByText('Advanced')).toBeInTheDocument();
   });
 
+  it('keeps the wide table for screens it fits and uses a card grid below that', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('player-1', 7, 'Marie Dubois', 'MB')],
+      lastDoc: null,
+      hasMore: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamRosterTable teamId="team-1" />
+      </MemoryRouter>
+    );
+
+    const cardList = (await screen.findAllByTestId('roster-mobile-card'))[0].parentElement as HTMLElement;
+    expect(cardList.className).toContain('sm:grid-cols-2');
+    expect(cardList.className).toContain('xl:hidden');
+
+    // `relative` keeps the header's absolutely-positioned sr-only text inside
+    // the scroll box instead of widening the whole page.
+    const tableWrapper = screen.getByRole('table').parentElement as HTMLElement;
+    expect(tableWrapper.className).toContain('xl:block');
+    expect(tableWrapper.className).toContain('relative');
+  });
+
   it('lays out the mobile card as labelled fields so every stat stays readable', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [

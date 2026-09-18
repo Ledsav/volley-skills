@@ -65,7 +65,8 @@ describe('PlayerKpiTiles', () => {
     expect(screen.getByText('Open objectives')).toBeInTheDocument();
 
     expect(screen.getByText('Last physical test')).toBeInTheDocument();
-    expect(screen.getByText('2026-08-12')).toBeInTheDocument();
+    expect(screen.getByText('12 Aug')).toBeInTheDocument();
+    expect(screen.getByText('2026')).toBeInTheDocument();
   });
 
   it('shows a dash for the last test when nothing is recorded', () => {

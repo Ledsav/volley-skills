@@ -20,8 +20,16 @@ export function addMonths(year: number, month: number, delta: number): { year: n
   return { year: base.getUTCFullYear(), month: base.getUTCMonth() };
 }
 
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 export function formatMonthLabel(year: number, month: number): string {
   return `${MONTH_NAMES[month]} ${year}`;
+}
+
+/** "2026-09-15" → "Tuesday 15 September". */
+export function formatDayLabel(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  return `${WEEKDAY_NAMES[d.getUTCDay()]} ${d.getUTCDate()} ${MONTH_NAMES[d.getUTCMonth()]}`;
 }
 
 /** Today's date as an ISO "YYYY-MM-DD" string, in the viewer's local timezone

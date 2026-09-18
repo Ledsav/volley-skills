@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addMonths, buildMonthGrid, formatMonthLabel, monthRange, todayIso } from './monthGrid';
+import { addMonths, buildMonthGrid, formatDayLabel, formatMonthLabel, monthRange, todayIso } from './monthGrid';
 
 describe('monthGrid', () => {
   it('builds a Monday-first grid for September 2026 with adjacent-month padding', () => {
@@ -25,6 +25,11 @@ describe('monthGrid', () => {
 
   it('formats a human month label', () => {
     expect(formatMonthLabel(2026, 8)).toBe('September 2026');
+  });
+
+  it('formats a human day label', () => {
+    expect(formatDayLabel('2026-09-15')).toBe('Tuesday 15 September');
+    expect(formatDayLabel('2026-03-01')).toBe('Sunday 1 March');
   });
 
   describe('todayIso', () => {

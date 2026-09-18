@@ -129,4 +129,49 @@ describe('TeamCalendarTab', () => {
 
     await waitFor(() => expect(calendarApi.deleteCalendarSession).toHaveBeenCalledWith('team-1', 's-1'));
   });
+
+  describe('on a phone-width screen', () => {
+    beforeEach(() => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+    });
+
+    afterEach(() => {
+      // jsdom has no matchMedia; restore that so the desktop tests keep their fallback.
+      delete (window as { matchMedia?: unknown }).matchMedia;
+    });
+
+    it("selects today by default and lists the tapped day's sessions full-width", async () => {
+      render(
+        <MemoryRouter>
+          <TeamCalendarTab teamId="team-1" />
+        </MemoryRouter>
+      );
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalled());
+
+      expect(screen.getByRole('button', { name: 'Today, Tuesday 15 September' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('No trainings scheduled.')).toBeInTheDocument();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Thursday 10 September, 1 training' }));
+
+      expect(screen.getByText('Passing circuit')).toBeInTheDocument();
+      expect(screen.getByLabelText('Remove TR-0007 on 2026-09-10')).toBeInTheDocument();
+    });
+
+    it('opens the assign dialog for the selected day', async () => {
+      render(
+        <MemoryRouter>
+          <TeamCalendarTab teamId="team-1" />
+        </MemoryRouter>
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Sunday 20 September' }));
+      fireEvent.click(screen.getByLabelText('Add training on 2026-09-20'));
+
+      expect(screen.getByText('assign-stub')).toBeInTheDocument();
+    });
+  });
 });

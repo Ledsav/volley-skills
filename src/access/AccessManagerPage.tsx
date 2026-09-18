@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { SECTION_KEYS, type SectionKey } from '../auth/access';
-import { countUnreviewedInterestSignups } from '../interest/interestApi';
+import { AccessRequestsPanel } from '../interest/AccessRequestsPanel';
 import {
   emptyGrantSet, listAllTeams, listGrantHolders, removeAllGrants, saveGrants,
   type GrantHolder, type GrantSet, type TeamRow,
@@ -27,7 +26,7 @@ export function AccessManagerPage() {
   const [newEmail, setNewEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [pendingSignups, setPendingSignups] = useState(0);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   async function reload() {
     setError(null);
@@ -40,7 +39,6 @@ export function AccessManagerPage() {
     }
   }
   useEffect(() => { void reload(); }, []);
-  useEffect(() => { void countUnreviewedInterestSignups().then(setPendingSignups); }, []);
 
   const original = useMemo<GrantSet>(
     () => holders.find((h) => h.email === selected)?.grants ?? emptyGrantSet(),
@@ -52,15 +50,27 @@ export function AccessManagerPage() {
     setDraft(holders.find((h) => h.email === email)?.grants ?? emptyGrantSet());
   }
 
-  function addPerson() {
-    const email = newEmail.trim().toLowerCase();
+  // Opens the grant editor for `rawEmail`, adding them to the list if they
+  // hold no grants yet (existing holders keep their current grants).
+  function openPerson(rawEmail: string) {
+    const email = rawEmail.trim().toLowerCase();
     if (!email) return;
-    setNewEmail('');
-    if (!holders.some((h) => h.email === email)) {
+    const existing = holders.find((h) => h.email === email);
+    if (!existing) {
       setHolders((cur) => [...cur, { email, grants: emptyGrantSet() }].sort((a, b) => a.email.localeCompare(b.email)));
     }
     setSelected(email);
-    setDraft(emptyGrantSet());
+    setDraft(existing?.grants ?? emptyGrantSet());
+  }
+
+  function addPerson() {
+    openPerson(newEmail);
+    setNewEmail('');
+  }
+
+  function grantRequest(email: string) {
+    openPerson(email);
+    editorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }
 
   function toggleTeam(id: string) {
@@ -107,15 +117,7 @@ export function AccessManagerPage() {
       <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">Access</h1>
       {error && <p role="alert" className="mb-4 text-red">{error}</p>}
 
-      {pendingSignups > 0 && (
-        <Link
-          to="/admin/interest"
-          className="mb-6 flex items-center justify-between rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 text-sm font-medium text-orange shadow-card hover:bg-orange/15"
-        >
-          {pendingSignups} new interest signup{pendingSignups === 1 ? '' : 's'} waiting for review
-          <span aria-hidden="true">→</span>
-        </Link>
-      )}
+      <AccessRequestsPanel onGrant={grantRequest} />
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
@@ -153,7 +155,7 @@ export function AccessManagerPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
+        <div ref={editorRef} className="scroll-mt-4 rounded-lg border border-border bg-surface p-4 shadow-card">
           {!selected ? (
             holders.length > 0 && (
               <p className="text-sm text-slate">Select a person to manage their access.</p>

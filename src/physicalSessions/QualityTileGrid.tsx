@@ -15,6 +15,12 @@ interface QualityTileGridProps {
   onEntryChanged: () => void;
 }
 
+// Soft-hyphen break points for words too long for a half-width phone tile;
+// automatic hyphenation isn't available in every browser.
+const TILE_LABEL_OVERRIDES: Partial<Record<PhysicalTestType, string>> = {
+  cmj: 'Counter\u00ADmovement Jump',
+};
+
 function statusLabel(entry: TestingSessionEntry | undefined): string {
   if (!entry) return 'Not started';
   return entry.status === 'complete' ? 'Done' : 'In progress';
@@ -48,11 +54,13 @@ export function QualityTileGrid({
                 if (done) return;
                 setOpenType(testType);
               }}
-              className={`flex min-h-11 flex-col items-start rounded-md border border-border bg-surface p-3 text-left ${
+              className={`flex min-h-11 min-w-0 flex-col items-start rounded-md border border-border bg-surface p-3 text-left ${
                 done ? 'cursor-default opacity-70' : 'hover:bg-blue/5'
               }`}
             >
-              <span className="text-sm font-medium text-ink">{PHYSICAL_TEST_LABELS[testType]}</span>
+              <span className="w-full break-words text-sm font-medium text-ink hyphens-auto">
+                {TILE_LABEL_OVERRIDES[testType] ?? PHYSICAL_TEST_LABELS[testType]}
+              </span>
               <span
                 className={`text-xs ${done ? 'text-green' : status === 'In progress' ? 'text-orange' : 'text-slate'}`}
               >

@@ -6,6 +6,7 @@ import { auth } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { countUnreviewedInterestSignups } from '../interest/interestApi';
+import { SIGNUPS_CHANGED_EVENT } from '../interest/signupEvents';
 import { Logo } from '../components/Logo';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
@@ -14,8 +15,10 @@ function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   }`;
 }
 
+// Icon-only on phones (labels stay as sr-only text for screen readers); labels
+// reappear from `sm` up, where the bar has room for them.
 function bottomTabClass({ isActive }: { isActive: boolean }): string {
-  return `flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium ${
+  return `flex min-h-12 flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium ${
     isActive ? 'text-blue' : 'text-slate'
   }`;
 }
@@ -27,7 +30,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!access?.isSuperAdmin) return;
-    void countUnreviewedInterestSignups().then(setPendingSignups);
+    const recount = () => { void countUnreviewedInterestSignups().then(setPendingSignups); };
+    recount();
+    window.addEventListener(SIGNUPS_CHANGED_EVENT, recount);
+    return () => window.removeEventListener(SIGNUPS_CHANGED_EVENT, recount);
   }, [access?.isSuperAdmin]);
 
   const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number }[] = [
@@ -78,7 +84,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </NavLink>
       </aside>
 
-      <div className="flex-1 pb-16 lg:pb-0">{children}</div>
+      {/* min-w-0: as a flex item beside the sidebar, wide content (tables)
+          would otherwise stretch the whole page past the viewport. */}
+      <div className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</div>
 
       <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
         {navItems.map(({ to, label, Icon, badge }) => (
@@ -91,12 +99,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </span>
-            {label}
+            <span className="sr-only sm:not-sr-only">{label}</span>
           </NavLink>
         ))}
         <NavLink to="/settings" className={bottomTabClass}>
           <Settings size={22} strokeWidth={1.5} />
-          Settings
+          <span className="sr-only sm:not-sr-only">Settings</span>
         </NavLink>
       </nav>
     </div>

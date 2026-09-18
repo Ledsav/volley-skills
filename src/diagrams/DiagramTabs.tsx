@@ -13,7 +13,7 @@ interface Props {
 
 export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: Props) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-surface px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2">
       {diagrams.map((d) => {
         const active = d.id === activeId;
         return (

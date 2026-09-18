@@ -58,6 +58,23 @@ describe('QualityTileGrid', () => {
     expect(screen.getAllByText('Not started').length).toBe(6);
   });
 
+  it('gives long single-word labels a hyphenation point so they fit a phone tile', () => {
+    render(
+      <QualityTileGrid
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        playerName="Jane Doe"
+        entriesByPlayerAndType={new Map()}
+        recordedByUid="coach-uid"
+        onEntryChanged={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Counter­movement Jump')).toBeInTheDocument();
+  });
+
   it('opens the recording panel for the tapped quality', () => {
     render(
       <QualityTileGrid

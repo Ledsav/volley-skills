@@ -34,6 +34,8 @@ beforeEach(() => {
   vi.mocked(accessApi.saveGrants).mockResolvedValue(undefined);
   vi.mocked(accessApi.removeAllGrants).mockResolvedValue(undefined);
   vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(0);
+  vi.mocked(interestApi.listInterestSignups).mockResolvedValue({ signups: [], lastDoc: null, hasMore: false });
+  vi.mocked(interestApi.markInterestSignupReviewed).mockResolvedValue(undefined);
 });
 
 describe('AccessManagerPage', () => {
@@ -82,9 +84,27 @@ describe('AccessManagerPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i);
   });
 
-  it('shows a banner linking to pending interest signups', async () => {
-    vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(3);
+  it('always shows the access requests list, even when none are new', async () => {
+    vi.mocked(interestApi.listInterestSignups).mockResolvedValue({
+      signups: [{ id: 's1', name: 'Ana', email: 'ana@example.com', role: 'coach', reviewed: true, createdAt: null }],
+      lastDoc: null, hasMore: false,
+    });
     renderPage();
-    expect(await screen.findByText(/3 new interest signups waiting for review/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Access requests' })).toBeInTheDocument();
+    expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
+    expect(screen.queryByText('New')).not.toBeInTheDocument();
+  });
+
+  it('opens the grant editor for a requester and marks the request reviewed', async () => {
+    vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(1);
+    vi.mocked(interestApi.listInterestSignups).mockResolvedValue({
+      signups: [{ id: 's1', name: 'Ana', email: 'Ana@Example.com', role: 'guardian', reviewed: false, createdAt: null }],
+      lastDoc: null, hasMore: false,
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Grant access' }));
+    expect(await screen.findByRole('heading', { name: 'ana@example.com' })).toBeInTheDocument();
+    await waitFor(() => expect(interestApi.markInterestSignupReviewed).toHaveBeenCalledWith('s1'));
+    await waitFor(() => expect(screen.queryByText('1 new')).not.toBeInTheDocument());
   });
 });

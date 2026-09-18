@@ -50,9 +50,11 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-slate">Session started {session.date}</p>
-        <Button variant="dangerGhost" size="sm" onClick={() => { setCloseError(null); setConfirmingClose(true); }}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-sm text-slate">
+          Session started <span className="whitespace-nowrap tabular-nums">{session.date}</span>
+        </p>
+        <Button variant="dangerGhost" size="sm" className="shrink-0" onClick={() => { setCloseError(null); setConfirmingClose(true); }}>
           Close session
         </Button>
       </div>

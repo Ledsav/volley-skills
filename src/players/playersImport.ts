@@ -1,6 +1,14 @@
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
-import { POSITION_CATEGORIES, SKILL_KEYS, type Guardian, type PositionCategory, type SkillKey } from '../types/player';
+import {
+  POSITION_CATEGORIES,
+  SHIRT_SIZES,
+  SKILL_KEYS,
+  type Guardian,
+  type PositionCategory,
+  type ShirtSize,
+  type SkillKey,
+} from '../types/player';
 
 export interface PlayerImportInput {
   number: number;
@@ -9,6 +17,7 @@ export interface PlayerImportInput {
   nationality: string;
   licenseNumber: string;
   positionCategory: PositionCategory;
+  shirtSize: ShirtSize | '';
   playerPhone: string;
   guardians: Guardian[];
   skills: Record<SkillKey, number | null>;
@@ -27,6 +36,7 @@ export const PLAYER_IMPORT_EXAMPLE = `[
     "nationality": "LU",
     "licenseNumber": "12345",
     "positionCategory": "OH",
+    "shirtSize": "M",
     "playerPhone": "",
     "guardians": [
       { "relation": "mother", "name": "Mary Doe", "phone": "+352 000 000", "email": "mary@example.com" }
@@ -90,6 +100,15 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
       }
     }
 
+    let shirtSize: ShirtSize | '' = '';
+    if (row.shirtSize !== undefined && row.shirtSize !== '') {
+      if (SHIRT_SIZES.includes(row.shirtSize as ShirtSize)) {
+        shirtSize = row.shirtSize as ShirtSize;
+      } else {
+        fail(`row ${n}: "shirtSize" must be one of ${SHIRT_SIZES.join(', ')}`);
+      }
+    }
+
     const guardians: Guardian[] = [];
     if (row.guardians !== undefined) {
       if (!Array.isArray(row.guardians)) {
@@ -144,6 +163,7 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
         nationality: text.nationality,
         licenseNumber: text.licenseNumber,
         positionCategory,
+        shirtSize,
         playerPhone: text.playerPhone,
         guardians,
         skills,

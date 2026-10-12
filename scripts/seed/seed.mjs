@@ -221,6 +221,7 @@ async function main() {
       nationality: p.nationality,
       licenseNumber: p.licenseNumber,
       positionCategory: p.positionCategory ?? 'TBD',
+      shirtSize: '',
       starting: false,
       playerPhone: p.playerPhone,
       guardians: p.guardians,

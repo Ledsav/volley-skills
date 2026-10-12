@@ -24,6 +24,7 @@ function makePlayer(
     nationality: 'BEL',
     licenseNumber: 'J-000001',
     positionCategory,
+    shirtSize: '',
     starting: false,
     playerPhone: '',
     guardians: [],

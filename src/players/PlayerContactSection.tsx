@@ -3,7 +3,7 @@ import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input } from '../components/Input';
 import { updatePlayerContact } from './playersApi';
-import { POSITION_CATEGORIES, type Player, type PositionCategory } from '../types/player';
+import { POSITION_CATEGORIES, SHIRT_SIZES, type Player, type PositionCategory, type ShirtSize } from '../types/player';
 
 const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.value, c.label])) as Record<
   PositionCategory,
@@ -32,6 +32,7 @@ export function PlayerContactSection({
   const [fullName, setFullName] = useState(player.fullName);
   const [shirtNumber, setShirtNumber] = useState(player.number ? String(player.number) : '');
   const [positionCategory, setPositionCategory] = useState<PositionCategory>(player.positionCategory);
+  const [shirtSize, setShirtSize] = useState<ShirtSize | ''>(player.shirtSize ?? '');
   const [starting, setStarting] = useState(player.starting);
   const [playerPhone, setPlayerPhone] = useState(player.playerPhone);
   const [error, setError] = useState<string | null>(null);
@@ -41,23 +42,39 @@ export function PlayerContactSection({
       setFullName(player.fullName);
       setShirtNumber(player.number ? String(player.number) : '');
       setPositionCategory(player.positionCategory);
+      setShirtSize(player.shirtSize ?? '');
       setStarting(player.starting);
       setPlayerPhone(player.playerPhone);
       setError(null);
     }
-  }, [editing, player.fullName, player.number, player.positionCategory, player.starting, player.playerPhone]);
+  }, [
+    editing,
+    player.fullName,
+    player.number,
+    player.positionCategory,
+    player.shirtSize,
+    player.starting,
+    player.playerPhone,
+  ]);
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
     setError(null);
     const number = Number(shirtNumber) || 0;
     try {
-      await updatePlayerContact(teamId, playerId, { fullName, number, positionCategory, starting, playerPhone });
+      await updatePlayerContact(teamId, playerId, {
+        fullName,
+        number,
+        positionCategory,
+        shirtSize,
+        starting,
+        playerPhone,
+      });
     } catch {
       setError('Could not save contact information. Please try again.');
       return;
     }
-    onPlayerUpdated({ ...player, fullName, number, positionCategory, starting, playerPhone });
+    onPlayerUpdated({ ...player, fullName, number, positionCategory, shirtSize, starting, playerPhone });
     onEditingChange(false);
   }
 
@@ -75,6 +92,8 @@ export function PlayerContactSection({
             </span>
           )}
         </dd>
+        <dt className="text-slate">Shirt size</dt>
+        <dd className="font-medium text-ink">{player.shirtSize || '—'}</dd>
         <dt className="text-slate">Phone</dt>
         <dd className="font-medium text-ink">{player.playerPhone || '—'}</dd>
         <dt className="text-slate">License</dt>
@@ -121,6 +140,23 @@ export function PlayerContactSection({
               {POSITION_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="player-shirt-size" className="mb-1 block text-sm font-medium text-ink">
+              Shirt size
+            </label>
+            <select
+              id="player-shirt-size"
+              value={shirtSize}
+              onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
+              className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-blue focus:outline-none"
+            >
+              <option value="">Not set</option>
+              {SHIRT_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
                 </option>
               ))}
             </select>

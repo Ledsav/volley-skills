@@ -114,6 +114,12 @@ for the detailed steps.
 
 ## C. Ongoing / when it makes sense
 
+- [ ] **Player `shirtSize` backfill** (after the branch adding shirt size is
+      deployed) — optional, the app already treats a missing field as "not
+      set": `node scripts/seed/backfillPlayers.mjs --prod` (dry run, prints
+      counts) then `--prod --yes` to write `shirtSize: ''` on existing players.
+      No rules change or index needed.
+
 - [ ] **Revoking a super-admin needs a manual follow-up** — removing an email
       from `adminAllowlist` is not enough on its own: their cached
       `users/{uid}` doc still has `role: 'superadmin'` (that field is

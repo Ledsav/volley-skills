@@ -22,6 +22,7 @@ import {
   SKILL_KEYS,
   type Player,
   type PositionCategory,
+  type ShirtSize,
   type SkillKey,
   type Guardian,
   type Skills,
@@ -51,6 +52,7 @@ export interface NewPlayerInput {
   nationality: string;
   licenseNumber: string;
   positionCategory?: PositionCategory;
+  shirtSize?: ShirtSize | '';
   playerPhone: string;
   guardians: Guardian[];
 }
@@ -67,6 +69,7 @@ function hydratePlayer(id: string, data: Record<string, unknown>): Player {
   }
   return {
     positionCategory: 'TBD',
+    shirtSize: '',
     starting: false,
     ...data,
     skills,
@@ -84,6 +87,7 @@ export async function createPlayer(
   const docRef = await addDoc(collection(db, 'teams', teamId, 'players'), {
     ...input,
     positionCategory: input.positionCategory ?? 'TBD',
+    shirtSize: input.shirtSize ?? '',
     starting: false,
     viewerEmails: [],
     teamName: team.name,
@@ -125,6 +129,7 @@ export async function bulkCreatePlayers(
     batch.set(ref, {
       ...contact,
       positionCategory: contact.positionCategory ?? 'TBD',
+      shirtSize: contact.shirtSize ?? '',
       starting: false,
       viewerEmails: [],
       teamName: team.name,

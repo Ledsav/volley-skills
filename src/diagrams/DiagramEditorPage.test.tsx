@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/AuthContext';
 import { authValue } from '../test/authValue';
 import { clearDiagramClipboard } from './diagramClipboard';
@@ -506,5 +506,65 @@ describe('DiagramEditorPage', () => {
 
     // The cone stays selected — a miss is additive-safe, not a clear.
     expect(stage().querySelectorAll('[data-selection-outline]')).toHaveLength(1);
+  });
+});
+
+describe('DiagramEditorPage on a phone', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearDiagramClipboard();
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never }));
+    vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([
+      { id: 'd1', title: 'Setup', order: 0, scene: { v: 1, court: 'full', showZones: false, items: [] }, updatedBy: 'x', updatedAt: null },
+    ]);
+    vi.mocked(diagramsApi.saveDiagramSet).mockResolvedValue({ idMap: {} });
+    // Below the lg breakpoint: every (min-width) query fails.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('adds elements from a bottom panel that closes once an element is placed', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    expect(screen.queryByRole('button', { name: 'Cone' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(within(screen.getByRole('region', { name: 'Add element' })).getByRole('button', { name: 'Cone' }));
+
+    expect(screen.queryByRole('region', { name: 'Add element' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-canvas-stage] [data-item-type="cone"]')).not.toBeNull();
+  });
+
+  it('edits and deletes the selection from the bottom toolbar', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const tools = screen.getByRole('navigation', { name: 'Diagram tools' });
+    expect(within(tools).getByRole('button', { name: 'Edit' })).toBeDisabled();
+
+    fireEvent.click(within(tools).getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+
+    fireEvent.click(within(tools).getByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('region', { name: 'Edit element' })).toBeInTheDocument();
+
+    fireEvent.click(within(tools).getByRole('button', { name: 'Delete' }));
+    expect(document.querySelector('[data-canvas-stage] [data-item-type="ball"]')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Edit element' })).not.toBeInTheDocument();
+  });
+
+  it('keeps court settings behind a toggle', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    expect(screen.queryByLabelText('Court preset')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Court settings' }));
+    expect(screen.getByLabelText('Court preset')).toBeInTheDocument();
   });
 });

@@ -16,7 +16,15 @@ export function invalidateDiagramThumbnail(exerciseId: string) {
   cache.delete(exerciseId);
 }
 
-export function DiagramThumbnail({ exerciseId, className }: { exerciseId: string; className?: string }) {
+interface DiagramThumbnailProps {
+  exerciseId: string;
+  className?: string;
+  /** `false` renders a plain preview (no lightbox button) for use inside
+   *  another clickable element, where a nested button would be invalid. */
+  interactive?: boolean;
+}
+
+export function DiagramThumbnail({ exerciseId, className, interactive = true }: DiagramThumbnailProps) {
   const [diagram, setDiagram] = useState<Diagram | null | undefined>(
     cache.has(exerciseId) ? cache.get(exerciseId) : undefined,
   );
@@ -53,16 +61,24 @@ export function DiagramThumbnail({ exerciseId, className }: { exerciseId: string
 
   if (!diagram) return null;
 
+  const boxClass =
+    className ?? 'aspect-square w-16 shrink-0 overflow-hidden rounded-sm border border-border bg-surface';
+
+  if (!interactive) {
+    return (
+      <span aria-hidden="true" className={`block ${boxClass}`}>
+        <DiagramSvg scene={diagram.scene} />
+      </span>
+    );
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={() => void openLightbox()}
         aria-label={`Expand diagram ${diagram.title}`}
-        className={
-          className ??
-          'aspect-square w-16 shrink-0 overflow-hidden rounded-sm border border-border bg-surface'
-        }
+        className={boxClass}
       >
         <DiagramSvg scene={diagram.scene} />
       </button>

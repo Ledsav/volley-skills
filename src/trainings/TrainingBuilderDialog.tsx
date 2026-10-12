@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
+import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds, listExercises } from '../exercises/exercisesApi';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { Training, TrainingExercise } from '../types/training';
@@ -17,13 +18,19 @@ const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key,
 >;
 
 const chipClass = (active: boolean) =>
-  `rounded-full px-2.5 py-1 text-xs font-medium ${
+  `shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
     active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
   }`;
+
+const FORM_ID = 'training-form';
+
+const rowIconBtn =
+  'inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink disabled:opacity-30 sm:h-9 sm:w-9';
 
 interface Row extends TrainingExercise {
   name: string | null; // null => the exercise no longer exists
   description: string;
+  category?: ExerciseCategory;
 }
 
 interface TrainingBuilderDialogProps {
@@ -42,7 +49,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerCategory, setPickerCategory] = useState<ExerciseCategory | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [pickerLastDoc, setPickerLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [pickerHasMore, setPickerHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +67,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
               ...e,
               name: byId.get(e.exerciseId)?.name ?? null,
               description: byId.get(e.exerciseId)?.description ?? '',
+              category: byId.get(e.exerciseId)?.category,
             }))
         );
       })
@@ -104,13 +112,13 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
         durationMinutes: 10,
         name: exercise.name,
         description: exercise.description,
+        category: exercise.category,
       },
     ]);
     // Picker stays open so several exercises can be added in one pass.
   }
 
   function move(index: number, delta: number) {
-    setExpandedRow(null);
     setRows((current) => {
       const next = current.slice();
       const target = index + delta;
@@ -121,7 +129,6 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   }
 
   function removeRow(index: number) {
-    setExpandedRow(null);
     setRows((current) => current.filter((_, i) => i !== index));
   }
 
@@ -157,8 +164,26 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   }
 
   return (
-    <Dialog title={training ? `Edit ${training.businessId}` : 'New training'} size="lg" onClose={onClose}>
-      <form onSubmit={handleSubmit} aria-label={training ? 'Edit training' : 'New training'}>
+    <Dialog
+      title={training ? `${training.businessId} · ${training.name}` : 'New training'}
+      size="lg"
+      mobileSheet
+      onClose={onClose}
+      footer={
+        <>
+          <span className="mr-auto text-sm tabular-nums text-slate">
+            {rows.length} exercise{rows.length === 1 ? '' : 's'} · {totalMinutes} min
+          </span>
+          <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" form={FORM_ID}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form id={FORM_ID} onSubmit={handleSubmit} aria-label={training ? 'Edit training' : 'New training'}>
         <label htmlFor="training-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
@@ -182,83 +207,81 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-ink">Exercises</span>
-            <span className="text-sm text-slate">Total: {totalMinutes} min</span>
           </div>
 
           <ul aria-label="Training exercises" className="divide-y divide-border rounded-md border border-border">
             {rows.length === 0 && <li className="p-3 text-sm text-slate">No exercises added yet.</li>}
             {rows.map((row, i) => {
-              const expanded = expandedRow === i;
+              const startMinute = rows.slice(0, i).reduce((sum, r) => sum + (r.durationMinutes || 0), 0);
               return (
-                <li key={`${row.exerciseId}-${i}`} className="p-3">
-                  <div className="flex items-start gap-2">
-                    <button
-                      type="button"
-                      aria-expanded={expanded}
-                      aria-label={expanded ? `Collapse exercise ${i + 1}` : `Expand exercise ${i + 1}`}
-                      onClick={() => setExpandedRow(expanded ? null : i)}
-                      disabled={!row.name}
-                      className="mt-2 shrink-0 text-slate hover:text-ink disabled:opacity-30"
-                    >
-                      {expanded ? (
-                        <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                      )}
-                    </button>
+                <li key={`${row.exerciseId}-${i}`} className="p-2 sm:p-3">
+                  {/* The whole summary is one tap target that opens the exercise
+                      full-screen; editing controls sit on their own row below. */}
+                  <button
+                    type="button"
+                    onClick={() => setViewing(i)}
+                    aria-label={`View exercise ${i + 1}: ${row.name ?? 'deleted exercise'}`}
+                    className="flex w-full items-center gap-3 rounded-md p-1 text-left hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                  >
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold tabular-nums text-white">
+                      {i + 1}
+                    </span>
                     <DiagramThumbnail
                       exerciseId={row.exerciseId}
-                      className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
+                      interactive={false}
+                      className="aspect-square w-14 shrink-0 overflow-hidden rounded-sm border border-border bg-surface"
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="shrink-0 text-sm tabular-nums text-slate">{i + 1}</span>
-                        <span className={`min-w-0 flex-1 truncate text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
-                          {row.name ?? '⚠ Deleted exercise'}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <label className="flex items-center gap-1.5 text-xs text-slate">
-                          <input
-                            type="number"
-                            min={0}
-                            aria-label={`Duration for exercise ${i + 1} (min)`}
-                            value={row.durationMinutes}
-                            onChange={(e) => setDuration(i, Number(e.target.value))}
-                            className="w-16 rounded-md border border-border px-2 py-1 text-right tabular-nums"
-                          />
-                          min
-                        </label>
-                        <button
-                          type="button"
-                          aria-label={`Move exercise ${i + 1} up`}
-                          onClick={() => move(i, -1)}
-                          className="px-1 text-slate hover:text-ink"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Move exercise ${i + 1} down`}
-                          onClick={() => move(i, 1)}
-                          className="px-1 text-slate hover:text-ink"
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Remove exercise ${i + 1}`}
-                          onClick={() => removeRow(i)}
-                          className="ml-auto px-1 text-red hover:text-red-strong"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-sm font-medium ${row.name ? 'text-ink' : 'text-red'}`}>
+                        {row.name ?? '⚠ Deleted exercise'}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
+                        {row.category ? `${CATEGORY_LABEL[row.category]} · ` : ''}min {startMinute}–
+                        {startMinute + (row.durationMinutes || 0)}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-slate" aria-hidden="true" />
+                  </button>
+                  <div className="mt-1 flex items-center gap-1 pl-1">
+                    <label className="mr-auto flex items-center gap-1.5 text-xs text-slate">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        aria-label={`Duration for exercise ${i + 1} (min)`}
+                        value={row.durationMinutes}
+                        onChange={(e) => setDuration(i, Number(e.target.value))}
+                        className="min-h-11 w-16 rounded-md border border-border bg-surface px-2 py-1 text-right text-base tabular-nums text-ink sm:min-h-0 sm:text-sm"
+                      />
+                      min
+                    </label>
+                    <button
+                      type="button"
+                      aria-label={`Move exercise ${i + 1} up`}
+                      onClick={() => move(i, -1)}
+                      disabled={i === 0}
+                      className={rowIconBtn}
+                    >
+                      <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move exercise ${i + 1} down`}
+                      onClick={() => move(i, 1)}
+                      disabled={i === rows.length - 1}
+                      className={rowIconBtn}
+                    >
+                      <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove exercise ${i + 1}`}
+                      onClick={() => removeRow(i)}
+                      className={`${rowIconBtn} text-red hover:text-red-strong`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </div>
-                  {expanded && (
-                    <p className="mt-2 pl-6 text-xs text-slate">{row.description || 'No description.'}</p>
-                  )}
                 </li>
               );
             })}
@@ -277,7 +300,11 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                 </button>
               </div>
 
-              <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Filter exercises by category">
+              <div
+                className="-mx-2 mb-2 flex gap-1.5 overflow-x-auto px-2 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+                role="group"
+                aria-label="Filter exercises by category"
+              >
                 <button type="button" aria-pressed={pickerCategory === ''} onClick={() => selectCategory('')} className={chipClass(pickerCategory === '')}>
                   All
                 </button>
@@ -373,16 +400,21 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
             {error}
           </p>
         )}
-
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit">
-            Save
-          </Button>
-        </div>
       </form>
+
+      {viewing !== null && (
+        <ExerciseDetailSheet
+          entries={rows.map((row) => ({
+            exerciseId: row.exerciseId,
+            name: row.name,
+            description: row.description,
+            category: row.category,
+            durationMinutes: row.durationMinutes,
+          }))}
+          startIndex={viewing}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </Dialog>
   );
 }

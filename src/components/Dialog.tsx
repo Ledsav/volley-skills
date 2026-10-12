@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useModalLayer } from './useModalLayer';
 
 interface DialogProps {
   title: string;
@@ -10,9 +11,16 @@ interface DialogProps {
   /**
    * Fills the viewport edge-to-edge below the `sm` breakpoint instead of a
    * centered card, reverting to the normal centered card from `sm` up. For
-   * content meant to be worked in during a live session on a phone.
+   * content meant to be read or worked in on a phone (a full-screen page
+   * with a close button rather than a floating popup).
    */
   mobileSheet?: boolean;
+  /**
+   * Pinned below the scrolling body, so primary actions (Save / Cancel) stay
+   * reachable on a phone without scrolling to the end of a long form. A form
+   * in the body wires its submit button here via the `form` attribute.
+   */
+  footer?: ReactNode;
 }
 
 const SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
@@ -25,7 +33,7 @@ const MOBILE_SHEET_SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> 
   lg: 'sm:max-w-2xl',
 };
 
-export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false }: DialogProps) {
+export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false, footer }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Focus the panel once on mount only — re-running this on every render (e.g.
@@ -35,13 +43,7 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
     panelRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  useModalLayer(onClose);
 
   return (
     <div
@@ -64,18 +66,37 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
             : `max-h-[90vh] rounded-lg border border-border shadow-pop ${SIZE_CLASS[size]}`
         }`}
       >
-        <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+        <header
+          className={`flex shrink-0 items-center justify-between gap-4 border-b border-border ${
+            mobileSheet ? 'px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4' : 'px-6 py-4'
+          }`}
+        >
+          <h2 className="min-w-0 truncate text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-2 inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate transition-colors hover:bg-bg hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="-mr-2 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate transition-colors hover:bg-bg hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue sm:h-9 sm:w-9"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto py-5 pl-6 pr-3 [scrollbar-gutter:stable]">{children}</div>
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain py-5 [scrollbar-gutter:stable] ${
+            mobileSheet ? 'px-4 sm:pl-6 sm:pr-3' : 'pl-6 pr-3'
+          }`}
+        >
+          {children}
+        </div>
+        {footer && (
+          <footer
+            className={`flex shrink-0 items-center justify-end gap-3 border-t border-border bg-surface ${
+              mobileSheet ? 'px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3' : 'px-6 py-3'
+            }`}
+          >
+            {footer}
+          </footer>
+        )}
       </div>
     </div>
   );

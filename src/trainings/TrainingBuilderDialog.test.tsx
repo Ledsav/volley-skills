@@ -10,6 +10,7 @@ vi.mock('./trainingsApi');
 vi.mock('../exercises/exercisesApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../diagrams/diagramsApi', () => ({ listDiagrams: vi.fn().mockResolvedValue([]) }));
 vi.mock('../diagrams/DiagramThumbnail', () => ({
   DiagramThumbnail: ({ exerciseId }: { exerciseId: string }) => (
     <div data-testid="diagram-thumb" data-exercise-id={exerciseId} />
@@ -204,21 +205,30 @@ describe('TrainingBuilderDialog', () => {
     expect(screen.getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
   });
 
-  it('expands an added-exercise row to show its full description and a thumbnail', async () => {
+  it('opens an added exercise full-screen and steps to the next one', async () => {
     render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Circuit' } });
 
     fireEvent.click(screen.getByText('Add exercise'));
     fireEvent.click(await screen.findByRole('button', { name: 'Add Pepper' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Serve targets' }));
 
     const list = screen.getByRole('list', { name: 'Training exercises' });
     expect(within(list).queryByText('Two players, controlled rally.')).not.toBeInTheDocument();
 
-    fireEvent.click(within(list).getByRole('button', { name: 'Expand exercise 1' }));
-    expect(within(list).getByText('Two players, controlled rally.')).toBeInTheDocument();
+    fireEvent.click(within(list).getByRole('button', { name: 'View exercise 1: Pepper' }));
+    const viewer = screen.getByRole('dialog', { name: 'Pepper' });
+    expect(within(viewer).getByText('Two players, controlled rally.')).toBeInTheDocument();
+    expect(within(viewer).getByText('Exercise 1 of 2')).toBeInTheDocument();
+    expect(await within(viewer).findByText('No diagrams for this exercise.')).toBeInTheDocument();
 
-    fireEvent.click(within(list).getByRole('button', { name: 'Collapse exercise 1' }));
-    expect(within(list).queryByText('Two players, controlled rally.')).not.toBeInTheDocument();
+    fireEvent.click(within(viewer).getByRole('button', { name: 'Next exercise' }));
+    expect(screen.getByRole('dialog', { name: 'Serve targets' })).toBeInTheDocument();
+
+    // Escape closes only the viewer, not the training dialog underneath.
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Serve targets' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'New training' })).toBeInTheDocument();
   });
 
   it('expands a picker row to show its full description and a thumbnail', async () => {

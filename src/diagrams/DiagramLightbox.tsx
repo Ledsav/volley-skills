@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { useModalLayer } from '../components/useModalLayer';
 import { DiagramSvg } from './DiagramSvg';
 import type { Diagram } from '../types/diagram';
 
@@ -17,15 +18,16 @@ export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
     closeRef.current?.focus();
   }, []);
 
+  useModalLayer(onClose);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight') setI((n) => (n + 1) % diagrams.length);
       if (e.key === 'ArrowLeft') setI((n) => (n - 1 + diagrams.length) % diagrams.length);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [diagrams.length, onClose]);
+  }, [diagrams.length]);
 
   const current = diagrams[i];
   if (!current) return null;

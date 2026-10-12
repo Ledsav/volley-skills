@@ -12,6 +12,8 @@ import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../ty
 import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
 
+const FORM_ID = 'exercise-form';
+
 interface ExerciseFormDialogProps {
   exercise?: Exercise;
   onClose: () => void;
@@ -69,8 +71,27 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
   }
 
   return (
-    <Dialog title={exercise ? 'Edit exercise' : 'New exercise'} onClose={onClose}>
-      <form onSubmit={handleSubmit} aria-label={exercise ? 'Edit exercise' : 'New exercise'}>
+    <Dialog
+      title={exercise ? 'Edit exercise' : 'New exercise'}
+      onClose={onClose}
+      mobileSheet
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
+            Cancel
+          </Button>
+          {!exercise && (
+            <Button variant="secondary" onClick={handleCreateAndDraw} className="flex-1 sm:flex-none">
+              Create &amp; add diagrams
+            </Button>
+          )}
+          <Button variant="primary" type="submit" form={FORM_ID} className="flex-1 sm:flex-none">
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form id={FORM_ID} onSubmit={handleSubmit} aria-label={exercise ? 'Edit exercise' : 'New exercise'}>
         <label htmlFor="exercise-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
@@ -112,19 +133,19 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
               />
             </div>
             {diagrams.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                 {diagrams.map((d, idx) => (
                   <button
                     key={d.id}
                     type="button"
                     onClick={() => setLightbox(idx)}
-                    className="shrink-0"
+                    className="min-w-0 shrink-0 text-left"
                     aria-label={`Open diagram ${d.title}`}
                   >
-                    <span className="block aspect-square w-20 overflow-hidden rounded-sm border border-border bg-bg">
+                    <span className="block aspect-square w-full overflow-hidden rounded-sm border border-border bg-bg sm:w-20">
                       <DiagramSvg scene={d.scene} />
                     </span>
-                    <span className="mt-0.5 block max-w-20 truncate text-xs text-slate">{d.title}</span>
+                    <span className="mt-0.5 block truncate text-xs text-slate sm:max-w-20">{d.title}</span>
                   </button>
                 ))}
               </div>
@@ -146,19 +167,6 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           </p>
         )}
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          {!exercise && (
-            <Button variant="secondary" onClick={handleCreateAndDraw}>
-              Create &amp; add diagrams
-            </Button>
-          )}
-          <Button variant="primary" type="submit">
-            Save
-          </Button>
-        </div>
       </form>
     </Dialog>
   );

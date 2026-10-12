@@ -2,25 +2,29 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Undo2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
+import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useMediaQuery } from '../../components/useMediaQuery';
-import type { Match, MatchEventPayload, UsageProfile } from '../../types/match';
+import type { EventSource, Match, MatchEventPayload, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
 import { appendOrder, orderAfter } from '../eventOrder';
+import { buildFinishPayload } from '../finish';
 import { rosterMap } from '../format';
-import { addEvent, claimDevice, deleteEvents, getMatch, getUsageProfile, updateMatchResult } from '../matchesApi';
+import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateMatchResult } from '../matchesApi';
 import { defaultLineup } from '../matchSetup';
 import { countsForPlayer, expectedSkill, orderSkills } from '../nextActions';
-import { replay, resultFromState, sortEvents } from '../scoutEngine';
+import { nextRotation, prevRotation, replay, resultFromState, sortEvents } from '../scoutEngine';
 import { playerForm } from '../scoutStats';
 import { rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
 import { ActionSheet } from './ActionSheet';
 import { BenchStrip } from './BenchStrip';
+import { CorrectionDialog } from './CorrectionDialog';
 import { CourtGrid } from './CourtGrid';
 import { RallyBar } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
 import { SetStartDialog } from './SetStartDialog';
+import { SubDialog } from './SubDialog';
 
 const HEARTBEAT_MS = 60_000;
 
@@ -39,6 +43,9 @@ export function ScoutPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [pendingUndo, setPendingUndo] = useState<string[] | null>(null);
+  const [subOutId, setSubOutId] = useState<string | null>(null);
+  const [showCorrection, setShowCorrection] = useState(false);
+  const [dismissedSetPoint, setDismissedSetPoint] = useState<string | null>(null);
   const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
 
   useEffect(() => {
@@ -76,10 +83,10 @@ export function ScoutPage() {
   }, [state, match, locked, teamId, matchId]);
 
   const record = useCallback(
-    (payload: MatchEventPayload) => {
+    (payload: MatchEventPayload, source: EventSource = 'tap') => {
       if (!events || !firebaseUser) return;
       const order = anchorId ? orderAfter(events, anchorId) : appendOrder(events);
-      const { id, written } = addEvent(teamId, matchId, { ...payload, order, source: 'tap', chunkId: null }, firebaseUser.uid);
+      const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
       written.catch(() => setWriteError('An action could not be saved. Check your connection and the timeline.'));
       if (anchorId) {
         const endsRally =
@@ -98,6 +105,14 @@ export function ScoutPage() {
     if (ids.length > 1) setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
+  }
+
+  function finish() {
+    if (!match || !state) return;
+    finishMatch(teamId, matchId, buildFinishPayload(match, state, usage)).catch(() =>
+      setWriteError('Finishing did not sync yet — it will retry when you are back online.'),
+    );
+    navigate(`/teams/${teamId}/matches/${matchId}`);
   }
 
   if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
@@ -141,7 +156,9 @@ export function ScoutPage() {
         selectedId={selectedId}
         form={(id) => playerForm(state, id)}
         onSelect={setSelectedId}
-        onLongPress={setSelectedId}
+        onLongPress={(id) => {
+          if (!liberoIds.has(id)) setSubOutId(id);
+        }}
       />
       <BenchStrip players={bench} onSelect={setSelectedId} />
       <RallyBar
@@ -158,7 +175,10 @@ export function ScoutPage() {
           skills={skillsFor(selected.playerId)}
           floating={!isDesktop}
           onClose={() => setSelectedId(null)}
-          onSub={() => undefined}
+          onSub={() => {
+            setSubOutId(selected.playerId);
+            setSelectedId(null);
+          }}
           onGrade={(skill, grade) => {
             record({ type: 'action', playerId: selected.playerId, skill, grade });
             setSelectedId(null);
@@ -175,14 +195,27 @@ export function ScoutPage() {
         format={match.format}
         opponent={match.opponent}
         pending={pending}
-        onEditScore={() => undefined}
-        onRotate={() => undefined}
+        onEditScore={() => setShowCorrection(true)}
+        onRotate={(delta) =>
+          record(
+            { type: 'correction', score: null, serving: null, rotation: delta === 1 ? nextRotation(state.rotation) : prevRotation(state.rotation) },
+            'correction',
+          )
+        }
       />
       {writeError && <p role="alert" className="bg-red/10 px-4 py-2 text-sm text-red-strong">{writeError}</p>}
       {anchorId && (
         <div className="flex items-center justify-between bg-blue/10 px-4 py-2 text-sm text-ink">
           <span>Inserting into the timeline</span>
           <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">Back to live</button>
+        </div>
+      )}
+      {state.matchOver && (
+        <div className="flex items-center justify-between gap-3 bg-green/15 px-4 py-3">
+          <span className="font-semibold text-ink">
+            Match over · {state.setsWon.us}–{state.setsWon.them}
+          </span>
+          <Button variant="primary" size="sm" onClick={finish}>Finish match</Button>
         </div>
       )}
       <main className={`flex-1 p-3 sm:p-4 ${isDesktop ? 'grid grid-cols-[minmax(320px,440px)_1fr] gap-4' : 'pb-80'}`}>
@@ -211,6 +244,47 @@ export function ScoutPage() {
           onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
           onStart={(lineup, serving) => record({ type: 'setStart', set: state.set + 1, lineup, serving })}
         />
+      )}
+
+      {subOutId && roster.get(subOutId) && (
+        <SubDialog
+          outPlayer={roster.get(subOutId)!}
+          candidates={match.roster.filter((r) => !state.lineup.includes(r.playerId) && !liberoIds.has(r.playerId))}
+          onCancel={() => setSubOutId(null)}
+          onSub={(inPlayerId) => {
+            record({ type: 'sub', outPlayerId: subOutId, inPlayerId });
+            setSubOutId(null);
+          }}
+        />
+      )}
+
+      {showCorrection && (
+        <CorrectionDialog
+          score={state.score}
+          serving={state.serving}
+          rotation={state.rotation}
+          onCancel={() => setShowCorrection(false)}
+          onSave={(c) => {
+            if (c.score || c.serving || c.rotation !== null) record({ type: 'correction', ...c }, 'correction');
+            setShowCorrection(false);
+          }}
+        />
+      )}
+
+      {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
+        <div role="dialog" aria-label="Set point" className="fixed inset-x-3 top-24 z-40 rounded-lg border border-border bg-surface p-4 shadow-pop">
+          <p className="mb-3 font-semibold text-ink">
+            {state.score.us > state.score.them ? 'Set won' : 'Set lost'} {state.score.us}–{state.score.them}?
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}>
+              Not yet
+            </Button>
+            <Button variant="primary" aria-label="Confirm set" onClick={() => record({ type: 'setEnd', set: state.set })}>
+              Confirm set
+            </Button>
+          </div>
+        </div>
       )}
 
       {pendingUndo && (

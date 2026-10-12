@@ -124,6 +124,49 @@ describe('ScoutPage', () => {
     }
   });
 
+  it('substitutes a player from the action sheet', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: '#9 Lucía' }));
+    fireEvent.click(screen.getByRole('button', { name: /substitute/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bring on #5 Bea' }));
+    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'sub', outPlayerId: 'oh2', inPlayerId: 'bench' }), 'u1');
+  });
+
+  it('rotation arrows write a correction', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Next rotation' }));
+    expect(api.addEvent).toHaveBeenCalledWith(
+      't1', 'm1',
+      expect.objectContaining({ type: 'correction', rotation: 6, score: null, serving: null, source: 'correction' }),
+      'u1',
+    );
+  });
+
+  it('asks to confirm the set at set point', async () => {
+    const corr: MatchEvent = { id: 'e2', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    renderPage([setStart, corr]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm set' }));
+    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'setEnd', set: 1 }), 'u1');
+  });
+
+  it('finishes the match once it is over', async () => {
+    vi.mocked(api.finishMatch).mockResolvedValue();
+    const events: MatchEvent[] = [];
+    let order = 0;
+    for (let set = 1; set <= 3; set++) {
+      events.push(
+        { ...setStart, id: `s${set}`, order: ++order, set } as MatchEvent,
+        { id: `c${set}`, order: ++order, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 10 }, rotation: null, serving: null },
+        { id: `x${set}`, order: ++order, source: 'tap', chunkId: null, type: 'setEnd', set },
+      );
+    }
+    renderPage(events);
+    fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
+    await waitFor(() =>
+      expect(api.finishMatch).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ result: expect.objectContaining({ setsUs: 3, setsThem: 0 }) })),
+    );
+  });
+
   // Fix 2 (undo clears a deleted insert anchor) has no UI path until Task 13 (timeline "Insert after"),
   // so it cannot be exercised through the page yet.
   it.skip('undo clears the insert anchor when the anchor event is deleted (needs Task 13 UI)', () => undefined);

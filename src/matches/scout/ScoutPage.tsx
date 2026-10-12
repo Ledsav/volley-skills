@@ -56,11 +56,12 @@ export function ScoutPage() {
     getUsageProfile(teamId).then(setUsage).catch(() => undefined);
   }, [teamId, matchId, deviceId]);
 
+  const matchLoaded = match !== null;
   useEffect(() => {
-    if (!match || locked) return;
+    if (!matchLoaded || locked) return;
     const t = window.setInterval(() => void claimDevice(teamId, matchId, deviceId).catch(() => undefined), HEARTBEAT_MS);
     return () => window.clearInterval(t);
-  }, [match, locked, teamId, matchId, deviceId]);
+  }, [matchLoaded, locked, teamId, matchId, deviceId]);
 
   const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
   const roster = useMemo(() => rosterMap(match?.roster ?? []), [match]);
@@ -95,7 +96,8 @@ export function ScoutPage() {
     const last = sorted[sorted.length - 1];
     const ids = last.chunkId ? events.filter((e) => e.chunkId === last.chunkId).map((e) => e.id) : [last.id];
     if (ids.length > 1) setPendingUndo(ids);
-    else void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
+    else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
+    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
   }
 
   if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
@@ -213,11 +215,12 @@ export function ScoutPage() {
 
       {pendingUndo && (
         <ConfirmDialog
-          title="Undo whole text batch?"
+          title={`Undo whole text batch (${pendingUndo.length} events)?`}
           message={`This removes ${pendingUndo.length} events that were added together.`}
           confirmLabel="Undo batch"
           onCancel={() => setPendingUndo(null)}
           onConfirm={() => {
+            if (anchorId && pendingUndo.includes(anchorId)) setAnchorId(null);
             void deleteEvents(teamId, matchId, pendingUndo).catch(() => setWriteError('Could not undo. Try again.'));
             setPendingUndo(null);
           }}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
@@ -90,4 +90,41 @@ describe('ScoutPage', () => {
     expect(await screen.findByRole('alertdialog', { name: /another device/i })).toBeInTheDocument();
     expect(api.claimDevice).not.toHaveBeenCalled();
   });
+
+  it('keeps the device heartbeat firing while points change the result', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      let push: (e: MatchEvent[]) => void = () => undefined;
+      vi.mocked(api.subscribeEvents).mockImplementation((_t, _m, onChange) => {
+        push = (e) => onChange(e, 0);
+        onChange([setStart], 0);
+        return () => undefined;
+      });
+      render(
+        <MemoryRouter initialEntries={['/teams/t1/matches/m1/scout']}>
+          <Routes>
+            <Route path="/teams/:teamId/matches/:matchId/scout" element={<ScoutPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await screen.findByRole('button', { name: 'Point them' });
+      expect(api.claimDevice).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(50_000);
+      // 25 points plus setEnd closes the set, which changes the match result and re-sets the match state.
+      const points: MatchEvent[] = Array.from({ length: 25 }, (_, i) => ({
+        id: `p${i}`, order: i + 2, source: 'tap', chunkId: null, type: 'point', winner: 'them', reason: 'oppKill',
+      }));
+      const setEnd: MatchEvent = { id: 'se', order: 27, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+      act(() => push([setStart, ...points, setEnd]));
+      expect(api.updateMatchResult).toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(11_000);
+      expect(api.claimDevice).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // Fix 2 (undo clears a deleted insert anchor) has no UI path until Task 13 (timeline "Insert after"),
+  // so it cannot be exercised through the page yet.
+  it.skip('undo clears the insert anchor when the anchor event is deleted (needs Task 13 UI)', () => undefined);
 });

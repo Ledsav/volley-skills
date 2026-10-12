@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockInitializeApp = vi.fn(() => 'app-instance');
 const mockGetAuth = vi.fn(() => 'auth-instance');
-const mockGetFirestore = vi.fn(() => 'firestore-instance');
+const mockInitializeFirestore = vi.fn<(app: unknown, opts: unknown) => string>(() => 'firestore-instance');
+const mockPersistentLocalCache = vi.fn((opts: unknown) => ({ cache: 'persistent', opts }));
+const mockMultiTab = vi.fn(() => 'multi-tab');
 const mockConnectAuthEmulator = vi.fn();
 const mockConnectFirestoreEmulator = vi.fn();
 const mockInitializeAppCheck = vi.fn(() => 'appcheck-instance');
@@ -14,7 +16,9 @@ vi.mock('firebase/auth', () => ({
   connectAuthEmulator: mockConnectAuthEmulator,
 }));
 vi.mock('firebase/firestore', () => ({
-  getFirestore: mockGetFirestore,
+  initializeFirestore: mockInitializeFirestore,
+  persistentLocalCache: mockPersistentLocalCache,
+  persistentMultipleTabManager: mockMultiTab,
   connectFirestoreEmulator: mockConnectFirestoreEmulator,
 }));
 vi.mock('firebase/app-check', () => ({
@@ -37,6 +41,9 @@ describe('firebase config', () => {
     expect(mockInitializeApp).toHaveBeenCalled();
     expect(auth).toBe('auth-instance');
     expect(db).toBe('firestore-instance');
+    expect(mockInitializeFirestore).toHaveBeenCalledWith('app-instance', {
+      localCache: { cache: 'persistent', opts: { tabManager: 'multi-tab' } },
+    });
   });
 
   it('does not connect to the emulators by default', async () => {

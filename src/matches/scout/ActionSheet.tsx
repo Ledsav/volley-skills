@@ -20,7 +20,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
 
   return (
     <section
-      aria-label={`Actions for #${player.number}`}
+      aria-label={`Actions for #${player.number} ${player.name}`}
       className={`border border-border bg-surface p-3 shadow-pop ${
         floating ? 'fixed inset-x-0 bottom-0 z-40 rounded-t-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]' : 'rounded-lg'
       }`}
@@ -47,7 +47,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             type="button"
             aria-pressed={s === skill}
             onClick={() => setSkill(s)}
-            className={`min-h-9 rounded-full border px-3 text-sm ${
+            className={`min-h-11 rounded-full border px-3 text-sm ${
               s === skill ? 'border-blue bg-blue text-white' : 'border-border bg-surface text-ink'
             }`}
           >

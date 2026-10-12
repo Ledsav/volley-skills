@@ -48,6 +48,13 @@ npm run seed:emulator
 and **Firestore** (:8080) emulators plus the Emulator UI (:4000, or the next free
 port). `seed:emulator` needs no Java — it just talks to the running emulator.
 
+### Demo exercise + training library
+
+`npm run seed:library` writes 8 example exercises (with court diagrams) and 3
+trainings (TR-0001…TR-0003) into the running emulator — emulator-only example
+content, re-runnable (it replaces its own `demo-` docs). `dev:emulator` runs it
+automatically after the roster seed.
+
 ### Run the app against the seeded emulator
 
 One command — boots the emulators, seeds, starts Vite, and shuts the emulators

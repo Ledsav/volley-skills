@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One command for local development against seeded emulators:
 //   1. boot the Auth + Firestore emulators (JDK 21+ found automatically),
-//   2. wait until they're ready, then seed the roster,
+//   2. wait until they're ready, then seed the roster and a demo exercise/training library,
 //   3. start Vite with VITE_USE_EMULATOR=true,
 //   4. shut the emulators down when Vite exits (Ctrl+C).
 //
@@ -52,7 +52,7 @@ const seed = ['node', 'scripts/seed/seed.mjs', '--emulator', '--reset', ...passt
 // runs this, then tears the emulators down on exit. `--ui` also brings up the
 // Emulator UI (exec is headless without it). Resolve vite's JS entrypoint so it
 // works regardless of whether node_modules/.bin is on PATH.
-const inner = `${seed} && node ${JSON.stringify(binOf('vite'))}`;
+const inner = `${seed} && node scripts/seed/seedLibrary.mjs && node ${JSON.stringify(binOf('vite'))}`;
 const args = [firebaseBin(), 'emulators:exec', '--ui', '--only', 'auth,firestore', inner];
 
 const child = spawn(process.execPath, args, {

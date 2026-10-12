@@ -21,6 +21,7 @@ import {
   validateTrainingRows,
 } from './trainingsImport';
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
+import { TrainingViewSheet } from './TrainingViewSheet';
 
 export function TrainingsPage() {
   const [searchParams] = useSearchParams();
@@ -36,7 +37,11 @@ export function TrainingsPage() {
   // not on every keystroke.
   const debouncedAgeGroup = useDebouncedValue(ageGroup, 350);
   const debouncedBusinessId = useDebouncedValue(businessId, 350);
-  const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; training: Training } | null>(null);
+  // Opening a training shows the read-only plan ('view'); editing from there
+  // returns to the plan on cancel.
+  const [dialog, setDialog] = useState<
+    { mode: 'new' } | { mode: 'view'; training: Training } | { mode: 'edit'; training: Training; fromView: boolean } | null
+  >(null);
   const [pendingDelete, setPendingDelete] = useState<Training | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -162,11 +167,11 @@ export function TrainingsPage() {
             key={training.id}
             role="button"
             tabIndex={0}
-            onClick={() => setDialog({ mode: 'edit', training })}
+            onClick={() => setDialog({ mode: 'view', training })}
             onKeyDown={(e) => {
               if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
-                setDialog({ mode: 'edit', training });
+                setDialog({ mode: 'view', training });
               }
             }}
             className="flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card hover:bg-bg sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none"
@@ -209,10 +214,20 @@ export function TrainingsPage() {
         </Button>
       )}
 
-      {dialog && (
+      {dialog?.mode === 'view' && (
+        <TrainingViewSheet
+          training={dialog.training}
+          onClose={() => setDialog(null)}
+          onEdit={() => setDialog({ mode: 'edit', training: dialog.training, fromView: true })}
+        />
+      )}
+
+      {dialog && dialog.mode !== 'view' && (
         <TrainingBuilderDialog
           training={dialog.mode === 'edit' ? dialog.training : undefined}
-          onClose={() => setDialog(null)}
+          onClose={() =>
+            setDialog(dialog.mode === 'edit' && dialog.fromView ? { mode: 'view', training: dialog.training } : null)
+          }
           onSaved={() => {
             setDialog(null);
             void load();

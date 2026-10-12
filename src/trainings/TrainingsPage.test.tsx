@@ -8,6 +8,9 @@ vi.mock('./trainingsApi');
 vi.mock('./TrainingBuilderDialog', () => ({
   TrainingBuilderDialog: ({ onSaved }: { onSaved: () => void }) => <button onClick={onSaved}>builder-stub</button>,
 }));
+vi.mock('./TrainingViewSheet', () => ({
+  TrainingViewSheet: ({ onEdit }: { onEdit: () => void }) => <button onClick={onEdit}>view-stub</button>,
+}));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', async () => {
   const { authValue, superAdminAccess } = await import('../test/authValue');
@@ -127,7 +130,7 @@ describe('TrainingsPage', () => {
     await waitFor(() => expect(trainingsApi.deleteTraining).toHaveBeenCalledWith('t-1'));
   });
 
-  it('opens the builder when the row is clicked, but not when Delete is clicked', async () => {
+  it('opens the read-only plan when the row is clicked (not on Delete), and the builder from its Edit', async () => {
     renderPage();
     await screen.findByText('Passing circuit');
 
@@ -136,7 +139,9 @@ describe('TrainingsPage', () => {
     expect(screen.queryByText('builder-stub')).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Cancel'));
 
+    expect(screen.queryByText('view-stub')).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Passing circuit').closest('[role="button"]') as HTMLElement);
+    fireEvent.click(await screen.findByText('view-stub'));
     expect(await screen.findByText('builder-stub')).toBeInTheDocument();
   });
 

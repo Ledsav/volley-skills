@@ -1,8 +1,12 @@
 import { useGesture } from '@use-gesture/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-interface StageApi {
+export interface StageApi {
   screenToCourt: (clientX: number, clientY: number) => { x: number; y: number };
+  /** Zoom by `factor` around the centre of the stage (clamped to MIN..MAX). */
+  zoomBy: (factor: number) => void;
+  /** Back to the fitted, unpanned view. */
+  resetView: () => void;
 }
 
 interface Props {
@@ -22,13 +26,17 @@ const MAX = 4;
 export function startedOnItem(target: EventTarget | null): boolean {
   const el = target as Element | null;
   return Boolean(
-    el?.closest?.('[data-item-id],[data-endpoint-handle],[data-transform-handle]'),
+    el?.closest?.('[data-item-id],[data-endpoint-handle],[data-transform-handle],[data-handle-hit]'),
   );
 }
 
 export function CanvasStage({ children, onReady }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [t, setT] = useState({ x: 0, y: 0, scale: 1 });
+  // Pinch starts from the live scale, so it stays in sync after the zoom
+  // buttons / reset change it outside the gesture.
+  const scaleRef = useRef(t.scale);
+  scaleRef.current = t.scale;
 
   useGesture(
     {
@@ -43,7 +51,11 @@ export function CanvasStage({ children, onReady }: Props) {
       onPinch: ({ offset: [s] }) => setT((cur) => ({ ...cur, scale: Math.max(MIN, Math.min(MAX, s)) })),
       onWheel: ({ delta: [, dy] }) => setT((s) => ({ ...s, scale: Math.max(MIN, Math.min(MAX, s.scale - dy * 0.001)) })),
     },
-    { target: outerRef, eventOptions: { passive: false } },
+    {
+      target: outerRef,
+      eventOptions: { passive: false },
+      pinch: { from: () => [scaleRef.current, 0] },
+    },
   );
 
   // Publish a fresh screen→court converter whenever the transform changes.
@@ -64,6 +76,19 @@ export function CanvasStage({ children, onReady }: Props) {
         const py = (clientY - r.top - offY - t.y) / t.scale;
         return { x: (px / side) * 100, y: (py / side) * 100 };
       },
+      zoomBy: (factor) => {
+        const el = outerRef.current;
+        const r = el?.getBoundingClientRect();
+        const cx = (r?.width ?? 0) / 2;
+        const cy = (r?.height ?? 0) / 2;
+        setT((cur) => {
+          const scale = Math.max(MIN, Math.min(MAX, cur.scale * factor));
+          const k = scale / cur.scale;
+          // Keep the point under the stage centre fixed while scaling.
+          return { scale, x: cx - (cx - cur.x) * k, y: cy - (cy - cur.y) * k };
+        });
+      },
+      resetView: () => setT({ x: 0, y: 0, scale: 1 }),
     });
   }, [t, onReady]);
 

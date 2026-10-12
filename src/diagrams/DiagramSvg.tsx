@@ -141,7 +141,7 @@ export function DiagramSvg({
                     onEndpointPointerDown?.(selected.id, i, e);
                   };
                   return (
-                    <g key={i} style={{ pointerEvents: 'auto', cursor: 'grab' }}>
+                    <g key={i} data-handle-hit style={{ pointerEvents: 'auto', cursor: 'grab' }}>
                       <circle
                         data-endpoint-index={i}
                         cx={p.x}
@@ -166,7 +166,7 @@ export function DiagramSvg({
                 // Resize + rotate handle. Re-enable pointer events on just this
                 // group (the outline + endpoint dots stay decorative). The large
                 // transparent circle gives touch a ~44px target.
-                <g style={{ pointerEvents: 'auto', cursor: 'grab' }}>
+                <g data-handle-hit style={{ pointerEvents: 'auto', cursor: 'grab' }}>
                   <circle
                     cx={b.x + b.w}
                     cy={b.y}

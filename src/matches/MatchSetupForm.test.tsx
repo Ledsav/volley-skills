@@ -42,4 +42,14 @@ describe('MatchSetupForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/opponent/i);
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('re-enables the submit button and shows Saved after a successful submit', async () => {
+    const onSubmit = vi.fn<(input: MatchSetupInput) => Promise<void>>(() => Promise.resolve());
+    render(<MatchSetupForm teamId="t1" defaultDate="2026-10-18" submitLabel="Save setup" onSubmit={onSubmit} onCancel={vi.fn()} />);
+    await screen.findByText('#7 Name a');
+    fireEvent.change(screen.getByLabelText('Opponent'), { target: { value: 'Rivals' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save setup' }));
+    expect(await screen.findByText('Saved.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save setup' })).toBeEnabled();
+  });
 });

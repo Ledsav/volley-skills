@@ -20,6 +20,7 @@ interface MatchSetupFormProps {
   submitLabel: string;
   onSubmit: (input: MatchSetupInput) => Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 type Picks = Record<string, { checked: boolean; number: number }>;
@@ -31,7 +32,7 @@ const LIBERO_MODES: { value: LiberoMode; label: string }[] = [
   { value: 'serving', label: 'When we serve' },
 ];
 
-export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel }: MatchSetupFormProps) {
+export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel, onDirtyChange }: MatchSetupFormProps) {
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? new Date().toISOString().slice(0, 10));
   const [opponent, setOpponent] = useState(initial?.opponent ?? '');
@@ -50,6 +51,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
   const [replaces, setReplaces] = useState<string[] | null>(initial?.liberos[0]?.replaces ?? null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     loadTeamRoster(teamId)
@@ -85,10 +87,14 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
     }
     setSaving(true);
     setError(null);
+    setSaved(false);
     try {
       await onSubmit(input);
+      setSaved(true);
+      onDirtyChange?.(false);
     } catch {
       setError('Could not save the match. Please try again.');
+    } finally {
       setSaving(false);
     }
   }
@@ -98,7 +104,13 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
   const liberoIds = new Set(liberoPicks.map((l) => l.playerId).filter(Boolean));
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
+    <form
+      onSubmit={(e) => void submit(e)}
+      onChange={() => {
+        setSaved(false);
+        onDirtyChange?.(true);
+      }}
+      className="flex flex-col gap-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
           Date
@@ -232,6 +244,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         )}
       </fieldset>
 
+      {saved && !error && <p role="status" className="text-sm text-green-strong">Saved.</p>}
       {error && <p role="alert" className="text-sm text-red">{error}</p>}
 
       <div className="flex justify-end gap-2">

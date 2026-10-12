@@ -13,6 +13,9 @@ export function MatchPage() {
   const [match, setMatch] = useState<Match | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     getMatch(teamId, matchId)
@@ -24,8 +27,13 @@ export function MatchPage() {
   if (!match) return <p className="p-6 text-slate">Loading match…</p>;
 
   async function startScouting() {
-    await setMatchStatus(teamId, matchId, 'live');
-    navigate(`/teams/${teamId}/matches/${matchId}/scout`);
+    setActionError(null);
+    try {
+      await setMatchStatus(teamId, matchId, 'live');
+      navigate(`/teams/${teamId}/matches/${matchId}/scout`);
+    } catch {
+      setActionError('Could not start scouting. Please try again.');
+    }
   }
 
   return (
@@ -44,14 +52,19 @@ export function MatchPage() {
 
         {match.status === 'setup' && (
           <>
-            <div className="mb-6 flex justify-end">
-              <Button variant="primary" onClick={() => void startScouting()}>Start scouting</Button>
+            <div className="mb-6 flex flex-col items-end gap-1">
+              <div className="flex items-center gap-3">
+                {dirty && <span className="text-xs text-slate">Save the setup first.</span>}
+                <Button variant="primary" disabled={dirty} onClick={() => void startScouting()}>Start scouting</Button>
+              </div>
+              {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
             </div>
             <MatchSetupForm
               teamId={teamId}
               initial={match}
               submitLabel="Save setup"
               onCancel={() => navigate(`/teams/${teamId}`)}
+              onDirtyChange={setDirty}
               onSubmit={async (input) => {
                 await updateMatchSetup(teamId, matchId, input);
                 setMatch({ ...match, ...input });
@@ -66,9 +79,16 @@ export function MatchPage() {
           title="Delete this match?"
           message="All scouted actions for this match are deleted. This cannot be undone."
           confirmLabel="Yes, delete"
-          onCancel={() => setConfirmDelete(false)}
+          error={deleteError}
+          onCancel={() => {
+            setConfirmDelete(false);
+            setDeleteError(null);
+          }}
           onConfirm={() => {
-            void deleteMatch(teamId, matchId).then(() => navigate(`/teams/${teamId}`));
+            setDeleteError(null);
+            deleteMatch(teamId, matchId)
+              .then(() => navigate(`/teams/${teamId}`))
+              .catch(() => setDeleteError('Could not delete the match. Please try again.'));
           }}
         />
       )}

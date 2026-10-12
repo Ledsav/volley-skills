@@ -38,11 +38,11 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
             {state.serving === 'us' ? '● We serve' : '○ We receive'}
           </span>
           <span className="flex items-center gap-1">
-            <button type="button" aria-label="Previous rotation" onClick={() => onRotate(-1)} className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10">
+            <button type="button" aria-label="Previous rotation" onClick={() => onRotate(-1)} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10">
               <ChevronLeft size={16} aria-hidden="true" />
             </button>
             <span className="tabular-nums">Rot {state.rotation}</span>
-            <button type="button" aria-label="Next rotation" onClick={() => onRotate(1)} className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10">
+            <button type="button" aria-label="Next rotation" onClick={() => onRotate(1)} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10">
               <ChevronRight size={16} aria-hidden="true" />
             </button>
           </span>

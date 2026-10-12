@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { RosterEntry } from '../../types/match';
 
 interface CourtGridProps {
@@ -23,6 +23,8 @@ export function CourtGrid({ court, roster, activeLiberoId, selectedId, form, onS
     if (timer.current !== null) window.clearTimeout(timer.current);
     timer.current = null;
   };
+
+  useEffect(() => clear, []);
 
   return (
     <div className="rounded-lg border-2 border-orange-strong bg-orange/10 p-2">
@@ -49,6 +51,7 @@ export function CourtGrid({ court, roster, activeLiberoId, selectedId, form, onS
               }}
               onPointerUp={clear}
               onPointerLeave={clear}
+              onPointerCancel={clear}
               onContextMenu={(e) => e.preventDefault()}
               onClick={() => {
                 if (!longPressed.current) onSelect(id);

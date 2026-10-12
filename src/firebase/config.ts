@@ -1,7 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -30,7 +35,11 @@ if (appCheckKey && !useEmulator) {
 }
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Persistent (IndexedDB) cache: writes made offline, e.g. scouting a match in
+// a gym with no signal, survive reloads and sync when the connection returns.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 
 // Local development against the Firestore + Auth emulators: run `npm run emulator`,
 // then start the app with VITE_USE_EMULATOR=true (e.g. in .env.local). Never active

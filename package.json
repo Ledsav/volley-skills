@@ -14,6 +14,7 @@
     "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.ts\"",
     "emulator": "node scripts/seed/emulator.mjs",
     "seed:emulator": "node scripts/seed/seed.mjs --emulator --reset",
+    "seed:library": "node scripts/seed/seedLibrary.mjs",
     "seed:prod": "node scripts/seed/seed.mjs --prod"
   },
   "dependencies": {

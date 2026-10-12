@@ -1,3 +1,228 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Undo2 } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { useMediaQuery } from '../../components/useMediaQuery';
+import type { Match, MatchEventPayload, UsageProfile } from '../../types/match';
+import { getDeviceId, isLockedByOther } from '../deviceLock';
+import { appendOrder, orderAfter } from '../eventOrder';
+import { rosterMap } from '../format';
+import { addEvent, claimDevice, deleteEvents, getMatch, getUsageProfile, updateMatchResult } from '../matchesApi';
+import { defaultLineup } from '../matchSetup';
+import { countsForPlayer, expectedSkill, orderSkills } from '../nextActions';
+import { replay, resultFromState, sortEvents } from '../scoutEngine';
+import { playerForm } from '../scoutStats';
+import { rallyOutcome } from '../skillGrades';
+import { useMatchEvents } from '../useMatchEvents';
+import { ActionSheet } from './ActionSheet';
+import { BenchStrip } from './BenchStrip';
+import { CourtGrid } from './CourtGrid';
+import { RallyBar } from './RallyBar';
+import { ScoutHeader } from './ScoutHeader';
+import { SetStartDialog } from './SetStartDialog';
+
+const HEARTBEAT_MS = 60_000;
+
 export function ScoutPage() {
-  return null;
+  const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
+  const navigate = useNavigate();
+  const { firebaseUser } = useAuth();
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const deviceId = useMemo(() => getDeviceId(), []);
+
+  const [match, setMatch] = useState<Match | null>(null);
+  const [usage, setUsage] = useState<UsageProfile>({ players: {} });
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [writeError, setWriteError] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [pendingUndo, setPendingUndo] = useState<string[] | null>(null);
+  const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
+
+  useEffect(() => {
+    getMatch(teamId, matchId)
+      .then((m) => {
+        if (!m) {
+          setLoadError('Match not found.');
+          return;
+        }
+        setMatch(m);
+        if (isLockedByOther(m.activeDevice, deviceId, Date.now())) setLocked(true);
+        else void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
+      })
+      .catch(() => setLoadError("You don't have access to this match."));
+    getUsageProfile(teamId).then(setUsage).catch(() => undefined);
+  }, [teamId, matchId, deviceId]);
+
+  useEffect(() => {
+    if (!match || locked) return;
+    const t = window.setInterval(() => void claimDevice(teamId, matchId, deviceId).catch(() => undefined), HEARTBEAT_MS);
+    return () => window.clearInterval(t);
+  }, [match, locked, teamId, matchId, deviceId]);
+
+  const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
+  const roster = useMemo(() => rosterMap(match?.roster ?? []), [match]);
+
+  // Keep the list/calendar result current without replaying there.
+  useEffect(() => {
+    if (!match || !state || locked) return;
+    const result = resultFromState(state);
+    if (JSON.stringify(result) === JSON.stringify(match.result)) return;
+    setMatch({ ...match, result });
+    updateMatchResult(teamId, matchId, result).catch(() => undefined);
+  }, [state, match, locked, teamId, matchId]);
+
+  const record = useCallback(
+    (payload: MatchEventPayload) => {
+      if (!events || !firebaseUser) return;
+      const order = anchorId ? orderAfter(events, anchorId) : appendOrder(events);
+      const { id, written } = addEvent(teamId, matchId, { ...payload, order, source: 'tap', chunkId: null }, firebaseUser.uid);
+      written.catch(() => setWriteError('An action could not be saved. Check your connection and the timeline.'));
+      if (anchorId) {
+        const endsRally =
+          payload.type === 'point' || (payload.type === 'action' && rallyOutcome(payload.skill, payload.grade) !== null);
+        setAnchorId(endsRally ? null : id);
+      }
+    },
+    [events, firebaseUser, anchorId, teamId, matchId],
+  );
+
+  function undo() {
+    if (!events || events.length === 0) return;
+    const sorted = sortEvents(events);
+    const last = sorted[sorted.length - 1];
+    const ids = last.chunkId ? events.filter((e) => e.chunkId === last.chunkId).map((e) => e.id) : [last.id];
+    if (ids.length > 1) setPendingUndo(ids);
+    else void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
+  }
+
+  if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
+  if (!match || !state) return <p className="p-6 text-slate">Loading match…</p>;
+
+  if (locked) {
+    return (
+      <ConfirmDialog
+        title="Being scouted on another device"
+        message="Another device scouted this match in the last two minutes. Take over here? Only one device should scout at a time."
+        confirmLabel="Take over"
+        onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
+        onConfirm={() => {
+          setLocked(false);
+          void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
+        }}
+      />
+    );
+  }
+
+  const liberoIds = new Set(match.liberos.map((l) => l.playerId));
+  const selected = selectedId ? roster.get(selectedId) : undefined;
+  const bench = match.roster.filter((r) => !state.court.includes(r.playerId));
+  const skillsFor = (playerId: string) => {
+    const entry = roster.get(playerId);
+    return orderSkills({
+      position: entry?.positionCategory ?? 'TBD',
+      isLibero: liberoIds.has(playerId),
+      expected: expectedSkill(state),
+      matchCounts: countsForPlayer(state, playerId),
+      history: usage.players[playerId] ?? null,
+    });
+  };
+
+  const courtColumn = (
+    <div className="flex flex-col gap-3">
+      <CourtGrid
+        court={state.court}
+        roster={roster}
+        activeLiberoId={state.activeLiberoId}
+        selectedId={selectedId}
+        form={(id) => playerForm(state, id)}
+        onSelect={setSelectedId}
+        onLongPress={setSelectedId}
+      />
+      <BenchStrip players={bench} onSelect={setSelectedId} />
+      <RallyBar
+        format={match.format}
+        timeoutsUsed={state.timeoutsUsed}
+        onPoint={(winner, reason) => record({ type: 'point', winner, reason })}
+        onTimeout={(team) => record({ type: 'timeout', team })}
+      />
+      {selected && (
+        <ActionSheet
+          key={selected.playerId}
+          player={selected}
+          isLibero={liberoIds.has(selected.playerId)}
+          skills={skillsFor(selected.playerId)}
+          floating={!isDesktop}
+          onClose={() => setSelectedId(null)}
+          onSub={() => undefined}
+          onGrade={(skill, grade) => {
+            record({ type: 'action', playerId: selected.playerId, skill, grade });
+            setSelectedId(null);
+          }}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen flex-col bg-bg">
+      <ScoutHeader
+        state={state}
+        format={match.format}
+        opponent={match.opponent}
+        pending={pending}
+        onEditScore={() => undefined}
+        onRotate={() => undefined}
+      />
+      {writeError && <p role="alert" className="bg-red/10 px-4 py-2 text-sm text-red-strong">{writeError}</p>}
+      {anchorId && (
+        <div className="flex items-center justify-between bg-blue/10 px-4 py-2 text-sm text-ink">
+          <span>Inserting into the timeline</span>
+          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">Back to live</button>
+        </div>
+      )}
+      <main className={`flex-1 p-3 sm:p-4 ${isDesktop ? 'grid grid-cols-[minmax(320px,440px)_1fr] gap-4' : 'pb-80'}`}>
+        {courtColumn}
+      </main>
+      <footer className="sticky bottom-0 flex items-center justify-between border-t border-border bg-surface px-3 py-2">
+        <button type="button" onClick={undo} className="flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg">
+          <Undo2 size={16} aria-hidden="true" /> Undo
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
+          className="min-h-11 rounded-md px-3 text-sm text-blue hover:bg-blue/10"
+        >
+          Exit
+        </button>
+      </footer>
+
+      {!state.inSet && !state.matchOver && (
+        <SetStartDialog
+          setNumber={state.set + 1}
+          roster={match.roster}
+          liberos={match.liberos}
+          initialLineup={state.setStartLineup.length === 6 ? state.setStartLineup : defaultLineup(match.roster, match.liberos)}
+          initialServing={state.serving === 'us' ? 'them' : 'us'}
+          onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
+          onStart={(lineup, serving) => record({ type: 'setStart', set: state.set + 1, lineup, serving })}
+        />
+      )}
+
+      {pendingUndo && (
+        <ConfirmDialog
+          title="Undo whole text batch?"
+          message={`This removes ${pendingUndo.length} events that were added together.`}
+          confirmLabel="Undo batch"
+          onCancel={() => setPendingUndo(null)}
+          onConfirm={() => {
+            void deleteEvents(teamId, matchId, pendingUndo).catch(() => setWriteError('Could not undo. Try again.'));
+            setPendingUndo(null);
+          }}
+        />
+      )}
+    </div>
+  );
 }

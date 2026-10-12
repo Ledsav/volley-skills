@@ -202,6 +202,49 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
         }
       }
+
+      match /matches/{matchId} {
+        function isTeamAdmin() {
+          return request.auth != null && (isSuperAdmin() || request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+        }
+        function validStatus(d) {
+          return d.status in ['setup', 'live', 'finished'];
+        }
+        allow read, delete: if isTeamAdmin();
+        allow create: if isTeamAdmin()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.date is string
+          && validStatus(request.resource.data);
+        allow update: if isTeamAdmin()
+          && request.resource.data.date is string
+          && validStatus(request.resource.data);
+
+        match /events/{eventId} {
+          function isTeamAdmin() {
+            return request.auth != null && (isSuperAdmin() || request.auth.token.email in
+              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+          }
+          function validEvent(d) {
+            return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
+              && d.order is number
+              && d.source in ['tap', 'text', 'correction']
+              && (d.type != 'action'
+                  || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
+                      && d.grade in ['#', '+', '!', '-', '/', '=']));
+          }
+          allow read, delete: if isTeamAdmin();
+          allow create, update: if isTeamAdmin() && validEvent(request.resource.data);
+        }
+      }
+
+      match /scoutProfile/{docId} {
+        function isTeamAdmin() {
+          return request.auth != null && (isSuperAdmin() || request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+        }
+        allow read, write: if isTeamAdmin();
+      }
     }
   }
 }

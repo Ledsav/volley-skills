@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Undo2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -82,6 +82,14 @@ export function ScoutPage() {
     updateMatchResult(teamId, matchId, result).catch(() => undefined);
   }, [state, match, locked, teamId, matchId]);
 
+  // Double-tap guards: one setEnd per set, one finish per click-through.
+  const endedSetRef = useRef<number | null>(null);
+  const finishingRef = useRef(false);
+  const setPointReached = state?.setPointReached ?? false;
+  useEffect(() => {
+    if (!setPointReached) endedSetRef.current = null;
+  }, [setPointReached]);
+
   const record = useCallback(
     (payload: MatchEventPayload, source: EventSource = 'tap') => {
       if (!events || !firebaseUser) return;
@@ -107,12 +115,25 @@ export function ScoutPage() {
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
   }
 
-  function finish() {
-    if (!match || !state) return;
-    finishMatch(teamId, matchId, buildFinishPayload(match, state, usage)).catch(() =>
-      setWriteError('Finishing did not sync yet — it will retry when you are back online.'),
-    );
+  async function finish() {
+    if (!match || !state || finishingRef.current) return;
+    finishingRef.current = true;
+    let fresh: UsageProfile;
+    try {
+      fresh = await getUsageProfile(teamId);
+    } catch {
+      finishingRef.current = false;
+      setWriteError('Could not load usage history — try finishing again.');
+      return;
+    }
+    finishMatch(teamId, matchId, buildFinishPayload(match, state, fresh)).catch(() => undefined);
     navigate(`/teams/${teamId}/matches/${matchId}`);
+  }
+
+  function confirmSet() {
+    if (!state || endedSetRef.current === state.set) return;
+    endedSetRef.current = state.set;
+    record({ type: 'setEnd', set: state.set });
   }
 
   if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
@@ -215,7 +236,7 @@ export function ScoutPage() {
           <span className="font-semibold text-ink">
             Match over · {state.setsWon.us}–{state.setsWon.them}
           </span>
-          <Button variant="primary" size="sm" onClick={finish}>Finish match</Button>
+          <Button variant="primary" size="sm" onClick={() => void finish()}>Finish match</Button>
         </div>
       )}
       <main className={`flex-1 p-3 sm:p-4 ${isDesktop ? 'grid grid-cols-[minmax(320px,440px)_1fr] gap-4' : 'pb-80'}`}>
@@ -280,7 +301,7 @@ export function ScoutPage() {
             <Button variant="ghost" onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}>
               Not yet
             </Button>
-            <Button variant="primary" aria-label="Confirm set" onClick={() => record({ type: 'setEnd', set: state.set })}>
+            <Button variant="primary" aria-label="Confirm set" onClick={confirmSet}>
               Confirm set
             </Button>
           </div>

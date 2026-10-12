@@ -37,6 +37,7 @@ function renderPage(events: MatchEvent[]) {
     <MemoryRouter initialEntries={['/teams/t1/matches/m1/scout']}>
       <Routes>
         <Route path="/teams/:teamId/matches/:matchId/scout" element={<ScoutPage />} />
+        <Route path="/teams/:teamId/matches/:matchId" element={<p>match page</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -165,6 +166,33 @@ describe('ScoutPage', () => {
     await waitFor(() =>
       expect(api.finishMatch).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ result: expect.objectContaining({ setsUs: 3, setsThem: 0 }) })),
     );
+  });
+
+  it('double-tapping Confirm set writes exactly one setEnd', async () => {
+    const corr: MatchEvent = { id: 'e2', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    renderPage([setStart, corr]);
+    const btn = await screen.findByRole('button', { name: 'Confirm set' });
+    fireEvent.click(btn);
+    fireEvent.click(btn);
+    const setEnds = vi.mocked(api.addEvent).mock.calls.filter((c) => c[2].type === 'setEnd');
+    expect(setEnds).toHaveLength(1);
+  });
+
+  it('does not finish when usage history cannot be reloaded', async () => {
+    vi.mocked(api.getUsageProfile).mockResolvedValueOnce({ players: {} }).mockRejectedValueOnce(new Error('offline'));
+    const events: MatchEvent[] = [];
+    let order = 0;
+    for (let set = 1; set <= 3; set++) {
+      events.push(
+        { ...setStart, id: `s${set}`, order: ++order, set } as MatchEvent,
+        { id: `c${set}`, order: ++order, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 10 }, rotation: null, serving: null },
+        { id: `x${set}`, order: ++order, source: 'tap', chunkId: null, type: 'setEnd', set },
+      );
+    }
+    renderPage(events);
+    fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load usage history — try finishing again.');
+    expect(api.finishMatch).not.toHaveBeenCalled();
   });
 
   // Fix 2 (undo clears a deleted insert anchor) has no UI path until Task 13 (timeline "Insert after"),

@@ -15,11 +15,12 @@ import { Tab } from '../components/Tab';
 import { FIELD_CLASS } from '../components/Input';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
+import { TeamMatchesTab } from '../matches/TeamMatchesTab';
 import { TeamPhysicalSessionTab } from '../physicalSessions/TeamPhysicalSessionTab';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
-type TeamTab = 'overview' | 'calendar' | 'plan' | 'settings' | 'physicalSession';
+type TeamTab = 'overview' | 'calendar' | 'matches' | 'plan' | 'settings' | 'physicalSession';
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -27,6 +28,7 @@ export function TeamPage() {
   const canCalendar = !!access?.sections.trainings;
   const [team, setTeam] = useState<Team | null>(null);
   const [tab, setTab] = useState<TeamTab>('overview');
+  const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
@@ -56,6 +58,7 @@ export function TeamPage() {
   const tabs: { id: TeamTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     ...(canCalendar ? [{ id: 'calendar' as const, label: 'Calendar' }] : []),
+    { id: 'matches', label: 'Matches' },
     { id: 'physicalSession', label: 'Physical Session' },
     { id: 'plan', label: 'Development Plan' },
     { id: 'settings', label: 'Settings' },
@@ -134,6 +137,9 @@ export function TeamPage() {
             </>
           )}
           {activeTab === 'calendar' && canCalendar && <TeamCalendarTab teamId={teamId} />}
+          {activeTab === 'matches' && (
+            <TeamMatchesTab teamId={teamId} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+          )}
           {activeTab === 'physicalSession' && (
             <TeamPhysicalSessionTab
               teamId={teamId}

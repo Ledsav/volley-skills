@@ -17,10 +17,13 @@ import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { AccessManagerPage } from './access/AccessManagerPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
+import { MatchPage } from './matches/MatchPage';
 
 const DiagramEditorPage = lazy(() =>
   import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
 );
+
+const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
 
 function AuthenticatedLayout() {
   return (
@@ -46,6 +49,7 @@ export function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/teams/:teamId" element={<TeamPage />} />
             <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
+            <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
             <Route
               path="/admin/guides"
               element={
@@ -91,6 +95,16 @@ export function App() {
             {/* Old link target: requests now live on the Access page. */}
             <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
           </Route>
+          <Route
+            path="/teams/:teamId/matches/:matchId/scout"
+            element={
+              <RequireAuth>
+                <Suspense fallback={<div className="p-6 text-slate">Loading scouting…</div>}>
+                  <ScoutPage />
+                </Suspense>
+              </RequireAuth>
+            }
+          />
           <Route path="/" element={<Navigate to="/teams" replace />} />
         </Routes>
       </AuthProvider>

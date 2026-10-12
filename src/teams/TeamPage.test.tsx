@@ -18,6 +18,11 @@ vi.mock('../calendar/calendarApi', () => ({
   deleteCalendarSession: vi.fn(),
 }));
 
+vi.mock('../matches/matchesApi', () => ({
+  listMatches: vi.fn().mockResolvedValue({ matches: [], lastDoc: null, hasMore: false }),
+  listMatchesInRange: vi.fn().mockResolvedValue([]),
+}));
+
 const team: Team = {
   id: 'team-1',
   name: 'U17 Boys',

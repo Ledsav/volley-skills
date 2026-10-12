@@ -18,6 +18,7 @@ describe('validatePlayerRows', () => {
         nationality: '',
         licenseNumber: '',
         positionCategory: 'TBD',
+        shirtSize: '',
         playerPhone: '',
         guardians: [],
         skills: NULL_SKILLS,
@@ -32,6 +33,14 @@ describe('validatePlayerRows', () => {
     const bad = validatePlayerRows([{ number: 1, fullName: 'A', positionCategory: 'wing' }]);
     expect(bad.inputs).toEqual([]);
     expect(bad.errors[0]).toMatch(/positionCategory/);
+  });
+
+  it('accepts a valid shirt size and rejects an unknown one', () => {
+    expect(validatePlayerRows([{ number: 1, fullName: 'A', shirtSize: 'XL' }]).inputs[0].shirtSize).toBe('XL');
+    expect(validatePlayerRows([{ number: 1, fullName: 'A', shirtSize: '' }]).inputs[0].shirtSize).toBe('');
+    const bad = validatePlayerRows([{ number: 1, fullName: 'A', shirtSize: 'medium' }]);
+    expect(bad.inputs).toEqual([]);
+    expect(bad.errors[0]).toMatch(/shirtSize/);
   });
 
   it('reports a missing or non-numeric number', () => {

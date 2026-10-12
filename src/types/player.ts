@@ -52,6 +52,11 @@ export const POSITION_CATEGORIES: { value: PositionCategory; label: string }[] =
   { value: 'TBD', label: 'TBD' },
 ];
 
+/** Kit size. '' = not recorded yet (also the value for docs that predate the field). */
+export type ShirtSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL';
+
+export const SHIRT_SIZES: ShirtSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
 export interface Player {
   id: string;
   number: number;
@@ -60,6 +65,7 @@ export interface Player {
   nationality: string;
   licenseNumber: string;
   positionCategory: PositionCategory;
+  shirtSize: ShirtSize | '';
   starting: boolean;
   playerPhone: string;
   guardians: Guardian[];

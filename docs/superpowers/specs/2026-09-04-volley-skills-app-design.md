@@ -71,6 +71,9 @@ teams/{teamId}/players/{playerId}
   number, fullName, dob, nationality, licenseNumber, position (free text — source
     spreadsheet uses inconsistent values like "OH", "OH/OP", "Beginner", "All-round
     (developing)", so this is not a fixed enum), playerPhone
+  shirtSize: 'XS'|'S'|'M'|'L'|'XL'|'XXL'|'3XL'|''  — kit size; '' = not recorded.
+                                          Docs that predate it read as '' (hydrated
+                                          on read; backfillPlayers.mjs writes it).
   guardians: [{ relation, name, phone, email }]
   viewerEmails: []                    — reserved; invite flow TBD (Section 6.4)
   teamName, ageGroup, season           — denormalized from the parent team so a viewer

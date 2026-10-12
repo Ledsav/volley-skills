@@ -12,6 +12,7 @@ const basePlayer: Player = {
   nationality: 'BEL',
   licenseNumber: 'J-000123',
   positionCategory: 'OH',
+  shirtSize: '',
   starting: false,
   playerPhone: '',
   guardians: [],

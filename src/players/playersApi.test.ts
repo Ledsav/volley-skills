@@ -140,6 +140,7 @@ describe('playersApi', () => {
           nationality: '',
           licenseNumber: '',
           positionCategory: 'TBD',
+          shirtSize: '',
           playerPhone: '',
           guardians: [],
           skills: allSix,
@@ -151,6 +152,7 @@ describe('playersApi', () => {
           nationality: '',
           licenseNumber: '',
           positionCategory: 'TBD',
+          shirtSize: '',
           playerPhone: '',
           guardians: [],
           skills: allSix,
@@ -200,6 +202,7 @@ describe('playersApi', () => {
           nationality: '',
           licenseNumber: '',
           positionCategory: 'TBD',
+          shirtSize: '',
           playerPhone: '',
           guardians: [],
           skills: { serve: 6, attack: 6, block: 6, set: 6, defence: 6, reception: 6, jump: 6, speed: 6, iq: 6 },
@@ -292,6 +295,20 @@ describe('playersApi', () => {
 
     expect(players[0].skills.serve).toEqual({ score: 7, notes: 'jump serve', priority: true });
     expect(players[0].skills.block).toEqual({ score: null, notes: '', priority: false });
+  });
+
+  it('defaults shirtSize to "" for docs that predate it, and keeps a stored one', async () => {
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: 'player-1', data: () => ({ fullName: 'Old Player' }) },
+        { id: 'player-2', data: () => ({ fullName: 'New Player', shirtSize: 'L' }) },
+      ],
+    });
+
+    const { players } = await listPlayers('team-1');
+
+    expect(players[0].shirtSize).toBe('');
+    expect(players[1].shirtSize).toBe('L');
   });
 
   it('keeps the lineup fields already stored on a player doc', async () => {

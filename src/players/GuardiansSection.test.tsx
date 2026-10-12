@@ -42,6 +42,7 @@ const basePlayer: Player = {
   nationality: 'BEL',
   licenseNumber: 'J-000001',
   positionCategory: 'OH',
+  shirtSize: '',
   starting: false,
   playerPhone: '',
   guardians: [{ relation: 'mother', name: 'Jane Doe', phone: '+352 000 000', email: 'jane@example.com' }],

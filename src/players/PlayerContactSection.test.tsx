@@ -42,6 +42,7 @@ const basePlayer: Player = {
   nationality: 'BEL',
   licenseNumber: 'J-000001',
   positionCategory: 'OH',
+  shirtSize: '',
   starting: false,
   playerPhone: '00352 000 000',
   guardians: [],
@@ -87,6 +88,7 @@ describe('PlayerContactSection', () => {
         fullName: 'Updated Name',
         number: 7,
         positionCategory: 'OH',
+        shirtSize: '',
         starting: false,
         playerPhone: '00352 000 000',
       })
@@ -112,6 +114,27 @@ describe('PlayerContactSection', () => {
       )
     );
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }));
+  });
+
+  it('shows and edits the shirt size', async () => {
+    vi.spyOn(playersApi, 'updatePlayerContact').mockResolvedValue(undefined);
+    const onPlayerUpdated = vi.fn();
+
+    render(<ContactHarness player={{ ...basePlayer, shirtSize: 'S' }} onPlayerUpdated={onPlayerUpdated} />);
+    expect(screen.getByText('S')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText('Shirt size'), { target: { value: 'XL' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(playersApi.updatePlayerContact).toHaveBeenCalledWith(
+        'team-1',
+        'player-1',
+        expect.objectContaining({ shirtSize: 'XL' })
+      )
+    );
+    expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ shirtSize: 'XL' }));
   });
 
   it('edits and saves the position category and starting flag', async () => {

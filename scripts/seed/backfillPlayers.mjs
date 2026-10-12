@@ -6,6 +6,7 @@
 // Per player doc, only when the field is missing:
 //   - positionCategory : derived from the legacy free-text `position`, else 'TBD'
 //   - starting          : false
+//   - shirtSize         : '' (not recorded yet)
 //   - skills.block      : from scripts/seed/skillsSnapshot.json by fullName,
 //                         else { score: 5, notes: '', priority: false }
 // When skills.block is added, avgScore + level are recomputed.
@@ -76,6 +77,7 @@ async function main() {
 
     if (data.positionCategory === undefined) patch.positionCategory = toPositionCategory(data.position ?? '');
     if (data.starting === undefined) patch.starting = false;
+    if (data.shirtSize === undefined) patch.shirtSize = '';
 
     if (data.skills && data.skills.block === undefined) {
       // A wrongly-written literal "skills.block" top-level field may hold the value.

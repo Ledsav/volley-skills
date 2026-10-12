@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, FIELD_CLASS } from '../components/Input';
 import { createPlayer } from './playersApi';
-import { POSITION_CATEGORIES, type Guardian, type PositionCategory } from '../types/player';
+import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory, type ShirtSize } from '../types/player';
 import type { Team } from '../types/team';
 
 interface AddPlayerDialogProps {
@@ -28,6 +28,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   const [nationality, setNationality] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [positionCategory, setPositionCategory] = useState<PositionCategory>('TBD');
+  const [shirtSize, setShirtSize] = useState<ShirtSize | ''>('');
   const [playerPhone, setPlayerPhone] = useState('');
   const [guardians, setGuardians] = useState<Guardian[]>([emptyGuardian()]);
   const [consentGiven, setConsentGiven] = useState(false);
@@ -60,6 +61,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           nationality,
           licenseNumber,
           positionCategory,
+          shirtSize,
           playerPhone,
           guardians,
         },
@@ -130,6 +132,25 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             {POSITION_CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={fieldClass}>
+          <label htmlFor="player-shirt-size" className={labelClass}>
+            Shirt size
+          </label>
+          <select
+            id="player-shirt-size"
+            className={FIELD_CLASS}
+            value={shirtSize}
+            onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
+          >
+            <option value="">Not set</option>
+            {SHIRT_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
               </option>
             ))}
           </select>

@@ -112,16 +112,32 @@ export function setsToWin(format: MatchFormat): number {
   return Math.ceil(format.bestOf / 2);
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars -- stub; Task 3 replaces this */
-/** Replaced in Task 3 with real libero logic. */
+const BACK_ROW_ZONES = [4, 5, 0]; // P5, P6, P1
+
+/**
+ * Picks the libero for the current serve state and puts them in for the first
+ * back-row player they replace. Never in P1 while we serve (liberos can't serve).
+ */
 export function applyLibero(
   lineup: string[],
-  _liberos: LiberoConfig[],
-  _serving: Side,
+  liberos: LiberoConfig[],
+  serving: Side,
 ): { court: string[]; activeLiberoId: string | null } {
-  return { court: [...lineup], activeLiberoId: null };
+  const court = [...lineup];
+  const libero =
+    liberos.find((l) => l.mode === 'always') ??
+    liberos.find((l) => l.mode === (serving === 'us' ? 'serving' : 'receiving')) ??
+    null;
+  if (!libero) return { court, activeLiberoId: null };
+  for (const zone of BACK_ROW_ZONES) {
+    if (zone === 0 && serving === 'us') continue;
+    if (libero.replaces.includes(lineup[zone])) {
+      court[zone] = libero.playerId;
+      return { court, activeLiberoId: libero.playerId };
+    }
+  }
+  return { court, activeLiberoId: null };
 }
-/* eslint-enable @typescript-eslint/no-unused-vars */
 
 export function resultFromState(state: MatchState): MatchResult {
   return { setsUs: state.setsWon.us, setsThem: state.setsWon.them, sets: state.setScores };
@@ -156,7 +172,9 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
   const s = initialState();
   const rosterIds = new Set(match.roster.map((r) => r.playerId));
   const setterIds = new Set(match.roster.filter((r) => r.positionCategory === 'S').map((r) => r.playerId));
-  const liberos = match.liberos;
+  let liberos: LiberoConfig[] = match.liberos.map((l) => ({ ...l, replaces: [...l.replaces] }));
+  // Substitution pairs within the current set: out <-> in, for re-entry checks.
+  let pairs: Record<string, string> = {};
 
   const warn = (ev: MatchEvent, code: WarningCode, message: string) => {
     s.warnings.push({ eventId: ev.id, code, message });
@@ -205,6 +223,8 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
         s.subsUsed = 0;
         s.timeoutsUsed = { us: 0, them: 0 };
         s.currentRally = [];
+        liberos = match.liberos.map((l) => ({ ...l, replaces: [...l.replaces] }));
+        pairs = {};
         break;
       }
       case 'action': {
@@ -231,10 +251,46 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       case 'point':
         closeRally(ev.winner, ev.reason, ev.id);
         break;
-      case 'sub':
-      case 'timeout':
-        // Implemented in Task 3.
+      case 'sub': {
+        const zone = s.lineup.indexOf(ev.outPlayerId);
+        if (zone < 0) {
+          warn(ev, 'subNotOnCourt', 'Outgoing player is not in the lineup — ignored.');
+          break;
+        }
+        const outPartner = pairs[ev.outPlayerId];
+        const inPartner = pairs[ev.inPlayerId];
+        if ((outPartner && outPartner !== ev.inPlayerId) || (inPartner && inPartner !== ev.outPlayerId)) {
+          warn(ev, 'illegalReentry', 'A player can only re-enter for the player who replaced them.');
+        } else {
+          pairs[ev.outPlayerId] = ev.inPlayerId;
+          pairs[ev.inPlayerId] = ev.outPlayerId;
+        }
+        s.lineup = s.lineup.map((id) => (id === ev.outPlayerId ? ev.inPlayerId : id));
+        liberos = liberos.map((l) =>
+          l.replaces.includes(ev.outPlayerId)
+            ? { ...l, replaces: l.replaces.map((id) => (id === ev.outPlayerId ? ev.inPlayerId : id)) }
+            : l,
+        );
+        s.subsUsed += 1;
+        if (s.subsUsed > match.format.subsPerSet) {
+          warn(ev, 'subLimit', `More than ${match.format.subsPerSet} substitutions this set.`);
+        }
         break;
+      }
+      case 'timeout': {
+        s.timeoutsUsed = { ...s.timeoutsUsed, [ev.team]: s.timeoutsUsed[ev.team] + 1 };
+        s.timeouts.push({
+          set: s.set,
+          team: ev.team,
+          ralliesBefore: ralliesInSet(),
+          score: { ...s.score },
+          eventId: ev.id,
+        });
+        if (s.timeoutsUsed[ev.team] > match.format.timeoutsPerSet) {
+          warn(ev, 'timeoutLimit', `More than ${match.format.timeoutsPerSet} timeouts this set.`);
+        }
+        break;
+      }
       case 'correction': {
         if (ev.score) s.score = { ...ev.score };
         if (ev.serving) s.serving = ev.serving;

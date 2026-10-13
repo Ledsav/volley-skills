@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../components/Button';
+import { SettingsSection } from './SettingsSection';
 import { FIELD_CLASS, Input } from '../components/Input';
 import { AiError, testConnection } from '../matches/text/aiClient';
 import {
@@ -55,66 +56,64 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card">
-      <div>
-        <p className="font-medium text-ink">Text scouting (AI)</p>
-        <p className="text-sm text-slate">
-          Turns typed match notes into scouting actions. Settings and key stay on this device. Only jersey numbers,
-          roles, the score and your notes (with player names replaced by numbers) are sent. Keep notes to the play.
-        </p>
+    <SettingsSection
+      title="Text scouting (AI)"
+      description="Turns typed match notes into scouting actions. Settings and key stay on this device. Only jersey numbers, roles, the score and your notes (with player names replaced by numbers) are sent. Keep notes to the play."
+    >
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+          Provider
+          <select
+            aria-label="AI provider"
+            className={`${FIELD_CLASS} min-h-11`}
+            value={s.provider}
+            onChange={(e) => {
+              const provider = e.target.value as AiProvider;
+              const p = AI_PROVIDERS[provider];
+              // A key belongs to one provider: never carry it over to another.
+              update({ provider, baseUrl: p.baseUrl, model: p.defaultModel, apiKey: '' });
+            }}
+          >
+            {(Object.keys(AI_PROVIDERS) as AiProvider[]).map((id) => (
+              <option key={id} value={id}>{AI_PROVIDERS[id].label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+          Model
+          <Input
+            aria-label="Model"
+            className={INPUT_CLASS}
+            value={s.model}
+            onChange={(e) => update({ ...s, model: e.target.value })}
+          />
+        </label>
+        {preset.editableUrl && (
+          <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            Base URL
+            <Input
+              aria-label="Base URL"
+              className={INPUT_CLASS}
+              value={s.baseUrl}
+              onChange={(e) => update({ ...s, baseUrl: e.target.value })}
+            />
+          </label>
+        )}
+        {preset.needsKey && (
+          <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            API key
+            <Input
+              aria-label="API key"
+              className={INPUT_CLASS}
+              type="password"
+              autoComplete="off"
+              value={s.apiKey}
+              onChange={(e) => update({ ...s, apiKey: e.target.value })}
+            />
+          </label>
+        )}
       </div>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-        Provider
-        <select
-          aria-label="AI provider"
-          className={`${FIELD_CLASS} min-h-11`}
-          value={s.provider}
-          onChange={(e) => {
-            const provider = e.target.value as AiProvider;
-            const p = AI_PROVIDERS[provider];
-            // A key belongs to one provider: never carry it over to another.
-            update({ provider, baseUrl: p.baseUrl, model: p.defaultModel, apiKey: '' });
-          }}
-        >
-          {(Object.keys(AI_PROVIDERS) as AiProvider[]).map((id) => (
-            <option key={id} value={id}>{AI_PROVIDERS[id].label}</option>
-          ))}
-        </select>
-      </label>
       <p className="text-xs text-slate">{preset.note}</p>
-      {preset.editableUrl && (
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Base URL
-          <Input
-            aria-label="Base URL"
-            className={INPUT_CLASS}
-            value={s.baseUrl}
-            onChange={(e) => update({ ...s, baseUrl: e.target.value })}
-          />
-        </label>
-      )}
-      {preset.needsKey && (
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          API key
-          <Input
-            aria-label="API key"
-            className={INPUT_CLASS}
-            type="password"
-            autoComplete="off"
-            value={s.apiKey}
-            onChange={(e) => update({ ...s, apiKey: e.target.value })}
-          />
-        </label>
-      )}
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-        Model
-        <Input
-          aria-label="Model"
-          className={INPUT_CLASS}
-          value={s.model}
-          onChange={(e) => update({ ...s, model: e.target.value })}
-        />
-      </label>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="secondary" size="sm" onClick={() => void runTest()} disabled={testing}>
           Test connection
@@ -125,6 +124,6 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           </p>
         )}
       </div>
-    </section>
+    </SettingsSection>
   );
 }

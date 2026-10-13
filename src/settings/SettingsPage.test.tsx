@@ -50,7 +50,6 @@ describe('SettingsPage', () => {
     const signOut = screen.getByRole('button', { name: 'Sign out' });
     const accountSection = signOut.closest('section') as HTMLElement;
     expect(accountSection.className).toMatch(/(^|\s)flex-col(\s|$)/);
-    expect(accountSection.className).toContain('sm:flex-row');
     expect(signOut.className).toContain('w-full');
     expect(signOut.className).toContain('sm:w-auto');
 
@@ -58,6 +57,14 @@ describe('SettingsPage', () => {
     const appearanceSection = themeBtn.closest('section') as HTMLElement;
     expect(appearanceSection.className).toMatch(/(^|\s)flex-col(\s|$)/);
     expect(themeBtn.className).toContain('w-full');
+  });
+
+  it('renders each section as a settings row that becomes a 3-column grid on desktop', () => {
+    renderSettings();
+    for (const title of ['Appearance', 'Text scouting (AI)', 'Account']) {
+      const section = screen.getByRole('heading', { name: title }).closest('section') as HTMLElement;
+      expect(section.className).toContain('lg:grid-cols-3');
+    }
   });
 
   it('links to the privacy policy', () => {

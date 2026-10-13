@@ -49,6 +49,13 @@ describe('TextScoutPanel', () => {
     writeAiSettings({ ...DEFAULT_AI_SETTINGS, apiKey: 'k' });
   });
 
+  it('offers an Open Settings link when no AI provider is set up', () => {
+    localStorage.clear();
+    renderPanel({ ask: undefined });
+    expect(screen.getByText('No AI provider set up.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Settings' })).toHaveAttribute('href', '/settings');
+  });
+
   it('strips names before asking, previews the replayed score and merges in order', async () => {
     const props = renderPanel();
     fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: 'Sara ace\nSara serve, they kill' } });

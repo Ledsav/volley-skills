@@ -55,6 +55,9 @@ trainings (TR-0001…TR-0003) into the running emulator — emulator-only exampl
 content, re-runnable (it replaces its own `demo-` docs). `dev:emulator` runs it
 automatically after the roster seed.
 
+`npm run seed:match` — a finished demo match and a live one for the seeded team
+(also run by `dev:emulator`).
+
 ### Run the app against the seeded emulator
 
 One command — boots the emulators, seeds, starts Vite, and shuts the emulators

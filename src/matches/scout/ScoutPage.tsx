@@ -46,6 +46,7 @@ export function ScoutPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [pendingUndo, setPendingUndo] = useState<string[] | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ ids: string[]; kind: 'setStart' | 'setEnd' } | null>(null);
   const [subOutId, setSubOutId] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
   const [phoneTab, setPhoneTab] = useState<'court' | 'live' | 'timeline'>('court');
@@ -118,6 +119,11 @@ export function ScoutPage() {
     if (ids.length > 1) setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
+  }
+
+  function deleteFromTimeline(ids: string[]) {
+    if (anchorId && ids.includes(anchorId)) setAnchorId(null);
+    void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not delete. Try again.'));
   }
 
   async function finish() {
@@ -220,8 +226,12 @@ export function ScoutPage() {
       state={state}
       roster={roster}
       onDelete={(ids) => {
-        if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-        void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not delete. Try again.'));
+        const structural = (events ?? []).find((e) => ids.includes(e.id) && (e.type === 'setStart' || e.type === 'setEnd'));
+        if (structural && (structural.type === 'setStart' || structural.type === 'setEnd')) {
+          setPendingDelete({ ids, kind: structural.type });
+          return;
+        }
+        deleteFromTimeline(ids);
       }}
       onEdit={setEditing}
       onInsertAfter={(id) => {
@@ -277,7 +287,7 @@ export function ScoutPage() {
             <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
             <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
           </nav>
-          <main className={`flex-1 p-3 ${selected ? 'pb-80' : ''}`}>
+          <main className={`flex-1 p-3 ${phoneTab === 'court' && selected ? 'pb-80' : ''}`}>
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}
@@ -358,6 +368,19 @@ export function ScoutPage() {
           onSave={(patch) => {
             void updateEvent(teamId, matchId, editing.id, patch).catch(() => setWriteError('Could not save the edit.'));
             setEditing(null);
+          }}
+        />
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={pendingDelete.kind === 'setStart' ? 'Delete set start?' : 'Delete set end?'}
+          message="This changes the score and lineup for the rest of the set."
+          confirmLabel="Yes, delete"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            deleteFromTimeline(pendingDelete.ids);
+            setPendingDelete(null);
           }}
         />
       )}

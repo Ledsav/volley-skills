@@ -8,6 +8,7 @@ import {
   updatePlayerContact,
   updatePlayerDevelopmentPlan,
 } from './playersApi';
+import { deleteCollection } from '../firebase/deleteCollection';
 import type { Team } from '../types/team';
 
 const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
@@ -37,6 +38,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
+vi.mock('../firebase/deleteCollection');
 
 const team: Team = {
   id: 'team-1',
@@ -237,20 +239,19 @@ describe('playersApi', () => {
     expect(batchCommit).not.toHaveBeenCalled();
   });
 
-  it('deletes a player and all of their physical test history', async () => {
-    mockGetDocs.mockResolvedValue({
-      docs: [
-        { id: 'test-1', ref: 'test-1-ref' },
-        { id: 'test-2', ref: 'test-2-ref' },
-      ],
+  it('deletes a player and all of their physical test history, history first', async () => {
+    const order: string[] = [];
+    vi.mocked(deleteCollection).mockImplementation(async () => {
+      order.push('tests');
     });
-    mockDeleteDoc.mockResolvedValue(undefined);
+    mockDeleteDoc.mockImplementation(async () => {
+      order.push('player');
+    });
 
     await deletePlayer('team-1', 'player-1');
 
-    expect(mockDeleteDoc).toHaveBeenCalledWith('test-1-ref');
-    expect(mockDeleteDoc).toHaveBeenCalledWith('test-2-ref');
-    expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests');
+    expect(order).toEqual(['tests', 'player']);
   });
 
   it('lists players ordered by number, filling in lineup + skill fields absent from older docs', async () => {

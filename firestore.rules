@@ -191,6 +191,9 @@ service cloud.firestore {
         }
         allow read: if isTeamAdmin();
         allow create, update: if isTeamAdmin();
+        // Only for deleting the whole team (superadmin-only), which has to clear
+        // every subcollection itself because Firestore never cascades.
+        allow delete: if isSuperAdmin();
 
         match /entries/{entryId} {
           function isTeamAdmin() {
@@ -200,6 +203,7 @@ service cloud.firestore {
           allow read: if isTeamAdmin();
           allow create, update: if isTeamAdmin()
             && get(/databases/$(database)/documents/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
+          allow delete: if isSuperAdmin();
         }
       }
 

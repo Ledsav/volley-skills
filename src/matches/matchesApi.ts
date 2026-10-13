@@ -17,6 +17,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { deleteCollection } from '../firebase/deleteCollection';
 import { listPlayers } from '../players/playersApi';
 import type { Player } from '../types/player';
 import {
@@ -35,7 +36,6 @@ import type { FinishPayload } from './finish';
 const MATCHES_PAGE_SIZE = 20;
 const MATCHES_MONTH_CAP = 50;
 export const MATCH_EVENTS_CAP = 2000;
-const BATCH_LIMIT = 450;
 
 const matchesCol = (teamId: string) => collection(db, 'teams', teamId, 'matches');
 const matchDoc = (teamId: string, matchId: string) => doc(db, 'teams', teamId, 'matches', matchId);
@@ -114,12 +114,7 @@ export function claimDevice(teamId: string, matchId: string, deviceId: string): 
 }
 
 export async function deleteMatch(teamId: string, matchId: string): Promise<void> {
-  const events = await getDocs(query(eventsCol(teamId, matchId), limit(MATCH_EVENTS_CAP)));
-  for (let i = 0; i < events.docs.length; i += BATCH_LIMIT) {
-    const batch = writeBatch(db);
-    events.docs.slice(i, i + BATCH_LIMIT).forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-  }
+  await deleteCollection(eventsCol(teamId, matchId));
   await deleteDoc(matchDoc(teamId, matchId));
 }
 

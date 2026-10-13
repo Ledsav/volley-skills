@@ -15,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { computeAvgScore, computeLevel } from './skillMath';
@@ -207,8 +208,8 @@ export async function updatePlayerDevelopmentPlan(teamId: string, playerId: stri
   await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
 }
 
+/** Physical tests first: Firestore never cascades, and they hold a minor's data. */
 export async function deletePlayer(teamId: string, playerId: string): Promise<void> {
-  const testsSnapshot = await getDocs(collection(db, 'teams', teamId, 'players', playerId, 'physicalTests'));
-  await Promise.all(testsSnapshot.docs.map((testDoc) => deleteDoc(testDoc.ref)));
+  await deleteCollection(collection(db, 'teams', teamId, 'players', playerId, 'physicalTests'));
   await deleteDoc(doc(db, 'teams', teamId, 'players', playerId));
 }

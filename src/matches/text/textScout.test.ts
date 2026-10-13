@@ -188,3 +188,13 @@ describe('parseBatch hardening', () => {
     expect(parseBatch({ rallies: [{}] }).ok).toBe(true);
   });
 });
+
+describe('parseBatch null as absent', () => {
+  it('treats null actions, subs, timeouts and point as absent', () => {
+    const r = parseBatch({ rallies: [{ actions: [{ number: 7, skill: 'S', grade: '#' }], subs: null, timeouts: null, point: null }] });
+    expect(r).toEqual({
+      ok: true,
+      batch: { rallies: [{ actions: [{ number: 7, skill: 'S', grade: '#' }], point: null, subs: [], timeouts: [] }], unparsed: [] },
+    });
+  });
+});

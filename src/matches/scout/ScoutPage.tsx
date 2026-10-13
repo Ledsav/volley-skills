@@ -13,7 +13,7 @@ import { buildFinishPayload } from '../finish';
 import { rosterMap } from '../format';
 import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult } from '../matchesApi';
 import { defaultLineup } from '../matchSetup';
-import { countsForPlayer, expectedSkill, orderSkills } from '../nextActions';
+import { countsForPlayer, expectedSkill, orderSkills, predictPlayer } from '../nextActions';
 import { nextRotation, prevRotation, replay, resultFromState, sameResult, sortEvents } from '../scoutEngine';
 import { playerForm } from '../scoutStats';
 import { rallyOutcome } from '../skillGrades';
@@ -32,6 +32,31 @@ import { TimelineDrawer } from './TimelineDrawer';
 
 const HEARTBEAT_MS = 60_000;
 const REASON_PROMPT_MS = 5_000;
+const AUTO_SELECT_KEY = 'vcb.scoutAutoSelect';
+
+/** Per-device preference, default on. Storage can throw (private mode, blocked site data). */
+function readAutoSelect(): boolean {
+  try {
+    return window.localStorage.getItem(AUTO_SELECT_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function writeAutoSelect(on: boolean) {
+  try {
+    window.localStorage.setItem(AUTO_SELECT_KEY, on ? 'on' : 'off');
+  } catch {
+    // Not persisted; the toggle still applies for this visit.
+  }
+}
+
+/** `seq` re-keys the action sheet so each selection starts on its first chip. */
+interface Selection {
+  id: string;
+  auto: boolean;
+  seq: number;
+}
 
 /** First serve alternates set to set: the other side of the previous set's first server. */
 function nextSetServing(events: MatchEvent[], fallbackServing: Side): Side {
@@ -52,7 +77,8 @@ export function ScoutPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [autoSelect, setAutoSelect] = useState(readAutoSelect);
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [pendingUndo, setPendingUndo] = useState<string[] | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ ids: string[]; kind: 'setStart' | 'setEnd' } | null>(null);
@@ -64,6 +90,15 @@ export function ScoutPage() {
   const [setDialogOpen, setSetDialogOpen] = useState(false);
   const [reasonPrompt, setReasonPrompt] = useState<ReasonPrompt | null>(null);
   const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
+  const selectedId = selection?.id ?? null;
+  const selectionSeqRef = useRef(0);
+  // The event whose arrival in the snapshot triggers the next auto-select.
+  // Cleared by a manual tile tap or closing the sheet (suppresses until the next write).
+  const autoAfterRef = useRef<string | null>(null);
+  const select = useCallback((id: string | null, auto = false) => {
+    if (!auto) autoAfterRef.current = null;
+    setSelection(id ? { id, auto, seq: ++selectionSeqRef.current } : null);
+  }, []);
 
   useEffect(() => {
     getMatch(teamId, matchId)
@@ -110,7 +145,7 @@ export function ScoutPage() {
   const inSet = state?.inSet ?? false;
   useEffect(() => {
     if (inSet) return;
-    setSelectedId(null);
+    setSelection(null);
     setSubOutId(null);
     setReasonPrompt(null);
     setShowCorrection(false);
@@ -150,6 +185,9 @@ export function ScoutPage() {
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order };
       maxOrderRef.current = Math.max(maxOrderRef.current, order);
+      // While inserting mid-timeline the replayed state is the timeline's end, not the
+      // insert point, so a prediction would be wrong: skip auto-select there.
+      autoAfterRef.current = anchorId ? null : id;
       if (anchorId) {
         const endsRally =
           payload.type === 'point' || (payload.type === 'action' && rallyOutcome(payload.skill, payload.grade) !== null);
@@ -159,6 +197,18 @@ export function ScoutPage() {
     },
     [events, firebaseUser, anchorId, teamId, matchId],
   );
+
+  // Once this device's last write shows up in the snapshot, pre-select the most
+  // likely player for the next expected skill (one tap: grade).
+  useEffect(() => {
+    const awaited = autoAfterRef.current;
+    if (!awaited || !events || !state || !match) return;
+    if (!events.some((e) => e.id === awaited)) return;
+    autoAfterRef.current = null;
+    if (!autoSelect || !state.inSet) return;
+    const id = predictPlayer({ state, skill: expectedSkill(state), roster, liberos: match.liberos, usage });
+    if (id) select(id, true);
+  }, [events, state, match, roster, usage, autoSelect, select]);
 
   useEffect(() => {
     if (!reasonPrompt) return;
@@ -259,14 +309,32 @@ export function ScoutPage() {
         liberos={match.liberos}
         activeLiberoId={state.activeLiberoId}
         selectedId={selectedId}
+        autoSelected={selection?.auto ?? false}
         form={(id) => playerForm(state, id)}
         disabled={!state.inSet}
-        onSelect={setSelectedId}
+        onSelect={(id) => select(id)}
         onLongPress={(id) => {
           if (!liberoIds.has(id)) setSubOutId(id);
         }}
       />
-      <BenchStrip players={bench} onSelect={setSelectedId} disabled={!state.inSet} />
+      <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />
+      {state.inSet && selected && selection && (
+        <ActionSheet
+          key={`${selected.playerId}-${selection.seq}`}
+          player={selected}
+          isLibero={liberoIds.has(selected.playerId)}
+          skills={skillsFor(selected.playerId)}
+          onClose={() => select(null)}
+          onSub={() => {
+            setSubOutId(selected.playerId);
+            select(null);
+          }}
+          onGrade={(skill, grade) => {
+            setSelection(null);
+            record({ type: 'action', playerId: selected.playerId, skill, grade });
+          }}
+        />
+      )}
       {state.inSet ? (
         <RallyBar
           format={match.format}
@@ -284,24 +352,6 @@ export function ScoutPage() {
         />
       ) : (
         <p className="py-2 text-center text-sm text-slate">Start the set to record actions.</p>
-      )}
-      {state.inSet && selected && (
-        <ActionSheet
-          key={selected.playerId}
-          player={selected}
-          isLibero={liberoIds.has(selected.playerId)}
-          skills={skillsFor(selected.playerId)}
-          floating={!isDesktop}
-          onClose={() => setSelectedId(null)}
-          onSub={() => {
-            setSubOutId(selected.playerId);
-            setSelectedId(null);
-          }}
-          onGrade={(skill, grade) => {
-            record({ type: 'action', playerId: selected.playerId, skill, grade });
-            setSelectedId(null);
-          }}
-        />
       )}
     </div>
   );
@@ -336,6 +386,12 @@ export function ScoutPage() {
         opponent={match.opponent}
         pending={pending}
         disabled={!state.inSet}
+        autoSelect={autoSelect}
+        onToggleAutoSelect={() => {
+          const next = !autoSelect;
+          setAutoSelect(next);
+          writeAutoSelect(next);
+        }}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>
           record(
@@ -389,7 +445,7 @@ export function ScoutPage() {
             <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
             <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
           </nav>
-          <main className={`flex-1 p-3 ${phoneTab === 'court' && state.inSet && selected ? 'pb-80' : ''}`}>
+          <main className="flex-1 p-3">
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}

@@ -49,6 +49,7 @@ function renderPage(events: MatchEvent[]) {
 describe('ScoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     vi.mocked(api.getMatch).mockResolvedValue(match);
     vi.mocked(api.getUsageProfile).mockResolvedValue({ players: {} });
     vi.mocked(api.claimDevice).mockResolvedValue();
@@ -373,5 +374,95 @@ describe('ScoutPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
     expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']);
     expect(screen.queryByText('Inserting into the timeline')).not.toBeInTheDocument();
+  });
+
+  describe('auto-select', () => {
+    const reception: MatchEvent = {
+      id: 'new', order: 2, source: 'tap', chunkId: null, type: 'action', playerId: 'oh1', skill: 'R', grade: '+',
+    };
+    const sheetFor = (name: string) => screen.queryByRole('region', { name: `Actions for ${name}` });
+
+    it('after a reception, selects the setter with Set pre-selected', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      fireEvent.click(screen.getByRole('button', { name: '+ Good' }));
+      expect(sheetFor('#7 Ana')).not.toBeInTheDocument();
+      act(() => pushEvents([setStart, reception]));
+      expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('aria-pressed', 'true');
+      expect(sheetFor('#2 Sofía')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Set' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('after a point that wins the serve back, selects the new P1 with Serve', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Point us' }));
+      const point: MatchEvent = { id: 'new', order: 2, source: 'tap', chunkId: null, type: 'point', winner: 'us', reason: null };
+      act(() => pushEvents([setStart, point]));
+      // Side-out rotation: #7 Ana moves from P2 to P1.
+      expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Serve' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('closing the sheet suppresses auto-select until the next recorded event', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      fireEvent.click(screen.getByRole('button', { name: '+ Good' }));
+      act(() => pushEvents([setStart, reception]));
+      fireEvent.click(screen.getByRole('button', { name: 'Close actions' }));
+      expect(sheetFor('#2 Sofía')).not.toBeInTheDocument();
+      // A snapshot with no new write of ours (e.g. a pending write confirming) does not reopen it.
+      act(() => pushEvents([setStart, { ...reception }]));
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+
+      vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'to', written: Promise.resolve() });
+      fireEvent.click(screen.getByRole('button', { name: /T\/O us/ }));
+      const timeout: MatchEvent = { id: 'to', order: 3, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+      act(() => pushEvents([setStart, reception, timeout]));
+      expect(sheetFor('#2 Sofía')).toBeInTheDocument();
+    });
+
+    it('does nothing with the Auto toggle off, and remembers the choice on this device', async () => {
+      renderPage([setStart]);
+      const toggle = await screen.findByRole('button', { name: 'Auto-select next player' });
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(window.localStorage.getItem('vcb.scoutAutoSelect')).toBe('off');
+      fireEvent.click(screen.getByRole('button', { name: '#7 Ana' }));
+      fireEvent.click(screen.getByRole('button', { name: '+ Good' }));
+      act(() => pushEvents([setStart, reception]));
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('starts with Auto off when the device stored that preference', async () => {
+      window.localStorage.setItem('vcb.scoutAutoSelect', 'off');
+      renderPage([setStart]);
+      expect(await screen.findByRole('button', { name: 'Auto-select next player' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('does not auto-select between sets', async () => {
+      const corr: MatchEvent = { id: 'e2', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+      renderPage([setStart, corr]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm set' }));
+      const end: MatchEvent = { id: 'new', order: 3, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+      act(() => pushEvents([setStart, corr, end]));
+      expect(screen.getByRole('button', { name: 'Start set 2' })).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('button', { pressed: true }).filter((b) => b.getAttribute('aria-label')?.startsWith('#'))).toHaveLength(0);
+    });
+
+    it('selects the server once a set starts with us serving', async () => {
+      renderPage([]);
+      const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+      expect(dialog).toBeInTheDocument();
+      const start: MatchEvent = { ...setStart, id: 'new', serving: 'us' } as MatchEvent;
+      // Simulate this device having written the setStart (the dialog's own flow is covered elsewhere).
+      vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'new', written: Promise.resolve() });
+      fireEvent.click(within(dialog).getByRole('button', { name: /start set/i }));
+      act(() => pushEvents([start]));
+      expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Serve' })).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 });

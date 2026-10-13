@@ -11,19 +11,15 @@ interface ActionSheetProps {
   onGrade: (skill: Skill, grade: Grade) => void;
   onSub: () => void;
   onClose: () => void;
-  /** Phone: fixed bottom sheet. Desktop: inline card. */
-  floating: boolean;
 }
 
-export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose, floating }: ActionSheetProps) {
+export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose }: ActionSheetProps) {
   const [skill, setSkill] = useState<Skill>(skills[0]);
 
   return (
     <section
       aria-label={`Actions for #${player.number} ${player.name}`}
-      className={`border border-border bg-surface p-3 shadow-pop ${
-        floating ? 'fixed inset-x-0 bottom-0 z-40 rounded-t-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]' : 'rounded-lg'
-      }`}
+      className="rounded-lg border border-border bg-surface p-3 shadow-pop"
     >
       <div className="mb-2 flex items-center gap-2">
         <p className="min-w-0 flex-1 truncate font-semibold text-ink">

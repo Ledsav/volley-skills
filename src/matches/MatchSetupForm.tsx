@@ -9,7 +9,7 @@ import {
   type MatchFormat,
   type MatchSetupInput,
 } from '../types/match';
-import type { Player } from '../types/player';
+import { POSITION_CATEGORIES, type Player, type PositionCategory } from '../types/player';
 import { todayIso } from '../calendar/monthGrid';
 import { loadTeamRoster } from './matchesApi';
 import { MAX_ROSTER, buildRoster, defaultRosterIds, validateSetup } from './matchSetup';
@@ -25,7 +25,8 @@ interface MatchSetupFormProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-type Picks = Record<string, { checked: boolean; number: number }>;
+/** `role` = this match's role for the player (snapshot only; the profile is untouched). */
+type Picks = Record<string, { checked: boolean; number: number; role: PositionCategory }>;
 interface LiberoPick { playerId: string; mode: LiberoMode }
 
 const LIBERO_MODES: { value: LiberoMode; label: string }[] = [
@@ -58,15 +59,23 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
     loadTeamRoster(teamId)
       .then((loaded) => {
         setPlayers(loaded);
-        const inRoster = new Map(initial?.roster.map((r) => [r.playerId, r.number]));
+        const inRoster = new Map(initial?.roster.map((r) => [r.playerId, r]));
         const defaults = new Set(defaultRosterIds(loaded));
+        const roleOf = (p: Player) => inRoster.get(p.id)?.positionCategory ?? p.positionCategory;
         setPicks(
           Object.fromEntries(
-            loaded.map((p) => [p.id, { checked: initial ? inRoster.has(p.id) : defaults.has(p.id), number: inRoster.get(p.id) ?? p.number }]),
+            loaded.map((p) => [
+              p.id,
+              {
+                checked: initial ? inRoster.has(p.id) : defaults.has(p.id),
+                number: inRoster.get(p.id)?.number ?? p.number,
+                role: roleOf(p),
+              },
+            ]),
           ),
         );
         if (!initial) {
-          const ls = loaded.filter((p) => defaults.has(p.id) && p.positionCategory === 'L').sort((a, b) => a.number - b.number);
+          const ls = loaded.filter((p) => defaults.has(p.id) && roleOf(p) === 'L').sort((a, b) => a.number - b.number);
           if (ls.length) {
             setLiberoPicks((cur) =>
               cur.some((l) => l.playerId)
@@ -78,7 +87,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
             );
           }
         }
-        setReplaces((prev) => prev ?? loaded.filter((p) => p.positionCategory === 'MB').map((p) => p.id));
+        setReplaces((prev) => prev ?? loaded.filter((p) => roleOf(p) === 'MB').map((p) => p.id));
       })
       .catch(() => setError('Could not load the team roster.'));
   }, [teamId, initial]);
@@ -200,7 +209,18 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], checked: e.target.checked } }))}
               />
               <span className="min-w-0 flex-1 truncate text-sm text-ink">#{p.number} {p.fullName}</span>
-              <span className="text-xs text-slate">{p.positionCategory}</span>
+              <select
+                aria-label={`Role for ${p.fullName}`}
+                className={`${FIELD_CLASS} min-h-11 w-20 px-2 text-sm`}
+                value={picks[p.id]?.role ?? p.positionCategory}
+                onChange={(e) =>
+                  setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], role: e.target.value as PositionCategory } }))
+                }
+              >
+                {POSITION_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.value}</option>
+                ))}
+              </select>
               <Input
                 type="number"
                 aria-label={`Number for ${p.fullName}`}

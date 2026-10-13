@@ -1,18 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPhysicalTest, getLatestByType, listHistoryByType } from './physicalTestsApi';
+import { createPhysicalTest, deletePhysicalTest, getLatestByType, listHistoryByType, loadLatestTests } from './physicalTestsApi';
 
-const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockDeleteDoc, mockDoc } = vi.hoisted(() => ({
-  mockAddDoc: vi.fn(),
+const { mockGetDoc, mockUpdateDoc, mockBatch, mockGetDocs, mockCollection, mockQuery, mockDeleteDoc, mockDoc } = vi.hoisted(() => ({
+  mockGetDoc: vi.fn(),
+  mockUpdateDoc: vi.fn(),
+  mockBatch: { set: vi.fn(), update: vi.fn(), commit: vi.fn() },
   mockGetDocs: vi.fn(),
   mockCollection: vi.fn(() => 'physical-tests-collection'),
   mockQuery: vi.fn((...args: unknown[]) => args),
   mockDeleteDoc: vi.fn(),
-  mockDoc: vi.fn((...args: unknown[]) => ({ type: 'doc', args })),
+  mockDoc: vi.fn((...args: unknown[]) => ({ type: 'doc', args, id: args.length === 1 ? 'new-test' : String(args[args.length - 1]) })),
 }));
 
 vi.mock('firebase/firestore', () => ({
   collection: mockCollection,
-  addDoc: mockAddDoc,
+  getDoc: mockGetDoc,
+  updateDoc: mockUpdateDoc,
+  writeBatch: () => mockBatch,
+  deleteField: () => 'DELETE_FIELD',
   getDocs: mockGetDocs,
   query: mockQuery,
   where: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
@@ -28,30 +33,90 @@ vi.mock('../firebase/config', () => ({ db: {} }));
 
 describe('physicalTestsApi', () => {
   beforeEach(() => {
-    mockAddDoc.mockReset();
+    vi.clearAllMocks();
     mockGetDocs.mockReset();
+    mockGetDoc.mockReset();
+    mockBatch.commit.mockResolvedValue(undefined);
+    mockUpdateDoc.mockResolvedValue(undefined);
     mockDeleteDoc.mockReset();
     mockDoc.mockClear();
   });
 
+  const cmjInput = { testType: 'cmj' as const, attemptsCm: [30, 34, 32], bestCm: 34, date: '2026-09-07', notes: '' };
+  const playerWith = (latestTests?: object) => ({ data: () => (latestTests ? { latestTests } : {}) });
+
   it('creates a physical test entry stamped with the recorder and a server timestamp', async () => {
-    mockAddDoc.mockResolvedValue({ id: 'test-1' });
+    mockGetDoc.mockResolvedValue(playerWith({}));
 
-    const id = await createPhysicalTest(
-      'team-1',
-      'player-1',
-      { testType: 'cmj', attemptsCm: [30, 34, 32], bestCm: 34, date: '2026-09-07', notes: '' },
-      'coach-uid'
+    const id = await createPhysicalTest('team-1', 'player-1', cmjInput, 'coach-uid');
+
+    expect(id).toBe('new-test');
+    const [, payload] = mockBatch.set.mock.calls[0];
+    expect(payload).toMatchObject({ testType: 'cmj', bestCm: 34, recordedBy: 'coach-uid', createdAt: 'server-timestamp' });
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('stores a new test as the latest of its type on the player, in the same batch', async () => {
+    mockGetDoc.mockResolvedValue(playerWith({ cmj: { id: 'old', date: '2026-08-01' } }));
+
+    await createPhysicalTest('team-1', 'player-1', cmjInput, 'coach-uid');
+
+    expect(mockBatch.update).toHaveBeenCalledWith(
+      expect.objectContaining({ args: [{}, 'teams', 'team-1', 'players', 'player-1'] }),
+      { 'latestTests.cmj': expect.objectContaining({ id: 'new-test', bestCm: 34, date: '2026-09-07' }) }
     );
+  });
 
-    expect(id).toBe('test-1');
-    const [, payload] = mockAddDoc.mock.calls[0];
-    expect(payload).toMatchObject({
-      testType: 'cmj',
-      bestCm: 34,
-      recordedBy: 'coach-uid',
-      createdAt: 'server-timestamp',
+  it('keeps the stored latest when the new test is backdated', async () => {
+    mockGetDoc.mockResolvedValue(playerWith({ cmj: { id: 'newer', date: '2026-10-01' } }));
+
+    await createPhysicalTest('team-1', 'player-1', cmjInput, 'coach-uid');
+
+    expect(mockBatch.set).toHaveBeenCalled();
+    expect(mockBatch.update).not.toHaveBeenCalled();
+  });
+
+  it('leaves a player without a latestTests map for the backfill to build', async () => {
+    mockGetDoc.mockResolvedValue(playerWith());
+
+    await createPhysicalTest('team-1', 'player-1', cmjInput, 'coach-uid');
+
+    expect(mockBatch.update).not.toHaveBeenCalled();
+  });
+
+  it('drops the map when the player cannot be read, so it is rebuilt instead of going stale', async () => {
+    mockGetDoc.mockRejectedValue(new Error('offline'));
+
+    await createPhysicalTest('team-1', 'player-1', cmjInput, 'coach-uid');
+
+    expect(mockBatch.set).toHaveBeenCalled();
+    expect(mockBatch.update).toHaveBeenCalledWith(expect.anything(), { latestTests: 'DELETE_FIELD' });
+  });
+
+  it('uses the stored map without any query', async () => {
+    const stored = { cmj: { id: 't1' } } as never;
+    await expect(loadLatestTests('team-1', 'player-1', stored, true)).resolves.toBe(stored);
+    expect(mockGetDocs).not.toHaveBeenCalled();
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+  });
+
+  it('falls back to one query per type and backfills the map for an admin', async () => {
+    mockGetDocs.mockImplementation(async (q: unknown[]) => {
+      const isCmj = JSON.stringify(q).includes('"cmj"');
+      return { docs: isCmj ? [{ id: 't1', data: () => ({ testType: 'cmj', date: '2026-09-01' }) }] : [] };
     });
+
+    const latest = await loadLatestTests('team-1', 'player-1', undefined, true);
+
+    expect(mockGetDocs).toHaveBeenCalledTimes(8);
+    expect(latest).toEqual({ cmj: { id: 't1', testType: 'cmj', date: '2026-09-01' } });
+    expect(mockUpdateDoc).toHaveBeenCalledWith(expect.anything(), { latestTests: latest });
+  });
+
+  it('does not backfill for a viewer who cannot write the player', async () => {
+    mockGetDocs.mockResolvedValue({ docs: [] });
+    await loadLatestTests('team-1', 'player-1', undefined, false);
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
   });
 
   it('gets the latest entry for a given test type', async () => {
@@ -125,13 +190,36 @@ describe('physicalTestsApi', () => {
     expect(queryArgs).toContainEqual({ type: 'limit', args: [60] });
   });
 
-  it('deletes a physical test entry', async () => {
-    const { deletePhysicalTest } = await import('./physicalTestsApi');
+  it('deletes a physical test entry and leaves the map alone when it was not the latest', async () => {
     mockDeleteDoc.mockResolvedValue(undefined);
+    mockGetDoc.mockResolvedValue(playerWith({ cmj: { id: 'other', date: '2026-10-01' } }));
 
     await deletePhysicalTest('team-1', 'player-1', 'test-1');
 
     expect(mockDoc).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests', 'test-1');
-    expect(mockDeleteDoc).toHaveBeenCalledWith({ type: 'doc', args: [{}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests', 'test-1'] });
+    expect(mockDeleteDoc).toHaveBeenCalled();
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+  });
+
+  it('promotes the next newest test when the latest is deleted', async () => {
+    mockDeleteDoc.mockResolvedValue(undefined);
+    mockGetDoc.mockResolvedValue(playerWith({ cmj: { id: 'test-1', date: '2026-10-01' } }));
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'test-0', data: () => ({ testType: 'cmj', date: '2026-09-01' }) }] });
+
+    await deletePhysicalTest('team-1', 'player-1', 'test-1');
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(expect.anything(), {
+      'latestTests.cmj': { id: 'test-0', testType: 'cmj', date: '2026-09-01' },
+    });
+  });
+
+  it('removes the type from the map when its only test is deleted', async () => {
+    mockDeleteDoc.mockResolvedValue(undefined);
+    mockGetDoc.mockResolvedValue(playerWith({ cmj: { id: 'test-1', date: '2026-10-01' } }));
+    mockGetDocs.mockResolvedValue({ docs: [] });
+
+    await deletePhysicalTest('team-1', 'player-1', 'test-1');
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(expect.anything(), { 'latestTests.cmj': 'DELETE_FIELD' });
   });
 });

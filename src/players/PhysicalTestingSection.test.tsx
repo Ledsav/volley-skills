@@ -4,7 +4,7 @@ import { PhysicalTestingSection } from './PhysicalTestingSection';
 import * as physicalTestsApi from './physicalTestsApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue } from '../test/authValue';
-import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
+import type { PhysicalTest } from '../types/physicalTest';
 
 vi.mock('./physicalTestsApi');
 vi.mock('../auth/AuthContext');
@@ -26,21 +26,21 @@ describe('PhysicalTestingSection', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
     );
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockImplementation((_teamId, _playerId, testType: PhysicalTestType) =>
-      Promise.resolve(testType === 'cmj' ? cmjEntry : null)
-    );
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({ cmj: cmjEntry });
+    const stored = { cmj: cmjEntry };
 
-    render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />);
+    render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} storedLatest={stored} />);
 
     expect(await screen.findByText(/34 cm — 2026-09-01/)).toBeInTheDocument();
     expect(screen.getAllByText('No data yet').length).toBe(7);
+    expect(physicalTestsApi.loadLatestTests).toHaveBeenCalledWith('team-1', 'player-1', stored, true);
   });
 
   it('hides "Add new" when isAdmin is false', async () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
     );
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
 
     render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={false} />);
 
@@ -52,7 +52,7 @@ describe('PhysicalTestingSection', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
     );
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockRejectedValue({ code: 'permission-denied' });
 
     render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />);
 
@@ -64,7 +64,7 @@ describe('PhysicalTestingSection', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
     );
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
 
     render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />);
 

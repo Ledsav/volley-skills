@@ -205,7 +205,7 @@ describe('TextScoutPanel', () => {
   });
 
   it('adds the Local hint when a local provider is unreachable', async () => {
-    writeAiSettings({ provider: 'local', baseUrl: 'http://localhost:11434/v1', apiKey: '', model: 'm' });
+    writeAiSettings({ provider: 'local', baseUrl: 'http://localhost:11434/v1', apiKey: '', model: 'm', rememberKey: true });
     renderPanel({ ask: vi.fn(async () => { throw new AiError('unreachable', 'x'); }) });
     fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '7 ace' } });
     fireEvent.click(screen.getByRole('button', { name: 'Process' }));

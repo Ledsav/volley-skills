@@ -1,21 +1,33 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { AiError } from '../matches/text/aiClient';
 import { readAiSettings } from '../matches/text/aiSettings';
 import { AiProviderSettings } from './AiProviderSettings';
 
+function renderAi(testFn?: Parameters<typeof AiProviderSettings>[0]['testFn']) {
+  return render(
+    <MemoryRouter>
+      <AiProviderSettings testFn={testFn} />
+    </MemoryRouter>
+  );
+}
+
 describe('AiProviderSettings', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
 
   it('defaults to Groq and saves the key on this device', () => {
-    render(<AiProviderSettings />);
+    renderAi();
     expect(screen.getByLabelText('AI provider')).toHaveValue('groq');
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'gsk_test' } });
     expect(readAiSettings().apiKey).toBe('gsk_test');
   });
 
   it('switching to Local fills its URL and model and hides the key', () => {
-    render(<AiProviderSettings />);
+    renderAi();
     fireEvent.change(screen.getByLabelText('AI provider'), { target: { value: 'local' } });
     expect(screen.getByLabelText('Base URL')).toHaveValue('http://localhost:11434/v1');
     expect(screen.getByLabelText('Model')).toHaveValue('qwen2.5:7b-instruct');
@@ -23,7 +35,7 @@ describe('AiProviderSettings', () => {
   });
 
   it('clears the API key when the provider changes', () => {
-    render(<AiProviderSettings />);
+    renderAi();
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'gsk_test' } });
     fireEvent.change(screen.getByLabelText('AI provider'), { target: { value: 'openrouter' } });
     expect(screen.getByLabelText('API key')).toHaveValue('');
@@ -32,7 +44,7 @@ describe('AiProviderSettings', () => {
 
   it('names the provider on rate limits and adds the Local hint only for Local', async () => {
     const testFn = vi.fn().mockRejectedValue(new AiError('unreachable', 'x'));
-    render(<AiProviderSettings testFn={testFn} />);
+    renderAi(testFn);
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Could not reach the provider.'));
     expect(screen.getByRole('status')).not.toHaveTextContent('Ollama');
@@ -47,11 +59,52 @@ describe('AiProviderSettings', () => {
 
   it('reports the Test connection result', async () => {
     const testFn = vi.fn().mockRejectedValueOnce(new AiError('unauthorized', 'Key rejected.', 401)).mockResolvedValueOnce(undefined);
-    render(<AiProviderSettings testFn={testFn} />);
+    renderAi(testFn);
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'bad' } });
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Key rejected');
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Connected'));
+  });
+
+  it('toggles the API key visibility', () => {
+    renderAi();
+    expect(screen.getByLabelText('API key')).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Show API key' }));
+    expect(screen.getByLabelText('API key')).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Hide API key' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('links to get a key per provider, none for Local', () => {
+    renderAi();
+    const link = () => screen.queryByRole('link', { name: 'Get a key' });
+    expect(link()).toHaveAttribute('href', 'https://console.groq.com/keys');
+    expect(link()).toHaveAttribute('rel', 'noopener noreferrer');
+    fireEvent.change(screen.getByLabelText('AI provider'), { target: { value: 'openrouter' } });
+    expect(link()).toHaveAttribute('href', 'https://openrouter.ai/keys');
+    expect(screen.getByRole('link', { name: 'Free models' })).toHaveAttribute('href', 'https://openrouter.ai/models?max_price=0');
+    fireEvent.change(screen.getByLabelText('AI provider'), { target: { value: 'local' } });
+    expect(link()).toBeNull();
+  });
+
+  it('keeps the key out of localStorage when Remember is unchecked', () => {
+    renderAi();
+    const box = screen.getByLabelText('Remember on this device');
+    expect(box).toBeChecked();
+    fireEvent.click(box);
+    fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'gsk_sess' } });
+    expect(localStorage.getItem('vcb.ai.settings')).not.toContain('gsk_sess');
+    expect(sessionStorage.getItem('vcb.ai.sessionKey')).toBe('gsk_sess');
+    expect(readAiSettings().apiKey).toBe('gsk_sess');
+    expect(screen.getByText('Saved on this device')).toBeInTheDocument();
+  });
+
+  it('colors the test status', async () => {
+    const testFn = vi.fn().mockRejectedValueOnce(new AiError('unreachable', 'x')).mockResolvedValueOnce(undefined);
+    renderAi(testFn);
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+    await waitFor(() => expect(screen.getByRole('status').className).toContain('text-red'));
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+    await waitFor(() => expect(screen.getByRole('status').className).toContain('text-green-strong'));
   });
 });

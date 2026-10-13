@@ -5,11 +5,13 @@ export interface AiSettings {
   baseUrl: string;
   apiKey: string;
   model: string;
+  /** true: key persists in localStorage; false: key lives in sessionStorage only. */
+  rememberKey: boolean;
 }
 
 export const AI_PROVIDERS: Record<
   AiProvider,
-  { label: string; baseUrl: string; defaultModel: string; needsKey: boolean; editableUrl: boolean; note: string }
+  { label: string; baseUrl: string; defaultModel: string; needsKey: boolean; editableUrl: boolean; note: string; keyUrl?: string }
 > = {
   groq: {
     label: 'Groq (recommended)',
@@ -17,6 +19,7 @@ export const AI_PROVIDERS: Record<
     defaultModel: 'openai/gpt-oss-120b',
     needsKey: true,
     editableUrl: false,
+    keyUrl: 'https://console.groq.com/keys',
     note: 'Free tier. Groq does not keep your requests by default; turn on Zero Data Retention in its Data Controls.',
   },
   openrouter: {
@@ -25,6 +28,7 @@ export const AI_PROVIDERS: Record<
     defaultModel: '',
     needsKey: true,
     editableUrl: false,
+    keyUrl: 'https://openrouter.ai/keys',
     note: 'Many free models. How data is handled depends on the provider behind the model you pick.',
   },
   local: {
@@ -57,9 +61,11 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   baseUrl: AI_PROVIDERS.groq.baseUrl,
   apiKey: '',
   model: AI_PROVIDERS.groq.defaultModel,
+  rememberKey: true,
 };
 
 const SETTINGS_KEY = 'vcb.ai.settings';
+const SESSION_KEY = 'vcb.ai.sessionKey';
 const DRAFT_PREFIX = 'vcb.textDraft.';
 
 function isProvider(v: unknown): v is AiProvider {
@@ -72,11 +78,21 @@ export function readAiSettings(): AiSettings {
     if (!raw) return DEFAULT_AI_SETTINGS;
     const v = JSON.parse(raw) as Partial<AiSettings>;
     if (!isProvider(v.provider)) return DEFAULT_AI_SETTINGS;
+    const rememberKey = v.rememberKey !== false;
+    let apiKey = typeof v.apiKey === 'string' ? v.apiKey : '';
+    if (!rememberKey) {
+      try {
+        apiKey = sessionStorage.getItem(SESSION_KEY) ?? '';
+      } catch {
+        apiKey = '';
+      }
+    }
     return {
       provider: v.provider,
       baseUrl: typeof v.baseUrl === 'string' ? v.baseUrl : AI_PROVIDERS[v.provider].baseUrl,
-      apiKey: typeof v.apiKey === 'string' ? v.apiKey : '',
+      apiKey,
       model: typeof v.model === 'string' ? v.model : AI_PROVIDERS[v.provider].defaultModel,
+      rememberKey,
     };
   } catch {
     return DEFAULT_AI_SETTINGS;
@@ -85,9 +101,21 @@ export function readAiSettings(): AiSettings {
 
 export function writeAiSettings(s: AiSettings): void {
   try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    if (s.rememberKey) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    } else {
+      const { apiKey: _omit, ...rest } = s;
+      void _omit;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(rest));
+    }
   } catch {
     // Storage blocked (private mode): settings last for this page only.
+  }
+  try {
+    if (s.rememberKey || !s.apiKey) sessionStorage.removeItem(SESSION_KEY);
+    else sessionStorage.setItem(SESSION_KEY, s.apiKey);
+  } catch {
+    // Session storage blocked: the key lasts for this page only.
   }
 }
 
@@ -128,5 +156,10 @@ export function clearAiLocalData(): void {
     keys.forEach((k) => localStorage.removeItem(k));
   } catch {
     // Storage blocked: nothing was stored either.
+  }
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Session storage blocked: nothing was stored either.
   }
 }

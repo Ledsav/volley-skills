@@ -69,6 +69,8 @@ describe('SettingsPage', () => {
 
   it('links to the privacy policy', () => {
     renderSettings();
-    expect(screen.getByText('Privacy policy')).toHaveAttribute('href', '/privacy');
+    const link = screen.getByText('Privacy policy');
+    expect(link).toHaveAttribute('href', '/privacy');
+    expect(link.closest('section')).toContainElement(screen.getByRole('button', { name: 'Sign out' }));
   });
 });

@@ -10,6 +10,8 @@ interface CourtGridProps {
   form: (playerId: string) => 'good' | 'bad' | null;
   onSelect: (playerId: string) => void;
   onLongPress: (playerId: string) => void;
+  /** No set in play: tiles are inert (no selection, no long-press). */
+  disabled?: boolean;
 }
 
 // Seen from behind our baseline: front row P4 P3 P2 (net side), back row P5 P6 P1.
@@ -18,7 +20,7 @@ const LONG_PRESS_MS = 500;
 // 'serving' liberos come on when we serve, i.e. to defend.
 const LIBERO_TILE_LABEL: Record<LiberoMode, string> = { receiving: 'L·rec', serving: 'L·def', always: 'L' };
 
-export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, form, onSelect, onLongPress }: CourtGridProps) {
+export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, form, onSelect, onLongPress, disabled = false }: CourtGridProps) {
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -45,7 +47,9 @@ export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, 
               type="button"
               aria-label={`#${entry.number} ${entry.name}${isLibero ? ', libero' : ''}`}
               aria-pressed={selectedId === id}
+              disabled={disabled}
               onPointerDown={() => {
+                if (disabled) return;
                 longPressed.current = false;
                 timer.current = window.setTimeout(() => {
                   longPressed.current = true;
@@ -57,9 +61,9 @@ export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, 
               onPointerCancel={clear}
               onContextMenu={(e) => e.preventDefault()}
               onClick={() => {
-                if (!longPressed.current) onSelect(id);
+                if (!disabled && !longPressed.current) onSelect(id);
               }}
-              className={`relative flex min-h-16 select-none flex-col items-center justify-center rounded-md border text-ink ${
+              className={`relative flex min-h-16 select-none flex-col items-center justify-center rounded-md border text-ink disabled:opacity-60 ${
                 isLibero ? 'border-orange bg-orange/20' : 'border-border bg-surface'
               } ${selectedId === id ? 'ring-2 ring-blue' : ''}`}
             >

@@ -12,7 +12,7 @@ import {
 import type { Player } from '../types/player';
 import { todayIso } from '../calendar/monthGrid';
 import { loadTeamRoster } from './matchesApi';
-import { buildRoster, validateSetup } from './matchSetup';
+import { MAX_ROSTER, buildRoster, defaultRosterIds, validateSetup } from './matchSetup';
 
 interface MatchSetupFormProps {
   teamId: string;
@@ -59,11 +59,25 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
       .then((loaded) => {
         setPlayers(loaded);
         const inRoster = new Map(initial?.roster.map((r) => [r.playerId, r.number]));
+        const defaults = new Set(defaultRosterIds(loaded));
         setPicks(
           Object.fromEntries(
-            loaded.map((p) => [p.id, { checked: initial ? inRoster.has(p.id) : true, number: inRoster.get(p.id) ?? p.number }]),
+            loaded.map((p) => [p.id, { checked: initial ? inRoster.has(p.id) : defaults.has(p.id), number: inRoster.get(p.id) ?? p.number }]),
           ),
         );
+        if (!initial) {
+          const ls = loaded.filter((p) => defaults.has(p.id) && p.positionCategory === 'L').sort((a, b) => a.number - b.number);
+          if (ls.length) {
+            setLiberoPicks((cur) =>
+              cur.some((l) => l.playerId)
+                ? cur
+                : [
+                    { playerId: ls[0].id, mode: ls.length > 1 ? 'receiving' : 'always' },
+                    { playerId: ls[1]?.id ?? '', mode: 'serving' },
+                  ],
+            );
+          }
+        }
         setReplaces((prev) => prev ?? loaded.filter((p) => p.positionCategory === 'MB').map((p) => p.id));
       })
       .catch(() => setError('Could not load the team roster.'));
@@ -105,6 +119,11 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
   if (!players) return <p className="text-slate">{error ?? 'Loading roster…'}</p>;
   const checkedPlayers = players.filter((p) => picks[p.id]?.checked);
   const liberoIds = new Set(liberoPicks.map((l) => l.playerId).filter(Boolean));
+  const numberCounts = new Map<number, number>();
+  for (const p of checkedPlayers) numberCounts.set(picks[p.id].number, (numberCounts.get(picks[p.id].number) ?? 0) + 1);
+  const isDuplicate = (id: string) => !!picks[id]?.checked && (numberCounts.get(picks[id].number) ?? 0) > 1;
+  const hasDuplicates = checkedPlayers.some((p) => isDuplicate(p.id));
+  const tooMany = checkedPlayers.length > MAX_ROSTER;
 
   return (
     <form
@@ -165,9 +184,14 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
 
       <fieldset>
         <legend className="mb-2 text-sm font-semibold text-ink">Match roster</legend>
+        <p className={`mb-2 text-sm tabular-nums ${tooMany ? 'font-medium text-red' : 'text-slate'}`}>
+          {checkedPlayers.length} / {MAX_ROSTER} selected
+        </p>
         <ul className="grid gap-2 sm:grid-cols-2">
           {players.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
+            <li
+              key={p.id}
+              className={`flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 ${isDuplicate(p.id) ? 'border-red' : 'border-border'}`}>
               <input
                 type="checkbox"
                 aria-label={`Include ${p.fullName}`}
@@ -181,9 +205,14 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 type="number"
                 aria-label={`Number for ${p.fullName}`}
                 className="w-16 tabular-nums"
+                min={1}
+                max={99}
                 value={picks[p.id]?.number ?? p.number}
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], number: Number(e.target.value) } }))}
               />
+              {isDuplicate(p.id) && (
+                <span className="w-full text-xs font-medium text-red">Duplicate #{picks[p.id].number}</span>
+              )}
             </li>
           ))}
         </ul>
@@ -252,7 +281,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit">{submitLabel}</Button>
+        <Button variant="primary" type="submit" disabled={hasDuplicates || tooMany}>{submitLabel}</Button>
       </div>
     </form>
   );

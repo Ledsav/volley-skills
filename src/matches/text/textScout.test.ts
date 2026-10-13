@@ -272,6 +272,13 @@ describe('ungraded actions', () => {
     for (const w of ['smash', 'remate', 'attaque', 'bola fácil', 'contré']) expect(SYSTEM_PROMPT).toContain(w);
   });
 
+  it('SYSTEM_PROMPT teaches the app per-skill grade labels and new synonyms', () => {
+    expect(SYSTEM_PROMPT).toContain('S (Serve): "#" Ace, "+" Pressure, "-" Easy, "/" Free back, "=" Error');
+    for (const s of ['S', 'R', 'A', 'B', 'D', 'E', 'F'] as const) expect(SYSTEM_PROMPT).toContain(`\n${s} (${SKILL_LABELS[s]}): "`);
+    expect(SYSTEM_PROMPT).toContain('use that grade');
+    for (const w of ['too easy', 'difícil', 'couvert']) expect(SYSTEM_PROMPT).toContain(w);
+  });
+
   it('batchToPayloads blocks an ungraded action, skips it and still warns about the winner', () => {
     const b: ParsedBatch = { rallies: [{ actions: [{ number: 7, skill: 'A', grade: null }], point: null, subs: [], timeouts: [] }], unparsed: [] };
     const { payloads, issues } = batchToPayloads(b, roster);

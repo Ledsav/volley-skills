@@ -35,6 +35,12 @@ const NEXT_AFTER: Record<Skill, Skill> = {
 export function expectedSkill(state: { currentRally: ActionEvent[]; serving: Side }): Skill {
   const last = state.currentRally[state.currentRally.length - 1];
   if (!last) return state.serving === 'us' ? 'S' : 'R';
+  // `/` on a pass sends the ball straight over: they attack it, so we block.
+  // `/` on a serve is their free ball back: we play it as a free ball.
+  if (last.grade === '/') {
+    if (last.skill === 'R' || last.skill === 'D' || last.skill === 'F') return 'B';
+    if (last.skill === 'S') return 'F';
+  }
   return NEXT_AFTER[last.skill];
 }
 

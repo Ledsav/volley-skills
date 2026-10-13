@@ -27,6 +27,7 @@ import {
   type MatchSetupInput,
   type MatchStatus,
   type NewMatchEvent,
+  type RosterEntry,
   type UsageProfile,
 } from '../types/match';
 import type { FinishPayload } from './finish';
@@ -100,6 +101,11 @@ export function setMatchStatus(teamId: string, matchId: string, status: MatchSta
 
 export function updateMatchResult(teamId: string, matchId: string, result: MatchResult): Promise<void> {
   return updateDoc(matchDoc(teamId, matchId), { result, updatedAt: serverTimestamp() });
+}
+
+/** Persists per-match role changes made at a set start, so later sets default to them. */
+export function updateMatchRoster(teamId: string, matchId: string, roster: RosterEntry[]): Promise<void> {
+  return updateDoc(matchDoc(teamId, matchId), { roster, updatedAt: serverTimestamp() });
 }
 
 export function claimDevice(teamId: string, matchId: string, deviceId: string): Promise<void> {

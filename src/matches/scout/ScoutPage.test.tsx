@@ -125,6 +125,31 @@ describe('ScoutPage', () => {
     expect(api.addEvent).not.toHaveBeenCalled();
   });
 
+  it('Start set writes the per-set roles and saves changed roles to the roster', async () => {
+    vi.mocked(api.updateMatchRoster).mockResolvedValue();
+    renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    fireEvent.change(within(dialog).getByLabelText('Opposite'), { target: { value: 'bench' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Start set' }));
+    const event = vi.mocked(api.addEvent).mock.calls[0][2];
+    expect(event).toMatchObject({ type: 'setStart', set: 1 });
+    if (event.type !== 'setStart') throw new Error('expected setStart');
+    expect(event.lineup).toContain('bench');
+    expect(event.roles).toMatchObject({ bench: 'O', o: 'O', s: 'S' });
+    expect(api.updateMatchRoster).toHaveBeenCalledTimes(1);
+    const [, , nextRoster] = vi.mocked(api.updateMatchRoster).mock.calls[0];
+    expect(nextRoster.find((r) => r.playerId === 'bench')?.positionCategory).toBe('O');
+    expect(nextRoster.find((r) => r.playerId === 'oh1')?.positionCategory).toBe('OH');
+  });
+
+  it('Start set leaves the roster alone when no role changed', async () => {
+    renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Start set' }));
+    expect(api.addEvent).toHaveBeenCalledTimes(1);
+    expect(api.updateMatchRoster).not.toHaveBeenCalled();
+  });
+
   it("defaults the next set's first serve to the other side of the previous set's first serve", async () => {
     // Set 1: we served first; the last rally left them serving. Set 2 should default to them.
     const start: MatchEvent = { ...setStart, serving: 'us' } as MatchEvent;

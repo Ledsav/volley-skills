@@ -4,13 +4,14 @@ import { Undo2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { Tab } from '../../components/Tab';
 import { useMediaQuery } from '../../components/useMediaQuery';
-import type { EventSource, Match, MatchEventPayload, UsageProfile } from '../../types/match';
+import type { ActionEvent, EventSource, Match, MatchEventPayload, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
 import { appendOrder, orderAfter } from '../eventOrder';
 import { buildFinishPayload } from '../finish';
 import { rosterMap } from '../format';
-import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateMatchResult } from '../matchesApi';
+import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult } from '../matchesApi';
 import { defaultLineup } from '../matchSetup';
 import { countsForPlayer, expectedSkill, orderSkills } from '../nextActions';
 import { nextRotation, prevRotation, replay, resultFromState, sortEvents } from '../scoutEngine';
@@ -21,10 +22,12 @@ import { ActionSheet } from './ActionSheet';
 import { BenchStrip } from './BenchStrip';
 import { CorrectionDialog } from './CorrectionDialog';
 import { CourtGrid } from './CourtGrid';
+import { EditEventDialog } from './EditEventDialog';
 import { RallyBar } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
 import { SetStartDialog } from './SetStartDialog';
 import { SubDialog } from './SubDialog';
+import { TimelineDrawer } from './TimelineDrawer';
 
 const HEARTBEAT_MS = 60_000;
 
@@ -45,6 +48,8 @@ export function ScoutPage() {
   const [pendingUndo, setPendingUndo] = useState<string[] | null>(null);
   const [subOutId, setSubOutId] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
+  const [phoneTab, setPhoneTab] = useState<'court' | 'live' | 'timeline'>('court');
+  const [editing, setEditing] = useState<ActionEvent | null>(null);
   const [dismissedSetPoint, setDismissedSetPoint] = useState<string | null>(null);
   const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
 
@@ -209,6 +214,24 @@ export function ScoutPage() {
     </div>
   );
 
+  const timeline = (
+    <TimelineDrawer
+      events={events ?? []}
+      state={state}
+      roster={roster}
+      onDelete={(ids) => {
+        if (anchorId && ids.includes(anchorId)) setAnchorId(null);
+        void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not delete. Try again.'));
+      }}
+      onEdit={setEditing}
+      onInsertAfter={(id) => {
+        setAnchorId(id);
+        setPhoneTab('court');
+      }}
+    />
+  );
+  const live = <p className="p-4 text-sm text-slate">Live stats</p>; // replaced in Task 14
+
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       <ScoutHeader
@@ -239,9 +262,28 @@ export function ScoutPage() {
           <Button variant="primary" size="sm" onClick={() => void finish()}>Finish match</Button>
         </div>
       )}
-      <main className={`flex-1 p-3 sm:p-4 ${isDesktop ? 'grid grid-cols-[minmax(320px,440px)_1fr] gap-4' : 'pb-80'}`}>
-        {courtColumn}
-      </main>
+      {isDesktop ? (
+        <main className="grid flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 p-4">
+          {courtColumn}
+          <div className="flex min-w-0 flex-col gap-4">
+            {live}
+            <div className="max-h-[50vh] overflow-y-auto">{timeline}</div>
+          </div>
+        </main>
+      ) : (
+        <>
+          <nav className="flex gap-4 border-b border-border bg-surface px-4">
+            <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>Court</Tab>
+            <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
+            <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
+          </nav>
+          <main className={`flex-1 p-3 ${selected ? 'pb-80' : ''}`}>
+            {phoneTab === 'court' && courtColumn}
+            {phoneTab === 'live' && live}
+            {phoneTab === 'timeline' && timeline}
+          </main>
+        </>
+      )}
       <footer className="sticky bottom-0 flex items-center justify-between border-t border-border bg-surface px-3 py-2">
         <button type="button" onClick={undo} className="flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg">
           <Undo2 size={16} aria-hidden="true" /> Undo
@@ -306,6 +348,18 @@ export function ScoutPage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {editing && (
+        <EditEventDialog
+          event={editing}
+          roster={match.roster}
+          onCancel={() => setEditing(null)}
+          onSave={(patch) => {
+            void updateEvent(teamId, matchId, editing.id, patch).catch(() => setWriteError('Could not save the edit.'));
+            setEditing(null);
+          }}
+        />
       )}
 
       {pendingUndo && (

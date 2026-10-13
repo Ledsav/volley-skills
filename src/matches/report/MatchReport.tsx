@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { FIELD_CLASS } from '../../components/Input';
-import { GRADES, SKILLS, type Match } from '../../types/match';
+import { GRADES, SKILLS, type Match, type MatchReportData } from '../../types/match';
 import { fmtEff, fmtPct, playerLabel, rosterMap } from '../format';
-import type { MatchState } from '../scoutEngine';
-import { computeStats } from '../scoutStats';
 import { SKILL_LABELS } from '../skillGrades';
 import { GRADE_CLASS } from '../scout/gradeStyles';
 
@@ -16,23 +14,23 @@ function Kpi({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function MatchReport({ match, state }: { match: Match; state: MatchState }) {
+export function MatchReport({ match, report }: { match: Match; report: MatchReportData }) {
   const [set, setSet] = useState<number | 'all'>('all');
-  const stats = computeStats(state, set === 'all' ? {} : { set });
+  const stats = (set === 'all' ? report.all : report.bySet[set]) ?? report.all;
   const roster = rosterMap(match.roster);
   const t = stats.team;
   const players = Object.values(stats.players).sort(
     (a, b) => (roster.get(a.playerId)?.number ?? 0) - (roster.get(b.playerId)?.number ?? 0),
   );
   const totalSource = stats.sourceCounts.tap + stats.sourceCounts.text;
-  const setNumbers = Array.from(new Set(state.rallies.map((r) => r.set).concat(state.actions.map((a) => a.set)))).sort((a, b) => a - b);
+  const setNumbers = report.sets;
 
   return (
     <div className="flex flex-col gap-6 print:gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-3xl font-bold tabular-nums text-ink">{state.setsWon.us}–{state.setsWon.them}</p>
-          <p className="text-sm tabular-nums text-slate">{state.setScores.map((s) => `${s.us}–${s.them}`).join(' · ')}</p>
+          <p className="text-3xl font-bold tabular-nums text-ink">{report.setsWon.us}–{report.setsWon.them}</p>
+          <p className="text-sm tabular-nums text-slate">{report.setScores.map((s) => `${s.us}–${s.them}`).join(' · ')}</p>
         </div>
         <label className="flex items-center gap-2 text-sm text-ink print:hidden">
           Set

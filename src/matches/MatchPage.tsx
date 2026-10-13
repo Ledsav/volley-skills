@@ -8,6 +8,7 @@ import { buildFinishPayload } from './finish';
 import { deleteMatch, finishMatch, getMatch, getUsageProfile, setMatchStatus, updateMatchSetup } from './matchesApi';
 import { MatchSetupForm } from './MatchSetupForm';
 import { MatchReport } from './report/MatchReport';
+import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
 import { useMatchEvents } from './useMatchEvents';
 
@@ -27,8 +28,15 @@ export function MatchPage() {
       .catch(() => setError("You don't have access to this match."));
   }, [teamId, matchId]);
 
-  const { events } = useMatchEvents(teamId, matchId);
+  // A finished match carries its report, so it never reads the event log; only
+  // live matches (and ones finished before the report was stored) need events.
+  const needsEvents = match?.status === 'live' || (match?.status === 'finished' && !match.report);
+  const { events } = useMatchEvents(teamId, matchId, needsEvents);
   const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
+  const report = useMemo(
+    () => (match?.status === 'finished' && match.report ? match.report : state ? buildReportData(state) : null),
+    [match, state],
+  );
   const finishingRef = useRef(false);
 
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
@@ -57,7 +65,7 @@ export function MatchPage() {
     const payload = buildFinishPayload(match, state, profile);
     finishMatch(teamId, matchId, payload).catch(() => undefined);
     finishingRef.current = false;
-    setMatch({ ...match, status: 'finished', summary: payload.summary, usageContribution: payload.usageContribution, result: payload.result });
+    setMatch({ ...match, status: 'finished', summary: payload.summary, report: payload.report, usageContribution: payload.usageContribution, result: payload.result });
   }
 
   function reopen() {
@@ -127,7 +135,7 @@ export function MatchPage() {
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
           </div>
         )}
-        {match.status !== 'setup' && state && <MatchReport match={match} state={state} />}
+        {match.status !== 'setup' && report && <MatchReport match={match} report={report} />}
       </div>
 
       {confirmDelete && (

@@ -84,6 +84,8 @@ export interface Player {
   developmentPlan: DevelopmentPlan;
   latestTests?: LatestTests;
   consent: { given: boolean; date: string | null; confirmedBy: string | null };
+  /** "YYYY-MM-DD" the player left the club; null/absent while still a member. Starts the retention clock. */
+  leftClubAt?: string | null;
   createdBy: string;
   createdAt: unknown;
   updatedAt: unknown;

@@ -55,6 +55,25 @@ describe('chatJson', () => {
     expect(JSON.parse(fetchImpl.mock.calls[1][1].body).response_format).toBeUndefined();
   });
 
+  it('restricts OpenRouter to zero-retention, no-data-collection providers', async () => {
+    const fetchImpl = vi.fn(async () => reply('{}'));
+    const or = { ...settings, provider: 'openrouter' as const, baseUrl: 'https://openrouter.ai/api/v1' };
+    await chatJson(or, messages, { fetchImpl });
+    const body = JSON.parse((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(body.provider).toEqual({ data_collection: 'deny', zdr: true });
+
+    await chatJson(settings, messages, { fetchImpl });
+    const groqBody = JSON.parse((fetchImpl.mock.calls[1] as unknown as [string, RequestInit])[1].body as string);
+    expect(groqBody.provider).toBeUndefined();
+  });
+
+  it('reports an OpenRouter 404 as blocked by the privacy rule', async () => {
+    const or = { ...settings, provider: 'openrouter' as const, baseUrl: 'https://openrouter.ai/api/v1' };
+    const fetchImpl = vi.fn(async () => new Response('{"error":{"message":"No endpoints found"}}', { status: 404 }));
+    await expect(chatJson(or, messages, { fetchImpl })).rejects.toMatchObject({ kind: 'privacyBlocked', status: 404 });
+    await expect(chatJson(settings, messages, { fetchImpl })).rejects.toMatchObject({ kind: 'http', status: 404 });
+  });
+
   it('maps failures to typed errors', async () => {
     const kind = async (impl: () => Promise<Response>) => {
       try {

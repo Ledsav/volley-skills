@@ -43,7 +43,7 @@ describe('AddPlayerDialog', () => {
     fireEvent.change(screen.getByLabelText('Guardian name'), { target: { value: 'Jane Doe' } });
     fireEvent.change(screen.getByLabelText('Guardian phone'), { target: { value: '+352 000 000' } });
     fireEvent.change(screen.getByLabelText('Guardian email'), { target: { value: 'jane@example.com' } });
-    fireEvent.click(screen.getByLabelText(/confirm parental\/guardian consent/i));
+    fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
     fireEvent.click(screen.getByText('Create'));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
@@ -73,7 +73,7 @@ describe('AddPlayerDialog', () => {
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Player' } });
     fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: '2012-01-01' } });
     fireEvent.change(screen.getByLabelText('Guardian name'), { target: { value: 'Jane Doe' } });
-    fireEvent.click(screen.getByLabelText(/confirm parental\/guardian consent/i));
+    fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
 
     fireEvent.click(screen.getByText('Create'));
     await waitFor(() => expect(onCreated).toHaveBeenCalled());

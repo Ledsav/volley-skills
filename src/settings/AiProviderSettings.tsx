@@ -21,6 +21,7 @@ const ERROR_TEXT: Record<AiError['kind'], string> = {
   rateLimited: 'Rate limit reached — try again in a moment.',
   unreachable: 'Could not reach the provider.',
   badResponse: 'The model answered, but not with JSON. Try another model.',
+  privacyBlocked: 'No provider for this model keeps your notes private (zero data retention). Pick another model in Settings.',
   http: 'The provider returned an error.',
 };
 
@@ -173,6 +174,12 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
         )}
       </div>
       <p className="text-xs text-slate">{preset.note}</p>
+      {preset.needsKey && (
+        <p className="text-xs text-slate">
+          Use a club or work account with the provider, not a personal one, and accept its data-processing terms
+          (DPA) in its console.
+        </p>
+      )}
       <p className="text-xs text-slate">
         Player names never leave this device — only jersey numbers, roles and the match situation are sent.{' '}
         <Link to="/privacy" className="text-blue hover:underline">

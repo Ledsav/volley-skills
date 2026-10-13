@@ -39,7 +39,7 @@ const player = {
 
 describe('buildPlayerExport', () => {
   it('includes the full player record and physical-test history', () => {
-    const result = buildPlayerExport(player, [{ id: 'test-1', testType: 'cmj', bestCm: 34, date: '2026-09-07' } as never], new Date('2026-09-07T10:00:00.000Z'));
+    const result = buildPlayerExport(player, [{ id: 'test-1', testType: 'cmj', bestCm: 34, date: '2026-09-07' } as never], undefined, new Date('2026-09-07T10:00:00.000Z'));
 
     expect(result.exportedAt).toBe('2026-09-07T10:00:00.000Z');
     expect(result.player).toMatchObject({
@@ -54,13 +54,29 @@ describe('buildPlayerExport', () => {
   });
 
   it('normalizes Firestore Timestamp fields to ISO strings and leaves nulls alone', () => {
-    const result = buildPlayerExport(player, [], new Date('2026-09-07T10:00:00.000Z'));
+    const result = buildPlayerExport(player, [], undefined, new Date('2026-09-07T10:00:00.000Z'));
     expect(result.player.createdAt).toBe('2026-01-02T03:04:05.000Z');
     expect(result.player.updatedAt).toBeNull();
   });
 
+  it('includes testing-session entries and match records from the footprint', () => {
+    const result = buildPlayerExport(
+      player,
+      [],
+      {
+        testingEntries: [{ sessionId: 's1', sessionDate: '2026-09-20', entry: { id: 'e1', updatedAt: { toDate: () => new Date('2026-09-20T10:00:00.000Z') } } as never }],
+        matches: [{ matchId: 'm1', opponent: 'Rivals' } as never],
+      },
+      new Date('2026-09-07T10:00:00.000Z')
+    );
+    expect(result.testingSessionEntries).toEqual([
+      { sessionId: 's1', sessionDate: '2026-09-20', entry: { id: 'e1', updatedAt: '2026-09-20T10:00:00.000Z' } },
+    ]);
+    expect(result.matches).toEqual([{ matchId: 'm1', opponent: 'Rivals' }]);
+  });
+
   it('produces a JSON-serializable object', () => {
-    const result = buildPlayerExport(player, [], new Date('2026-09-07T10:00:00.000Z'));
+    const result = buildPlayerExport(player, [], undefined, new Date('2026-09-07T10:00:00.000Z'));
     expect(() => JSON.stringify(result)).not.toThrow();
   });
 });

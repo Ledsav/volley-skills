@@ -61,6 +61,7 @@ const ERROR_TEXT: Record<AiError['kind'], string> = {
   rateLimited: 'Rate limit reached.',
   unreachable: 'Could not reach the AI provider. Your notes are kept.',
   badResponse: "Couldn't parse — edit the notes or enter by taps.",
+  privacyBlocked: 'No provider for this model keeps your notes private (zero data retention). Pick another model in Settings.',
   http: 'The AI provider returned an error. Your notes are kept.',
 };
 
@@ -246,6 +247,10 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           placeholder={'7 ace\n12 bad reception, 2 set, 9 kill\nopp error · TO them · 8 in for 9'}
         />
         <span className="text-xs font-normal text-slate">Tip: add the result — kill, out, blocked, good…</span>
+        <span className="text-xs font-normal text-slate">
+          Notes are sent to your AI provider: use jersey numbers only, no names (including opponents&apos;) and no
+          injury or health details.
+        </span>
       </label>
       <div className="flex items-center gap-2">
         <Button variant="primary" size="sm" onClick={() => void process()} disabled={!canProcess}>Process</Button>

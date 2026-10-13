@@ -205,7 +205,9 @@ service cloud.firestore {
           allow read: if isTeamAdmin();
           allow create, update: if isTeamAdmin()
             && get(/databases/$(database)/documents/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
-          allow delete: if isSuperAdmin();
+          // Team admins can delete in any session status: deleting a player
+          // erases their entries too (GDPR erasure, app design spec §10).
+          allow delete: if isTeamAdmin();
         }
       }
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import {
-  countUnreviewedInterestSignups, listInterestSignups, markInterestSignupReviewed,
+  countUnreviewedInterestSignups, deleteInterestSignup, listInterestSignups, markInterestSignupReviewed,
 } from './interestApi';
 import { notifySignupsChanged } from './signupEvents';
 import type { InterestSignup, InterestSignupRole } from '../types/interestSignup';
@@ -20,8 +21,9 @@ function formatRequestDate(value: unknown): string | null {
 
 /**
  * Permanent list of everyone who asked for access via the public request page.
- * Reviewed requests stay listed; only the "New" markers and the pending count
- * go away once each one is reviewed.
+ * Reviewed requests stay listed until deleted; only the "New" markers and the
+ * pending count go away once each one is reviewed. Deleting a handled request
+ * honours the request page's promise that its data is not kept.
  */
 export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => void }) {
   const [signups, setSignups] = useState<InterestSignup[]>([]);
@@ -31,6 +33,8 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<InterestSignup | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadFirstPage() {
@@ -75,6 +79,22 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
     } finally {
       setSavingId(null);
     }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const signup = pendingDelete;
+    setDeleteError(null);
+    try {
+      await deleteInterestSignup(signup.id);
+    } catch {
+      setDeleteError('Could not delete this request. Please try again.');
+      return;
+    }
+    setSignups((current) => current.filter((s) => s.id !== signup.id));
+    if (!signup.reviewed) setPending((n) => Math.max(0, n - 1));
+    notifySignupsChanged();
+    setPendingDelete(null);
   }
 
   function grant(signup: InterestSignup) {
@@ -133,6 +153,10 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
                       Mark reviewed
                     </Button>
                   )}
+                  <Button variant="ghost" size="sm" className="flex-1 sm:flex-none"
+                    disabled={savingId === s.id} onClick={() => setPendingDelete(s)}>
+                    Delete
+                  </Button>
                 </div>
               </li>
             );
@@ -144,6 +168,17 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
         <div className="mt-3 flex justify-center">
           <Button variant="secondary" size="sm" onClick={() => void loadMore()}>Load more</Button>
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete ${pendingDelete.name}'s request?`}
+          message="Their name and email are removed for good. Grant access first if they should keep it."
+          confirmLabel="Delete request"
+          onConfirm={() => void confirmDelete()}
+          onCancel={() => { setPendingDelete(null); setDeleteError(null); }}
+          error={deleteError}
+        />
       )}
     </section>
   );

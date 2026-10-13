@@ -29,7 +29,7 @@ export const AI_PROVIDERS: Record<
     needsKey: true,
     editableUrl: false,
     keyUrl: 'https://openrouter.ai/keys',
-    note: 'Many free models. How data is handled depends on the provider behind the model you pick.',
+    note: 'Many free models. Requests only go to providers that keep nothing and never train on your notes, so some models are unavailable.',
   },
   local: {
     label: 'Local (Ollama / LM Studio)',
@@ -45,7 +45,7 @@ export const AI_PROVIDERS: Record<
     defaultModel: '',
     needsKey: true,
     editableUrl: true,
-    note: 'Any OpenAI-compatible endpoint that allows browser requests.',
+    note: 'Any OpenAI-compatible endpoint that allows browser requests. Only works when running the app locally: the published app only allows Groq, OpenRouter and models on this computer.',
   },
 };
 

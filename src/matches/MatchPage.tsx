@@ -34,14 +34,12 @@ export function MatchPage() {
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
   if (!match) return <p className="p-6 text-slate">Loading match…</p>;
 
-  async function startScouting() {
+  // Setup-phase writes are fire-and-forget like scouting events: offline, a
+  // Firestore write only resolves once the server acks, so awaiting would hang.
+  function startScouting() {
     setActionError(null);
-    try {
-      await setMatchStatus(teamId, matchId, 'live');
-      navigate(`/teams/${teamId}/matches/${matchId}/scout`);
-    } catch {
-      setActionError('Could not start scouting. Please try again.');
-    }
+    setMatchStatus(teamId, matchId, 'live').catch(() => setActionError('Could not start scouting. Please try again.'));
+    navigate(`/teams/${teamId}/matches/${matchId}/scout`);
   }
 
   async function finish() {
@@ -62,15 +60,14 @@ export function MatchPage() {
     setMatch({ ...match, status: 'finished', summary: payload.summary, usageContribution: payload.usageContribution, result: payload.result });
   }
 
-  async function reopen() {
+  function reopen() {
     if (!match) return;
     setActionError(null);
-    try {
-      await setMatchStatus(teamId, matchId, 'live');
-      setMatch({ ...match, status: 'live' });
-    } catch {
+    setMatch({ ...match, status: 'live' });
+    setMatchStatus(teamId, matchId, 'live').catch(() => {
+      setMatch((cur) => (cur ? { ...cur, status: 'finished' } : cur));
       setActionError('Could not reopen the match. Please try again.');
-    }
+    });
   }
 
   return (
@@ -92,7 +89,7 @@ export function MatchPage() {
             <div className="mb-6 flex flex-col items-end gap-1">
               <div className="flex items-center gap-3">
                 {dirty && <span className="text-xs text-slate">Save the setup first.</span>}
-                <Button variant="primary" disabled={dirty} onClick={() => void startScouting()}>Start scouting</Button>
+                <Button variant="primary" disabled={dirty} onClick={startScouting}>Start scouting</Button>
               </div>
               {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
             </div>
@@ -102,9 +99,9 @@ export function MatchPage() {
               submitLabel="Save setup"
               onCancel={() => navigate(`/teams/${teamId}`)}
               onDirtyChange={setDirty}
-              onSubmit={async (input) => {
-                await updateMatchSetup(teamId, matchId, input);
+              onSubmit={(input) => {
                 setMatch({ ...match, ...input });
+                return updateMatchSetup(teamId, matchId, input);
               }}
             />
           </>
@@ -126,7 +123,7 @@ export function MatchPage() {
         )}
         {match.status === 'finished' && (
           <div className="mb-6 flex flex-col items-end gap-1 print:hidden">
-            <Button variant="secondary" size="sm" onClick={() => void reopen()}>Reopen for editing</Button>
+            <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
           </div>
         )}

@@ -2,16 +2,30 @@ import { useState } from 'react';
 import { Button } from '../components/Button';
 import { FIELD_CLASS, Input } from '../components/Input';
 import { AiError, testConnection } from '../matches/text/aiClient';
-import { AI_PROVIDERS, readAiSettings, writeAiSettings, type AiProvider, type AiSettings } from '../matches/text/aiSettings';
+import {
+  AI_PROVIDERS,
+  LOCAL_UNREACHABLE_HINT,
+  providerName,
+  readAiSettings,
+  writeAiSettings,
+  type AiProvider,
+  type AiSettings,
+} from '../matches/text/aiSettings';
 
 const ERROR_TEXT: Record<AiError['kind'], string> = {
   notConfigured: 'Fill in the fields above first.',
   unauthorized: 'Key rejected — check it in your provider account.',
   rateLimited: 'Rate limit reached — try again in a moment.',
-  unreachable: 'Could not reach the provider. For Local, is Ollama / LM Studio running and allowing this site?',
+  unreachable: 'Could not reach the provider.',
   badResponse: 'The model answered, but not with JSON. Try another model.',
   http: 'The provider returned an error.',
 };
+
+function errorText(e: AiError, provider: AiProvider): string {
+  if (e.kind === 'rateLimited') return `${providerName(provider)} rate limit reached — try again in a moment.`;
+  if (e.kind === 'unreachable' && provider === 'local') return `${ERROR_TEXT.unreachable} ${LOCAL_UNREACHABLE_HINT}`;
+  return ERROR_TEXT[e.kind];
+}
 
 const INPUT_CLASS = 'w-full min-h-11';
 
@@ -34,7 +48,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
       await testFn(s);
       setStatus('Connected — text scouting is ready.');
     } catch (e) {
-      setStatus(e instanceof AiError ? ERROR_TEXT[e.kind] : 'Connection failed.');
+      setStatus(e instanceof AiError ? errorText(e, s.provider) : 'Connection failed.');
     } finally {
       setTesting(false);
     }
@@ -58,7 +72,8 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           onChange={(e) => {
             const provider = e.target.value as AiProvider;
             const p = AI_PROVIDERS[provider];
-            update({ provider, baseUrl: p.baseUrl, model: p.defaultModel, apiKey: p.needsKey ? s.apiKey : '' });
+            // A key belongs to one provider: never carry it over to another.
+            update({ provider, baseUrl: p.baseUrl, model: p.defaultModel, apiKey: '' });
           }}
         >
           {(Object.keys(AI_PROVIDERS) as AiProvider[]).map((id) => (

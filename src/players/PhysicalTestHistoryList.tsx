@@ -17,9 +17,11 @@ interface PhysicalTestHistoryListProps {
   testType: PhysicalTestType;
   isAdmin: boolean;
   onClose: () => void;
+  /** Called after an entry is deleted, so the latest-per-type summary can refresh. */
+  onDeleted?: () => void;
 }
 
-export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, onClose }: PhysicalTestHistoryListProps) {
+export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, onClose, onDeleted }: PhysicalTestHistoryListProps) {
   const [tests, setTests] = useState<PhysicalTest[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -62,6 +64,7 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
       await deletePhysicalTest(teamId, playerId, testId);
       setPendingDeleteId(null);
       setExpandedId(null);
+      onDeleted?.();
       await Promise.all([loadFirstPage(), loadSeries()]);
     } catch {
       setDeleteError('Could not delete this entry. Please try again.');

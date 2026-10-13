@@ -6,36 +6,44 @@ import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER } from '../types/physicalTest
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
 import { formatPhysicalTestSummary } from './physicalTestFormat';
 import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
-import { getLatestByType } from './physicalTestsApi';
+import { fetchLatestTests, loadLatestTests } from './physicalTestsApi';
+import type { LatestTests } from '../types/player';
 
 interface PhysicalTestingSectionProps {
   teamId: string;
   playerId: string;
   isAdmin: boolean;
+  /** `player.latestTests` from the already-loaded player doc. */
+  storedLatest?: LatestTests;
   /** Notified after each successful load so a parent dashboard can derive summary stats. */
   onLatestLoaded?: (latestByType: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => void;
 }
 
-export function PhysicalTestingSection({ teamId, playerId, isAdmin, onLatestLoaded }: PhysicalTestingSectionProps) {
+export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest, onLatestLoaded }: PhysicalTestingSectionProps) {
   const { firebaseUser } = useAuth();
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [activeDialogType, setActiveDialogType] = useState<PhysicalTestType | null>(null);
   const [historyType, setHistoryType] = useState<PhysicalTestType | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  async function loadAll() {
-    const entries = await Promise.all(PHYSICAL_TEST_ORDER.map((t) => getLatestByType(teamId, playerId, t)));
-    const next: Partial<Record<PhysicalTestType, PhysicalTest | null>> = {};
-    PHYSICAL_TEST_ORDER.forEach((t, i) => {
-      next[t] = entries[i];
-    });
+  function apply(next: LatestTests) {
     setLatestByType(next);
     onLatestLoaded?.(next);
   }
 
+  function reload() {
+    setLoadError(null);
+    fetchLatestTests(teamId, playerId, isAdmin)
+      .then(apply)
+      .catch(() => setLoadError('Could not load physical testing data. Please refresh the page.'));
+  }
+
   useEffect(() => {
     setLoadError(null);
-    loadAll().catch(() => setLoadError('Could not load physical testing data. Please refresh the page.'));
+    loadLatestTests(teamId, playerId, storedLatest, isAdmin)
+      .then(apply)
+      .catch(() => setLoadError('Could not load physical testing data. Please refresh the page.'));
+    // Only on player change: later updates come from reload(), not the stale prop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, playerId]);
 
@@ -82,8 +90,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, onLatestLoad
           onClose={() => setActiveDialogType(null)}
           onSaved={() => {
             setActiveDialogType(null);
-            setLoadError(null);
-            loadAll().catch(() => setLoadError('Could not load physical testing data. Please refresh the page.'));
+            reload();
           }}
         />
       )}
@@ -94,6 +101,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, onLatestLoad
           testType={historyType}
           isAdmin={isAdmin}
           onClose={() => setHistoryType(null)}
+          onDeleted={reload}
         />
       )}
     </div>

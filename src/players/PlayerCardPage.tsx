@@ -144,6 +144,7 @@ export function PlayerCardPage() {
               teamId={teamId}
               playerId={playerId}
               isAdmin={isAdmin}
+              storedLatest={player.latestTests}
               onLatestLoaded={handleLatestLoaded}
             />
           </Tile>

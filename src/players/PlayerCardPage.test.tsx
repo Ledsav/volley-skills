@@ -102,7 +102,7 @@ describe('PlayerCardPage', () => {
   it('renders the player card in read-only mode for a linked viewer whose team read is denied', async () => {
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
 
     renderPlayerCard();
 
@@ -122,7 +122,7 @@ describe('PlayerCardPage', () => {
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
     const deleteSpy = vi.spyOn(playersApi, 'deletePlayer').mockResolvedValue(undefined);
 
     renderPlayerCard();
@@ -145,7 +145,7 @@ describe('PlayerCardPage', () => {
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
     vi.spyOn(physicalTestsApi, 'listAllPhysicalTests').mockResolvedValue([]);
     const exportModule = await import('./playerExport');
     const exportSpy = vi.spyOn(exportModule, 'downloadPlayerExport').mockImplementation(() => {});
@@ -168,7 +168,7 @@ describe('PlayerCardPage', () => {
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
     vi.spyOn(physicalTestsApi, 'listAllPhysicalTests').mockRejectedValue(new Error('boom'));
     const exportModule = await import('./playerExport');
     const exportSpy = vi.spyOn(exportModule, 'downloadPlayerExport').mockImplementation(() => {});
@@ -187,7 +187,7 @@ describe('PlayerCardPage', () => {
   it('shows an avatar with initials and a level badge next to the name', async () => {
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, avgScore: 6.8, level: 'Advanced' });
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(null);
-    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
 
     renderPlayerCard();
 

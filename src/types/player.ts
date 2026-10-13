@@ -1,4 +1,9 @@
 import type { DevelopmentPlan } from './developmentPlan';
+import type { PhysicalTest, PhysicalTestType } from './physicalTest';
+
+/** Newest test per type, denormalized onto the player doc so the card needs no
+ *  per-type queries. Missing on players whose tests predate it. */
+export type LatestTests = Partial<Record<PhysicalTestType, PhysicalTest>>;
 
 export type { DevelopmentPlan };
 
@@ -77,6 +82,7 @@ export interface Player {
   avgScore: number | null;
   level: Level | null;
   developmentPlan: DevelopmentPlan;
+  latestTests?: LatestTests;
   consent: { given: boolean; date: string | null; confirmedBy: string | null };
   createdBy: string;
   createdAt: unknown;

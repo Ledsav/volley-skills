@@ -98,6 +98,15 @@ export function RequestAccessPage() {
           ))}
         </select>
 
+        <p className="mb-4 text-xs text-slate">
+          We use your name and email only to review this request and contact you about access, and delete them
+          once it has been handled. If you are under 16, ask a parent or guardian to send the request for you. See the{' '}
+          <Link to="/privacy" className="text-blue hover:underline">
+            privacy policy
+          </Link>
+          .
+        </p>
+
         <Button type="submit" variant="primary" className="w-full gap-2" disabled={submitting}>
           Request access
           <ArrowRight className="h-4 w-4" aria-hidden="true" />

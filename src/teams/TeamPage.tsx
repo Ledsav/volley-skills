@@ -5,6 +5,7 @@ import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
 import { TeamStatsRow } from './TeamStatsRow';
+import { RetentionNotice } from './RetentionNotice';
 import { AddPlayerDialog } from '../players/AddPlayerDialog';
 import { useAuth } from '../auth/AuthContext';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
@@ -105,6 +106,7 @@ export function TeamPage() {
         <div className="mt-6">
           {activeTab === 'overview' && (
             <>
+              <RetentionNotice teamId={teamId} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />
               <TeamStatsRow players={rosterPlayers} />
               <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                 <Button

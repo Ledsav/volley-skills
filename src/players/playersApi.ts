@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   startAfter,
   updateDoc,
+  where,
   writeBatch,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -18,6 +19,7 @@ import { db } from '../firebase/config';
 import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
+import { erasePlayerFootprint } from './playerFootprintApi';
 import { computeAvgScore, computeLevel } from './skillMath';
 import {
   SKILL_KEYS,
@@ -72,6 +74,7 @@ function hydratePlayer(id: string, data: Record<string, unknown>): Player {
     positionCategory: 'TBD',
     shirtSize: '',
     starting: false,
+    leftClubAt: null,
     ...data,
     skills,
     id,
@@ -204,12 +207,45 @@ export async function updatePlayerSkills(
   });
 }
 
+/** Marks the player as having left the club on `date` (null: back in the club), starting the retention clock. */
+export async function setPlayerLeftClub(teamId: string, playerId: string, date: string | null): Promise<void> {
+  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { leftClubAt: date, updatedAt: serverTimestamp() });
+}
+
+const DUE_FOR_DELETION_CAP = 50;
+
+/** Players who left the club on or before `cutoff` (see retention.ts), oldest first. */
+export async function listPlayersDueForDeletion(teamId: string, cutoff: string): Promise<Player[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'teams', teamId, 'players'),
+      where('leftClubAt', '<=', cutoff),
+      orderBy('leftClubAt'),
+      limit(DUE_FOR_DELETION_CAP),
+    ),
+  );
+  return snapshot.docs.map((d) => hydratePlayer(d.id, d.data()));
+}
+
+/** Records guardian consent for a player created without it (bulk import). */
+export async function recordPlayerConsent(teamId: string, playerId: string, confirmedByEmail: string): Promise<Player['consent']> {
+  const consent = { given: true, date: new Date().toISOString().slice(0, 10), confirmedBy: confirmedByEmail };
+  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { consent, updatedAt: serverTimestamp() });
+  return consent;
+}
+
 export async function updatePlayerDevelopmentPlan(teamId: string, playerId: string, plan: DevelopmentPlan): Promise<void> {
   await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
 }
 
-/** Physical tests first: Firestore never cascades, and they hold a minor's data. */
+/**
+ * GDPR erasure of a minor's data. Firestore never cascades, so everything
+ * else goes first (testing-session entries, match roster names, scouting
+ * usage, physical tests) and the player doc last: a failed run can be retried
+ * from the still-visible player.
+ */
 export async function deletePlayer(teamId: string, playerId: string): Promise<void> {
+  await erasePlayerFootprint(teamId, playerId);
   await deleteCollection(collection(db, 'teams', teamId, 'players', playerId, 'physicalTests'));
   await deleteDoc(doc(db, 'teams', teamId, 'players', playerId));
 }

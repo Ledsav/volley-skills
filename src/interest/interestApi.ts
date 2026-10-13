@@ -1,5 +1,5 @@
 import {
-  addDoc, collection, doc, getCountFromServer, getDocs, limit, orderBy,
+  addDoc, collection, deleteDoc, doc, getCountFromServer, getDocs, limit, orderBy,
   query, serverTimestamp, startAfter, updateDoc, where,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -45,4 +45,9 @@ export async function countUnreviewedInterestSignups(): Promise<number> {
 
 export async function markInterestSignupReviewed(id: string): Promise<void> {
   await updateDoc(doc(db, 'interestSignups', id), { reviewed: true });
+}
+
+/** Removes a handled request: the request page promises its data is deleted then. */
+export async function deleteInterestSignup(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'interestSignups', id));
 }

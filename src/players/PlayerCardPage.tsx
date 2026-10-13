@@ -15,9 +15,11 @@ import { listAllPhysicalTests } from './physicalTestsApi';
 import { PlayerContactSection } from './PlayerContactSection';
 import { nextObjective } from './playerDashboard';
 import { downloadPlayerExport } from './playerExport';
+import { loadPlayerFootprint } from './playerFootprintApi';
 import { PlayerIdentityCard } from './PlayerIdentityCard';
 import { PlayerKpiTiles } from './PlayerKpiTiles';
-import { deletePlayer, getPlayer, updatePlayerDevelopmentPlan } from './playersApi';
+import { deletePlayer, getPlayer, recordPlayerConsent, setPlayerLeftClub, updatePlayerDevelopmentPlan } from './playersApi';
+import { deletionDueDate, todayIso } from './retention';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 
 function Tile({
@@ -54,6 +56,9 @@ export function PlayerCardPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
+  const [leftError, setLeftError] = useState<string | null>(null);
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [editingSection, setEditingSection] = useState<'skills' | 'plan' | 'contact' | 'guardians' | null>(null);
 
@@ -94,11 +99,35 @@ export function PlayerCardPage() {
     navigate(`/teams/${teamId}`, { replace: true });
   }
 
+  async function handleRecordConsent() {
+    if (!firebaseUser?.email) return;
+    setConsentError(null);
+    try {
+      const consent = await recordPlayerConsent(teamId!, playerId!, firebaseUser.email);
+      setPlayer({ ...player!, consent });
+    } catch {
+      setConsentError('Could not record consent. Please try again.');
+    }
+  }
+
+  async function handleLeftClub(date: string | null) {
+    setLeftError(null);
+    try {
+      await setPlayerLeftClub(teamId!, playerId!, date);
+      setPlayer({ ...player!, leftClubAt: date });
+    } catch {
+      setLeftError('Could not update membership. Please try again.');
+    }
+  }
+
   async function handleExport() {
     setExportError(null);
     try {
-      const tests = await listAllPhysicalTests(teamId!, playerId!);
-      downloadPlayerExport(player!, tests);
+      const [tests, footprint] = await Promise.all([
+        listAllPhysicalTests(teamId!, playerId!),
+        loadPlayerFootprint(teamId!, playerId!),
+      ]);
+      downloadPlayerExport(player!, tests, footprint);
     } catch {
       setExportError("Could not export this player's data. Please try again.");
       return;
@@ -213,10 +242,70 @@ export function PlayerCardPage() {
           {isAdmin && (
             <Tile title="Data & privacy">
               <div className="flex h-full flex-col">
+                {player.consent?.given ? (
+                  <p className="mb-2 text-sm text-ink">
+                    Guardian consent recorded
+                    {player.consent.date && <span className="tabular-nums"> on {player.consent.date}</span>}
+                    {player.consent.confirmedBy && <> by {player.consent.confirmedBy}</>}.
+                  </p>
+                ) : (
+                  <div className="mb-3 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink">
+                    <p className="font-medium">Guardian consent not recorded</p>
+                    <label className="mt-2 flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={consentChecked}
+                        onChange={(e) => setConsentChecked(e.target.checked)}
+                        className="mt-1"
+                      />
+                      I confirm a parent or legal guardian has consented to storing this player's data, including physical-test measurements and match statistics.
+                    </label>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="mt-2"
+                      disabled={!consentChecked}
+                      onClick={() => void handleRecordConsent()}
+                    >
+                      Record consent
+                    </Button>
+                    {consentError && (
+                      <p role="alert" className="mt-2 text-sm text-red">
+                        {consentError}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-slate">
-                  Export produces a JSON file with this player&apos;s full record and physical-test history. Deleting a
-                  player also removes their physical-test history.
+                  Export produces a JSON file with everything stored about this player: their record, physical tests,
+                  testing-session entries and match stats. Deleting a player erases all of it and removes their name
+                  and number from past match reports.
                 </p>
+                {player.leftClubAt ? (
+                  <div className="mt-3 text-sm text-ink">
+                    <p>
+                      Left the club on <span className="tabular-nums">{player.leftClubAt}</span>. Their data is due for
+                      deletion on <span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>.
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-1" onClick={() => void handleLeftClub(null)}>
+                      Still in the club
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3 self-start"
+                    onClick={() => void handleLeftClub(todayIso())}
+                  >
+                    Mark as left the club
+                  </Button>
+                )}
+                {leftError && (
+                  <p role="alert" className="mt-2 text-sm text-red">
+                    {leftError}
+                  </p>
+                )}
                 <div className="mt-auto flex flex-col gap-2 pt-3">
                   <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
                     Export data (JSON)
@@ -239,7 +328,7 @@ export function PlayerCardPage() {
       {showDeleteConfirm && (
         <ConfirmDialog
           title={`Delete ${player.fullName}?`}
-          message="This will permanently delete this player's card, including contact info, skills, development plan, and physical test history. This cannot be undone."
+          message="This will permanently delete this player's card (contact info, skills, development plan), their physical tests and testing-session entries, and remove their name and number from past match reports. This cannot be undone."
           confirmLabel="Yes, delete player"
           onConfirm={() => void handleDelete()}
           onCancel={() => setShowDeleteConfirm(false)}

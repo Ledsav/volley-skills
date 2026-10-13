@@ -232,7 +232,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             required
             className="mt-1"
           />
-          I confirm parental/guardian consent has been obtained to store this player's data.
+          I confirm a parent or legal guardian has consented to storing this player's data, including physical-test measurements and match statistics.
         </label>
 
         <div className="mt-2 flex justify-end gap-3">

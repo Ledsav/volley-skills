@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Undo2 } from 'lucide-react';
+import { PenLine, Undo2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -30,6 +30,7 @@ import { RallyBar, type ReasonPrompt } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
 import { LiveStatsPanel } from './LiveStatsPanel';
 import { SetStartDialog } from './SetStartDialog';
+import { TextScoutPanel } from '../text/TextScoutPanel';
 import { SubDialog } from './SubDialog';
 import { TimelineDrawer } from './TimelineDrawer';
 import { useScoutHotkeys, type ScoutHotkeysOptions } from './useScoutHotkeys';
@@ -114,7 +115,26 @@ export function ScoutPage() {
   const [pendingDelete, setPendingDelete] = useState<{ ids: string[]; kind: 'setStart' | 'setEnd' } | null>(null);
   const [subOutId, setSubOutId] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
-  const [phoneTab, setPhoneTab] = useState<'court' | 'live' | 'timeline'>('court');
+  const [phoneTab, setPhoneTab] = useState<'court' | 'live' | 'timeline' | 'text'>('court');
+  const [textOpen, setTextOpen] = useState(false);
+  const textVisible = isDesktop ? textOpen : phoneTab === 'text';
+  // Once opened, the text panel stays mounted (hidden when not shown) so a
+  // preview or an in-flight Process survives tab switches and closing.
+  const [textMounted, setTextMounted] = useState(false);
+  useEffect(() => {
+    if (textVisible) setTextMounted(true);
+  }, [textVisible]);
+  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
   const [editing, setEditing] = useState<ActionEvent | null>(null);
   const [dismissedSetPoint, setDismissedSetPoint] = useState<string | null>(null);
   const [setDialogOpen, setSetDialogOpen] = useState(false);
@@ -231,6 +251,20 @@ export function ScoutPage() {
     [events, firebaseUser, anchorId, teamId, matchId],
   );
 
+  function mergeText(payloads: MatchEventPayload[], orders: number[]): boolean {
+    if (!firebaseUser || payloads.length === 0) return false;
+    const chunkId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `chunk-${Date.now()}`;
+    payloads.forEach((payload, i) => {
+      const { id, written } = addEvent(teamId, matchId, { ...payload, order: orders[i], source: 'text', chunkId }, firebaseUser.uid);
+      written.catch(() => setWriteError('Some text events could not be saved. Check your connection and the timeline.'));
+      writtenRef.current.push(id);
+      lastWriteRef.current = { id, order: orders[i] };
+      maxOrderRef.current = Math.max(maxOrderRef.current, orders[i]);
+    });
+    setAnchorId(null);
+    return true;
+  }
+
   // Once this device's last write shows up in the snapshot, pre-select the most
   // likely player for the next expected skill (one tap: grade).
   useEffect(() => {
@@ -238,10 +272,14 @@ export function ScoutPage() {
     if (!awaited || !events || !state || !match) return;
     if (!events.some((e) => e.id === awaited)) return;
     autoAfterRef.current = null;
-    if (!autoSelect || !state.inSet) return;
+    if (!autoSelect || !state.inSet || textVisible) return;
     const id = predictPlayer({ state, skill: expectedSkill(state), roster, liberos: match.liberos, usage });
     if (id) select(id, true);
-  }, [events, state, match, roster, usage, autoSelect, select]);
+  }, [events, state, match, roster, usage, autoSelect, select, textVisible]);
+
+  useEffect(() => {
+    if (textVisible) setSelection(null);
+  }, [textVisible]);
 
   useEffect(() => {
     if (!reasonPrompt) return;
@@ -481,6 +519,20 @@ export function ScoutPage() {
     />
   );
   const live = <LiveStatsPanel state={state} roster={roster} />;
+  const textPanel = (textMounted || textVisible) && (
+    <div hidden={!textVisible}>
+      <TextScoutPanel
+        match={match}
+        events={events ?? []}
+        anchorId={anchorId}
+        maxWritten={maxOrderRef.current}
+        lastWrite={lastWriteRef.current}
+        online={online}
+        onMerge={mergeText}
+        onClose={() => (isDesktop ? setTextOpen(false) : setPhoneTab('court'))}
+      />
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
@@ -534,7 +586,8 @@ export function ScoutPage() {
         <main className="grid flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 p-4">
           {courtColumn}
           <div className="flex min-w-0 flex-col gap-4">
-            {live}
+            {textPanel}
+            {!textOpen && live}
             <div className="max-h-[50vh] overflow-y-auto">{timeline}</div>
           </div>
         </main>
@@ -544,17 +597,27 @@ export function ScoutPage() {
             <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>Court</Tab>
             <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
             <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
+            <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>Text</Tab>
           </nav>
           <main className="flex-1 p-3">
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}
+            {textPanel}
           </main>
         </>
       )}
       <footer className="sticky bottom-0 flex items-center justify-between border-t border-border bg-surface px-3 py-2">
         <button type="button" onClick={undo} className="flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg">
           <Undo2 size={16} aria-hidden="true" /> Undo <Kbd>{keyLabel('undo')}</Kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTextOpen((v) => !v)}
+          aria-pressed={textOpen}
+          className="hidden min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg lg:flex"
+        >
+          <PenLine size={16} aria-hidden="true" /> Text
         </button>
         <button
           type="button"

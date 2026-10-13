@@ -5,6 +5,8 @@ import { Input, Textarea } from '../components/Input';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useAuth } from '../auth/AuthContext';
 import { deleteTeam, updateTeamInfo } from './teamsApi';
+import { loadTeamExportData } from './teamExportApi';
+import { downloadTeamExport } from './teamExport';
 import type { Team } from '../types/team';
 
 interface TeamSettingsTabProps {
@@ -22,6 +24,9 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   const [savingInfo, setSavingInfo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [includeEvents, setIncludeEvents] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   async function handleSaveInfo(event: FormEvent) {
     event.preventDefault();
@@ -37,6 +42,18 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
     }
     onTeamUpdated({ ...team, ...updates });
     setSavingInfo(false);
+  }
+
+  async function handleExport() {
+    setExportError(null);
+    setExporting(true);
+    try {
+      const data = await loadTeamExportData(team.id, { includeEvents, includeCalendar: !!access?.sections.trainings });
+      downloadTeamExport(data);
+    } catch {
+      setExportError("Could not export this team's data. Please try again.");
+    }
+    setExporting(false);
   }
 
   async function handleDelete() {
@@ -74,6 +91,31 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
             Save team info
           </Button>
         </form>
+
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Export team data</h2>
+            <p className="mt-1 text-sm text-slate">
+              One JSON file with the team, every player&apos;s record and physical tests, testing sessions, matches and
+              their reports{access?.sections.trainings ? ', and the calendar' : ''}. It holds minors&apos; personal
+              data: store it securely.
+            </p>
+            <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" checked={includeEvents} onChange={(e) => setIncludeEvents(e.target.checked)} />
+              Include raw scouting events (one read per event, slower)
+            </label>
+            {exportError && <p role="alert" className="mt-2 text-sm text-red">{exportError}</p>}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full shrink-0 sm:w-auto"
+            onClick={() => void handleExport()}
+            disabled={exporting}
+          >
+            {exporting ? 'Exporting…' : 'Export team (JSON)'}
+          </Button>
+        </div>
 
         {access?.isSuperAdmin && (
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

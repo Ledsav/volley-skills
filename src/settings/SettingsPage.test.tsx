@@ -29,7 +29,7 @@ describe('SettingsPage', () => {
 
     fireEvent.click(screen.getByText('Sign out'));
 
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false, beforeSignOut: expect.any(Function) }));
   });
 
   it('asks before signing out when scouting actions have not synced', async () => {
@@ -50,7 +50,6 @@ describe('SettingsPage', () => {
     const signOut = screen.getByRole('button', { name: 'Sign out' });
     const accountSection = signOut.closest('section') as HTMLElement;
     expect(accountSection.className).toMatch(/(^|\s)flex-col(\s|$)/);
-    expect(accountSection.className).toContain('sm:flex-row');
     expect(signOut.className).toContain('w-full');
     expect(signOut.className).toContain('sm:w-auto');
 
@@ -60,8 +59,18 @@ describe('SettingsPage', () => {
     expect(themeBtn.className).toContain('w-full');
   });
 
+  it('renders each section as a settings row that becomes a 3-column grid on desktop', () => {
+    renderSettings();
+    for (const title of ['Appearance', 'Text scouting (AI)', 'Account']) {
+      const section = screen.getByRole('heading', { name: title }).closest('section') as HTMLElement;
+      expect(section.className).toContain('lg:grid-cols-3');
+    }
+  });
+
   it('links to the privacy policy', () => {
     renderSettings();
-    expect(screen.getByText('Privacy policy')).toHaveAttribute('href', '/privacy');
+    const link = screen.getByText('Privacy policy');
+    expect(link).toHaveAttribute('href', '/privacy');
+    expect(link.closest('section')).toContainElement(screen.getByRole('button', { name: 'Sign out' }));
   });
 });

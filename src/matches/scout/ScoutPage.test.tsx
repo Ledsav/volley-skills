@@ -55,6 +55,7 @@ describe('ScoutPage', () => {
     vi.mocked(api.updateMatchResult).mockResolvedValue();
     vi.mocked(api.addEvent).mockReturnValue({ id: 'new', written: Promise.resolve() });
     vi.mocked(api.deleteEvents).mockResolvedValue();
+    vi.mocked(api.updateEvent).mockResolvedValue();
   });
 
   it('asks for the lineup before the first set', async () => {
@@ -105,11 +106,31 @@ describe('ScoutPage', () => {
     );
   });
 
-  it('records a point for them with a reason', async () => {
+  it('records a point in one tap, then amends it with an optional reason', async () => {
     renderPage([setStart]);
     fireEvent.click(await screen.findByRole('button', { name: 'Point them' }));
+    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'point', winner: 'them', reason: null }), 'u1');
     fireEvent.click(screen.getByRole('button', { name: 'Opp. kill' }));
-    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'point', winner: 'them', reason: 'oppKill' }), 'u1');
+    expect(api.updateEvent).toHaveBeenCalledWith('t1', 'm1', 'new', { reason: 'oppKill' });
+    expect(screen.queryByRole('button', { name: 'Opp. kill' })).not.toBeInTheDocument();
+  });
+
+  it('hides the reason chips after a few seconds or when another action is recorded', async () => {
+    renderPage([setStart]);
+    const pointUs = await screen.findByRole('button', { name: 'Point us' });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      fireEvent.click(pointUs);
+      expect(screen.getByRole('button', { name: 'Opp. error' })).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(5_000));
+      expect(screen.queryByRole('button', { name: 'Opp. error' })).not.toBeInTheDocument();
+      fireEvent.click(pointUs);
+      expect(screen.getByRole('button', { name: 'Opp. error' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /T\/O us/ }));
+      expect(screen.queryByRole('button', { name: 'Opp. error' })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('undo deletes the last event', async () => {

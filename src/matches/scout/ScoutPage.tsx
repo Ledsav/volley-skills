@@ -23,7 +23,7 @@ import { BenchStrip } from './BenchStrip';
 import { CorrectionDialog } from './CorrectionDialog';
 import { CourtGrid } from './CourtGrid';
 import { EditEventDialog } from './EditEventDialog';
-import { RallyBar } from './RallyBar';
+import { RallyBar, type ReasonPrompt } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
 import { LiveStatsPanel } from './LiveStatsPanel';
 import { SetStartDialog } from './SetStartDialog';
@@ -31,6 +31,7 @@ import { SubDialog } from './SubDialog';
 import { TimelineDrawer } from './TimelineDrawer';
 
 const HEARTBEAT_MS = 60_000;
+const REASON_PROMPT_MS = 5_000;
 
 /** First serve alternates set to set: the other side of the previous set's first server. */
 function nextSetServing(events: MatchEvent[], fallbackServing: Side): Side {
@@ -61,6 +62,7 @@ export function ScoutPage() {
   const [editing, setEditing] = useState<ActionEvent | null>(null);
   const [dismissedSetPoint, setDismissedSetPoint] = useState<string | null>(null);
   const [setDialogOpen, setSetDialogOpen] = useState(false);
+  const [reasonPrompt, setReasonPrompt] = useState<ReasonPrompt | null>(null);
   const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
 
   useEffect(() => {
@@ -125,6 +127,7 @@ export function ScoutPage() {
   const record = useCallback(
     (payload: MatchEventPayload, source: EventSource = 'tap'): string | null => {
       if (!events || !firebaseUser) return null;
+      setReasonPrompt(null);
       const order = nextOrder(events, anchorId, lastWriteRef.current, maxOrderRef.current);
       const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
       written.catch(() => setWriteError('An action could not be saved. Check your connection and the timeline.'));
@@ -141,8 +144,15 @@ export function ScoutPage() {
     [events, firebaseUser, anchorId, teamId, matchId],
   );
 
+  useEffect(() => {
+    if (!reasonPrompt) return;
+    const t = window.setTimeout(() => setReasonPrompt(null), REASON_PROMPT_MS);
+    return () => window.clearTimeout(t);
+  }, [reasonPrompt]);
+
   function undo() {
     if (!events || events.length === 0) return;
+    setReasonPrompt(null);
     let last: MatchEvent | undefined;
     while (!last && writtenRef.current.length > 0) {
       const id = writtenRef.current.pop();
@@ -167,6 +177,7 @@ export function ScoutPage() {
   }
 
   function deleteFromTimeline(ids: string[]) {
+    if (reasonPrompt && ids.includes(reasonPrompt.eventId)) setReasonPrompt(null);
     if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not delete. Try again.'));
   }
@@ -241,7 +252,15 @@ export function ScoutPage() {
       <RallyBar
         format={match.format}
         timeoutsUsed={state.timeoutsUsed}
-        onPoint={(winner, reason) => record({ type: 'point', winner, reason })}
+        reasonPrompt={reasonPrompt}
+        onPoint={(winner) => {
+          const id = record({ type: 'point', winner, reason: null });
+          if (id) setReasonPrompt({ eventId: id, winner });
+        }}
+        onReason={(eventId, reason) => {
+          void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError('Could not save the point reason.'));
+          setReasonPrompt(null);
+        }}
         onTimeout={(team) => record({ type: 'timeout', team })}
       />
       {selected && (

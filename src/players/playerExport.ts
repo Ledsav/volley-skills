@@ -1,51 +1,34 @@
 import type { Player } from '../types/player';
 import type { PhysicalTest } from '../types/physicalTest';
+import { downloadJson, fileSlug, toExportable } from '../export/exportJson';
+import { EMPTY_FOOTPRINT, type PlayerFootprint } from './playerFootprint';
 
 export interface PlayerExport {
   exportedAt: string;
   player: Record<string, unknown>;
   physicalTests: Record<string, unknown>[];
-}
-
-function normalizeTimestamp(value: unknown): string | null {
-  if (value == null) return null;
-  if (typeof value === 'object' && typeof (value as { toDate?: unknown }).toDate === 'function') {
-    return (value as { toDate: () => Date }).toDate().toISOString();
-  }
-  if (typeof value === 'string') return value;
-  return null;
+  /** Entries in physical-testing session drafts. */
+  testingSessionEntries: Record<string, unknown>[];
+  /** Matches the player was on the roster for, with their stats. */
+  matches: Record<string, unknown>[];
 }
 
 export function buildPlayerExport(
   player: Player,
   physicalTests: PhysicalTest[],
+  footprint: PlayerFootprint = EMPTY_FOOTPRINT,
   now: Date = new Date()
 ): PlayerExport {
-  const { createdAt, updatedAt, ...rest } = player;
   return {
     exportedAt: now.toISOString(),
-    player: {
-      ...rest,
-      createdAt: normalizeTimestamp(createdAt),
-      updatedAt: normalizeTimestamp(updatedAt),
-    },
-    physicalTests: physicalTests.map((test) => {
-      const { createdAt: testCreatedAt, ...testRest } = test;
-      const createdAtIso = normalizeTimestamp(testCreatedAt);
-      return createdAtIso == null ? { ...testRest } : { ...testRest, createdAt: createdAtIso };
-    }),
+    player: toExportable(player) as Record<string, unknown>,
+    physicalTests: physicalTests.map((t) => toExportable(t) as Record<string, unknown>),
+    testingSessionEntries: footprint.testingEntries.map((e) => toExportable(e) as Record<string, unknown>),
+    matches: footprint.matches.map((m) => toExportable(m) as Record<string, unknown>),
   };
 }
 
-export function downloadPlayerExport(player: Player, physicalTests: PhysicalTest[]): void {
-  const payload = buildPlayerExport(player, physicalTests);
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `player-${player.fullName.replace(/\s+/g, '-')}-${payload.exportedAt.slice(0, 10)}.json`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+export function downloadPlayerExport(player: Player, physicalTests: PhysicalTest[], footprint?: PlayerFootprint): void {
+  const payload = buildPlayerExport(player, physicalTests, footprint);
+  downloadJson(`player-${fileSlug(player.fullName)}-${payload.exportedAt.slice(0, 10)}.json`, payload);
 }

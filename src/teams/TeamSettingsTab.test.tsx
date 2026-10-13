@@ -3,6 +3,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import * as teamsApi from './teamsApi';
+import * as teamExportApi from './teamExportApi';
+import * as teamExport from './teamExport';
 import { authValue, superAdminAccess } from '../test/authValue';
 import { useAuth } from '../auth/AuthContext';
 import type { Team } from '../types/team';
@@ -10,6 +12,8 @@ import type { Team } from '../types/team';
 const mockNavigate = vi.fn();
 
 vi.mock('./teamsApi');
+vi.mock('./teamExportApi');
+vi.mock('./teamExport');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -108,5 +112,29 @@ describe('TeamSettingsTab', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('exports the team, with raw events only when ticked', async () => {
+    const data = { team: { id: 'team-1' } } as never;
+    const loadSpy = vi.spyOn(teamExportApi, 'loadTeamExportData').mockResolvedValue(data);
+    const downloadSpy = vi.spyOn(teamExport, 'downloadTeamExport').mockImplementation(() => {});
+    renderSettings(baseTeam, vi.fn());
+
+    fireEvent.click(screen.getByLabelText(/Include raw scouting events/));
+    fireEvent.click(screen.getByText('Export team (JSON)'));
+
+    await waitFor(() => expect(downloadSpy).toHaveBeenCalledWith(data));
+    expect(loadSpy).toHaveBeenCalledWith('team-1', { includeEvents: true, includeCalendar: true });
+  });
+
+  it('shows an error when the team export fails', async () => {
+    vi.spyOn(teamExportApi, 'loadTeamExportData').mockRejectedValue(new Error('denied'));
+    const downloadSpy = vi.spyOn(teamExport, 'downloadTeamExport').mockImplementation(() => {});
+    renderSettings(baseTeam, vi.fn());
+
+    fireEvent.click(screen.getByText('Export team (JSON)'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("Could not export this team's data");
+    expect(downloadSpy).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import { PlayerCardPage } from './PlayerCardPage';
 import * as playersApi from './playersApi';
 import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
+import * as footprintApi from './playerFootprintApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, superAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
@@ -16,6 +17,7 @@ vi.mock('./playersApi');
 vi.mock('../teams/teamsApi');
 vi.mock('./physicalTestsApi');
 vi.mock('./playerExport');
+vi.mock('./playerFootprintApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -147,6 +149,8 @@ describe('PlayerCardPage', () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
     vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
     vi.spyOn(physicalTestsApi, 'listAllPhysicalTests').mockResolvedValue([]);
+    const footprint = { testingEntries: [], matches: [] };
+    vi.spyOn(footprintApi, 'loadPlayerFootprint').mockResolvedValue(footprint);
     const exportModule = await import('./playerExport');
     const exportSpy = vi.spyOn(exportModule, 'downloadPlayerExport').mockImplementation(() => {});
 
@@ -155,7 +159,7 @@ describe('PlayerCardPage', () => {
 
     fireEvent.click(screen.getByText('Export data (JSON)'));
 
-    await waitFor(() => expect(exportSpy).toHaveBeenCalledWith(basePlayer, []));
+    await waitFor(() => expect(exportSpy).toHaveBeenCalledWith(basePlayer, [], footprint));
   });
 
   it('surfaces an error and does not download when the export read fails', async () => {
@@ -194,5 +198,56 @@ describe('PlayerCardPage', () => {
     await screen.findByText('Test Player');
     expect(screen.getByText('TP')).toBeInTheDocument();
     expect(screen.getByText('Advanced')).toBeInTheDocument();
+  });
+
+  it('lets an admin record guardian consent for a player imported without it', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, consent: { given: false, date: null, confirmedBy: null } });
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    const recordSpy = vi
+      .spyOn(playersApi, 'recordPlayerConsent')
+      .mockResolvedValue({ given: true, date: '2026-10-14', confirmedBy: 'coach@example.com' });
+
+    renderPlayerCard();
+    expect(await screen.findByText('Guardian consent not recorded')).toBeInTheDocument();
+    const record = screen.getByRole('button', { name: 'Record consent' });
+    expect(record).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
+    fireEvent.click(record);
+
+    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com'));
+    expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
+  });
+
+  it('marks a player as having left the club and shows the deletion date', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    const leftSpy = vi.spyOn(playersApi, 'setPlayerLeftClub').mockResolvedValue(undefined);
+
+    renderPlayerCard();
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark as left the club' }));
+
+    await waitFor(() => expect(leftSpy).toHaveBeenCalledWith('team-1', 'player-1', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
+    expect(await screen.findByText(/due for/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Still in the club' }));
+    await waitFor(() => expect(leftSpy).toHaveBeenLastCalledWith('team-1', 'player-1', null));
+    expect(await screen.findByRole('button', { name: 'Mark as left the club' })).toBeInTheDocument();
   });
 });

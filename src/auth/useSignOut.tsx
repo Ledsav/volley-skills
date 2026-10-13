@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { signOutAndClearLocalData } from '../firebase/signOut';
+import { clearAiLocalData } from '../matches/text/aiSettings';
 
 /**
  * Sign-out that wipes this device's offline cache. When scouting writes have
@@ -10,7 +11,7 @@ export function useSignOut(): { signOut: () => void; unsyncedDialog: ReactNode }
   const [askUnsynced, setAskUnsynced] = useState(false);
 
   async function run(force: boolean) {
-    const result = await signOutAndClearLocalData({ force });
+    const result = await signOutAndClearLocalData({ force, beforeSignOut: clearAiLocalData });
     if (result === 'unsynced') setAskUnsynced(true);
   }
 

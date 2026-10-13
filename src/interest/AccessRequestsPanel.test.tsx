@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AccessRequestsPanel } from './AccessRequestsPanel';
 import * as interestApi from './interestApi';
@@ -48,5 +48,19 @@ describe('AccessRequestsPanel', () => {
     vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(0);
     render(<AccessRequestsPanel onGrant={vi.fn()} />);
     expect(await screen.findByText(/no one has requested access yet/i)).toBeInTheDocument();
+  });
+
+  it('deletes a request only after confirmation and drops it from the list', async () => {
+    vi.mocked(interestApi.deleteInterestSignup).mockResolvedValue(undefined);
+    render(<AccessRequestsPanel onGrant={vi.fn()} />);
+    const ana = await screen.findByText('ana@example.com');
+    const row = ana.closest('li')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Delete' }));
+    expect(interestApi.deleteInterestSignup).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete request' }));
+
+    await waitFor(() => expect(screen.queryByText('ana@example.com')).not.toBeInTheDocument());
+    expect(interestApi.deleteInterestSignup).toHaveBeenCalledWith('a');
   });
 });

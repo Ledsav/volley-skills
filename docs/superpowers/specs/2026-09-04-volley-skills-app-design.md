@@ -232,9 +232,12 @@ Imported players are seeded with `consent: { given: false }` — the spreadsheet
 ## 10. Legal & Compliance (baseline)
 
 - Public privacy policy page describing what data is collected, why, who can see it, retention, and a contact point for data requests — explicitly addressing that subjects are minors and guardians are the consent-giving party.
-- A required consent checkbox when a player record is created ("I confirm parental/guardian consent has been obtained to store this player's data"), stored as `consent.given/date/confirmedBy` on the player doc.
+- A required consent checkbox when a player record is created ("I confirm a parent or legal guardian has consented to storing this player's data, including physical-test measurements and match statistics."), stored as `consent.given/date/confirmedBy` on the player doc.
 - Data minimization: only the fields already present in the source spreadsheet are collected — nothing additional.
 - Admin-triggered **export** (structured data dump) and **hard delete** on any player record, covering GDPR access/erasure rights without a formal ticketing workflow.
+  - Both cover data stored outside the player doc (2026-10-14): testing-session entries are exported and deleted; match rosters are exported with the player's report stats, and on delete the roster entry is anonymized ("Removed player", #0) so team totals still replay. A whole-team JSON export (team Settings) also exists; raw scouting events are opt-in there because they cost one read each.
+  - Players imported without consent show "Guardian consent not recorded" on their card, where an admin records it.
+- **Retention:** player data is kept while the player is with the club and for 12 months after they leave. Admins mark a player as left on their card (`leftClubAt`, ISO date); the team overview lists players past the period, and an admin confirms each deletion (no Cloud Functions, so nothing runs on a schedule).
 - No third-party analytics or tracking scripts in the app, given minors' data is involved.
 - Encryption in transit (HTTPS, enforced by Firebase Hosting) and at rest (Firestore default).
 

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShell } from './AppShell';
@@ -31,6 +31,13 @@ describe('AppShell', () => {
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });
 
+  it('has a Settings link in the desktop sidebar as well as the bottom bar', () => {
+    const { container } = renderShell();
+    expect(screen.getAllByRole('link', { name: 'Settings' })).toHaveLength(2);
+    const aside = container.querySelector('aside') as HTMLElement;
+    expect(within(aside).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+  });
+
   it('shows only granted sections for a member', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({ access: { isSuperAdmin: false, sections: { exercises: true, trainings: false, guides: false } } })
@@ -47,7 +54,7 @@ describe('AppShell', () => {
     mockSignOut.mockResolvedValue('signedOut');
     renderShell();
     fireEvent.click(screen.getAllByText('Sign out')[0]);
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false, beforeSignOut: expect.any(Function) }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
@@ -58,6 +65,6 @@ describe('AppShell', () => {
     const dialog = await screen.findByRole('alertdialog');
     expect(dialog).toHaveTextContent("Some scouting actions haven't synced yet. Sign out anyway? They will be lost.");
     fireEvent.click(screen.getByRole('button', { name: 'Sign out anyway' }));
-    await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true, beforeSignOut: expect.any(Function) }));
   });
 });

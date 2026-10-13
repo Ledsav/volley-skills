@@ -49,6 +49,7 @@ function renderTeamPage() {
 
 describe('TeamPage', () => {
   beforeEach(() => {
+    vi.mocked(playersApi.listPlayersDueForDeletion).mockResolvedValue([]);
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,

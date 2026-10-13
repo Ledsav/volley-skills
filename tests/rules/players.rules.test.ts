@@ -117,4 +117,19 @@ describe('player rules', () => {
     await assertSucceeds(superDb.doc('teams/team-1/players/player-1').update({ fullName: 'Super Edit' }));
     await assertSucceeds(superDb.doc('teams/team-1/players/player-1').delete());
   });
+
+  it('lets the team admin mark a player as left and list who is due for deletion', async () => {
+    const env = await getTestEnv();
+    const coach = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(coach.doc('teams/team-1/players/player-1').update({ leftClubAt: '2025-06-01' }));
+    await assertSucceeds(
+      coach.collection('teams/team-1/players').where('leftClubAt', '<=', '2025-10-14').orderBy('leftClubAt').limit(50).get()
+    );
+
+    const stranger = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
+    await assertFails(stranger.doc('teams/team-1/players/player-1').update({ leftClubAt: null }));
+    await assertFails(
+      stranger.collection('teams/team-1/players').where('leftClubAt', '<=', '2025-10-14').orderBy('leftClubAt').limit(50).get()
+    );
+  });
 });

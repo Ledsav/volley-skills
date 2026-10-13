@@ -55,4 +55,21 @@ describe('signOutAndClearLocalData', () => {
     expect(await signOutAndClearLocalData({ redirect })).toBe('signedOut');
     expect(redirect).toHaveBeenCalledWith('/login');
   });
+
+  it('runs beforeSignOut when signing out, before auth is signed out', async () => {
+    const beforeSignOut = vi.fn();
+    await signOutAndClearLocalData({ beforeSignOut, redirect: vi.fn() });
+    expect(beforeSignOut).toHaveBeenCalledTimes(1);
+    expect(beforeSignOut.mock.invocationCallOrder[0]).toBeLessThan(m.signOut.mock.invocationCallOrder[0]);
+  });
+
+  it('does not run beforeSignOut when returning unsynced', async () => {
+    vi.useFakeTimers();
+    m.waitForPendingWrites.mockReturnValueOnce(new Promise<void>(() => undefined));
+    const beforeSignOut = vi.fn();
+    const result = signOutAndClearLocalData({ beforeSignOut, redirect: vi.fn() });
+    await vi.advanceTimersByTimeAsync(1_500);
+    expect(await result).toBe('unsynced');
+    expect(beforeSignOut).not.toHaveBeenCalled();
+  });
 });

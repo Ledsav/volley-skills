@@ -4,11 +4,15 @@ import {
   createPlayer,
   deletePlayer,
   listPlayers,
+  listPlayersDueForDeletion,
+  recordPlayerConsent,
+  setPlayerLeftClub,
   setPlayerStarting,
   updatePlayerContact,
   updatePlayerDevelopmentPlan,
 } from './playersApi';
 import { deleteCollection } from '../firebase/deleteCollection';
+import { erasePlayerFootprint } from './playerFootprintApi';
 import type { Team } from '../types/team';
 
 const { mockAddDoc, mockGetDocs, mockCollection, mockQuery, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
@@ -29,6 +33,7 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
   limit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   startAfter: vi.fn((...args: unknown[]) => ({ type: 'startAfter', args })),
+  where: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
   serverTimestamp: () => 'server-timestamp',
   doc: vi.fn(() => 'doc-ref'),
   getDoc: vi.fn(),
@@ -39,6 +44,7 @@ vi.mock('firebase/firestore', () => ({
 
 vi.mock('../firebase/config', () => ({ db: {} }));
 vi.mock('../firebase/deleteCollection');
+vi.mock('./playerFootprintApi');
 
 const team: Team = {
   id: 'team-1',
@@ -239,8 +245,11 @@ describe('playersApi', () => {
     expect(batchCommit).not.toHaveBeenCalled();
   });
 
-  it('deletes a player and all of their physical test history, history first', async () => {
+  it('deletes a player after their footprint and physical test history', async () => {
     const order: string[] = [];
+    vi.mocked(erasePlayerFootprint).mockImplementation(async () => {
+      order.push('footprint');
+    });
     vi.mocked(deleteCollection).mockImplementation(async () => {
       order.push('tests');
     });
@@ -251,7 +260,8 @@ describe('playersApi', () => {
     await deletePlayer('team-1', 'player-1');
 
     expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests');
-    expect(order).toEqual(['tests', 'player']);
+    expect(erasePlayerFootprint).toHaveBeenCalledWith('team-1', 'player-1');
+    expect(order).toEqual(['footprint', 'tests', 'player']);
   });
 
   it('lists players ordered by number, filling in lineup + skill fields absent from older docs', async () => {
@@ -359,6 +369,33 @@ describe('playersApi', () => {
           generalNotes: '',
         },
       })
+    );
+  });
+
+  it('records guardian consent with today and the confirming admin', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+    const consent = await recordPlayerConsent('team-1', 'player-1', 'coach@example.com');
+    expect(consent).toEqual({ given: true, date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), confirmedBy: 'coach@example.com' });
+    expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', { consent, updatedAt: 'server-timestamp' });
+  });
+
+  it('marks a player as having left the club, and back', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+    await setPlayerLeftClub('team-1', 'player-1', '2026-10-14');
+    expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', { leftClubAt: '2026-10-14', updatedAt: 'server-timestamp' });
+    await setPlayerLeftClub('team-1', 'player-1', null);
+    expect(mockUpdateDoc).toHaveBeenLastCalledWith('doc-ref', { leftClubAt: null, updatedAt: 'server-timestamp' });
+  });
+
+  it('lists players who left on or before the cutoff, bounded', async () => {
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'player-1', data: () => ({ fullName: 'Old Player', leftClubAt: '2025-09-01' }) }] });
+    const due = await listPlayersDueForDeletion('team-1', '2025-10-14');
+    expect(due[0]).toMatchObject({ id: 'player-1', leftClubAt: '2025-09-01' });
+    expect(mockQuery).toHaveBeenLastCalledWith(
+      'players-collection',
+      { type: 'where', args: ['leftClubAt', '<=', '2025-10-14'] },
+      { type: 'orderBy', args: ['leftClubAt'] },
+      { type: 'limit', args: [50] }
     );
   });
 });

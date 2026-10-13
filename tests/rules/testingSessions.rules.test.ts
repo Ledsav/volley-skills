@@ -103,23 +103,45 @@ describe('testingSessions rules', () => {
     );
   });
 
-  it('lets only a superadmin delete sessions and entries (team deletion clears them)', async () => {
+  it('lets only a superadmin delete sessions (team deletion clears them)', async () => {
     const env = await getTestEnv();
     await env.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await db.doc('adminAllowlist/super@example.com').set({});
-      await db.doc('teams/team-1/testingSessions/session-1/entries/player-1__cmj').set({ playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {} });
+      await context.firestore().doc('adminAllowlist/super@example.com').set({});
     });
 
     const coach = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
-    await assertFails(coach.doc('teams/team-1/testingSessions/session-1/entries/player-1__cmj').delete());
     await assertFails(coach.doc('teams/team-1/testingSessions/session-1').delete());
 
     const stranger = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
     await assertFails(stranger.doc('teams/team-1/testingSessions/session-1').delete());
 
     const superadmin = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();
-    await assertSucceeds(superadmin.doc('teams/team-1/testingSessions/session-1/entries/player-1__cmj').delete());
     await assertSucceeds(superadmin.doc('teams/team-1/testingSessions/session-1').delete());
+  });
+
+  it('lets the team admin delete entries, even in a closed session (player erasure)', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('adminAllowlist/super@example.com').set({});
+      await db.doc('teams/team-1/testingSessions/session-closed').set({ date: '2026-09-01', status: 'closed' });
+      for (const path of [
+        'teams/team-1/testingSessions/session-1/entries/player-1__cmj',
+        'teams/team-1/testingSessions/session-closed/entries/player-1__cmj',
+        'teams/team-1/testingSessions/session-closed/entries/player-2__cmj',
+      ]) {
+        await db.doc(path).set({ playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {} });
+      }
+    });
+
+    const stranger = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
+    await assertFails(stranger.doc('teams/team-1/testingSessions/session-1/entries/player-1__cmj').delete());
+
+    const coach = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(coach.doc('teams/team-1/testingSessions/session-1/entries/player-1__cmj').delete());
+    await assertSucceeds(coach.doc('teams/team-1/testingSessions/session-closed/entries/player-1__cmj').delete());
+
+    const superadmin = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();
+    await assertSucceeds(superadmin.doc('teams/team-1/testingSessions/session-closed/entries/player-2__cmj').delete());
   });
 });

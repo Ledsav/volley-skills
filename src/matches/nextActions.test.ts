@@ -21,6 +21,16 @@ describe('expectedSkill', () => {
     expect(expectedSkill({ currentRally: [a('D')], serving: 'us' })).toBe('E');
     expect(expectedSkill({ currentRally: [a('F')], serving: 'us' })).toBe('E');
   });
+
+  it('expects a block after an overpass, since the ball is on their side', () => {
+    expect(expectedSkill({ currentRally: [a('R', '/')], serving: 'them' })).toBe('B');
+    expect(expectedSkill({ currentRally: [a('D', '/')], serving: 'us' })).toBe('B');
+    expect(expectedSkill({ currentRally: [a('F', '/')], serving: 'us' })).toBe('B');
+  });
+
+  it('expects a free ball after their free ball back on our serve', () => {
+    expect(expectedSkill({ currentRally: [a('S', '/')], serving: 'us' })).toBe('F');
+  });
 });
 
 describe('orderSkills', () => {

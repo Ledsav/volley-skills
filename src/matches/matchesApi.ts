@@ -82,6 +82,7 @@ export function createMatch(teamId: string, input: MatchSetupInput, uid: string)
     status: 'setup',
     result: EMPTY_RESULT,
     summary: null,
+    report: null,
     usageContribution: null,
     activeDevice: null,
     createdBy: uid,
@@ -167,6 +168,7 @@ export function finishMatch(teamId: string, matchId: string, payload: FinishPayl
   batch.update(matchDoc(teamId, matchId), {
     status: 'finished',
     summary: payload.summary,
+    report: payload.report,
     usageContribution: payload.usageContribution,
     result: payload.result,
     updatedAt: serverTimestamp(),

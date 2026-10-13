@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AiError, chatJson, extractJson, testConnection } from './aiClient';
 import type { AiSettings } from './aiSettings';
 
-const settings: AiSettings = { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: 'k', model: 'm' };
+const settings: AiSettings = { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: 'k', model: 'm', rememberKey: true };
 const messages = [{ role: 'user' as const, content: 'hi' }];
 
 function reply(content: string, init: ResponseInit = { status: 200 }) {
@@ -40,7 +40,7 @@ describe('chatJson', () => {
 
   it('omits Authorization when there is no key (local)', async () => {
     const fetchImpl = vi.fn(async () => reply('{}'));
-    await chatJson({ provider: 'local', baseUrl: 'http://localhost:11434/v1/', apiKey: '', model: 'm' }, messages, { fetchImpl });
+    await chatJson({ provider: 'local', baseUrl: 'http://localhost:11434/v1/', apiKey: '', model: 'm', rememberKey: true }, messages, { fetchImpl });
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('http://localhost:11434/v1/chat/completions');
     expect((init.headers as Record<string, string>).Authorization).toBeUndefined();

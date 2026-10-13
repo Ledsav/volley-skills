@@ -25,7 +25,7 @@ export function MatchReport({ match, state }: { match: Match; state: MatchState 
     (a, b) => (roster.get(a.playerId)?.number ?? 0) - (roster.get(b.playerId)?.number ?? 0),
   );
   const totalSource = stats.sourceCounts.tap + stats.sourceCounts.text;
-  const setNumbers = Array.from(new Set(state.rallies.map((r) => r.set).concat(state.actions.map((a) => a.set)))).sort();
+  const setNumbers = Array.from(new Set(state.rallies.map((r) => r.set).concat(state.actions.map((a) => a.set)))).sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col gap-6 print:gap-4">

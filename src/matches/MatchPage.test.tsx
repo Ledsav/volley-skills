@@ -68,7 +68,7 @@ describe('MatchPage', () => {
     vi.mocked(matchesApi.getUsageProfile).mockRejectedValue(new Error('offline'));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/could not load usage history/i));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Could not load usage history — try finishing again.'));
     expect(matchesApi.finishMatch).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Finish match' })).toBeEnabled();
   });

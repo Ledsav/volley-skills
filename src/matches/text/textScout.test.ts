@@ -128,3 +128,63 @@ describe('chunkText and mergeBatches', () => {
     expect(mergeBatches([a, b])).toEqual({ rallies: a.rallies, unparsed: ['x', 'y'] });
   });
 });
+
+describe('name privacy', () => {
+  const rosterH: RosterEntry[] = [{ playerId: 'p4', number: 4, name: 'Ana-María López', positionCategory: 'OH' }];
+  const rosterO: RosterEntry[] = [{ playerId: 'p3', number: 3, name: "O'Neil", positionCategory: 'OH' }];
+  const rosterC: RosterEntry[] = [{ playerId: 'p5', number: 5, name: 'María de la Cruz', positionCategory: 'OH' }];
+
+  it('matches decomposed (NFD) accents', () => {
+    expect(anonymizeNames('Luci\u0301a kill', roster)).toBe('#9 kill');
+  });
+
+  it('keeps punctuation around names, including possessives and hyphens', () => {
+    expect(anonymizeNames("Ana's ace", roster)).toBe("#7's ace");
+    expect(anonymizeNames('Ana’s ace', roster)).toBe('#7’s ace');
+    expect(anonymizeNames('(Ana)', roster)).toBe('(#7)');
+    expect(anonymizeNames('Ana-Lucía', roster)).toBe('#7-#9');
+  });
+
+  it('splits roster names with hyphens and apostrophes into parts', () => {
+    expect(anonymizeNames('María ace', rosterH)).toBe('#4 ace');
+    expect(anonymizeNames('Ana-María', rosterH)).toBe('#4');
+    expect(anonymizeNames("O'Neil kill", rosterO)).toBe("O'#3 kill");
+    expect(anonymizeNames('O’Neil kill', rosterO)).toBe('O’#3 kill');
+  });
+
+  it('collapses repeated numbers joined by a hyphen', () => {
+    expect(anonymizeNames('Ana Ana-Ana', roster)).toBe('#7');
+  });
+
+  it('does not map name particles or note words', () => {
+    expect(anonymizeNames('error de recepción, María ace', rosterC)).toBe('error de recepción, #5 ace');
+    expect(anonymizeNames('Cruz set', rosterC)).toBe('#5 set');
+  });
+});
+
+describe('parseBatch hardening', () => {
+  it('keeps a point reason only when it fits the winner', () => {
+    const r = parseBatch({
+      rallies: [
+        { actions: [], point: { winner: 'us', reason: 'oppKill' } },
+        { actions: [], point: { winner: 'them', reason: 'oppKill' } },
+      ],
+    });
+    expect(r.ok && r.batch.rallies.map((x) => x.point)).toEqual([
+      { winner: 'us', reason: null },
+      { winner: 'them', reason: 'oppKill' },
+    ]);
+  });
+
+  it('rejects non-array actions, subs or timeouts and non-object points', () => {
+    expect(parseBatch({ rallies: [{ actions: {} }] }).ok).toBe(false);
+    expect(parseBatch({ rallies: [{ subs: 'x' }] }).ok).toBe(false);
+    expect(parseBatch({ rallies: [{ timeouts: 5 }] }).ok).toBe(false);
+    expect(parseBatch({ rallies: [{ point: 'us' }] }).ok).toBe(false);
+  });
+
+  it('accepts a null point and absent arrays', () => {
+    expect(parseBatch({ rallies: [{ point: null }] }).ok).toBe(true);
+    expect(parseBatch({ rallies: [{}] }).ok).toBe(true);
+  });
+});

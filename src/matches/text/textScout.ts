@@ -1,5 +1,5 @@
 import { GRADES, SKILLS, type Grade, type MatchEventPayload, type PointReason, type RosterEntry, type Side, type Skill } from '../../types/match';
-import { rallyOutcome } from '../skillGrades';
+import { POINT_REASONS, rallyOutcome } from '../skillGrades';
 import type { ChatMessage } from './aiClient';
 
 export interface ParsedAction {
@@ -41,29 +41,41 @@ export interface BatchIssue {
   message: string;
 }
 
-const REASONS: PointReason[] = ['oppError', 'oppKill', 'oppAce', 'oppBlock', 'unknown'];
-
 function normalize(s: string): string {
-  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
-/** Replaces roster names (any part, accent/case-insensitive) with `#number`; ambiguous parts become `#?`. */
+const STOPWORDS = new Set(
+  [
+    // name particles
+    'de', 'la', 'las', 'los', 'le', 'y', 'e', 'da', 'do', 'dos', 'das', 'di', 'van', 'von', 'der', 'du', 'des',
+    // note and protocol tokens
+    'to', 'us', 'them', 'ace', 'kill', 'set', 'opp', 'error', 'block', 'dig', 'serve', 'rec', 'point', 'pt',
+  ].map(normalize),
+);
+
+const letterRuns = (s: string): string[] => s.match(/[\p{L}\p{M}]+/gu) ?? [];
+
+/**
+ * Replaces roster name parts (accent/case-insensitive, letter-only pieces, so
+ * "Ana's" or "Ana-María" are covered) with `#number`; ambiguous parts become `#?`.
+ */
 export function anonymizeNames(text: string, roster: RosterEntry[]): string {
   const byPart = new Map<string, number | null>();
   for (const r of roster) {
-    for (const part of r.name.split(/\s+/)) {
-      const key = normalize(part);
-      if (key.length < 2) continue;
+    for (const piece of letterRuns(r.name.normalize('NFC'))) {
+      const key = normalize(piece);
+      if (key.length < 2 || STOPWORDS.has(key)) continue;
       const existing = byPart.get(key);
       byPart.set(key, existing === undefined || existing === r.number ? r.number : null);
     }
   }
-  const replaced = text.replace(/\p{L}[\p{L}'’-]*/gu, (word) => {
+  const replaced = text.normalize('NFC').replace(/[\p{L}\p{M}]+/gu, (word) => {
     const n = byPart.get(normalize(word));
     if (n === undefined) return word;
     return n === null ? '#?' : `#${n}`;
   });
-  return replaced.replace(/(#\d+)(?:\s+\1)+\b/g, '$1');
+  return replaced.replace(/(#\d+)(?:[\s-]+\1)+\b/g, '$1');
 }
 
 export const SYSTEM_PROMPT = `You convert a volleyball coach's match notes about THEIR OWN team into JSON.
@@ -103,6 +115,10 @@ export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { o
   const rallies: ParsedRally[] = [];
   for (const r of raw.rallies) {
     if (!isObj(r)) return { ok: false, error: 'A rally is not an object.' };
+    for (const key of ['actions', 'subs', 'timeouts'] as const) {
+      if (r[key] !== undefined && !Array.isArray(r[key])) return { ok: false, error: `"${key}" must be an array.` };
+    }
+    if (r.point !== undefined && r.point !== null && !isObj(r.point)) return { ok: false, error: '"point" must be an object or null.' };
     const actions: ParsedAction[] = [];
     for (const a of Array.isArray(r.actions) ? r.actions : []) {
       if (!isObj(a) || !isNum(a.number) || !SKILLS.includes(a.skill as Skill) || !GRADES.includes(a.grade as Grade)) {
@@ -113,7 +129,8 @@ export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { o
     let point: ParsedRally['point'] = null;
     if (isObj(r.point)) {
       if (!isSide(r.point.winner)) return { ok: false, error: 'Invalid point winner.' };
-      const reason = REASONS.includes(r.point.reason as PointReason) ? (r.point.reason as PointReason) : null;
+      const rawReason = r.point.reason;
+      const reason = POINT_REASONS[r.point.winner].find((x) => x === rawReason) ?? null;
       point = { winner: r.point.winner, reason };
     }
     const subs: ParsedRally['subs'] = [];

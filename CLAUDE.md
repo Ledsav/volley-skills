@@ -67,6 +67,12 @@ because all files share one emulator project.
 Firebase's free Spark plan, so *all* authorization is enforced in Firestore
 Security Rules (`firestore.rules`).
 
+**Text scouting** (`src/matches/text/`) talks to any OpenAI-compatible
+endpoint through a provider-agnostic client (`aiClient.ts`). Settings and
+drafts live in localStorage only (`aiSettings.ts`). Player names are stripped
+to jersey numbers before sending (`textScout.ts`). Merges are `source: 'text'`
+events sharing a `chunkId`.
+
 ### Feature-folder layout
 
 `src/<feature>/` groups everything for a feature: components, dialogs, and a

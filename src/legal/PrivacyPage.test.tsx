@@ -22,6 +22,8 @@ describe('PrivacyPage', () => {
     expect(screen.getByText(/parent or legal guardian is the party who gives consent/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Security' })).toBeInTheDocument();
     expect(screen.getByText(/cached on the device until you sign out/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Text scouting (optional)' })).toBeInTheDocument();
+    expect(screen.getByText(/sent to the AI provider they choose/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'alberto.valdes.rey.official@gmail.com' })
     ).toHaveAttribute('href', 'mailto:alberto.valdes.rey.official@gmail.com');

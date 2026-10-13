@@ -43,6 +43,37 @@ describe('MatchSetupForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('shows Saved immediately, without waiting for the server write', async () => {
+    const onSubmit = vi.fn<(input: MatchSetupInput) => Promise<void>>(() => new Promise<void>(() => undefined));
+    const onDirtyChange = vi.fn();
+    render(
+      <MatchSetupForm teamId="t1" defaultDate="2026-10-18" submitLabel="Save setup" onSubmit={onSubmit} onCancel={vi.fn()} onDirtyChange={onDirtyChange} />,
+    );
+    await screen.findByText('#7 Name a');
+    fireEvent.change(screen.getByLabelText('Opponent'), { target: { value: 'Rivals' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save setup' }));
+    expect(await screen.findByText('Saved.')).toBeInTheDocument();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    expect(screen.getByRole('button', { name: 'Save setup' })).toBeEnabled();
+  });
+
+  it('surfaces a rejected write after the fact and marks the form dirty again', async () => {
+    let reject: (e: Error) => void = () => undefined;
+    const onSubmit = vi.fn<(input: MatchSetupInput) => Promise<void>>(() => new Promise<void>((_, r) => (reject = r)));
+    const onDirtyChange = vi.fn();
+    render(
+      <MatchSetupForm teamId="t1" defaultDate="2026-10-18" submitLabel="Save setup" onSubmit={onSubmit} onCancel={vi.fn()} onDirtyChange={onDirtyChange} />,
+    );
+    await screen.findByText('#7 Name a');
+    fireEvent.change(screen.getByLabelText('Opponent'), { target: { value: 'Rivals' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save setup' }));
+    await screen.findByText('Saved.');
+    reject(new Error('denied'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not save/i);
+    expect(screen.queryByText('Saved.')).not.toBeInTheDocument();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
   it('re-enables the submit button and shows Saved after a successful submit', async () => {
     const onSubmit = vi.fn<(input: MatchSetupInput) => Promise<void>>(() => Promise.resolve());
     render(<MatchSetupForm teamId="t1" defaultDate="2026-10-18" submitLabel="Save setup" onSubmit={onSubmit} onCancel={vi.fn()} />);

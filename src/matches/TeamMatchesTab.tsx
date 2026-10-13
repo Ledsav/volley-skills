@@ -98,8 +98,11 @@ export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled 
             defaultDate={creatingDate}
             submitLabel="Create match"
             onCancel={closeCreate}
-            onSubmit={async (input) => {
-              const id = await createMatch(teamId, input, firebaseUser.uid);
+            onSubmit={(input) => {
+              // Not awaited: offline the write only resolves on server ack. The
+              // match page reads it back from the local cache meanwhile.
+              const { id, written } = createMatch(teamId, input, firebaseUser.uid);
+              written.catch(() => setError('A new match could not be saved. Check your connection.'));
               closeCreate();
               navigate(`/teams/${teamId}/matches/${id}`);
             }}

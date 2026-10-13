@@ -73,9 +73,10 @@ export async function getMatch(teamId: string, matchId: string): Promise<Match |
   return snapshot.exists() ? toMatch(snapshot.id, snapshot.data()) : null;
 }
 
-export async function createMatch(teamId: string, input: MatchSetupInput, uid: string): Promise<string> {
+/** Not awaited by callers: offline writes only resolve once the server acks. */
+export function createMatch(teamId: string, input: MatchSetupInput, uid: string): { id: string; written: Promise<void> } {
   const ref = doc(matchesCol(teamId));
-  await setDoc(ref, {
+  const written = setDoc(ref, {
     ...input,
     status: 'setup',
     result: EMPTY_RESULT,
@@ -86,7 +87,7 @@ export async function createMatch(teamId: string, input: MatchSetupInput, uid: s
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-  return ref.id;
+  return { id: ref.id, written };
 }
 
 export function updateMatchSetup(teamId: string, matchId: string, input: MatchSetupInput): Promise<void> {

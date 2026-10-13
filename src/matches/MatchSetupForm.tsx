@@ -18,7 +18,8 @@ interface MatchSetupFormProps {
   initial?: MatchSetupInput;
   defaultDate?: string;
   submitLabel: string;
-  onSubmit: (input: MatchSetupInput) => Promise<void>;
+  /** May return the pending write; the form never waits for it (offline), only surfaces a rejection. */
+  onSubmit: (input: MatchSetupInput) => Promise<void> | void;
   onCancel: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }
@@ -50,7 +51,6 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
   });
   const [replaces, setReplaces] = useState<string[] | null>(initial?.liberos[0]?.replaces ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
     setFormat((f) => ({ ...f, [key]: value }));
   }
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault();
     if (!players) return;
     const roster = buildRoster(players, picks);
@@ -85,17 +85,19 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
       setError(problem);
       return;
     }
-    setSaving(true);
+    const failed = () => {
+      setSaved(false);
+      setError('Could not save the match. Please try again.');
+      onDirtyChange?.(true);
+    };
     setError(null);
-    setSaved(false);
     try {
-      await onSubmit(input);
+      const written = onSubmit(input);
       setSaved(true);
       onDirtyChange?.(false);
+      written?.catch(failed);
     } catch {
-      setError('Could not save the match. Please try again.');
-    } finally {
-      setSaving(false);
+      failed();
     }
   }
 
@@ -105,7 +107,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
 
   return (
     <form
-      onSubmit={(e) => void submit(e)}
+      onSubmit={submit}
       onChange={() => {
         setSaved(false);
         onDirtyChange?.(true);
@@ -249,7 +251,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit" disabled={saving}>{submitLabel}</Button>
+        <Button variant="primary" type="submit">{submitLabel}</Button>
       </div>
     </form>
   );

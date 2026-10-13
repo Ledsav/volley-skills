@@ -34,13 +34,14 @@ vi.mock('../players/playersApi');
 describe('matchesApi', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('creates a match in setup state with an empty result', async () => {
-    const id = await createMatch(
+  it('creates a match in setup state without awaiting the server and returns its id', () => {
+    const { id, written } = createMatch(
       'team-1',
       { date: '2026-10-18', opponent: 'Rivals', competition: 'league', homeAway: 'home', format: DEFAULT_FORMAT, roster: [], liberos: [] },
       'uid-1',
     );
     expect(id).toBe('new-id');
+    expect(written).toBeInstanceOf(Promise);
     expect(m.setDoc).toHaveBeenCalledWith(
       { id: 'new-id' },
       expect.objectContaining({ status: 'setup', summary: null, usageContribution: null, activeDevice: null, createdBy: 'uid-1' }),

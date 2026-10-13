@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import { TeamMatchesTab } from './TeamMatchesTab';
@@ -8,7 +8,14 @@ import * as matchesApi from './matchesApi';
 vi.mock('./matchesApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ firebaseUser: { uid: 'u1' } }) }));
-vi.mock('./MatchSetupForm', () => ({ MatchSetupForm: ({ defaultDate }: { defaultDate?: string }) => <p>setup-form {defaultDate}</p> }));
+vi.mock('./MatchSetupForm', () => ({
+  MatchSetupForm: ({ defaultDate, onSubmit }: { defaultDate?: string; onSubmit: (input: unknown) => Promise<void> | void }) => (
+    <div>
+      <p>setup-form {defaultDate}</p>
+      <button onClick={() => void onSubmit({ opponent: 'New FC' })}>mock-create</button>
+    </div>
+  ),
+}));
 
 const match = (over: Partial<Match>): Match => ({
   id: 'm1', date: '2026-10-18', opponent: 'Rivals', competition: 'league', homeAway: 'home', format: DEFAULT_FORMAT,
@@ -42,5 +49,21 @@ describe('TeamMatchesTab', () => {
     render(<MemoryRouter><TeamMatchesTab teamId="t1" /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
     expect(screen.getByText(/setup-form/)).toBeInTheDocument();
+  });
+
+  it('creates the match without waiting for the server and opens it', async () => {
+    vi.mocked(matchesApi.createMatch).mockReturnValue({ id: 'new-m', written: new Promise<void>(() => undefined) });
+    render(
+      <MemoryRouter initialEntries={['/teams/t1']}>
+        <Routes>
+          <Route path="/teams/:teamId" element={<TeamMatchesTab teamId="t1" />} />
+          <Route path="/teams/:teamId/matches/:matchId" element={<p>match page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
+    fireEvent.click(screen.getByText('mock-create'));
+    expect(await screen.findByText('match page')).toBeInTheDocument();
+    expect(matchesApi.createMatch).toHaveBeenCalledWith('t1', { opponent: 'New FC' }, 'u1');
   });
 });

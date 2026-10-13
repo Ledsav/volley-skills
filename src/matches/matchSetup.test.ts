@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_FORMAT, type MatchSetupInput, type RosterEntry } from '../types/match';
 import type { Player } from '../types/player';
-import { buildRoster, defaultLineup, validateSetup } from './matchSetup';
+import { buildRoster, defaultLineup, defaultRosterIds, validateSetup } from './matchSetup';
 
 const player = (id: string, number: number, positionCategory: Player['positionCategory'], starting = false) =>
   ({ id, number, fullName: `Player ${id}`, positionCategory, starting }) as Player;
@@ -48,6 +48,24 @@ describe('matchSetup', () => {
       r[2] = { ...r[2], number: bad };
       expect(validateSetup(input({ roster: r }))).toMatch(/number/i);
     }
+  });
+
+  it('rejects a roster of more than 14 players and numbers above 99', () => {
+    expect(validateSetup(input({ roster: roster(14) }))).toBeNull();
+    expect(validateSetup(input({ roster: roster(15) }))).toBe('A match roster has at most 14 players.');
+    const r = roster(7);
+    r[3] = { ...r[3], number: 100 };
+    expect(validateSetup(input({ roster: r }))).toMatch(/number/i);
+  });
+
+  it('defaults ticks to 14: starters first, then liberos, then by number', () => {
+    const many = Array.from({ length: 17 }, (_, i) => player(`p${i}`, i + 1, 'OH', i === 16));
+    many[15] = player('lib', 40, 'L');
+    const ids = defaultRosterIds(many);
+    expect(ids).toHaveLength(14);
+    expect(ids[0]).toBe('p16');
+    expect(ids).toContain('lib');
+    expect(ids).not.toContain('p14');
   });
 
   it('defaults the lineup to the first six non-libero players', () => {

@@ -84,6 +84,44 @@ describe('MatchSetupForm', () => {
     expect(screen.getByRole('button', { name: 'Save setup' })).toBeEnabled();
   });
 
+  it('ticks at most 14 players, shows the counter, and pre-fills the libero', async () => {
+    const big = Array.from({ length: 16 }, (_, i) => ({ id: `x${i}`, number: i + 1, fullName: `Fic ${i}`, positionCategory: 'OH', starting: false }) as Player);
+    big.push({ id: 'lib', number: 40, fullName: 'Fic Libero', positionCategory: 'L', starting: false } as Player);
+    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue(big);
+    render(<MatchSetupForm teamId="t1" submitLabel="Create match" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    expect(await screen.findByText('14 / 14 selected')).toBeInTheDocument();
+    expect(screen.getByLabelText('Include Fic Libero')).toBeChecked();
+    expect(screen.getByLabelText('Include Fic 15')).not.toBeChecked();
+    expect(screen.getByLabelText('Libero 1')).toHaveValue('lib');
+    expect(screen.getByLabelText('Libero 1 mode')).toHaveValue('always');
+  });
+
+  it('pre-fills two liberos as receiving and serving', async () => {
+    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([
+      ...players.filter((p) => p.positionCategory !== 'L'),
+      { id: 'l1', number: 33, fullName: 'Fic One', positionCategory: 'L', starting: false } as Player,
+      { id: 'l2', number: 55, fullName: 'Fic Two', positionCategory: 'L', starting: false } as Player,
+    ]);
+    render(<MatchSetupForm teamId="t1" submitLabel="Create match" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    await screen.findByText('#7 Name a');
+    expect(screen.getByLabelText('Libero 1')).toHaveValue('l1');
+    expect(screen.getByLabelText('Libero 1 mode')).toHaveValue('receiving');
+    expect(screen.getByLabelText('Libero 2')).toHaveValue('l2');
+    expect(screen.getByLabelText('Libero 2 mode')).toHaveValue('serving');
+  });
+
+  it('highlights duplicate numbers live and disables submit', async () => {
+    render(<MatchSetupForm teamId="t1" submitLabel="Create match" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    await screen.findByText('#7 Name a');
+    expect(screen.queryByText(/Duplicate #/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Number for Name b'), { target: { value: '7' } });
+    expect(screen.getAllByText('Duplicate #7')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Create match' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Include Name b'));
+    expect(screen.queryByText(/Duplicate #/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create match' })).toBeEnabled();
+  });
+
   it('defaults the date to the local calendar date', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

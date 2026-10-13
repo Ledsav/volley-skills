@@ -3,8 +3,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { TeamCalendarTab } from './TeamCalendarTab';
 import * as calendarApi from './calendarApi';
+import * as matchesApi from '../matches/matchesApi';
 
 vi.mock('./calendarApi');
+vi.mock('../matches/matchesApi');
 vi.mock('./AssignTrainingDialog', () => ({
   AssignTrainingDialog: ({ onSaved }: { onSaved: () => void }) => <button onClick={onSaved}>assign-stub</button>,
 }));
@@ -29,6 +31,9 @@ describe('TeamCalendarTab', () => {
     vi.clearAllMocks();
     vi.setSystemTime(new Date('2026-09-15T12:00:00Z'));
     vi.mocked(calendarApi.listCalendarSessions).mockResolvedValue([session]);
+    vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([
+      { id: 'm1', date: '2026-09-12', opponent: 'Rivals', status: 'finished', result: { setsUs: 3, setsThem: 1, sets: [] } } as never,
+    ]);
   });
 
   afterEach(() => {
@@ -128,6 +133,20 @@ describe('TeamCalendarTab', () => {
     fireEvent.click(screen.getByText('Yes, remove'));
 
     await waitFor(() => expect(calendarApi.deleteCalendarSession).toHaveBeenCalledWith('team-1', 's-1'));
+  });
+
+  it('shows matches in the month as links to the match page', async () => {
+    render(<MemoryRouter><TeamCalendarTab teamId="team-1" /></MemoryRouter>);
+    const link = await screen.findByRole('link', { name: 'vs Rivals 3–1' });
+    expect(link).toHaveAttribute('href', '/teams/team-1/matches/m1');
+    expect(matchesApi.listMatchesInRange).toHaveBeenCalledWith('team-1', '2026-09-01', '2026-09-30');
+  });
+
+  it('offers adding a match on a day', async () => {
+    const onNewMatch = vi.fn();
+    render(<MemoryRouter><TeamCalendarTab teamId="team-1" onNewMatch={onNewMatch} /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Add match on 2026-09-15' }));
+    expect(onNewMatch).toHaveBeenCalledWith('2026-09-15');
   });
 
   describe('on a phone-width screen', () => {

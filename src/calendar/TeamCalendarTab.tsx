@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trophy, X } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useMediaQuery } from '../components/useMediaQuery';
+import { listMatchesInRange } from '../matches/matchesApi';
+import type { Match } from '../types/match';
 import type { CalendarSession } from '../types/calendarSession';
 import { AssignTrainingDialog } from './AssignTrainingDialog';
 import { deleteCalendarSession, listCalendarSessions } from './calendarApi';
@@ -29,6 +31,9 @@ interface ViewProps {
   sessionsByDate: SessionsByDate;
   onAdd: (date: string) => void;
   onRemove: (session: CalendarSession) => void;
+  teamId: string;
+  matchesByDate: Record<string, Match[]>;
+  onNewMatch?: (date: string) => void;
 }
 
 /** Today if it falls in the viewed month, otherwise the month's first day. */
@@ -42,11 +47,29 @@ function sessionLabel(session: CalendarSession): string {
   return `${session.trainingBusinessId} · ${session.trainingName}`;
 }
 
-export function TeamCalendarTab({ teamId }: { teamId: string }) {
+function matchLabel(m: Match): string {
+  return m.status === 'setup' ? `vs ${m.opponent}` : `vs ${m.opponent} ${m.result.setsUs}–${m.result.setsThem}`;
+}
+
+function MatchChip({ teamId, match }: { teamId: string; match: Match }) {
+  return (
+    <Link
+      to={`/teams/${teamId}/matches/${match.id}`}
+      className="flex items-center gap-1 truncate rounded-sm bg-orange/15 px-1.5 py-0.5 text-xs font-medium text-orange-strong hover:underline"
+      title={matchLabel(match)}
+    >
+      <Trophy size={11} aria-hidden="true" />
+      <span className="truncate">{matchLabel(match)}</span>
+    </Link>
+  );
+}
+
+export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewMatch?: (date: string) => void }) {
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selectedDate, setSelectedDate] = useState(() => defaultSelection(view.year, view.month));
   const [sessions, setSessions] = useState<CalendarSession[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [assignDate, setAssignDate] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarSession | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -55,7 +78,12 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
 
   const load = useCallback(async () => {
     const { start, end } = monthRange(view.year, view.month);
-    setSessions(await listCalendarSessions(teamId, start, end));
+    const [sessionList, matchList] = await Promise.all([
+      listCalendarSessions(teamId, start, end),
+      listMatchesInRange(teamId, start, end).catch(() => [] as Match[]),
+    ]);
+    setSessions(sessionList);
+    setMatches(matchList);
   }, [teamId, view]);
 
   useEffect(() => {
@@ -67,6 +95,11 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
   const todayStr = todayIso();
   const sessionsByDate = sessions.reduce<SessionsByDate>((acc, session) => {
     (acc[session.date] ??= []).push(session);
+    return acc;
+  }, {});
+
+  const matchesByDate = matches.reduce<Record<string, Match[]>>((acc, m) => {
+    (acc[m.date] ??= []).push(m);
     return acc;
   }, {});
 
@@ -92,6 +125,9 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
     grid,
     todayStr,
     sessionsByDate,
+    teamId,
+    matchesByDate,
+    onNewMatch,
     onAdd: setAssignDate,
     onRemove: (session) => {
       setDeleteError(null);
@@ -159,7 +195,7 @@ export function TeamCalendarTab({ teamId }: { teamId: string }) {
   );
 }
 
-function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove }: ViewProps) {
+function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, teamId, matchesByDate, onNewMatch }: ViewProps) {
   return (
     <div className="grid grid-cols-7 gap-px border border-border bg-border text-sm">
       {WEEKDAYS.map((d) => (
@@ -194,6 +230,9 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove }: V
                     Number(cell.date.slice(-2))
                   )}
                 </span>
+                {(matchesByDate[cell.date] ?? []).map((m) => (
+                  <MatchChip key={m.id} teamId={teamId} match={m} />
+                ))}
                 <ul className="mt-1 space-y-1">
                   {(sessionsByDate[cell.date] ?? []).map((session) => (
                     <li key={session.id} className="flex items-center gap-1.5 rounded-sm bg-blue/10 py-0.5 pl-1.5 pr-1 text-xs">
@@ -224,6 +263,16 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove }: V
                   <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
                   <span>Add</span>
                 </button>
+                {onNewMatch && (
+                  <button
+                    type="button"
+                    onClick={() => onNewMatch(cell.date)}
+                    aria-label={`Add match on ${cell.date}`}
+                    className="flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate/50 hover:bg-orange/10 hover:text-orange-strong group-hover:text-orange-strong"
+                  >
+                    <Trophy size={12} aria-hidden="true" /> Match
+                  </button>
+                )}
               </>
             ) : (
               <span aria-hidden="true" className="block w-full text-right text-xs tabular-nums text-slate">
@@ -248,10 +297,14 @@ function MobileMonthView({
   sessionsByDate,
   onAdd,
   onRemove,
+  teamId,
+  matchesByDate,
+  onNewMatch,
   selectedDate,
   onSelect,
 }: ViewProps & { selectedDate: string; onSelect: (date: string) => void }) {
   const selectedSessions = sessionsByDate[selectedDate] ?? [];
+  const selectedMatches = matchesByDate[selectedDate] ?? [];
 
   return (
     <div>
@@ -274,6 +327,9 @@ function MobileMonthView({
               );
             }
             const count = sessionsByDate[cell.date]?.length ?? 0;
+            const matchCount = matchesByDate[cell.date]?.length ?? 0;
+            const sessionDots = Math.min(count, MAX_DOTS);
+            const matchDots = Math.min(matchCount, MAX_DOTS - sessionDots);
             const isToday = cell.date === todayStr;
             const isSelected = cell.date === selectedDate;
             const label = `${isToday ? 'Today, ' : ''}${formatDayLabel(cell.date)}${
@@ -300,8 +356,11 @@ function MobileMonthView({
                   {day}
                 </span>
                 <span className="flex h-1.5 items-center gap-0.5" aria-hidden="true">
-                  {Array.from({ length: Math.min(count, MAX_DOTS) }, (_, i) => (
+                  {Array.from({ length: sessionDots }, (_, i) => (
                     <span key={i} className="h-1.5 w-1.5 rounded-full bg-blue" />
+                  ))}
+                  {Array.from({ length: matchDots }, (_, i) => (
+                    <span key={`m${i}`} className="h-1.5 w-1.5 rounded-full bg-orange" />
                   ))}
                 </span>
               </button>
@@ -313,11 +372,25 @@ function MobileMonthView({
       <section aria-label={`Trainings on ${formatDayLabel(selectedDate)}`} className="mt-4">
         <div className="mb-2 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-ink">{formatDayLabel(selectedDate)}</h3>
-          <Button variant="secondary" size="sm" onClick={() => onAdd(selectedDate)} aria-label={`Add training on ${selectedDate}`}>
-            <Plus size={16} strokeWidth={2.5} aria-hidden="true" className="mr-1" />
-            Add training
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => onAdd(selectedDate)} aria-label={`Add training on ${selectedDate}`}>
+              <Plus size={16} strokeWidth={2.5} aria-hidden="true" className="mr-1" />
+              Add training
+            </Button>
+            {onNewMatch && (
+              <Button variant="secondary" size="sm" onClick={() => onNewMatch(selectedDate)} aria-label={`Add match on ${selectedDate}`}>
+                <Trophy size={16} aria-hidden="true" className="mr-1" /> Match
+              </Button>
+            )}
+          </div>
         </div>
+        {selectedMatches.length > 0 && (
+          <div className="mb-2 space-y-1">
+            {selectedMatches.map((m) => (
+              <MatchChip key={m.id} teamId={teamId} match={m} />
+            ))}
+          </div>
+        )}
         {selectedSessions.length === 0 ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-slate">
             No trainings scheduled.

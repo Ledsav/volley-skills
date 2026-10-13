@@ -3,6 +3,10 @@
 // for the seeded team, so the Matches tab / report / scouting screen have data.
 //
 //   npm run seed:match              # against a running emulator (127.0.0.1:8080)
+//   node scripts/seed/seedMatch.mjs --team <teamId>
+//
+// Team: --team <id>, else the team created by seed.mjs, else the team with the
+// most players (e.g. after `npm run seed:import-snapshot`).
 //
 // Emulator-only. Replaces previously seeded demo matches (fixed ids).
 
@@ -12,6 +16,10 @@ const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
 process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+if (!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(process.env.FIRESTORE_EMULATOR_HOST)) {
+  console.error('Refusing to run: FIRESTORE_EMULATOR_HOST is not a local address.');
+  process.exit(1);
+}
 admin.initializeApp({ projectId: 'volley-skills' });
 const db = admin.firestore();
 
@@ -20,36 +28,69 @@ let seed = 42;
 const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
 const pick = (list) => list[Math.floor(rand() * list.length)];
 
-const teams = await db.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get();
-if (teams.empty) {
-  console.error('No seeded team found — run `npm run seed:emulator` first.');
-  process.exit(1);
+async function findTeam() {
+  const i = process.argv.indexOf('--team');
+  if (i > -1) {
+    const ref = db.collection('teams').doc(process.argv[i + 1]);
+    if (!(await ref.get()).exists) {
+      console.error(`Team ${process.argv[i + 1]} not found.`);
+      process.exit(1);
+    }
+    return ref;
+  }
+  const seeded = await db.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get();
+  if (!seeded.empty) return seeded.docs[0].ref;
+  let best = null;
+  for (const t of (await db.collection('teams').limit(50).get()).docs) {
+    const n = (await t.ref.collection('players').count().get()).data().count;
+    if (n > 0 && (!best || n > best.n)) best = { ref: t.ref, n };
+  }
+  if (!best) {
+    console.error('No team with players found — run `npm run seed:emulator` (or seed:import-snapshot) first.');
+    process.exit(1);
+  }
+  return best.ref;
 }
-const teamRef = teams.docs[0].ref;
+
+const teamRef = await findTeam();
+console.log(`Team ${teamRef.id}`);
 const players = (await teamRef.collection('players').orderBy('number').limit(30).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
 
 const byPos = (p) => players.filter((x) => x.positionCategory === p);
 const liberoPlayers = byPos('L');
 const isL = (p) => p.positionCategory === 'L';
 const field = players.filter((p) => !isL(p));
-const setter = byPos('S')[0] ?? field[0];
-const ordered = [setter, ...byPos('OH'), ...byPos('O'), ...byPos('MB'), ...field].filter(
-  (p, i, all) => p && all.findIndex((q) => q.id === p.id) === i,
-);
-const lineupPlayers = ordered.slice(0, 6);
+// A 5-1 when positions allow: P1 S, P2 OH, P3 MB, P4 O, P5 OH, P6 MB, falling
+// back to U / OH / any remaining field player per slot.
+const used = new Set();
+const slot = (...prefs) => {
+  const p = [...prefs.flatMap(byPos), ...field].find((x) => !used.has(x.id));
+  if (p) used.add(p.id);
+  return p;
+};
+const p1 = slot('S');
+const p2 = slot('OH');
+const p3 = slot('MB', 'U');
+const p4 = slot('O', 'U', 'OH');
+const p5 = slot('OH', 'U');
+const p6 = slot('MB', 'U');
+const setter = p1;
+const lineupPlayers = [p1, p2, p3, p4, p5, p6];
 const lineup = lineupPlayers.map((p) => p.id);
 // Match roster: at most 14 — lineup first, then the libero(s), then the rest by number.
+// Jersey numbers must be unique within a match roster.
+const rosterNumbers = new Set();
 const rosterPlayers = [
   ...lineupPlayers,
   ...liberoPlayers.slice(0, 2),
   ...players.filter((p) => !lineup.includes(p.id) && !isL(p)),
-].slice(0, 14);
+]
+  .filter((p) => !rosterNumbers.has(p.number) && rosterNumbers.add(p.number))
+  .slice(0, 14);
 const roster = rosterPlayers.map((p) => ({ playerId: p.id, number: p.number, name: p.fullName, positionCategory: p.positionCategory }));
 const rosterLiberos = rosterPlayers.filter(isL);
-const middles = rosterPlayers.filter((p) => p.positionCategory === 'MB').map((p) => p.id);
-const lineupMiddles = lineup.filter((id) => middles.includes(id));
-// No middle in the lineup: replace the P2 and P5 players so the libero shows up.
-const replaces = lineupMiddles.length ? middles : [lineup[1], lineup[4]];
+// The libero replaces the middle slots (P3 / P6), MB or not.
+const replaces = [lineup[2], lineup[5]];
 const liberos =
   rosterLiberos.length === 1
     ? [{ playerId: rosterLiberos[0].id, mode: 'always', replaces }]
@@ -62,6 +103,11 @@ const liberos =
 const liberoIds = new Set(liberos.map((l) => l.playerId));
 const format = { bestOf: 5, setPoints: 25, decidingSetPoints: 15, subsPerSet: 6, timeoutsPerSet: 2 };
 const ohIds = new Set(byPos('OH').map((p) => p.id));
+if (lineupPlayers.some((p) => !p)) {
+  console.error('Need at least 6 non-libero players for a lineup.');
+  process.exit(1);
+}
+console.log(`Lineup P1..P6: ${lineupPlayers.map((p) => p.positionCategory).join(' ')}; liberos: ${liberos.length} (${liberos.map((l) => l.mode).join('/') || 'none'})`);
 
 // Mirrors the engine's applyLibero: pick the libero for the serve state, then
 // replace the first back-row player (P5, P6, then P1 only when we are not serving).

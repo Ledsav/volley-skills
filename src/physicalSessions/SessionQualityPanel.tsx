@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
@@ -67,6 +67,8 @@ export function SessionQualityPanel({
   const [latestBodyMassKg, setLatestBodyMassKg] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Fields are persisted on every blur; skip the write when nothing changed.
+  const lastSaved = useRef(JSON.stringify(fields));
 
   useEffect(() => {
     if (testType !== 'strength') return;
@@ -77,6 +79,9 @@ export function SessionQualityPanel({
 
   function persist(next: PhysicalTestFields) {
     setFields(next);
+    const serialized = JSON.stringify(next);
+    if (serialized === lastSaved.current) return;
+    lastSaved.current = serialized;
     void saveEntryProgress(teamId, sessionId, playerId, testType, next as unknown as Record<string, unknown>);
   }
 

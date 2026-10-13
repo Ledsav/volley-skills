@@ -251,4 +251,34 @@ describe('SessionQualityPanel', () => {
       )
     );
   });
+
+  it('does not write again when a field is blurred without changes', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+    const saveSpy = vi.spyOn(testingSessionsApi, 'saveEntryProgress').mockResolvedValue(undefined);
+
+    render(
+      <SessionQualityPanel
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        playerName="Jane Doe"
+        testType="growth"
+        entry={null}
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onFinished={vi.fn()}
+      />
+    );
+
+    const height = screen.getByLabelText('Height (cm)');
+    fireEvent.blur(height);
+    expect(saveSpy).not.toHaveBeenCalled();
+
+    fireEvent.change(height, { target: { value: '160' } });
+    fireEvent.blur(height);
+    fireEvent.blur(height);
+    fireEvent.blur(screen.getByLabelText('Body mass (kg)'));
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
 });

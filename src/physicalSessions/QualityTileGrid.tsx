@@ -12,7 +12,6 @@ interface QualityTileGridProps {
   playerName: string;
   entriesByPlayerAndType: Map<string, TestingSessionEntry>;
   recordedByUid: string;
-  onEntryChanged: () => void;
 }
 
 // Soft-hyphen break points for words too long for a half-width phone tile;
@@ -34,7 +33,6 @@ export function QualityTileGrid({
   playerName,
   entriesByPlayerAndType,
   recordedByUid,
-  onEntryChanged,
 }: QualityTileGridProps) {
   const [openType, setOpenType] = useState<PhysicalTestType | null>(null);
 
@@ -81,14 +79,8 @@ export function QualityTileGrid({
           testType={openType}
           entry={entriesByPlayerAndType.get(buildEntryId(playerId, openType)) ?? null}
           recordedByUid={recordedByUid}
-          onClose={() => {
-            setOpenType(null);
-            onEntryChanged();
-          }}
-          onFinished={() => {
-            setOpenType(null);
-            onEntryChanged();
-          }}
+          onClose={() => setOpenType(null)}
+          onFinished={() => setOpenType(null)}
         />
       )}
     </div>

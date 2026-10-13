@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import type { RosterEntry } from '../../types/match';
+import { Fragment, useState } from 'react';
+import { GRADES, type RosterEntry, type Skill } from '../../types/match';
 import { fmtEff, fmtPct, playerLabel } from '../format';
+import { SKILL_LABELS } from '../skillGrades';
 import type { MatchState } from '../scoutEngine';
 import { computeStats, liveAlerts } from '../scoutStats';
 
 export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: Map<string, RosterEntry> }) {
   const [scope, setScope] = useState<'set' | 'match'>('set');
+  const [openId, setOpenId] = useState<string | null>(null);
   const stats = computeStats(state, scope === 'set' ? { set: state.set } : {});
   const alerts = liveAlerts(state);
   const rows = Object.values(stats.players).sort(
@@ -38,7 +40,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
             a.kind === 'playerErrors' ? (
               <p key={a.playerId}>⚠ {playerLabel(roster.get(a.playerId))} {roster.get(a.playerId)?.name}: {a.errors} errors this set</p>
             ) : (
-              <p key="run">⚠ Opponent run {a.run} — timeout?</p>
+              <p key="run">⚠ Opp run 0–{a.run} — timeout?</p>
             ),
           )}
         </div>
@@ -61,19 +63,61 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
               const entry = roster.get(p.playerId);
               const s = p.skills.S;
               const a = p.skills.A;
+              const r = p.skills.R;
+              const total = p.points + p.errors;
+              const open = openId === p.playerId;
               return (
-                <tr key={p.playerId} aria-label={`${playerLabel(entry)} ${entry?.name ?? ''}`} className="border-t border-border">
-                  <td className="py-1 pr-2 text-ink">{playerLabel(entry)} <span className="text-slate">{entry?.name}</span></td>
-                  <td className="px-2">{s ? `${s.attempts} · ${s.grades['#']}# ${s.grades['=']}=` : '—'}</td>
-                  <td className={`px-2 ${p.receptionPos !== null && p.receptionPos < 0.4 ? 'text-red' : ''}`}>{fmtPct(p.receptionPos)}</td>
-                  <td className={`px-2 ${p.attackEff !== null && p.attackEff < 0 ? 'text-red' : ''}`}>
-                    {a ? `${a.grades['#']}/${a.attempts} ${fmtEff(p.attackEff)}` : '—'}
-                  </td>
-                  <td className="px-2">{p.skills.B ? `${p.skills.B.grades['#']}#` : '—'}</td>
-                  <td className="px-2">
-                    <span className="text-green-strong">{p.points}</span> / <span className={p.errors >= 3 ? 'font-semibold text-red' : ''}>{p.errors}</span>
-                  </td>
-                </tr>
+                <Fragment key={p.playerId}>
+                  <tr aria-label={`${playerLabel(entry)} ${entry?.name ?? ''}`} className="border-t border-border">
+                    <td className="py-1 pr-2 text-ink">
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() => setOpenId(open ? null : p.playerId)}
+                        className="min-h-11 text-left"
+                      >
+                        {playerLabel(entry)} <span className="text-slate">{entry?.name}</span>
+                      </button>
+                    </td>
+                    <td className="px-2">{s ? `${s.attempts} · ${s.grades['#']}# ${s.grades['=']}=` : '—'}</td>
+                    <td className={`px-2 ${p.receptionPos !== null && p.receptionPos < 0.4 ? 'text-red' : ''}`}>
+                      {r ? `${r.attempts} · ${fmtPct(p.receptionPos)}` : '—'}
+                    </td>
+                    <td className={`px-2 ${p.attackEff !== null && p.attackEff < 0 ? 'text-red' : ''}`}>
+                      {a ? `${a.grades['#']}/${a.attempts} ${fmtEff(p.attackEff)}` : '—'}
+                    </td>
+                    <td className="px-2">{p.skills.B ? `${p.skills.B.grades['#']}#` : '—'}</td>
+                    <td className="px-2">
+                      <span className="text-green-strong">{p.points}</span> / <span className={p.errors >= 3 ? 'font-semibold text-red' : ''}>{p.errors}</span>
+                      <div aria-hidden="true" data-testid={`trend-${p.playerId}`} className="mt-1 flex h-2 w-20 overflow-hidden rounded-full bg-border">
+                        {total > 0 && (
+                          <>
+                            <div className="bg-green" style={{ width: `${(p.points / total) * 100}%` }} />
+                            <div className="bg-red" style={{ width: `${(p.errors / total) * 100}%` }} />
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {open && (
+                    <tr>
+                      <td colSpan={6} className="pb-2 pl-2 text-xs text-slate">
+                        <ul className="space-y-0.5">
+                          {(Object.keys(SKILL_LABELS) as Skill[]).map((k) => {
+                            const st = p.skills[k];
+                            if (!st) return null;
+                            const gs = GRADES.filter((g) => st.grades[g] > 0).map((g) => `${g} ${st.grades[g]}`);
+                            return (
+                              <li key={k}>
+                                {SKILL_LABELS[k]}: {st.attempts}{gs.length > 0 ? ` · ${gs.join(' ')}` : ''}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

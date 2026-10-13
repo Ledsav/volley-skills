@@ -20,8 +20,15 @@ describe('LiveStatsPanel', () => {
   it('shows alerts and per-player rows', () => {
     render(<LiveStatsPanel state={state} roster={rosterMap(roster)} />);
     expect(screen.getByRole('alert')).toHaveTextContent('#2 A: 3 errors this set');
-    expect(screen.getByRole('alert')).toHaveTextContent('Opponent run 3');
+    expect(screen.getByRole('alert')).toHaveTextContent('Opp run 0–3');
     expect(screen.getByRole('row', { name: /#2 A/ })).toHaveTextContent('0%');
+  });
+
+  it('expands a per-fundamental breakdown and shows trend bars', () => {
+    render(<LiveStatsPanel state={state} roster={rosterMap(roster)} />);
+    expect(screen.getByTestId('trend-a')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /#2 A/ }));
+    expect(screen.getByText(/Reception: 3/)).toHaveTextContent('= 3');
   });
 
   it('toggles scope', () => {

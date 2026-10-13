@@ -69,9 +69,10 @@ export function PrivacyPage() {
       <h2 className="mt-6 text-lg font-semibold">Text scouting (optional)</h2>
       <p className="mt-1 text-slate">
         If a coach enables text scouting, their typed match notes are sent to the AI provider they choose
-        in Settings (Groq by default, OpenRouter, or a model running on their own computer) to be turned
-        into scouting actions. Player names are replaced by jersey numbers on the device before sending;
-        only jersey numbers, playing roles, the score and the notes are sent. The provider key and drafts
+        in Settings (Groq by default, OpenRouter, another compatible service, or a model running on their
+        own computer — in which case nothing leaves it) to be turned into scouting actions. Player names
+        are replaced by jersey numbers on the device before sending; only jersey numbers, playing roles,
+        the set, score, serving side and rotation, and the notes are sent. The provider key and drafts
         are stored only on that device and removed on sign-out.
       </p>
 

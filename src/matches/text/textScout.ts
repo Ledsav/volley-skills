@@ -86,6 +86,7 @@ Grades (DataVolley): "#" perfect/point (ace, kill, stuff block, perfect pass), "
 A rally ends with a point. Add "point" only when the notes say who won it and no action already decides it (S#, A#, B# win; any "=", A/ or B/ lose).
 Point reasons (only for points not decided by our action): "oppError", "oppKill", "oppAce", "oppBlock", "unknown".
 Substitutions like "8 in for 9" -> subs [{"outNumber":9,"inNumber":8}]. Timeouts "TO us"/"TO them" -> timeouts [{"team":"us"}].
+Substitutions and timeouts that happen between rallies belong to the NEXT rally's entry (or an entry with no actions if none follows).
 Never invent players or actions. Anything you cannot map goes verbatim into "unparsed".
 Reply ONLY with JSON of this shape:
 {"rallies":[{"actions":[{"number":7,"skill":"S","grade":"#"}],"point":{"winner":"us","reason":"oppError"},"subs":[],"timeouts":[]}],"unparsed":[]}`;
@@ -110,9 +111,17 @@ export function buildMessages(text: string, players: PromptPlayer[], anchor: Anc
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isSide = (v: unknown): v is Side => v === 'us' || v === 'them';
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0;
+/** Models sometimes quote numbers ("7"); accept plain digit strings. */
+const toNum = (v: unknown): unknown => (typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v);
+const toSkill = (v: unknown): unknown => (typeof v === 'string' ? v.trim().toUpperCase() : v);
+
+export const MAX_RALLIES = 200;
+export const MAX_ACTIONS_PER_RALLY = 30;
+const TOO_LARGE = 'Reply too large.';
 
 export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { ok: false; error: string } {
   if (!isObj(raw) || !Array.isArray(raw.rallies)) return { ok: false, error: 'Missing "rallies".' };
+  if (raw.rallies.length > MAX_RALLIES) return { ok: false, error: TOO_LARGE };
   const rallies: ParsedRally[] = [];
   for (const r of raw.rallies) {
     if (!isObj(r)) return { ok: false, error: 'A rally is not an object.' };
@@ -120,12 +129,17 @@ export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { o
       if (r[key] !== undefined && r[key] !== null && !Array.isArray(r[key])) return { ok: false, error: `"${key}" must be an array.` };
     }
     if (r.point !== undefined && r.point !== null && !isObj(r.point)) return { ok: false, error: '"point" must be an object or null.' };
+    const rawActions = Array.isArray(r.actions) ? r.actions : [];
+    if (rawActions.length > MAX_ACTIONS_PER_RALLY) return { ok: false, error: TOO_LARGE };
     const actions: ParsedAction[] = [];
-    for (const a of Array.isArray(r.actions) ? r.actions : []) {
-      if (!isObj(a) || !isNum(a.number) || !SKILLS.includes(a.skill as Skill) || !GRADES.includes(a.grade as Grade)) {
+    for (const a of rawActions) {
+      if (!isObj(a)) return { ok: false, error: `Invalid action ${JSON.stringify(a)}.` };
+      const number = toNum(a.number);
+      const skill = toSkill(a.skill);
+      if (!isNum(number) || !SKILLS.includes(skill as Skill) || !GRADES.includes(a.grade as Grade)) {
         return { ok: false, error: `Invalid action ${JSON.stringify(a)}.` };
       }
-      actions.push({ number: a.number, skill: a.skill as Skill, grade: a.grade as Grade });
+      actions.push({ number, skill: skill as Skill, grade: a.grade as Grade });
     }
     let point: ParsedRally['point'] = null;
     if (isObj(r.point)) {
@@ -136,8 +150,10 @@ export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { o
     }
     const subs: ParsedRally['subs'] = [];
     for (const s of Array.isArray(r.subs) ? r.subs : []) {
-      if (!isObj(s) || !isNum(s.outNumber) || !isNum(s.inNumber)) return { ok: false, error: 'Invalid substitution.' };
-      subs.push({ outNumber: s.outNumber, inNumber: s.inNumber });
+      const outNumber = isObj(s) ? toNum(s.outNumber) : undefined;
+      const inNumber = isObj(s) ? toNum(s.inNumber) : undefined;
+      if (!isNum(outNumber) || !isNum(inNumber)) return { ok: false, error: 'Invalid substitution.' };
+      subs.push({ outNumber, inNumber });
     }
     const timeouts: ParsedRally['timeouts'] = [];
     for (const t of Array.isArray(r.timeouts) ? r.timeouts : []) {

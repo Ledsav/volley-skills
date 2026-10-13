@@ -31,6 +31,11 @@ describe('aiSettings', () => {
     expect(readAiSettings()).toEqual(DEFAULT_AI_SETTINGS);
   });
 
+  it('ignores inherited object keys as a provider', () => {
+    localStorage.setItem('vcb.ai.settings', JSON.stringify({ provider: 'constructor', baseUrl: 'x', apiKey: 'k', model: 'm' }));
+    expect(readAiSettings()).toEqual(DEFAULT_AI_SETTINGS);
+  });
+
   it('needs a key unless the provider is local', () => {
     expect(isAiConfigured({ ...DEFAULT_AI_SETTINGS, apiKey: '' })).toBe(false);
     expect(isAiConfigured({ ...DEFAULT_AI_SETTINGS, apiKey: 'k' })).toBe(true);

@@ -6,8 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { authValue, superAdminAccess } from '../test/authValue';
 
 const mockSignOut = vi.fn();
-vi.mock('firebase/auth', () => ({ signOut: (...args: unknown[]) => mockSignOut(...args) }));
-vi.mock('../firebase/config', () => ({ auth: {} }));
+vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../auth/AuthContext');
 vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(0) }));
 
@@ -44,10 +43,21 @@ describe('AppShell', () => {
     expect(screen.queryByText('Access')).not.toBeInTheDocument();
   });
 
-  it('signs out and redirects to /login when a sign-out button is clicked', async () => {
-    mockSignOut.mockResolvedValue(undefined);
+  it('signs out and clears local data when a sign-out button is clicked', async () => {
+    mockSignOut.mockResolvedValue('signedOut');
     renderShell();
     fireEvent.click(screen.getAllByText('Sign out')[0]);
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('asks before signing out when scouting actions have not synced', async () => {
+    mockSignOut.mockResolvedValueOnce('unsynced').mockResolvedValueOnce('signedOut');
+    renderShell();
+    fireEvent.click(screen.getAllByText('Sign out')[0]);
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent("Some scouting actions haven't synced yet. Sign out anyway? They will be lost.");
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out anyway' }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true }));
   });
 });

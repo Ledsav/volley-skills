@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { BookOpen, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Users, type LucideIcon } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
+import { useSignOut } from '../auth/useSignOut';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { countUnreviewedInterestSignups } from '../interest/interestApi';
 import { SIGNUPS_CHANGED_EVENT } from '../interest/signupEvents';
@@ -24,8 +23,8 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
   const { access } = useAuth();
+  const { signOut, unsyncedDialog } = useSignOut();
   const [pendingSignups, setPendingSignups] = useState(0);
 
   useEffect(() => {
@@ -46,11 +45,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       badge: pendingSignups > 0 ? pendingSignups : undefined,
     },
   ].filter((item) => item.show);
-
-  async function handleSignOut() {
-    await signOut(auth);
-    navigate('/login', { replace: true });
-  }
 
   return (
     <div className="min-h-screen bg-bg lg:flex">
@@ -73,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <ThemeToggle className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white" />
         <button
-          onClick={() => void handleSignOut()}
+          onClick={signOut}
           className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
         >
           <LogOut size={20} strokeWidth={1.5} />
@@ -107,6 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="sr-only sm:not-sr-only">Settings</span>
         </NavLink>
       </nav>
+      {unsyncedDialog}
     </div>
   );
 }

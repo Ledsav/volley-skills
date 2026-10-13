@@ -1,16 +1,10 @@
-import { signOut } from 'firebase/auth';
-import { Link, useNavigate } from 'react-router-dom';
-import { auth } from '../firebase/config';
+import { Link } from 'react-router-dom';
+import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 export function SettingsPage() {
-  const navigate = useNavigate();
-
-  async function handleSignOut() {
-    await signOut(auth);
-    navigate('/login', { replace: true });
-  }
+  const { signOut, unsyncedDialog } = useSignOut();
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
@@ -28,13 +22,13 @@ export function SettingsPage() {
         <section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-medium text-ink">Account</p>
-            <p className="text-sm text-slate">Sign out of Volley Skills on this device.</p>
+            <p className="text-sm text-slate">Sign out of Volley Skills and clear its data from this device.</p>
           </div>
           <Button
             variant="secondary"
             size="sm"
             className="w-full sm:w-auto"
-            onClick={() => void handleSignOut()}
+            onClick={signOut}
           >
             Sign out
           </Button>
@@ -44,6 +38,7 @@ export function SettingsPage() {
           Privacy policy
         </Link>
       </div>
+      {unsyncedDialog}
     </div>
   );
 }

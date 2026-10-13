@@ -25,6 +25,7 @@ import { CourtGrid } from './CourtGrid';
 import { EditEventDialog } from './EditEventDialog';
 import { RallyBar } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
+import { LiveStatsPanel } from './LiveStatsPanel';
 import { SetStartDialog } from './SetStartDialog';
 import { SubDialog } from './SubDialog';
 import { TimelineDrawer } from './TimelineDrawer';
@@ -240,7 +241,7 @@ export function ScoutPage() {
       }}
     />
   );
-  const live = <p className="p-4 text-sm text-slate">Live stats</p>; // replaced in Task 14
+  const live = <LiveStatsPanel state={state} roster={roster} />;
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">

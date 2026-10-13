@@ -7,6 +7,23 @@ import { ScoutPage } from './ScoutPage';
 
 vi.mock('../matchesApi');
 vi.mock('../../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../text/TextScoutPanel', () => ({
+  TextScoutPanel: ({ onMerge, anchorId }: { onMerge: (p: unknown[], o: number[]) => void; anchorId: string | null }) => (
+    <button
+      onClick={() =>
+        onMerge(
+          [
+            { type: 'action', playerId: 's', skill: 'S', grade: '#' },
+            { type: 'point', winner: 'them', reason: null },
+          ],
+          anchorId ? [1.25, 1.5] : [2, 3],
+        )
+      }
+    >
+      merge-stub
+    </button>
+  ),
+}));
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ firebaseUser: { uid: 'u1' } }) }));
 
 const roster = [
@@ -399,6 +416,24 @@ describe('ScoutPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
     expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']);
     expect(screen.queryByText('Inserting into the timeline')).not.toBeInTheDocument();
+  });
+
+  it('merges text events as one batch with source text and a shared chunkId', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'merge-stub' }));
+    const calls = vi.mocked(api.addEvent).mock.calls.map((c) => c[2]);
+    expect(calls).toHaveLength(2);
+    expect(calls.every((e) => e.source === 'text')).toBe(true);
+    expect(new Set(calls.map((e) => e.chunkId)).size).toBe(1);
+    expect(calls[0].chunkId).not.toBeNull();
+    expect(calls.map((e) => e.order)).toEqual([2, 3]);
+  });
+
+  it('does not auto-select while the text panel is open', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    expect(screen.queryByRole('region', { name: /actions for/i })).toBeNull();
   });
 
   describe('auto-select', () => {

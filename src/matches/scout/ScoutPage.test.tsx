@@ -84,6 +84,46 @@ describe('ScoutPage', () => {
     expect(screen.getByRole('button', { name: 'Start set 2' })).toBeInTheDocument();
   });
 
+  it('between sets, nothing can be recorded but Undo set end still works', async () => {
+    const corr: MatchEvent = { id: 'c1', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    const end: MatchEvent = { id: 'x1', order: 3, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+    renderPage([setStart, corr, end]);
+    const undoEnd = await screen.findByRole('button', { name: 'Undo set end' });
+    expect(screen.queryByRole('button', { name: 'Point us' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Point them' })).not.toBeInTheDocument();
+    expect(screen.getByText('Start the set to record actions.')).toBeInTheDocument();
+    const tile = screen.getByRole('button', { name: '#7 Ana' });
+    expect(tile).toBeDisabled();
+    fireEvent.click(tile);
+    expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Correct score' })).toBeDisabled();
+    expect(api.addEvent).not.toHaveBeenCalled();
+    fireEvent.click(undoEnd);
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['x1']);
+  });
+
+  it('closes an open action sheet when the set ends', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+    expect(screen.getByRole('button', { name: 'Reception' })).toBeInTheDocument();
+    const corr: MatchEvent = { id: 'c1', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    const end: MatchEvent = { id: 'x1', order: 3, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+    act(() => pushEvents([setStart, corr, end]));
+    expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
+  });
+
+  it('before set 1, with the dialog closed, nothing can be recorded', async () => {
+    renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Back' }));
+    expect(screen.queryByRole('button', { name: 'Point us' })).not.toBeInTheDocument();
+    expect(screen.getByText('Start the set to record actions.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start set 1' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '#7 Ana' }));
+    expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
+    expect(api.addEvent).not.toHaveBeenCalled();
+  });
+
   it("defaults the next set's first serve to the other side of the previous set's first serve", async () => {
     // Set 1: we served first; the last rally left them serving. Set 2 should default to them.
     const start: MatchEvent = { ...setStart, serving: 'us' } as MatchEvent;

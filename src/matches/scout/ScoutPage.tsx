@@ -106,6 +106,16 @@ export function ScoutPage() {
     setSetDialogOpen(true);
   }, [awaitingFirstSet]);
 
+  // A set ending (or not yet started) closes anything that would record into it.
+  const inSet = state?.inSet ?? false;
+  useEffect(() => {
+    if (inSet) return;
+    setSelectedId(null);
+    setSubOutId(null);
+    setReasonPrompt(null);
+    setShowCorrection(false);
+  }, [inSet]);
+
   // Keep the list/calendar result current without replaying there.
   useEffect(() => {
     if (!match || !state || locked) return;
@@ -250,27 +260,32 @@ export function ScoutPage() {
         activeLiberoId={state.activeLiberoId}
         selectedId={selectedId}
         form={(id) => playerForm(state, id)}
+        disabled={!state.inSet}
         onSelect={setSelectedId}
         onLongPress={(id) => {
           if (!liberoIds.has(id)) setSubOutId(id);
         }}
       />
-      <BenchStrip players={bench} onSelect={setSelectedId} />
-      <RallyBar
-        format={match.format}
-        timeoutsUsed={state.timeoutsUsed}
-        reasonPrompt={reasonPrompt}
-        onPoint={(winner) => {
-          const id = record({ type: 'point', winner, reason: null });
-          if (id) setReasonPrompt({ eventId: id, winner });
-        }}
-        onReason={(eventId, reason) => {
-          void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError('Could not save the point reason.'));
-          setReasonPrompt(null);
-        }}
-        onTimeout={(team) => record({ type: 'timeout', team })}
-      />
-      {selected && (
+      <BenchStrip players={bench} onSelect={setSelectedId} disabled={!state.inSet} />
+      {state.inSet ? (
+        <RallyBar
+          format={match.format}
+          timeoutsUsed={state.timeoutsUsed}
+          reasonPrompt={reasonPrompt}
+          onPoint={(winner) => {
+            const id = record({ type: 'point', winner, reason: null });
+            if (id) setReasonPrompt({ eventId: id, winner });
+          }}
+          onReason={(eventId, reason) => {
+            void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError('Could not save the point reason.'));
+            setReasonPrompt(null);
+          }}
+          onTimeout={(team) => record({ type: 'timeout', team })}
+        />
+      ) : (
+        <p className="py-2 text-center text-sm text-slate">Start the set to record actions.</p>
+      )}
+      {state.inSet && selected && (
         <ActionSheet
           key={selected.playerId}
           player={selected}
@@ -320,6 +335,7 @@ export function ScoutPage() {
         format={match.format}
         opponent={match.opponent}
         pending={pending}
+        disabled={!state.inSet}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>
           record(
@@ -373,7 +389,7 @@ export function ScoutPage() {
             <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
             <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
           </nav>
-          <main className={`flex-1 p-3 ${phoneTab === 'court' && selected ? 'pb-80' : ''}`}>
+          <main className={`flex-1 p-3 ${phoneTab === 'court' && state.inSet && selected ? 'pb-80' : ''}`}>
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}
@@ -408,7 +424,7 @@ export function ScoutPage() {
         />
       )}
 
-      {subOutId && roster.get(subOutId) && (
+      {state.inSet && subOutId && roster.get(subOutId) && (
         <SubDialog
           outPlayer={roster.get(subOutId)!}
           candidates={match.roster.filter((r) => !state.lineup.includes(r.playerId) && !liberoIds.has(r.playerId))}
@@ -420,7 +436,7 @@ export function ScoutPage() {
         />
       )}
 
-      {showCorrection && (
+      {state.inSet && showCorrection && (
         <CorrectionDialog
           score={state.score}
           serving={state.serving}

@@ -9,6 +9,8 @@ interface ScoutHeaderProps {
   pending: number;
   onEditScore: () => void;
   onRotate: (delta: 1 | -1) => void;
+  /** No set in play: the engine ignores corrections, so they are unavailable. */
+  disabled?: boolean;
 }
 
 function Dots({ used, total }: { used: number; total: number }) {
@@ -21,11 +23,11 @@ function Dots({ used, total }: { used: number; total: number }) {
   );
 }
 
-export function ScoutHeader({ state, format, opponent, pending, onEditScore, onRotate }: ScoutHeaderProps) {
+export function ScoutHeader({ state, format, opponent, pending, onEditScore, onRotate, disabled = false }: ScoutHeaderProps) {
   return (
     <header className="bg-navy px-3 py-2 text-white sm:px-4">
       <div className="flex items-center justify-between gap-2">
-        <button type="button" onClick={onEditScore} aria-label="Correct score" className="text-left">
+        <button type="button" onClick={onEditScore} aria-label="Correct score" disabled={disabled} className="text-left">
           <span className="block text-3xl font-bold tabular-nums leading-tight">
             {state.score.us}–{state.score.them}
           </span>
@@ -38,11 +40,11 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
             {state.serving === 'us' ? '● We serve' : '○ We receive'}
           </span>
           <span className="flex items-center gap-1">
-            <button type="button" aria-label="Previous rotation" onClick={() => onRotate(-1)} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10">
+            <button type="button" aria-label="Previous rotation" onClick={() => onRotate(-1)} disabled={disabled} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10 disabled:opacity-40">
               <ChevronLeft size={16} aria-hidden="true" />
             </button>
             <span className="tabular-nums">Rot {state.rotation}</span>
-            <button type="button" aria-label="Next rotation" onClick={() => onRotate(1)} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10">
+            <button type="button" aria-label="Next rotation" onClick={() => onRotate(1)} disabled={disabled} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10 disabled:opacity-40">
               <ChevronRight size={16} aria-hidden="true" />
             </button>
           </span>

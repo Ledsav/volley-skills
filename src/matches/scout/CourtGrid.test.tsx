@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { LiberoConfig } from '../../types/match';
 import { rosterMap } from '../format';
@@ -31,5 +31,28 @@ describe('CourtGrid', () => {
   ] as const)('labels a %s libero tile "%s"', (mode, label) => {
     const tile = renderGrid([{ playerId: 'lib', mode, replaces: ['mb2'] }]);
     expect(within(tile).getByText(label)).toBeInTheDocument();
+  });
+
+  it('is inert when disabled: tiles are disabled and nothing is selected or long-pressed', () => {
+    const onSelect = vi.fn();
+    const onLongPress = vi.fn();
+    render(
+      <CourtGrid
+        court={court}
+        roster={rosterMap(ROSTER)}
+        liberos={[]}
+        activeLiberoId={null}
+        selectedId={null}
+        form={() => null}
+        onSelect={onSelect}
+        onLongPress={onLongPress}
+        disabled
+      />,
+    );
+    const tile = screen.getAllByRole('button')[0];
+    expect(tile).toBeDisabled();
+    fireEvent.click(tile);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onLongPress).not.toHaveBeenCalled();
   });
 });

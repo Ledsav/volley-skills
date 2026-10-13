@@ -1,6 +1,6 @@
 import type { RosterEntry } from '../../types/match';
 
-export function BenchStrip({ players, onSelect }: { players: RosterEntry[]; onSelect: (playerId: string) => void }) {
+export function BenchStrip({ players, onSelect, disabled = false }: { players: RosterEntry[]; onSelect: (playerId: string) => void; disabled?: boolean }) {
   if (players.length === 0) return null;
   return (
     <div className="flex items-center gap-2 overflow-x-auto py-1" aria-label="Bench">
@@ -10,8 +10,9 @@ export function BenchStrip({ players, onSelect }: { players: RosterEntry[]; onSe
           key={p.playerId}
           type="button"
           aria-label={`#${p.number} ${p.name}`}
+          disabled={disabled}
           onClick={() => onSelect(p.playerId)}
-          className="min-h-11 min-w-11 shrink-0 rounded-md border border-dashed border-border bg-surface px-2 text-sm tabular-nums text-ink"
+          className="min-h-11 min-w-11 shrink-0 rounded-md border border-dashed border-border bg-surface px-2 text-sm tabular-nums text-ink disabled:opacity-60"
         >
           {p.number}
         </button>

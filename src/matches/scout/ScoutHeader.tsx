@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight, CloudOff, Check } from 'lucide-react';
 import type { MatchFormat } from '../../types/match';
 import type { MatchState } from '../scoutEngine';
+import { keyLabel } from './hotkeys';
+import { Kbd } from './Kbd';
 
 interface ScoutHeaderProps {
   state: MatchState;
@@ -48,11 +50,12 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
               aria-label="Auto-select next player"
               aria-pressed={autoSelect}
               onClick={onToggleAutoSelect}
-              className={`mr-1 flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 font-semibold ${
+              className={`mr-1 flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 font-semibold ${
                 autoSelect ? 'bg-white text-navy' : 'bg-white/10 text-white/80'
               }`}
             >
               Auto
+              <Kbd>{keyLabel('auto')}</Kbd>
             </button>
             <button type="button" aria-label="Previous rotation" onClick={() => onRotate(-1)} disabled={disabled} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10 disabled:opacity-40">
               <ChevronLeft size={16} aria-hidden="true" />

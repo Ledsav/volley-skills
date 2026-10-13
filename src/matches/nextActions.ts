@@ -107,9 +107,10 @@ const PREDICT_POSITION_RANK: Record<Skill, PositionCategory[]> = {
  * - Ties (and no data at all): position default for the skill, then the lowest
  *   jersey number.
  * - Liberos are never candidates for S, A or B.
+ * - Position = `state.roles` (per-set roles) when given, else the roster role.
  */
 export function predictPlayer(args: {
-  state: Pick<MatchState, 'court' | 'serving' | 'actions'>;
+  state: Pick<MatchState, 'court' | 'serving' | 'actions'> & Partial<Pick<MatchState, 'roles'>>;
   skill: Skill;
   roster: ReadonlyMap<string, RosterEntry>;
   liberos: LiberoConfig[];
@@ -136,7 +137,7 @@ export function predictPlayer(args: {
 
   const ranks = PREDICT_POSITION_RANK[skill];
   const positionRank = (id: string) => {
-    const position = liberoIds.has(id) ? 'L' : roster.get(id)!.positionCategory;
+    const position = liberoIds.has(id) ? 'L' : (state.roles?.[id] ?? roster.get(id)!.positionCategory);
     const i = ranks.indexOf(position);
     return i >= 0 ? i : ranks.length;
   };

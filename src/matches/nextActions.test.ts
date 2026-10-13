@@ -117,6 +117,18 @@ describe('predictPlayer', () => {
     expect(predict('D', { court: ['s', 'oh1', 'mb1', 'o', 'oh2', 'mb2'] })).toBe('oh1');
   });
 
+  it('uses per-set roles from state.roles over the roster role', () => {
+    // Olga (roster O) is the setter this set.
+    const p = predictPlayer({
+      state: { court, serving: 'them', actions: [], roles: { o: 'S', s: 'O' } },
+      skill: 'E',
+      roster,
+      liberos,
+      usage: noUsage,
+    });
+    expect(p).toBe('o');
+  });
+
   it('returns null when nobody on court can perform the skill', () => {
     expect(predict('A', { court: ['lib'] })).toBeNull();
     expect(predict('R', { court: [] })).toBeNull();

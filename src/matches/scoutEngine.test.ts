@@ -149,3 +149,40 @@ describe('replay — sets and corrections', () => {
     expect(sameResult(a, { ...a, sets: [] })).toBe(false);
   });
 });
+
+describe('replay — per-set roles', () => {
+  beforeEach(() => {
+    n = 0;
+  });
+
+  it('falls back to roster roles when setStart has no roles', () => {
+    const s = replay(match, [start('us')]);
+    expect(s.roles.s).toBe('S');
+    expect(s.roles.oh1).toBe('OH');
+    expect(s.rotation).toBe(1);
+  });
+
+  it('setStart.roles override the roster for rotation and state.roles', () => {
+    // Olga (roster O) sets this set from P4; Sofía plays opposite.
+    const e = ev({ type: 'setStart', set: 1, lineup: LINEUP, serving: 'us', roles: { o: 'S', s: 'O' } });
+    const s = replay(match, [e]);
+    expect(s.rotation).toBe(4);
+    expect(s.roles.o).toBe('S');
+    expect(s.roles.s).toBe('O');
+    expect(s.roles.mb1).toBe('MB');
+  });
+
+  it('roles reset to the roster at the next set start', () => {
+    const e = ev({ type: 'setStart', set: 1, lineup: LINEUP, serving: 'us', roles: { o: 'S', s: 'O' } });
+    const s = replay(match, [e, correct({ score: { us: 25, them: 10 } }), setEnd(1), start('us', 2)]);
+    expect(s.roles.s).toBe('S');
+    expect(s.rotation).toBe(1);
+  });
+
+  it('a sub inherits the outgoing player role for the rest of the set', () => {
+    const s = replay(match, [start('us'), ev({ type: 'sub', outPlayerId: 'oh1', inPlayerId: 'bench' })]);
+    expect(s.roles.bench).toBe('OH');
+    const t = replay(match, [start('us'), ev({ type: 'sub', outPlayerId: 's', inPlayerId: 'bench' })]);
+    expect(t.roles.bench).toBe('S');
+  });
+});

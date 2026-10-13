@@ -1,34 +1,22 @@
-// Brand colours are fixed hex, not theme tokens: the mark must not shift with dark mode.
-const V_NAVY = '#12295A';
-const BALL_YELLOW = '#F5C518';
+// Brand artwork is fixed SVG (src/assets/brand, guide in docs/brand/README.md),
+// not theme tokens: the mark must not shift with dark mode.
+import lockupOnNavy from '../assets/brand/volley-skills-lockup-on-navy.svg';
+import mark from '../assets/brand/volley-skills-mark.svg';
 
-/** The badge on its own: a slanted V catching the ball. */
+/** The Spin Ball on its own, for light surfaces. Decorative — pair it with visible text. */
 export function LogoMark({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <rect x="4" y="4" width="92" height="92" rx="24" fill="white" />
-      <path d="M17 24 H37 L50 62 L68 24 H88 L60 82 H41 Z" fill={V_NAVY} />
-      <circle cx="57" cy="24" r="9" fill={BALL_YELLOW} />
-    </svg>
-  );
+  return <img src={mark} alt="" aria-hidden="true" className={className} />;
 }
 
 /**
- * Full lockup for blue/navy surfaces: the badge stands in for the V of
- * "VOLLEY", with "SKILLS" stacked beneath. Sized entirely in em, so set the
- * size with a text-size class on `className`.
+ * Full lockup for blue/navy surfaces: the Spin Ball with "VOLLEY / SKILLS"
+ * stacked beside it. Sized in em, so set the size with a text-size class on
+ * `className`.
  */
 export function Logo({ className = '' }: { className?: string }) {
   return (
-    <span role="img" aria-label="Volley Skills" className={`inline-flex items-start gap-[0.06em] ${className}`}>
-      <LogoMark className="h-[1.52em] w-[1.52em] shrink-0" />
-      <span
-        aria-hidden="true"
-        className="flex flex-col font-display font-black uppercase italic leading-[0.8] tracking-[-0.03em]"
-      >
-        <span className="text-white">olley</span>
-        <span style={{ color: BALL_YELLOW }}>Skills</span>
-      </span>
+    <span className={`inline-flex ${className}`}>
+      <img src={lockupOnNavy} alt="Volley Skills" className="h-[1.6em] w-auto" />
     </span>
   );
 }

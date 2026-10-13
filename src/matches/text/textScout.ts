@@ -1,5 +1,5 @@
 import { GRADES, SKILLS, type Grade, type MatchEventPayload, type PointReason, type RosterEntry, type Side, type Skill } from '../../types/match';
-import { POINT_REASONS, rallyOutcome } from '../skillGrades';
+import { POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
 import type { ChatMessage } from './aiClient';
 
 export interface ParsedAction {
@@ -36,7 +36,7 @@ export interface PromptPlayer {
 
 export interface BatchIssue {
   rally: number;
-  kind: 'unknownNumber' | 'noWinner' | 'conflictingWinner';
+  kind: 'unknownNumber' | 'invalidGrade' | 'noWinner' | 'conflictingWinner';
   blocking: boolean;
   message: string;
 }
@@ -169,10 +169,15 @@ export function batchToPayloads(batch: ParsedBatch, roster: RosterEntry[]): { pa
     let decided: Side | null = null;
     for (const a of r.actions) {
       const playerId = byNumber.get(a.number);
+      const gradeOk = validGrades(a.skill).includes(a.grade);
+      if (!gradeOk) {
+        issues.push({ rally: i, kind: 'invalidGrade', blocking: true, message: `${SKILL_LABELS[a.skill]} has no grade "${a.grade}".` });
+      }
       if (!playerId) {
         unknown(i, a.number);
         continue;
       }
+      if (!gradeOk) continue;
       payloads.push({ type: 'action', playerId, skill: a.skill, grade: a.grade });
       decided = rallyOutcome(a.skill, a.grade) ?? decided;
     }

@@ -69,6 +69,12 @@ describe('batchToPayloads', () => {
   const batch = (rallies: ParsedBatch['rallies']): ParsedBatch => ({ rallies, unparsed: [] });
   const r = (over: Partial<ParsedBatch['rallies'][number]>) => ({ actions: [], point: null, subs: [], timeouts: [], ...over });
 
+  it('blocks and skips actions whose grade does not exist for the skill', () => {
+    const { payloads, issues } = batchToPayloads(batch([r({ actions: [{ number: 7, skill: 'S', grade: '!' }] })]), roster);
+    expect(payloads).toEqual([]);
+    expect(issues.find((x) => x.kind === 'invalidGrade')).toMatchObject({ rally: 0, blocking: true });
+  });
+
   it('maps actions, adds a point only when no action decides the rally', () => {
     const { payloads, issues } = batchToPayloads(
       batch([

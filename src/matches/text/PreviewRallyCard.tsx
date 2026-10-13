@@ -57,6 +57,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
               ))}
             </select>
             <select aria-label={`Rally ${n} action ${i + 1} grade`} className={SELECT} value={a.grade} onChange={(e) => setAction(i, { grade: e.target.value as Grade })}>
+              {!validGrades(a.skill).includes(a.grade) && <option value={a.grade}>{a.grade} ?</option>}
               {validGrades(a.skill).map((g) => (
                 <option key={g} value={g}>{g} {GRADE_LABELS[a.skill][g]}</option>
               ))}

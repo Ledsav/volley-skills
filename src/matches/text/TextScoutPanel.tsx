@@ -45,12 +45,12 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actual, setActual] = useState<{ us: string; them: string }>({ us: '', them: '' });
-  const settings = readAiSettings();
+  const [settings] = useState(readAiSettings);
   const configured = !!ask || isAiConfigured(settings);
   const askModel = ask ?? ((messages: ChatMessage[]) => chatJson(settings, messages));
 
   const sorted = useMemo(() => sortEvents(events), [events]);
-  const anchorOrder = anchorId ? sorted.find((e) => e.id === anchorId)?.order ?? Infinity : Infinity;
+  const anchorOrder = anchorId ? sorted.find((e) => e.id === anchorId)?.order ?? (lastWrite && lastWrite.id === anchorId ? lastWrite.order : Infinity) : Infinity;
   const before = useMemo(() => sorted.filter((e) => e.order <= anchorOrder), [sorted, anchorOrder]);
   const anchorState = useMemo(() => replay(match, before), [match, before]);
 
@@ -65,10 +65,14 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
   );
   const afterState = useMemo(() => replay(match, [...before, ...drafts]), [match, before, drafts]);
   const laterIds = useMemo(() => new Set(sorted.filter((e) => e.order > anchorOrder).map((e) => e.id)), [sorted, anchorOrder]);
-  const laterConflicts = useMemo(
-    () => (laterIds.size === 0 ? 0 : replay(match, [...events, ...drafts]).warnings.filter((w) => laterIds.has(w.eventId)).length),
-    [match, events, drafts, laterIds],
-  );
+  const laterConflicts = useMemo(() => {
+    if (laterIds.size === 0 || drafts.length === 0) return 0;
+    const keys = (ws: { eventId: string; code: string }[]) =>
+      new Set(ws.filter((w) => laterIds.has(w.eventId)).map((w) => `${w.eventId}:${w.code}`));
+    const existing = keys(replay(match, events).warnings);
+    const after = keys(replay(match, [...events, ...drafts]).warnings);
+    return [...after].filter((k) => !existing.has(k)).length;
+  }, [match, events, drafts, laterIds]);
 
   const blocking = issues.some((x) => x.blocking);
   const actualUs = actual.us === '' ? null : Number(actual.us);
@@ -123,6 +127,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
 
   function merge() {
     onMerge(payloads, orders);
+    setError(null);
     setBatch(null);
     editText('');
     setActual({ us: '', them: '' });
@@ -211,8 +216,8 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setBatch(null)}>Discard</Button>
-            <Button variant="primary" size="sm" onClick={merge} disabled={blocking || payloads.length === 0}>Merge</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setBatch(null); setActual({ us: '', them: '' }); setError(null); }}>Discard</Button>
+            <Button variant="primary" size="sm" onClick={merge} disabled={!!busy || blocking || payloads.length === 0}>Merge</Button>
           </div>
         </div>
       )}

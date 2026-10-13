@@ -121,4 +121,29 @@ describe('TextScoutPanel', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled());
     expect(ask).toHaveBeenCalledTimes(2);
   });
+
+  it('blocks an invalid skill/grade pair until the grade is fixed', async () => {
+    renderPanel({ ask: vi.fn(async () => ({ rallies: [{ actions: [{ number: 2, skill: 'S', grade: '!' }] }], unparsed: [] })) });
+    fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+    await screen.findByText(/has no grade "!"/);
+    expect(screen.getByRole('button', { name: 'Merge' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Rally 1 action 1 grade'), { target: { value: '#' } });
+    expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled();
+  });
+
+  it('does not report warnings that later events already had', async () => {
+    const extra = { playerId: 'z', number: 20, name: 'Zoe Mir', positionCategory: 'OH' as const };
+    const later = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'action', playerId: 'z', skill: 'A', grade: '#' } as MatchEvent;
+    renderPanel({
+      match: { ...match, roster: [...roster, extra] } as Match,
+      events: [setStart, later],
+      anchorId: 'e1',
+      maxWritten: 2,
+    });
+    fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+    await screen.findByText('coach shouted');
+    expect(screen.queryByText(/later event/)).not.toBeInTheDocument();
+  });
 });

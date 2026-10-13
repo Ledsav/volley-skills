@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
-import type { LiberoConfig, LiberoMode, RosterEntry } from '../../types/match';
+import type { LiberoConfig, LiberoMode, RoleMap, RosterEntry } from '../../types/match';
 
 interface CourtGridProps {
   court: string[];
   roster: Map<string, RosterEntry>;
+  /** Per-set roles (falls back to the roster role). */
+  roles?: RoleMap;
   liberos: LiberoConfig[];
   activeLiberoId: string | null;
   selectedId: string | null;
@@ -22,7 +24,7 @@ const LONG_PRESS_MS = 500;
 // 'serving' liberos come on when we serve, i.e. to defend.
 const LIBERO_TILE_LABEL: Record<LiberoMode, string> = { receiving: 'L·rec', serving: 'L·def', always: 'L' };
 
-export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, autoSelected = false, form, onSelect, onLongPress, disabled = false }: CourtGridProps) {
+export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selectedId, autoSelected = false, form, onSelect, onLongPress, disabled = false }: CourtGridProps) {
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -79,6 +81,11 @@ export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, 
                 {isLibero ? LIBERO_TILE_LABEL[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}
               </span>
               <span className={`absolute left-1 top-1 text-[10px] ${isSelected ? 'text-white/80' : 'text-slate'}`}>P{zone + 1}</span>
+              {!isLibero && (
+                <span aria-hidden="true" className={`absolute bottom-1 left-1 text-[10px] font-medium ${isSelected ? 'text-white/80' : 'text-slate'}`}>
+                  {roles?.[id] ?? entry.positionCategory}
+                </span>
+              )}
               {isSelected && autoSelected && (
                 <span aria-hidden="true" className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1 text-[10px] font-medium leading-tight text-white">
                   auto

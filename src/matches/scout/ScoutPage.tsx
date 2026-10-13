@@ -6,15 +6,15 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Tab } from '../../components/Tab';
 import { useMediaQuery } from '../../components/useMediaQuery';
-import type { ActionEvent, EventSource, Match, MatchEvent, MatchEventPayload, Side, UsageProfile } from '../../types/match';
+import type { ActionEvent, EventSource, Match, MatchEvent, MatchEventPayload, RoleMap, Side, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
 import { nextOrder } from '../eventOrder';
 import { buildFinishPayload } from '../finish';
 import { rosterMap } from '../format';
-import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult } from '../matchesApi';
+import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult, updateMatchRoster } from '../matchesApi';
 import { defaultLineup } from '../matchSetup';
 import { countsForPlayer, expectedSkill, orderSkills, predictPlayer } from '../nextActions';
-import { nextRotation, prevRotation, replay, resultFromState, sameResult, sortEvents } from '../scoutEngine';
+import { nextRotation, prevRotation, replay, resultFromState, rosterRoles, sameResult, sortEvents } from '../scoutEngine';
 import { playerForm } from '../scoutStats';
 import { rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
@@ -56,6 +56,18 @@ interface Selection {
   id: string;
   auto: boolean;
   seq: number;
+}
+
+/**
+ * Roles the next set's dialog starts from: the roster roles with the previous
+ * set's chosen roles on top (covers a roster write that never landed). Subs'
+ * inherited roles are not carried over.
+ */
+function nextSetRoles(match: Match, events: MatchEvent[]): RoleMap {
+  const prevStart = sortEvents(events).filter((e) => e.type === 'setStart').pop();
+  const prevRoles = prevStart && prevStart.type === 'setStart' ? prevStart.roles ?? {} : {};
+  const known = new Set(match.roster.map((r) => r.playerId));
+  return { ...rosterRoles(match), ...Object.fromEntries(Object.entries(prevRoles).filter(([id]) => known.has(id))) };
 }
 
 /** First serve alternates set to set: the other side of the previous set's first server. */
@@ -293,7 +305,7 @@ export function ScoutPage() {
   const skillsFor = (playerId: string) => {
     const entry = roster.get(playerId);
     return orderSkills({
-      position: entry?.positionCategory ?? 'TBD',
+      position: state.roles[playerId] ?? entry?.positionCategory ?? 'TBD',
       isLibero: liberoIds.has(playerId),
       expected: expectedSkill(state),
       matchCounts: countsForPlayer(state, playerId),
@@ -306,6 +318,7 @@ export function ScoutPage() {
       <CourtGrid
         court={state.court}
         roster={roster}
+        roles={state.roles}
         liberos={match.liberos}
         activeLiberoId={state.activeLiberoId}
         selectedId={selectedId}
@@ -470,12 +483,21 @@ export function ScoutPage() {
           setNumber={state.set + 1}
           roster={match.roster}
           liberos={match.liberos}
+          roles={nextSetRoles(match, events ?? [])}
           initialLineup={state.setStartLineup.length === 6 ? state.setStartLineup : defaultLineup(match.roster, match.liberos)}
           initialServing={nextSetServing(events ?? [], state.serving)}
           onCancel={() => setSetDialogOpen(false)}
-          onStart={(lineup, serving) => {
-            record({ type: 'setStart', set: state.set + 1, lineup, serving });
+          onStart={(lineup, serving, roles) => {
+            record({ type: 'setStart', set: state.set + 1, lineup, serving, roles });
             setSetDialogOpen(false);
+            // Later sets default to these roles: keep them in the match roster snapshot.
+            if (match.roster.some((r) => roles[r.playerId] && roles[r.playerId] !== r.positionCategory)) {
+              const nextRoster = match.roster.map((r) => ({ ...r, positionCategory: roles[r.playerId] ?? r.positionCategory }));
+              setMatch({ ...match, roster: nextRoster });
+              updateMatchRoster(teamId, matchId, nextRoster).catch(() =>
+                setWriteError('The new roles could not be saved to the roster. Check your connection.'),
+              );
+            }
           }}
         />
       )}

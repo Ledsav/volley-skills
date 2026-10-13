@@ -58,7 +58,37 @@ automatically after the roster seed.
 `npm run seed:numbers` gives the seeded players unique jersey numbers (and a libero) from the gitignored `reference/jersey-numbers.json` (emulator-only; skipped if the file is missing; run by `dev:emulator` right after the roster seed).
 
 `npm run seed:match` — a finished demo match and a live one for the seeded team
-(also run by `dev:emulator`).
+(also run by `dev:emulator`). Team: `--team <teamId>`, else the team written by
+`seed.mjs`, else the team with the most players. The lineup is a 5-1 when
+positions allow (P1 S, P2 OH, P3 MB, P4 O, P5 OH, P6 MB, falling back to U/OH),
+with the `L` players as libero(s) replacing the middles.
+
+### Use the real prod players in the emulator
+
+Keeps the emulator's own identity (seeded team, `coach@example.com`, access,
+library) and swaps only the seeded team's **players** for production's:
+
+```bash
+npm run seed:export-prod-players            # prod → reference/prod-players.json (READ-ONLY on prod)
+npm run seed:import-players                 # replaces the seeded team's players in the running emulator
+npm run seed:match                          # demo matches on those players
+```
+
+- `exportProdPlayers.mjs` needs `serviceAccountKey.json` and **only reads** prod
+  (`teams/*/players/*`, paged 500 at a time; no physical tests or other data).
+  Limit it to one team with `-- --team <prodTeamId>`. It refuses to run if
+  `FIRESTORE_EMULATOR_HOST` is set — that variable redirects every firebase-admin
+  app in the process, which is why export and import are separate scripts.
+- `importPlayers.mjs` is emulator-only (local `FIRESTORE_EMULATOR_HOST`, default
+  `127.0.0.1:8080`). It deletes the seeded team's players and writes the prod ones
+  with their original ids, overwriting `teamName`/`ageGroup`/`season` with the
+  seeded team's values and clearing `viewerEmails`. If the export has several
+  teams with players, pick one with `-- --from <prodTeamId>`.
+- **The export is real minors' personal data.** It lives only in the gitignored
+  `reference/` — never commit it, never copy it elsewhere, and **delete
+  `reference/prod-players.json` when you are done.** Both scripts print counts only.
+- Don't run `seed:numbers` after importing — prod numbers/positions are the
+  source of truth.
 
 ### Run the app against the seeded emulator
 

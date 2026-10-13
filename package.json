@@ -17,7 +17,9 @@
     "seed:library": "node scripts/seed/seedLibrary.mjs",
     "seed:numbers": "node scripts/seed/applyNumbers.mjs",
     "seed:match": "node scripts/seed/seedMatch.mjs",
-    "seed:prod": "node scripts/seed/seed.mjs --prod"
+    "seed:prod": "node scripts/seed/seed.mjs --prod",
+    "seed:export-prod-players": "node scripts/seed/exportProdPlayers.mjs",
+    "seed:import-players": "node scripts/seed/importPlayers.mjs"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

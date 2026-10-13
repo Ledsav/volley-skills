@@ -53,7 +53,7 @@ export function MatchPage() {
       profile = await getUsageProfile(teamId);
     } catch {
       finishingRef.current = false;
-      setActionError('Could not load usage history — try finishing again.');
+      setActionError('Could not load usage history â€” try finishing again.');
       return;
     }
     const payload = buildFinishPayload(match, state, profile);

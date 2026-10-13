@@ -140,6 +140,20 @@ describe('TextScoutPanel', () => {
     expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled();
   });
 
+  it('lets the coach pick a grade the notes left out', async () => {
+    const props = renderPanel({ ask: vi.fn(async () => ({ rallies: [{ actions: [{ number: 7, skill: 'A', grade: null }] }] })) });
+    fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '7 smash the ball' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+    const grade = await screen.findByLabelText('Rally 1 action 1 grade');
+    expect(grade).toHaveDisplayValue('Pick a grade');
+    expect(grade).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Merge' })).toBeDisabled();
+    fireEvent.change(grade, { target: { value: '#' } });
+    expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
+    expect(props.onMerge).toHaveBeenCalledWith([{ type: 'action', playerId: 'a', skill: 'A', grade: '#' }], [2]);
+  });
+
   it('does not report warnings that later events already had', async () => {
     const extra = { playerId: 'z', number: 20, name: 'Zoe Mir', positionCategory: 'OH' as const };
     const later = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'action', playerId: 'z', skill: 'A', grade: '#' } as MatchEvent;

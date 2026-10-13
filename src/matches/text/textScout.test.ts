@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RosterEntry } from '../../types/match';
+import { SKILL_LABELS } from '../skillGrades';
 import { SYSTEM_PROMPT, anonymizeNames, batchToPayloads, buildMessages, chunkText, mergeBatches, parseBatch, type ParsedBatch } from './textScout';
 
 const roster: RosterEntry[] = [
@@ -252,5 +253,39 @@ describe('parseBatch coercion and size caps', () => {
 describe('SYSTEM_PROMPT', () => {
   it('assigns between-rally subs and timeouts to the next rally', () => {
     expect(SYSTEM_PROMPT).toContain("belong to the NEXT rally's entry");
+  });
+});
+
+describe('ungraded actions', () => {
+  it('parseBatch accepts a null or missing grade but still rejects invalid ones', () => {
+    const r = parseBatch({ rallies: [{ actions: [{ number: 7, skill: 'A', grade: null }, { number: 9, skill: 'S' }] }] });
+    expect(r.ok && r.batch.rallies[0].actions).toEqual([
+      { number: 7, skill: 'A', grade: null },
+      { number: 9, skill: 'S', grade: null },
+    ]);
+    expect(parseBatch({ rallies: [{ actions: [{ number: 7, skill: 'A', grade: '++' }] }] }).ok).toBe(false);
+  });
+
+  it('SYSTEM_PROMPT allows a null grade and knows everyday words', () => {
+    expect(SYSTEM_PROMPT).toContain('"grade": null');
+    expect(SYSTEM_PROMPT).toContain('Never put a line in unparsed just because the result is missing.');
+    for (const w of ['smash', 'remate', 'attaque', 'bola fácil', 'contré']) expect(SYSTEM_PROMPT).toContain(w);
+  });
+
+  it('batchToPayloads blocks an ungraded action, skips it and still warns about the winner', () => {
+    const b: ParsedBatch = { rallies: [{ actions: [{ number: 7, skill: 'A', grade: null }], point: null, subs: [], timeouts: [] }], unparsed: [] };
+    const { payloads, issues } = batchToPayloads(b, roster);
+    expect(payloads).toEqual([]);
+    expect(issues).toContainEqual({ rally: 0, kind: 'missingGrade', blocking: true, message: `Pick a grade for #7 ${SKILL_LABELS.A}.` });
+    expect(issues).toContainEqual(expect.objectContaining({ rally: 0, kind: 'noWinner', blocking: false }));
+  });
+
+  it('does not let an earlier decision hide an ungraded last action', () => {
+    const b: ParsedBatch = {
+      rallies: [{ actions: [{ number: 7, skill: 'S', grade: '=' }, { number: 9, skill: 'A', grade: null }], point: null, subs: [], timeouts: [] }],
+      unparsed: [],
+    };
+    const { issues } = batchToPayloads(b, roster);
+    expect(issues).toContainEqual(expect.objectContaining({ rally: 0, kind: 'noWinner' }));
   });
 });

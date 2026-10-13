@@ -49,15 +49,22 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
               onChange={(e) => {
                 const skill = e.target.value as Skill;
                 const grades = validGrades(skill);
-                setAction(i, { skill, grade: grades.includes(a.grade) ? a.grade : grades[0] });
+                setAction(i, { skill, grade: a.grade === null ? null : grades.includes(a.grade) ? a.grade : grades[0] });
               }}
             >
               {SKILLS.map((s) => (
                 <option key={s} value={s}>{SKILL_LABELS[s]}</option>
               ))}
             </select>
-            <select aria-label={`Rally ${n} action ${i + 1} grade`} className={SELECT} value={a.grade} onChange={(e) => setAction(i, { grade: e.target.value as Grade })}>
-              {!validGrades(a.skill).includes(a.grade) && <option value={a.grade}>{a.grade} ?</option>}
+            <select
+              aria-label={`Rally ${n} action ${i + 1} grade`}
+              aria-invalid={a.grade === null ? 'true' : undefined}
+              className={a.grade === null ? SELECT.replace('border-border', 'border-red') : SELECT}
+              value={a.grade ?? ''}
+              onChange={(e) => setAction(i, { grade: e.target.value ? (e.target.value as Grade) : null })}
+            >
+              {a.grade === null && <option value="">Pick a grade</option>}
+              {a.grade !== null && !validGrades(a.skill).includes(a.grade) && <option value={a.grade}>{a.grade} ?</option>}
               {validGrades(a.skill).map((g) => (
                 <option key={g} value={g}>{g} {GRADE_LABELS[a.skill][g]}</option>
               ))}

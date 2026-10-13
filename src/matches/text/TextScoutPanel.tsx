@@ -245,6 +245,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           onChange={(e) => editText(e.target.value)}
           placeholder={'7 ace\n12 bad reception, 2 set, 9 kill\nopp error · TO them · 8 in for 9'}
         />
+        <span className="text-xs font-normal text-slate">Tip: add the result — kill, out, blocked, good…</span>
       </label>
       <div className="flex items-center gap-2">
         <Button variant="primary" size="sm" onClick={() => void process()} disabled={!canProcess}>Process</Button>

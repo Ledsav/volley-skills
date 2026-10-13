@@ -5,7 +5,8 @@ import type { ChatMessage } from './aiClient';
 export interface ParsedAction {
   number: number;
   skill: Skill;
-  grade: Grade;
+  /** null when the notes name the action but not its result; the coach picks it in the preview. */
+  grade: Grade | null;
 }
 
 export interface ParsedRally {
@@ -36,7 +37,7 @@ export interface PromptPlayer {
 
 export interface BatchIssue {
   rally: number;
-  kind: 'unknownNumber' | 'invalidGrade' | 'noWinner' | 'conflictingWinner';
+  kind: 'unknownNumber' | 'invalidGrade' | 'missingGrade' | 'noWinner' | 'conflictingWinner';
   blocking: boolean;
   message: string;
 }
@@ -83,6 +84,21 @@ export const SYSTEM_PROMPT = `You convert a volleyball coach's match notes about
 Players are identified only by jersey number ("#7" or "7"). "#?" means an unknown player: put that line in "unparsed".
 Fundamentals (skill): S serve, R reception, A attack, B block, D dig, E set, F free ball.
 Grades (DataVolley): "#" perfect/point (ace, kill, stuff block, perfect pass), "+" good, "!" ok, "-" poor, "/" overpass/blocked/free ball back, "=" error.
+Everyday words for each fundamental (English, Spanish, French):
+- A attack: smash, spike, hit, attack, remate, rematar, ataque, attaque, frappe
+- S serve: serve, saque, sacar, service, servir
+- R reception: pass, reception, receive, recepción, recibir, réception
+- E set: set, setting, colocación, colocar, passe
+- B block: block, bloqueo, bloquear, contre
+- D dig: dig, defense, defensa, défense, save
+- F free ball: free ball, freeball, bola fácil, balle facile
+Result words -> grade:
+- kill, point, punto, point gagnant, winner -> "#" (S# ace, A# kill, B# stuff block); ace -> S "#"
+- out, fuera, dehors, long, wide, net, red, filet, error, fallo, faute -> "="
+- blocked, bloqueado, contré (our attack) -> A "/"
+- good, bien, bon -> "+"; bad, poor, mal, mauvais -> "-"
+- overpass, over -> "/" for R, D or F
+If the notes name the action but not its result, still output the action with "grade": null. Never put a line in unparsed just because the result is missing.
 A rally ends with a point. Add "point" only when the notes say who won it and no action already decides it (S#, A#, B# win; any "=", A/ or B/ lose).
 Point reasons (only for points not decided by our action): "oppError", "oppKill", "oppAce", "oppBlock", "unknown".
 Substitutions like "8 in for 9" -> subs [{"outNumber":9,"inNumber":8}]. Timeouts "TO us"/"TO them" -> timeouts [{"team":"us"}].
@@ -136,10 +152,11 @@ export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { o
       if (!isObj(a)) return { ok: false, error: `Invalid action ${JSON.stringify(a)}.` };
       const number = toNum(a.number);
       const skill = toSkill(a.skill);
-      if (!isNum(number) || !SKILLS.includes(skill as Skill) || !GRADES.includes(a.grade as Grade)) {
+      const grade = a.grade === undefined || a.grade === null ? null : a.grade;
+      if (!isNum(number) || !SKILLS.includes(skill as Skill) || (grade !== null && !GRADES.includes(grade as Grade))) {
         return { ok: false, error: `Invalid action ${JSON.stringify(a)}.` };
       }
-      actions.push({ number, skill: skill as Skill, grade: a.grade as Grade });
+      actions.push({ number, skill: skill as Skill, grade: grade as Grade | null });
     }
     let point: ParsedRally['point'] = null;
     if (isObj(r.point)) {
@@ -185,6 +202,11 @@ export function batchToPayloads(batch: ParsedBatch, roster: RosterEntry[]): { pa
     let decided: Side | null = null;
     for (const a of r.actions) {
       const playerId = byNumber.get(a.number);
+      if (a.grade === null) {
+        issues.push({ rally: i, kind: 'missingGrade', blocking: true, message: `Pick a grade for #${a.number} ${SKILL_LABELS[a.skill]}.` });
+        if (!playerId) unknown(i, a.number);
+        continue;
+      }
       const gradeOk = validGrades(a.skill).includes(a.grade);
       if (!gradeOk) {
         issues.push({ rally: i, kind: 'invalidGrade', blocking: true, message: `${SKILL_LABELS[a.skill]} has no grade "${a.grade}".` });
@@ -203,7 +225,8 @@ export function batchToPayloads(batch: ParsedBatch, roster: RosterEntry[]): { pa
       } else if (!decided) {
         payloads.push({ type: 'point', winner: r.point.winner, reason: r.point.reason });
       }
-    } else if (!decided && r.actions.length > 0) {
+    } else if (r.actions.length > 0 && (!decided || r.actions[r.actions.length - 1].grade === null)) {
+      // An ungraded last action may still decide the rally, so an earlier decision is not trusted.
       issues.push({ rally: i, kind: 'noWinner', blocking: false, message: 'No winner for this rally.' });
     }
   });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { Input, Textarea } from '../../components/Input';
@@ -6,7 +6,7 @@ import type { Match, MatchEvent, MatchEventPayload } from '../../types/match';
 import { batchOrders } from '../eventOrder';
 import { replay, sortEvents } from '../scoutEngine';
 import { AiError, chatJson, type ChatMessage } from './aiClient';
-import { isAiConfigured, readAiSettings, readDraft, writeDraft } from './aiSettings';
+import { LOCAL_UNREACHABLE_HINT, isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from './aiSettings';
 import { PreviewRallyCard } from './PreviewRallyCard';
 import {
   anonymizeNames,
@@ -24,16 +24,41 @@ interface TextScoutPanelProps {
   anchorId: string | null;
   maxWritten: number;
   online: boolean;
-  onMerge: (payloads: MatchEventPayload[], orders: number[]) => void;
+  /** Writes the batch; returns false when nothing was written (the preview and notes are then kept). */
+  onMerge: (payloads: MatchEventPayload[], orders: number[]) => boolean;
   onClose: () => void;
   lastWrite?: { id: string; order: number } | null;
-  ask?: (messages: ChatMessage[]) => Promise<unknown>;
+  ask?: (messages: ChatMessage[], signal: AbortSignal) => Promise<unknown>;
+}
+
+/** A Process run is aborted after this long. */
+export const PROCESS_TIMEOUT_MS = 90_000;
+
+type AbortReason = 'cancel' | 'timeout' | 'unmount';
+
+/** Rejects as soon as `signal` aborts, even if `promise` ignores the signal. */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new AiError('unreachable', 'Aborted.'));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new AiError('unreachable', 'Aborted.'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (v) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(v);
+      },
+      (e: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(e);
+      },
+    );
+  });
 }
 
 const ERROR_TEXT: Record<AiError['kind'], string> = {
   notConfigured: 'Set up an AI provider in Settings first.',
   unauthorized: 'Key rejected — check it in Settings.',
-  rateLimited: 'Rate limit reached',
+  rateLimited: 'Rate limit reached.',
   unreachable: 'Could not reach the AI provider. Your notes are kept.',
   badResponse: "Couldn't parse — edit the notes or enter by taps.",
   http: 'The AI provider returned an error. Your notes are kept.',
@@ -45,9 +70,22 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actual, setActual] = useState<{ us: string; them: string }>({ us: '', them: '' });
+  const [processedText, setProcessedText] = useState<string | null>(null);
   const [settings] = useState(readAiSettings);
   const configured = !!ask || isAiConfigured(settings);
-  const askModel = ask ?? ((messages: ChatMessage[]) => chatJson(settings, messages));
+  const askModel = ask ?? ((messages: ChatMessage[], signal: AbortSignal) => chatJson(settings, messages, { signal }));
+  const runRef = useRef<{ controller: AbortController; reason: AbortReason | null } | null>(null);
+
+  useEffect(
+    () => () => {
+      const run = runRef.current;
+      if (run) {
+        run.reason = 'unmount';
+        run.controller.abort();
+      }
+    },
+    [],
+  );
 
   const sorted = useMemo(() => sortEvents(events), [events]);
   const anchorOrder = anchorId ? sorted.find((e) => e.id === anchorId)?.order ?? (lastWrite && lastWrite.id === anchorId ? lastWrite.order : Infinity) : Infinity;
@@ -85,9 +123,26 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
     writeDraft(match.id, next);
   }
 
+  function errorText(e: AiError): string {
+    if (e.kind === 'rateLimited') {
+      const base = `${providerName(settings.provider)} rate limit reached`;
+      return e.retryAfterSec ? `${base} — retry in ${e.retryAfterSec} s.` : `${base} — try again in a moment.`;
+    }
+    if (e.kind === 'unreachable' && settings.provider === 'local') return `${ERROR_TEXT.unreachable} ${LOCAL_UNREACHABLE_HINT}`;
+    return ERROR_TEXT[e.kind];
+  }
+
+  function cancel() {
+    const run = runRef.current;
+    if (!run) return;
+    run.reason = 'cancel';
+    run.controller.abort();
+  }
+
   async function process() {
     setError(null);
-    const chunks = chunkText(anonymizeNames(text, match.roster));
+    const source = text;
+    const chunks = chunkText(anonymizeNames(source, match.roster));
     if (chunks.length === 0) return;
     const liberoIds = new Set(match.liberos.map((l) => l.playerId));
     const players = match.roster.map((r) => ({
@@ -103,33 +158,56 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
       rotation: anchorState.rotation,
       onCourt: anchorState.court.map((id) => numberOf.get(id)).filter((n): n is number => n !== undefined),
     };
+    const run = { controller: new AbortController(), reason: null as AbortReason | null };
+    runRef.current = run;
+    const { signal } = run.controller;
+    const timer = window.setTimeout(() => {
+      run.reason = 'timeout';
+      run.controller.abort();
+    }, PROCESS_TIMEOUT_MS);
+    // One retry when the reply is not JSON or does not validate.
+    const askParsed = async (messages: ChatMessage[], retry: boolean): Promise<ParsedBatch> => {
+      let parsed: ReturnType<typeof parseBatch>;
+      try {
+        parsed = parseBatch(await untilAborted(askModel(messages, signal), signal));
+      } catch (e) {
+        if (retry && !signal.aborted && e instanceof AiError && e.kind === 'badResponse') return askParsed(messages, false);
+        throw e;
+      }
+      if (parsed.ok) return parsed.batch;
+      if (retry) return askParsed(messages, false);
+      throw new AiError('badResponse', parsed.error);
+    };
     const results: ParsedBatch[] = [];
     try {
       for (let i = 0; i < chunks.length; i++) {
         setBusy(chunks.length > 1 ? `Processing ${i + 1}/${chunks.length}…` : 'Processing…');
-        const messages = buildMessages(chunks[i], players, anchor);
-        let parsed = parseBatch(await askModel(messages));
-        if (!parsed.ok) parsed = parseBatch(await askModel(messages));
-        if (!parsed.ok) throw new AiError('badResponse', parsed.error);
-        results.push(parsed.batch);
+        results.push(await askParsed(buildMessages(chunks[i], players, anchor), true));
       }
       setBatch(mergeBatches(results));
+      setProcessedText(source);
     } catch (e) {
-      if (e instanceof AiError) {
-        setError(e.kind === 'rateLimited' && e.retryAfterSec ? `${ERROR_TEXT.rateLimited} — retry in ${e.retryAfterSec} s.` : ERROR_TEXT[e.kind]);
-      } else {
-        setError('Something went wrong. Your notes are kept.');
-      }
+      if (run.reason === 'unmount') return;
+      if (run.reason === 'cancel') setError('Cancelled.');
+      else if (run.reason === 'timeout') setError('Timed out — your notes are kept.');
+      else if (e instanceof AiError) setError(errorText(e));
+      else setError('Something went wrong. Your notes are kept.');
     } finally {
-      setBusy(null);
+      window.clearTimeout(timer);
+      if (runRef.current === run) runRef.current = null;
+      if (run.reason !== 'unmount') setBusy(null);
     }
   }
 
   function merge() {
-    onMerge(payloads, orders);
+    if (!onMerge(payloads, orders)) return;
+    // Keep anything typed after Process; drop only the text that was merged.
+    const rest =
+      processedText !== null && text.startsWith(processedText) ? text.slice(processedText.length).replace(/^[\r\n]+/, '') : text;
     setError(null);
     setBatch(null);
-    editText('');
+    setProcessedText(null);
+    editText(rest);
     setActual({ us: '', them: '' });
   }
 
@@ -164,7 +242,12 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
       </label>
       <div className="flex items-center gap-2">
         <Button variant="primary" size="sm" onClick={() => void process()} disabled={!canProcess}>Process</Button>
-        {busy && <span className="text-sm text-slate">{busy}</span>}
+        {busy && (
+          <>
+            <span className="text-sm text-slate">{busy}</span>
+            <Button variant="ghost" size="sm" onClick={cancel}>Cancel</Button>
+          </>
+        )}
       </div>
       {error && <p role="alert" className="text-sm text-red">{error}</p>}
 
@@ -216,7 +299,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => { setBatch(null); setActual({ us: '', them: '' }); setError(null); }}>Discard</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setBatch(null); setProcessedText(null); setActual({ us: '', them: '' }); setError(null); }}>Discard</Button>
             <Button variant="primary" size="sm" onClick={merge} disabled={!!busy || blocking || payloads.length === 0}>Merge</Button>
           </div>
         </div>

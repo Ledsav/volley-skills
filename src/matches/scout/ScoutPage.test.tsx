@@ -1,29 +1,43 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
 import * as api from '../matchesApi';
 import { ScoutPage } from './ScoutPage';
 
 vi.mock('../matchesApi');
 vi.mock('../../firebase/config', () => ({ auth: {}, db: {} }));
-vi.mock('../text/TextScoutPanel', () => ({
-  TextScoutPanel: ({ onMerge, anchorId }: { onMerge: (p: unknown[], o: number[]) => void; anchorId: string | null }) => (
-    <button
-      onClick={() =>
-        onMerge(
-          [
-            { type: 'action', playerId: 's', skill: 'S', grade: '#' },
-            { type: 'point', winner: 'them', reason: null },
-          ],
-          anchorId ? [1.25, 1.5] : [2, 3],
-        )
-      }
-    >
-      merge-stub
-    </button>
-  ),
-}));
+vi.mock('../text/TextScoutPanel', async () => {
+  const { useState } = await import('react');
+  return {
+    // Holds local state (a "batch" and the last merge result) so tests can tell a remount from a hidden panel.
+    TextScoutPanel: ({ onMerge, anchorId }: { onMerge: (p: unknown[], o: number[]) => boolean; anchorId: string | null }) => {
+      const [batch, setBatch] = useState(false);
+      const [merged, setMerged] = useState<boolean | null>(null);
+      return (
+        <div>
+          <button
+            onClick={() =>
+              onMerge(
+                [
+                  { type: 'action', playerId: 's', skill: 'S', grade: '#' },
+                  { type: 'point', winner: 'them', reason: null },
+                ],
+                anchorId ? [1.25, 1.5] : [2, 3],
+              )
+            }
+          >
+            merge-stub
+          </button>
+          <button onClick={() => setMerged(onMerge([], []))}>merge-empty-stub</button>
+          <button onClick={() => setBatch(true)}>process-stub</button>
+          {batch && <p>batch-stub</p>}
+          {merged !== null && <p>merged-{String(merged)}</p>}
+        </div>
+      );
+    },
+  };
+});
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ firebaseUser: { uid: 'u1' } }) }));
 
 const roster = [
@@ -428,6 +442,52 @@ describe('ScoutPage', () => {
     expect(new Set(calls.map((e) => e.chunkId)).size).toBe(1);
     expect(calls[0].chunkId).not.toBeNull();
     expect(calls.map((e) => e.order)).toEqual([2, 3]);
+  });
+
+  it('reports that an empty text merge wrote nothing', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'merge-empty-stub' }));
+    expect(screen.getByText('merged-false')).toBeInTheDocument();
+    expect(api.addEvent).not.toHaveBeenCalled();
+  });
+
+  it('keeps the text preview when the desktop panel is closed and reopened', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'process-stub' }));
+    fireEvent.click(screen.getByRole('button', { name: /text/i }));
+    expect(screen.queryByRole('button', { name: 'process-stub' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /text/i }));
+    expect(screen.getByText('batch-stub')).toBeInTheDocument();
+  });
+
+  describe('on a phone-width screen', () => {
+    beforeEach(() => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+    });
+
+    afterEach(() => {
+      // jsdom has no matchMedia; restore that so the desktop tests keep their fallback.
+      delete (window as { matchMedia?: unknown }).matchMedia;
+    });
+
+    it('keeps the text preview across tab switches', async () => {
+      renderPage([setStart]);
+      const nav = await screen.findByRole('navigation');
+      fireEvent.click(within(nav).getByRole('button', { name: 'Text' }));
+      fireEvent.click(screen.getByRole('button', { name: 'process-stub' }));
+      fireEvent.click(within(nav).getByRole('button', { name: 'Court' }));
+      expect(screen.queryByRole('button', { name: 'process-stub' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '#7 Ana' })).toBeInTheDocument();
+      fireEvent.click(within(nav).getByRole('button', { name: 'Text' }));
+      expect(screen.getByText('batch-stub')).toBeInTheDocument();
+    });
   });
 
   it('does not auto-select while the text panel is open', async () => {

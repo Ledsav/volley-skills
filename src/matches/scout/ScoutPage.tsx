@@ -118,6 +118,12 @@ export function ScoutPage() {
   const [phoneTab, setPhoneTab] = useState<'court' | 'live' | 'timeline' | 'text'>('court');
   const [textOpen, setTextOpen] = useState(false);
   const textVisible = isDesktop ? textOpen : phoneTab === 'text';
+  // Once opened, the text panel stays mounted (hidden when not shown) so a
+  // preview or an in-flight Process survives tab switches and closing.
+  const [textMounted, setTextMounted] = useState(false);
+  useEffect(() => {
+    if (textVisible) setTextMounted(true);
+  }, [textVisible]);
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   useEffect(() => {
     const on = () => setOnline(true);
@@ -245,8 +251,8 @@ export function ScoutPage() {
     [events, firebaseUser, anchorId, teamId, matchId],
   );
 
-  function mergeText(payloads: MatchEventPayload[], orders: number[]) {
-    if (!firebaseUser || payloads.length === 0) return;
+  function mergeText(payloads: MatchEventPayload[], orders: number[]): boolean {
+    if (!firebaseUser || payloads.length === 0) return false;
     const chunkId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `chunk-${Date.now()}`;
     payloads.forEach((payload, i) => {
       const { id, written } = addEvent(teamId, matchId, { ...payload, order: orders[i], source: 'text', chunkId }, firebaseUser.uid);
@@ -256,6 +262,7 @@ export function ScoutPage() {
       maxOrderRef.current = Math.max(maxOrderRef.current, orders[i]);
     });
     setAnchorId(null);
+    return true;
   }
 
   // Once this device's last write shows up in the snapshot, pre-select the most
@@ -512,17 +519,19 @@ export function ScoutPage() {
     />
   );
   const live = <LiveStatsPanel state={state} roster={roster} />;
-  const textPanel = (
-    <TextScoutPanel
-      match={match}
-      events={events ?? []}
-      anchorId={anchorId}
-      maxWritten={maxOrderRef.current}
-      lastWrite={lastWriteRef.current}
-      online={online}
-      onMerge={mergeText}
-      onClose={() => (isDesktop ? setTextOpen(false) : setPhoneTab('court'))}
-    />
+  const textPanel = (textMounted || textVisible) && (
+    <div hidden={!textVisible}>
+      <TextScoutPanel
+        match={match}
+        events={events ?? []}
+        anchorId={anchorId}
+        maxWritten={maxOrderRef.current}
+        lastWrite={lastWriteRef.current}
+        online={online}
+        onMerge={mergeText}
+        onClose={() => (isDesktop ? setTextOpen(false) : setPhoneTab('court'))}
+      />
+    </div>
   );
 
   return (
@@ -577,7 +586,8 @@ export function ScoutPage() {
         <main className="grid flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 p-4">
           {courtColumn}
           <div className="flex min-w-0 flex-col gap-4">
-            {textOpen ? textPanel : live}
+            {textPanel}
+            {!textOpen && live}
             <div className="max-h-[50vh] overflow-y-auto">{timeline}</div>
           </div>
         </main>
@@ -593,7 +603,7 @@ export function ScoutPage() {
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}
-            {phoneTab === 'text' && textPanel}
+            {textPanel}
           </main>
         </>
       )}

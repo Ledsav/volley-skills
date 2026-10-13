@@ -63,12 +63,13 @@ const letterRuns = (s: string): string[] => s.match(/[\p{L}\p{M}]+/gu) ?? [];
 export function anonymizeNames(text: string, roster: RosterEntry[]): string {
   const byPart = new Map<string, number | null>();
   for (const r of roster) {
-    for (const piece of letterRuns(r.name.normalize('NFC'))) {
+    // The first part is the given name: always mapped, even if it is a stoplisted word.
+    letterRuns(r.name.normalize('NFC')).forEach((piece, idx) => {
       const key = normalize(piece);
-      if (key.length < 2 || STOPWORDS.has(key)) continue;
+      if (key.length < 2 || (idx > 0 && STOPWORDS.has(key))) return;
       const existing = byPart.get(key);
       byPart.set(key, existing === undefined || existing === r.number ? r.number : null);
-    }
+    });
   }
   const replaced = text.normalize('NFC').replace(/[\p{L}\p{M}]+/gu, (word) => {
     const n = byPart.get(normalize(word));

@@ -198,3 +198,20 @@ describe('parseBatch null as absent', () => {
     });
   });
 });
+
+describe('stoplisted first names', () => {
+  const rosterLe: RosterEntry[] = [{ playerId: 'p5', number: 5, name: 'Le Nguyen', positionCategory: 'OH' }];
+
+  it('always strips the given name, even when it is a particle', () => {
+    expect(anonymizeNames('Le kill', rosterLe)).toBe('#5 kill');
+    expect(anonymizeNames('Nguyen ace', rosterLe)).toBe('#5 ace');
+  });
+
+  it('still leaves particles inside a surname alone in notes', () => {
+    expect(anonymizeNames('de la error', rosterC())).toBe('de la error');
+  });
+});
+
+function rosterC(): RosterEntry[] {
+  return [{ playerId: 'p5', number: 5, name: 'María de la Cruz', positionCategory: 'OH' }];
+}

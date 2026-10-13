@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PlayerRosterPicker } from './PlayerRosterPicker';
 import { QualityTileGrid } from './QualityTileGrid';
-import { getEntries, closeSession } from './testingSessionsApi';
+import { subscribeEntries, closeSession } from './testingSessionsApi';
 import { buildEntryId } from '../types/testingSession';
 import type { TestingSession, TestingSessionEntry } from '../types/testingSession';
 import type { Player } from '../types/player';
@@ -23,14 +23,18 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
   const [closeError, setCloseError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setEntries(await getEntries(teamId, session.id));
-  }, [teamId, session.id]);
-
   useEffect(() => {
     setLoadError(null);
-    load().catch(() => setLoadError('Could not load session progress. Please refresh the page.'));
-  }, [load]);
+    return subscribeEntries(
+      teamId,
+      session.id,
+      (next) => {
+        setEntries(next);
+        setLoadError(null);
+      },
+      () => setLoadError('Could not load session progress. Please refresh the page.')
+    );
+  }, [teamId, session.id]);
 
   const entriesByPlayerAndType = new Map<string, TestingSessionEntry>();
   for (const entry of entries) {
@@ -72,7 +76,6 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
             playerName={players.find((p) => p.id === selectedPlayerId)?.fullName ?? ''}
             entriesByPlayerAndType={entriesByPlayerAndType}
             recordedByUid={recordedByUid}
-            onEntryChanged={() => void load()}
           />
         )}
       </div>

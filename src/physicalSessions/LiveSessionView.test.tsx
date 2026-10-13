@@ -1,24 +1,24 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { LiveSessionView } from './LiveSessionView';
 import * as testingSessionsApi from './testingSessionsApi';
 import type { Player } from '../types/player';
-import type { TestingSession } from '../types/testingSession';
+import type { TestingSession, TestingSessionEntry } from '../types/testingSession';
 
 vi.mock('./testingSessionsApi');
 vi.mock('./QualityTileGrid', () => ({
   QualityTileGrid: ({
     playerId,
     playerName,
-    onEntryChanged,
+    entriesByPlayerAndType,
   }: {
     playerId: string;
     playerName: string;
-    onEntryChanged: () => void;
+    entriesByPlayerAndType: Map<string, unknown>;
   }) => (
     <div>
       <span>Qualities for {playerId} ({playerName})</span>
-      <button onClick={onEntryChanged}>Simulate entry changed</button>
+      <span>{entriesByPlayerAndType.size} entries</span>
     </div>
   ),
 }));
@@ -26,13 +26,26 @@ vi.mock('./QualityTileGrid', () => ({
 const SESSION: TestingSession = { id: 'session-1', date: '2026-09-16', status: 'open', createdBy: 'coach-uid', createdAt: null, closedAt: null };
 const PLAYERS: Player[] = [{ id: 'player-1', number: 7, fullName: 'Jane Doe' } as Player];
 
+type EntriesListener = (entries: TestingSessionEntry[]) => void;
+
+function mockEntriesListener() {
+  const listener: { emit: EntriesListener } = { emit: () => undefined };
+  const unsubscribe = vi.fn();
+  vi.spyOn(testingSessionsApi, 'subscribeEntries').mockImplementation((_t, _s, onChange) => {
+    listener.emit = onChange;
+    onChange([]);
+    return unsubscribe;
+  });
+  return { listener, unsubscribe };
+}
+
 describe('LiveSessionView', () => {
   it('loads entries on mount and shows the quality grid once a player is selected', async () => {
-    vi.spyOn(testingSessionsApi, 'getEntries').mockResolvedValue([]);
+    mockEntriesListener();
 
     render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />);
 
-    await waitFor(() => expect(testingSessionsApi.getEntries).toHaveBeenCalledWith('team-1', 'session-1'));
+    await waitFor(() => expect(testingSessionsApi.subscribeEntries).toHaveBeenCalledWith('team-1', 'session-1', expect.any(Function), expect.any(Function)));
     fireEvent.focus(screen.getByLabelText('Search players'));
     fireEvent.mouseDown(screen.getByText('Jane Doe'));
 
@@ -40,12 +53,12 @@ describe('LiveSessionView', () => {
   });
 
   it('closes the session after confirmation', async () => {
-    vi.spyOn(testingSessionsApi, 'getEntries').mockResolvedValue([]);
+    mockEntriesListener();
     const closeSpy = vi.spyOn(testingSessionsApi, 'closeSession').mockResolvedValue(undefined);
     const onSessionClosed = vi.fn();
 
     render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={onSessionClosed} />);
-    await waitFor(() => expect(testingSessionsApi.getEntries).toHaveBeenCalled());
+    await waitFor(() => expect(testingSessionsApi.subscribeEntries).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole('button', { name: 'Close session' }));
     fireEvent.click(screen.getByRole('button', { name: 'Yes, close' }));
@@ -54,17 +67,25 @@ describe('LiveSessionView', () => {
     expect(onSessionClosed).toHaveBeenCalled();
   });
 
-  it('refetches entries when QualityTileGrid reports an entry changed', async () => {
-    const getEntriesSpy = vi.spyOn(testingSessionsApi, 'getEntries').mockResolvedValue([]);
+  it('shows entry updates from the listener without re-reading, and unsubscribes on unmount', async () => {
+    const { listener, unsubscribe } = mockEntriesListener();
 
-    render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />);
-
-    await waitFor(() => expect(getEntriesSpy).toHaveBeenCalledTimes(1));
+    const { unmount } = render(
+      <LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />
+    );
     fireEvent.focus(screen.getByLabelText('Search players'));
     fireEvent.mouseDown(screen.getByText('Jane Doe'));
+    expect(screen.getByText('0 entries')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Simulate entry changed' }));
+    act(() =>
+      listener.emit([
+        { id: 'player-1__cmj', playerId: 'player-1', testType: 'cmj', status: 'complete', data: {}, resultTestId: 't1', updatedAt: null },
+      ])
+    );
 
-    await waitFor(() => expect(getEntriesSpy).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('1 entries')).toBeInTheDocument();
+    expect(testingSessionsApi.subscribeEntries).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(unsubscribe).toHaveBeenCalled();
   });
 });

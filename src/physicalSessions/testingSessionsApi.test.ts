@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startSession, closeSession, getSession, listPastSessions, getEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
+import { startSession, closeSession, getSession, listPastSessions, subscribeEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
 
-const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockQuery, mockSetDoc } = vi.hoisted(() => ({
+const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockOnSnapshot, mockQuery, mockSetDoc } = vi.hoisted(() => ({
   mockRunTransaction: vi.fn(),
   mockCollection: vi.fn(() => 'sessions-collection'),
   mockDoc: vi.fn((...args: unknown[]) => ({ type: 'doc', args, id: 'session-1' })),
   mockGetDoc: vi.fn(),
   mockGetDocs: vi.fn(),
+  mockOnSnapshot: vi.fn(),
   mockQuery: vi.fn((...args: unknown[]) => args),
   mockSetDoc: vi.fn(),
 }));
@@ -17,6 +18,7 @@ vi.mock('firebase/firestore', () => ({
   doc: mockDoc,
   getDoc: mockGetDoc,
   getDocs: mockGetDocs,
+  onSnapshot: mockOnSnapshot,
   query: mockQuery,
   where: vi.fn((...args: unknown[]) => ({ type: 'where', args })),
   orderBy: vi.fn((...args: unknown[]) => ({ type: 'orderBy', args })),
@@ -115,14 +117,19 @@ describe('testingSessionsApi entries', () => {
     mockDoc.mockImplementation((...args: unknown[]) => ({ type: 'doc', args, id: 'player-1__cmj' }));
   });
 
-  it('lists entries for a session', async () => {
-    mockGetDocs.mockResolvedValue({
-      docs: [{ id: 'player-1__cmj', data: () => ({ playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {}, resultTestId: null }) }],
+  it('streams entries for a session through one listener', () => {
+    const unsubscribe = vi.fn();
+    mockOnSnapshot.mockImplementation((_ref, onNext: (s: unknown) => void) => {
+      onNext({
+        docs: [{ id: 'player-1__cmj', data: () => ({ playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {}, resultTestId: null }) }],
+      });
+      return unsubscribe;
     });
+    const onChange = vi.fn();
 
-    const entries = await getEntries('team-1', 'session-1');
+    expect(subscribeEntries('team-1', 'session-1', onChange, vi.fn())).toBe(unsubscribe);
 
-    expect(entries).toEqual([
+    expect(onChange.mock.calls[0][0]).toEqual([
       { id: 'player-1__cmj', playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {}, resultTestId: null },
     ]);
   });

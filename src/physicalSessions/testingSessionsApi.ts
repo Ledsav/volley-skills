@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   runTransaction,
@@ -66,9 +67,22 @@ export async function listPastSessions(teamId: string): Promise<TestingSession[]
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as TestingSession);
 }
 
-export async function getEntries(teamId: string, sessionId: string): Promise<TestingSessionEntry[]> {
-  const snapshot = await getDocs(collection(db, 'teams', teamId, 'testingSessions', sessionId, 'entries'));
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as TestingSessionEntry);
+/**
+ * Live entries for a session (at most players × 8 qualities). One listener
+ * instead of re-reading the collection after every save: after the first load
+ * only changed entries are billed, and local writes show up immediately.
+ */
+export function subscribeEntries(
+  teamId: string,
+  sessionId: string,
+  onChange: (entries: TestingSessionEntry[]) => void,
+  onError: (e: Error) => void
+): () => void {
+  return onSnapshot(
+    collection(db, 'teams', teamId, 'testingSessions', sessionId, 'entries'),
+    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as TestingSessionEntry)),
+    onError
+  );
 }
 
 export async function saveEntryProgress(

@@ -49,7 +49,6 @@ describe('QualityTileGrid', () => {
         playerName="Jane Doe"
         entriesByPlayerAndType={entries}
         recordedByUid="coach-uid"
-        onEntryChanged={vi.fn()}
       />
     );
 
@@ -68,7 +67,6 @@ describe('QualityTileGrid', () => {
         playerName="Jane Doe"
         entriesByPlayerAndType={new Map()}
         recordedByUid="coach-uid"
-        onEntryChanged={vi.fn()}
       />
     );
 
@@ -85,7 +83,6 @@ describe('QualityTileGrid', () => {
         playerName="Jane Doe"
         entriesByPlayerAndType={new Map()}
         recordedByUid="coach-uid"
-        onEntryChanged={vi.fn()}
       />
     );
 
@@ -106,7 +103,6 @@ describe('QualityTileGrid', () => {
         playerName="Jane Doe"
         entriesByPlayerAndType={entries}
         recordedByUid="coach-uid"
-        onEntryChanged={vi.fn()}
       />
     );
 
@@ -125,34 +121,11 @@ describe('QualityTileGrid', () => {
         playerName="Jane Doe"
         entriesByPlayerAndType={new Map()}
         recordedByUid="coach-uid"
-        onEntryChanged={vi.fn()}
       />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /10m Sprint/ }));
 
     expect(screen.getByText('Panel for sprint10m (Jane Doe)')).toBeInTheDocument();
-  });
-
-  it('refetches entries when the panel is closed without finishing, so a stale draft is never shown next reopen', () => {
-    const onEntryChanged = vi.fn();
-
-    render(
-      <QualityTileGrid
-        teamId="team-1"
-        sessionId="session-1"
-        sessionDate="2026-09-16"
-        playerId="player-1"
-        playerName="Jane Doe"
-        entriesByPlayerAndType={new Map()}
-        recordedByUid="coach-uid"
-        onEntryChanged={onEntryChanged}
-      />
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /10m Sprint/ }));
-    fireEvent.click(screen.getByText('Close panel'));
-
-    expect(onEntryChanged).toHaveBeenCalledTimes(1);
   });
 });

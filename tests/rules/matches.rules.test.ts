@@ -53,6 +53,16 @@ describe('matches rules', () => {
     await assertSucceeds(db.doc('teams/team-1/matches/m1').get());
   });
 
+  it('lets a superadmin read and write events and the scout profile of any team', async () => {
+    const db = await as('super-uid', 'super@example.com');
+    await assertSucceeds(db.collection('teams/team-1/matches/m1/events').orderBy('order').limit(10).get());
+    await assertSucceeds(db.collection('teams/team-1/matches/m1/events').add({ ...ACTION, order: 2 }));
+    await assertSucceeds(db.doc('teams/team-1/matches/m1/events/e1').update({ grade: '-' }));
+    await assertSucceeds(db.doc('teams/team-1/matches/m1/events/e1').delete());
+    await assertSucceeds(db.doc('teams/team-1/scoutProfile/usage').get());
+    await assertSucceeds(db.doc('teams/team-1/scoutProfile/usage').set({ players: { p1: { matches: 2, totals: {} } } }));
+  });
+
   it('denies another team admin, a guardian viewer and strangers', async () => {
     for (const [uid, email] of [
       ['other-uid', 'other@example.com'],
@@ -64,12 +74,19 @@ describe('matches rules', () => {
       await assertFails(db.doc('teams/team-1/matches/m1/events/e1').get());
       await assertFails(db.collection('teams/team-1/matches/m1/events').add(ACTION));
       await assertFails(db.doc('teams/team-1/scoutProfile/usage').get());
+      await assertFails(db.doc('teams/team-1/scoutProfile/usage').set({ players: {} }));
+      await assertFails(db.doc('teams/team-1/matches/m1').update({ status: 'live' }));
+      await assertFails(db.doc('teams/team-1/matches/m1/events/e1').update({ grade: '=' }));
     }
   });
 
   it('denies unauthenticated access', async () => {
     const db = (await getTestEnv()).unauthenticatedContext().firestore();
     await assertFails(db.doc('teams/team-1/matches/m1').get());
+    await assertFails(db.doc('teams/team-1/matches/m1').update({ status: 'live' }));
+    await assertFails(db.doc('teams/team-1/matches/m1/events/e1').get());
+    await assertFails(db.doc('teams/team-1/scoutProfile/usage').get());
+    await assertFails(db.doc('teams/team-1/scoutProfile/usage').set({ players: {} }));
   });
 
   it('validates match docs', async () => {
@@ -88,6 +105,7 @@ describe('matches rules', () => {
     await assertFails(events.add({ ...ACTION, type: 'party' }));
     await assertFails(events.add({ ...ACTION, order: '1' }));
     await assertFails(events.add({ ...ACTION, source: 'magic' }));
+    await assertFails(db.doc('teams/team-1/matches/m1/events/e1').update({ grade: '++' }));
     await assertSucceeds(events.add({ type: 'point', order: 3, source: 'tap', chunkId: null, winner: 'us', reason: null }));
   });
 });

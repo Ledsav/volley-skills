@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
 import { writeAiSettings, DEFAULT_AI_SETTINGS } from './aiSettings';
-import { TextScoutPanel } from './TextScoutPanel';
+import { AiError } from './aiClient';
+import { PROCESS_TIMEOUT_MS, TextScoutPanel } from './TextScoutPanel';
 
 const roster = [
   { playerId: 's', number: 2, name: 'Sara Ruiz', positionCategory: 'S' as const },
@@ -27,7 +28,7 @@ function renderPanel(over: Partial<Parameters<typeof TextScoutPanel>[0]> = {}) {
     anchorId: null,
     maxWritten: 0,
     online: true,
-    onMerge: vi.fn(),
+    onMerge: vi.fn(() => true),
     onClose: vi.fn(),
     ask: vi.fn(async () => ({
       rallies: [
@@ -145,5 +146,96 @@ describe('TextScoutPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Process' }));
     await screen.findByText('coach shouted');
     expect(screen.queryByText(/later event/)).not.toBeInTheDocument();
+  });
+
+  describe('after merge', () => {
+    const one = async () => ({ rallies: [{ actions: [{ number: 2, skill: 'S', grade: '#' }] }], unparsed: [] });
+
+    it('keeps notes typed after Process', async () => {
+      renderPanel({ ask: vi.fn(one) });
+      const notes = screen.getByLabelText('Match notes');
+      fireEvent.change(notes, { target: { value: '2 ace' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled());
+      fireEvent.change(notes, { target: { value: '2 ace\n7 kill' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
+      expect(notes).toHaveValue('7 kill');
+      expect(screen.queryByRole('button', { name: 'Merge' })).not.toBeInTheDocument();
+    });
+
+    it('keeps the whole text when the processed part was edited', async () => {
+      renderPanel({ ask: vi.fn(one) });
+      const notes = screen.getByLabelText('Match notes');
+      fireEvent.change(notes, { target: { value: '2 ace' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled());
+      fireEvent.change(notes, { target: { value: '2 kill' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
+      expect(notes).toHaveValue('2 kill');
+    });
+
+    it('keeps the preview and notes when nothing was written', async () => {
+      const props = renderPanel({ ask: vi.fn(one), onMerge: vi.fn(() => false) });
+      fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '2 ace' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
+      expect(props.onMerge).toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Merge' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Match notes')).toHaveValue('2 ace');
+    });
+  });
+
+  it('retries once when the reply is not JSON', async () => {
+    const ask = vi.fn()
+      .mockRejectedValueOnce(new AiError('badResponse', 'not json'))
+      .mockResolvedValueOnce({ rallies: [{ actions: [{ number: 2, skill: 'S', grade: '#' }] }], unparsed: [] });
+    renderPanel({ ask });
+    fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '2 ace' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled());
+    expect(ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('adds the Local hint when a local provider is unreachable', async () => {
+    writeAiSettings({ provider: 'local', baseUrl: 'http://localhost:11434/v1', apiKey: '', model: 'm' });
+    renderPanel({ ask: vi.fn(async () => { throw new AiError('unreachable', 'x'); }) });
+    fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '7 ace' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Is Ollama / LM Studio running');
+  });
+
+  describe('timeout and cancel', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const hang = () => vi.fn((_m: unknown, signal: AbortSignal) => new Promise<unknown>((_r, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')))));
+
+    it('times out, keeps the draft and re-enables Process', async () => {
+      const ask = hang();
+      renderPanel({ ask });
+      fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '7 ace' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+      expect(screen.getByRole('button', { name: 'Process' })).toBeDisabled();
+      await act(async () => {
+        vi.advanceTimersByTime(PROCESS_TIMEOUT_MS);
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent('Timed out — your notes are kept.');
+      expect(screen.getByRole('button', { name: 'Process' })).toBeEnabled();
+      expect(screen.getByLabelText('Match notes')).toHaveValue('7 ace');
+      expect((ask.mock.calls[0][1] as AbortSignal).aborted).toBe(true);
+    });
+
+    it('Cancel aborts the request', async () => {
+      renderPanel({ ask: vi.fn(() => new Promise<unknown>(() => undefined)) });
+      fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '7 ace' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent('Cancelled.');
+      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Match notes')).toHaveValue('7 ace');
+    });
   });
 });

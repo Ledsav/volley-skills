@@ -55,4 +55,27 @@ describe('CourtGrid', () => {
     expect(onSelect).not.toHaveBeenCalled();
     expect(onLongPress).not.toHaveBeenCalled();
   });
+
+  it('fills the selected tile and badges an auto-selection', () => {
+    const props = {
+      court,
+      roster: rosterMap(ROSTER),
+      liberos: [],
+      activeLiberoId: null,
+      selectedId: 'oh1',
+      form: () => null,
+      onSelect: vi.fn(),
+      onLongPress: vi.fn(),
+    };
+    const { rerender } = render(<CourtGrid {...props} autoSelected />);
+    const tile = screen.getByRole('button', { name: '#7 Ana' });
+    expect(tile).toHaveAttribute('aria-pressed', 'true');
+    expect(tile).toHaveClass('bg-blue', 'text-white');
+    expect(within(tile).getByText('auto')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveClass('bg-blue');
+
+    rerender(<CourtGrid {...props} autoSelected={false} />);
+    expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveClass('bg-blue');
+    expect(screen.queryByText('auto')).not.toBeInTheDocument();
+  });
 });

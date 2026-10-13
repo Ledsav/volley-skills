@@ -7,6 +7,8 @@ interface CourtGridProps {
   liberos: LiberoConfig[];
   activeLiberoId: string | null;
   selectedId: string | null;
+  /** The selection came from auto-select (shows a small "auto" badge). */
+  autoSelected?: boolean;
   form: (playerId: string) => 'good' | 'bad' | null;
   onSelect: (playerId: string) => void;
   onLongPress: (playerId: string) => void;
@@ -20,7 +22,7 @@ const LONG_PRESS_MS = 500;
 // 'serving' liberos come on when we serve, i.e. to defend.
 const LIBERO_TILE_LABEL: Record<LiberoMode, string> = { receiving: 'L·rec', serving: 'L·def', always: 'L' };
 
-export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, form, onSelect, onLongPress, disabled = false }: CourtGridProps) {
+export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, autoSelected = false, form, onSelect, onLongPress, disabled = false }: CourtGridProps) {
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -40,13 +42,14 @@ export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, 
           const entry = id ? roster.get(id) : undefined;
           if (!entry) return <div key={zone} className="min-h-16 rounded-md border border-dashed border-border" />;
           const isLibero = id === activeLiberoId;
+          const isSelected = selectedId === id;
           const f = form(id);
           return (
             <button
               key={zone}
               type="button"
               aria-label={`#${entry.number} ${entry.name}${isLibero ? ', libero' : ''}`}
-              aria-pressed={selectedId === id}
+              aria-pressed={isSelected}
               disabled={disabled}
               onPointerDown={() => {
                 if (disabled) return;
@@ -63,17 +66,28 @@ export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, 
               onClick={() => {
                 if (!disabled && !longPressed.current) onSelect(id);
               }}
-              className={`relative flex min-h-16 select-none flex-col items-center justify-center rounded-md border text-ink disabled:opacity-60 ${
-                isLibero ? 'border-orange bg-orange/20' : 'border-border bg-surface'
-              } ${selectedId === id ? 'ring-2 ring-blue' : ''}`}
+              className={`relative flex min-h-16 select-none flex-col items-center justify-center rounded-md border disabled:opacity-60 ${
+                isSelected
+                  ? 'border-blue-strong bg-blue text-white shadow-card ring-2 ring-blue-strong'
+                  : isLibero
+                    ? 'border-orange bg-orange/20 text-ink'
+                    : 'border-border bg-surface text-ink'
+              }`}
             >
               <span className="text-xl font-bold tabular-nums leading-none">{entry.number}</span>
-              <span className="max-w-full truncate px-1 text-xs text-slate">{isLibero ? LIBERO_TILE_LABEL[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}</span>
-              <span className="absolute left-1 top-1 text-[10px] text-slate">P{zone + 1}</span>
+              <span className={`max-w-full truncate px-1 text-xs ${isSelected ? 'text-white' : 'text-slate'}`}>
+                {isLibero ? LIBERO_TILE_LABEL[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}
+              </span>
+              <span className={`absolute left-1 top-1 text-[10px] ${isSelected ? 'text-white/80' : 'text-slate'}`}>P{zone + 1}</span>
+              {isSelected && autoSelected && (
+                <span aria-hidden="true" className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1 text-[10px] font-medium leading-tight text-white">
+                  auto
+                </span>
+              )}
               {f && (
                 <span
                   aria-hidden="true"
-                  className={`absolute right-1 top-1 h-2.5 w-2.5 rounded-full ${f === 'bad' ? 'bg-red' : 'bg-green'}`}
+                  className={`absolute right-1 top-1 h-2.5 w-2.5 rounded-full ${f === 'bad' ? 'bg-red' : 'bg-green'} ${isSelected ? 'ring-2 ring-white' : ''}`}
                 />
               )}
             </button>

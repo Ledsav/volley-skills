@@ -9,6 +9,7 @@ import type {
   MatchFormat,
   MatchResult,
   PointReason,
+  RoleMap,
   SetScore,
   Side,
   Skill,
@@ -73,6 +74,11 @@ export interface MatchState {
   /** Who is physically on court by zone (libero applied). */
   court: string[];
   activeLiberoId: string | null;
+  /**
+   * Role per roster player for the current set: the roster roles, overridden
+   * by `setStart.roles`, with subs inheriting the outgoing player's role.
+   */
+  roles: RoleMap;
   setStartLineup: string[];
   currentRally: ActionEvent[];
   setsWon: SetScore;
@@ -153,6 +159,10 @@ export function sameResult(a: MatchResult, b: MatchResult): boolean {
   );
 }
 
+export function rosterRoles(match: Pick<EngineMatch, 'roster'>): RoleMap {
+  return Object.fromEntries(match.roster.map((r) => [r.playerId, r.positionCategory]));
+}
+
 function initialState(): MatchState {
   return {
     set: 0,
@@ -163,6 +173,7 @@ function initialState(): MatchState {
     lineup: [],
     court: [],
     activeLiberoId: null,
+    roles: {},
     setStartLineup: [],
     currentRally: [],
     setsWon: { us: 0, them: 0 },
@@ -181,7 +192,8 @@ function initialState(): MatchState {
 export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
   const s = initialState();
   const rosterIds = new Set(match.roster.map((r) => r.playerId));
-  const setterIds = new Set(match.roster.filter((r) => r.positionCategory === 'S').map((r) => r.playerId));
+  const baseRoles = rosterRoles(match);
+  s.roles = { ...baseRoles };
   let liberos: LiberoConfig[] = match.liberos.map((l) => ({ ...l, replaces: [...l.replaces] }));
   // Substitution pairs within the current set: out <-> in, for re-entry checks.
   let pairs: Record<string, string> = {};
@@ -228,7 +240,8 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
         s.lineup = [...ev.lineup];
         s.setStartLineup = [...ev.lineup];
         s.serving = ev.serving;
-        const setterZone = ev.lineup.findIndex((id) => setterIds.has(id));
+        s.roles = { ...baseRoles, ...(ev.roles ?? {}) };
+        const setterZone = ev.lineup.findIndex((id) => s.roles[id] === 'S');
         s.rotation = setterZone >= 0 ? setterZone + 1 : 1;
         s.subsUsed = 0;
         s.timeoutsUsed = { us: 0, them: 0 };
@@ -276,6 +289,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
           pairs[ev.inPlayerId] = ev.outPlayerId;
         }
         s.lineup = s.lineup.map((id) => (id === ev.outPlayerId ? ev.inPlayerId : id));
+        if (s.roles[ev.outPlayerId]) s.roles = { ...s.roles, [ev.inPlayerId]: s.roles[ev.outPlayerId] };
         liberos = liberos.map((l) =>
           l.replaces.includes(ev.outPlayerId)
             ? { ...l, replaces: l.replaces.map((id) => (id === ev.outPlayerId ? ev.inPlayerId : id)) }

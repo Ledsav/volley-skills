@@ -43,8 +43,15 @@ export interface RosterEntry {
   playerId: string;
   number: number;
   name: string;
+  /**
+   * The player's role in this match (defaults to the profile position, editable
+   * in setup and at each set start). Never written back to the player profile.
+   */
   positionCategory: PositionCategory;
 }
+
+/** Per-set roles, keyed by playerId. */
+export type RoleMap = Record<string, PositionCategory>;
 
 export interface LiberoConfig {
   playerId: string;
@@ -156,7 +163,14 @@ export interface Match extends MatchSetupInput {
 export type EventSource = 'tap' | 'text' | 'correction';
 
 export type MatchEventPayload =
-  | { type: 'setStart'; set: number; lineup: string[]; serving: Side }
+  | {
+      type: 'setStart';
+      set: number;
+      lineup: string[];
+      serving: Side;
+      /** Roles for this set, merged over the roster roles. Missing (older events) → roster roles. */
+      roles?: RoleMap | null;
+    }
   | { type: 'action'; playerId: string; skill: Skill; grade: Grade }
   | { type: 'point'; winner: Side; reason: PointReason | null }
   | { type: 'sub'; outPlayerId: string; inPlayerId: string }

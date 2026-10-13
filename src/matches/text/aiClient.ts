@@ -50,8 +50,15 @@ async function post(settings: AiSettings, body: object, opts: ChatOptions): Prom
   if (settings.apiKey.trim()) headers.Authorization = `Bearer ${settings.apiKey.trim()}`;
   const url = `${settings.baseUrl.trim().replace(/\/+$/, '')}/chat/completions`;
   try {
-    return await fetchImpl(url, { method: 'POST', headers, body: JSON.stringify(body), signal: opts.signal });
+    return await fetchImpl(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: opts.signal,
+      referrerPolicy: 'no-referrer',
+    });
   } catch {
+    if (opts.signal?.aborted) throw new AiError('unreachable', 'The request was cancelled or timed out.');
     throw new AiError('unreachable', 'Could not reach the AI provider.');
   }
 }

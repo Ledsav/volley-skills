@@ -56,7 +56,7 @@ const SETTINGS_KEY = 'vcb.ai.settings';
 const DRAFT_PREFIX = 'vcb.textDraft.';
 
 function isProvider(v: unknown): v is AiProvider {
-  return typeof v === 'string' && v in AI_PROVIDERS;
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(AI_PROVIDERS, v);
 }
 
 export function readAiSettings(): AiSettings {

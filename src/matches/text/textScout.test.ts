@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RosterEntry } from '../../types/match';
-import { anonymizeNames, batchToPayloads, buildMessages, chunkText, mergeBatches, parseBatch, type ParsedBatch } from './textScout';
+import { SYSTEM_PROMPT, anonymizeNames, batchToPayloads, buildMessages, chunkText, mergeBatches, parseBatch, type ParsedBatch } from './textScout';
 
 const roster: RosterEntry[] = [
   { playerId: 'p7', number: 7, name: 'Ana Pérez', positionCategory: 'OH' },
@@ -221,3 +221,36 @@ describe('stoplisted first names', () => {
 function rosterC(): RosterEntry[] {
   return [{ playerId: 'p5', number: 5, name: 'María de la Cruz', positionCategory: 'OH' }];
 }
+
+describe('parseBatch coercion and size caps', () => {
+  it('accepts digit-string numbers and lowercase skills', () => {
+    const r = parseBatch({
+      rallies: [{ actions: [{ number: '7', skill: 'a', grade: '#' }], subs: [{ outNumber: '9', inNumber: '8' }] }],
+    });
+    expect(r.ok && r.batch.rallies[0]).toEqual({
+      actions: [{ number: 7, skill: 'A', grade: '#' }],
+      point: null,
+      subs: [{ outNumber: 9, inNumber: 8 }],
+      timeouts: [],
+    });
+  });
+
+  it('still rejects non-digit number strings', () => {
+    expect(parseBatch({ rallies: [{ actions: [{ number: '7a', skill: 'A', grade: '#' }] }] }).ok).toBe(false);
+    expect(parseBatch({ rallies: [{ subs: [{ outNumber: '-1', inNumber: '8' }] }] }).ok).toBe(false);
+  });
+
+  it('rejects replies with too many rallies or actions', () => {
+    const action = { number: 7, skill: 'S', grade: '#' };
+    expect(parseBatch({ rallies: Array.from({ length: 200 }, () => ({})) }).ok).toBe(true);
+    expect(parseBatch({ rallies: Array.from({ length: 201 }, () => ({})) })).toEqual({ ok: false, error: 'Reply too large.' });
+    expect(parseBatch({ rallies: [{ actions: Array.from({ length: 30 }, () => action) }] }).ok).toBe(true);
+    expect(parseBatch({ rallies: [{ actions: Array.from({ length: 31 }, () => action) }] })).toEqual({ ok: false, error: 'Reply too large.' });
+  });
+});
+
+describe('SYSTEM_PROMPT', () => {
+  it('assigns between-rally subs and timeouts to the next rally', () => {
+    expect(SYSTEM_PROMPT).toContain("belong to the NEXT rally's entry");
+  });
+});

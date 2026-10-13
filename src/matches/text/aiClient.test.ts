@@ -33,6 +33,7 @@ describe('chatJson', () => {
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://api.groq.com/openai/v1/chat/completions');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer k');
+    expect(init.referrerPolicy).toBe('no-referrer');
     const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({ model: 'm', messages, temperature: 0, response_format: { type: 'json_object' } });
   });
@@ -69,6 +70,14 @@ describe('chatJson', () => {
     expect(await kind(async () => new Response('', { status: 500 }))).toEqual({ kind: 'http', retry: null });
     expect(await kind(async () => reply('not json'))).toEqual({ kind: 'badResponse', retry: null });
     expect(await kind(async () => new Response('{}', { status: 200 }))).toEqual({ kind: 'badResponse', retry: null });
+  });
+
+  it('reports an aborted request as unreachable', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fetchImpl = vi.fn(async () => { throw new DOMException('Aborted', 'AbortError'); });
+    await expect(chatJson(settings, messages, { fetchImpl, signal: controller.signal })).rejects.toMatchObject({ kind: 'unreachable' });
+    expect((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].signal).toBe(controller.signal);
   });
 
   it('refuses to call when not configured', async () => {

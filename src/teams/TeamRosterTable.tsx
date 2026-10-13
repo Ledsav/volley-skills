@@ -300,7 +300,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
       {pendingDelete && (
         <ConfirmDialog
           title={`Remove ${pendingDelete.fullName}?`}
-          message="This permanently deletes their player card, skills, development plan, and physical-test history. This cannot be undone."
+          message="This permanently deletes their player card, skills, development plan, physical tests and testing-session entries, and removes their name and number from past match reports. This cannot be undone."
           confirmLabel="Yes, remove player"
           onConfirm={() => void confirmDelete()}
           onCancel={() => {

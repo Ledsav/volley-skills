@@ -5,7 +5,14 @@ export interface ChatMessage {
   content: string;
 }
 
-export type AiErrorKind = 'notConfigured' | 'unauthorized' | 'rateLimited' | 'unreachable' | 'badResponse' | 'http';
+export type AiErrorKind =
+  | 'notConfigured'
+  | 'unauthorized'
+  | 'rateLimited'
+  | 'unreachable'
+  | 'badResponse'
+  | 'privacyBlocked'
+  | 'http';
 
 export class AiError extends Error {
   constructor(
@@ -63,9 +70,22 @@ async function post(settings: AiSettings, body: object, opts: ChatOptions): Prom
   }
 }
 
+/**
+ * OpenRouter forwards each request to one of several providers, some of which
+ * keep prompts or train on them. Match notes are about minors, so only
+ * providers that keep nothing (zero data retention) and never collect data
+ * are allowed. A model none of them serves fails with 404.
+ */
+const OPENROUTER_PRIVACY = { provider: { data_collection: 'deny', zdr: true } };
+
 export async function chatJson(settings: AiSettings, messages: ChatMessage[], opts: ChatOptions = {}): Promise<unknown> {
   if (!isAiConfigured(settings)) throw new AiError('notConfigured', 'Set up an AI provider in Settings.');
-  const base = { model: settings.model.trim(), messages, temperature: 0 };
+  const base = {
+    model: settings.model.trim(),
+    messages,
+    temperature: 0,
+    ...(settings.provider === 'openrouter' ? OPENROUTER_PRIVACY : {}),
+  };
   let res = await post(settings, { ...base, response_format: { type: 'json_object' } }, opts);
   if (res.status === 400) {
     const text = await res.text().catch(() => '');
@@ -76,6 +96,9 @@ export async function chatJson(settings: AiSettings, messages: ChatMessage[], op
   if (res.status === 429) {
     const ra = Number(res.headers.get('retry-after'));
     throw new AiError('rateLimited', 'Rate limit reached.', 429, Number.isFinite(ra) && ra > 0 ? ra : null);
+  }
+  if (res.status === 404 && settings.provider === 'openrouter') {
+    throw new AiError('privacyBlocked', 'No provider for this model meets the no-retention rule.', 404);
   }
   if (!res.ok) throw new AiError('http', `Provider error (${res.status}).`, res.status);
   let payload: unknown;

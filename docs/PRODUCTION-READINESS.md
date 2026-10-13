@@ -10,7 +10,7 @@ later. Tick items as they land.
 
 Status legend: `[ ]` todo · `[x]` done · `[~]` in progress / partial
 
-Last reviewed: 2026-09-09
+Last reviewed: 2026-10-14
 
 ## Decisions locked (2026-09-09)
 
@@ -39,6 +39,11 @@ Last reviewed: 2026-09-09
       inline-free); `connect-src` scoped to `*.googleapis.com` + the auth-helper
       frame. **Verify against the deployed app** — tighten/loosen if the console
       logs a violation.
+      `connect-src` also allows the text-scouting AI providers
+      (`api.groq.com`, `openrouter.ai`, `http://localhost:*` /
+      `http://127.0.0.1:*` for Ollama / LM Studio). The **Custom** provider can't
+      be pre-allowed, so it only works on the local dev server — its Settings
+      note says so. Add a host here if another provider becomes a preset.
 - [x] **Deployment path** — `.github/workflows/ci.yml` + `deploy.yml`.
 - [x] **CI secret** — `VITE_FIREBASE_*` committed in `.env.production`; the
       service-account JSON was uploaded by `firebase init hosting:github` as the
@@ -95,8 +100,27 @@ for the detailed steps.
 - [~] **Privacy policy content review** — `src/legal/PrivacyPage.tsx` at
       `/privacy` now has a real data-request contact
       (`alberto.valdes.rey.official@gmail.com`) and an "internal use, parent
-      access not enabled" banner. A **formal legal review is still owed** before
-      any guardian sign-in (app design spec §10.1).
+      access not enabled" banner. Expanded 2026-10-14 (region-agnostic, EU-wide):
+      operator as the responsible party (clubs are tenants), legal basis,
+      Firebase as processor, text-scouting transfers to US providers,
+      retention incl. access requests, full GDPR rights + complaint to the
+      user's national DPA. A **formal legal review is still owed** before any
+      guardian sign-in (app design spec §10.1). Ask the reviewer specifically:
+      (1) ~~physical measurements as Art. 9 health data~~ — decided 2026-10-14:
+      they are sports performance measurements, not medical data (operator's
+      call; the privacy page says so);
+      (2) operator vs club roles (controller/processor) once more clubs join —
+      a data-processing agreement per club is likely needed;
+      (3) Groq/OpenRouter terms for text scouting — mitigated 2026-10-14:
+      OpenRouter requests carry `provider: { data_collection: 'deny', zdr:
+      true }`; Settings tells coaches to use a club/work account and accept the
+      provider's DPA. Each coach's own key means the provider contract is the
+      coach's — confirm that is acceptable. Follow-up: an EU-hosted preset
+      (e.g. Mistral) once its CORS + DPA are verified;
+      (4) ~~retention period~~ — decided 2026-10-14: 12 months after the
+      player leaves (`leftClubAt`, `src/players/retention.ts`). No server, so
+      deletion is admin-confirmed from the team overview's "due for deletion"
+      notice, not automatic.
 - [x] **Offline cache of minors' data** — Firestore uses a persistent
       (IndexedDB) cache so matches can be scouted without signal, so match and
       player data stays on the device while signed in. Sign-out
@@ -173,24 +197,22 @@ From the bulk-import and quota-protection reviews:
       spend ~350ms / ~300ms of real time inside `waitFor` because of the debounce
       and `withBackoff` default `baseMs`. Not flaky, but fake timers (or a shared
       delay constant) would keep them fast and decoupled from the constants.
-- [ ] **Build chunk > 500 kB** — `vite build` warns the main JS chunk is ~1 MB.
+- [ ] **Build chunk > 500 kB** — `vite build` warns the main JS chunk is ~1.28 MB (335 kB gzip, 2026-10-14).
       Route-level `React.lazy` / `manualChunks` when load time matters.
 - [ ] **Unbounded delete cascades** — `deleteTeam` / `deletePlayer` do a
       `getDocs` with no `limit` over their subcollections. Bounded in practice by
       roster size; a `limit` + loop makes it safe at any scale.
-- [ ] **Physical testing session drafts have no deletion path** — added with the
-      physical-testing-session feature (2026-09-16). `teams/{teamId}/testingSessions/{sessionId}/entries/{entryId}`
-      stores the same personal measurements of minors as `physicalTests` (height,
-      body mass, jump/sprint values), keyed by `playerId`, but `firestore.rules`
-      grants no `delete` on it at all, and neither `deletePlayer` nor `deleteTeam`
-      cascades into it (`physicalTests` itself IS cascaded on player delete —
-      see the item above and the GDPR-erasure note in the app design spec §10).
-      Needs: a `delete` rule for team admins, a per-player cascade in
-      `deletePlayer` (across all sessions), a team-level cascade in `deleteTeam`,
-      and a rules test. Flagged during the feature's final review; deliberately
-      not fixed in that pass to avoid rushing a compliance-sensitive path.
-      *Trigger: before any real testing-session data is recorded for real minors,
-      or when GDPR erasure is exercised.*
+- [x] **Player erasure + export cover data outside the player doc** (2026-10-14)
+      — `deletePlayer` now runs `erasePlayerFootprint` first
+      (`src/players/playerFootprintApi.ts`): deletes the player's
+      testing-session entries in every session (team admins may now delete
+      entries, any session status — rules test added), strips their name and
+      number from every match roster ("Removed player", #0; stats stay keyed by
+      an id nothing points to), and drops them from `scoutProfile/usage`. The
+      player JSON export includes testing-session entries and per-match roster
+      + report stats. `deleteTeam` already cascades into testing sessions.
+      Raw scouting events are not exported per player (they hold only the
+      pseudonymous `playerId`; the report stats cover them).
 - [ ] **Physical testing session mobile layout is functional but not fully
       polished per spec** — the 2026-09-16 spec (§6) envisioned a fuller mobile
       treatment than shipped. What's done: the roster picker is a search-only

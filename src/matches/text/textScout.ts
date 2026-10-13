@@ -116,7 +116,7 @@ export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { o
   for (const r of raw.rallies) {
     if (!isObj(r)) return { ok: false, error: 'A rally is not an object.' };
     for (const key of ['actions', 'subs', 'timeouts'] as const) {
-      if (r[key] !== undefined && !Array.isArray(r[key])) return { ok: false, error: `"${key}" must be an array.` };
+      if (r[key] !== undefined && r[key] !== null && !Array.isArray(r[key])) return { ok: false, error: `"${key}" must be an array.` };
     }
     if (r.point !== undefined && r.point !== null && !isObj(r.point)) return { ok: false, error: '"point" must be an object or null.' };
     const actions: ParsedAction[] = [];

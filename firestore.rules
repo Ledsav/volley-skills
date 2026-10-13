@@ -118,21 +118,23 @@ service cloud.firestore {
     }
 
     match /teams/{teamId} {
-      allow read:   if isSuperAdmin()
-                    || (request.auth != null && request.auth.token.email in resource.data.adminEmails);
+      // Cheapest check first: `||` short-circuits, and isSuperAdmin() is a billed
+      // exists() read, while adminEmails is on the doc being read (free).
+      allow read:   if (request.auth != null && request.auth.token.email in resource.data.adminEmails)
+                    || isSuperAdmin();
       allow create: if isSuperAdmin()
                     && request.resource.data.createdBy == request.auth.uid
                     && request.resource.data.adminEmails is list;
-      allow update: if isSuperAdmin()
-                    || (request.auth != null
+      allow update: if (request.auth != null
                         && request.auth.token.email in resource.data.adminEmails
-                        && request.resource.data.adminEmails == resource.data.adminEmails);
+                        && request.resource.data.adminEmails == resource.data.adminEmails)
+                    || isSuperAdmin();
       allow delete: if isSuperAdmin();
 
       match /players/{playerId} {
         function isTeamAdmin() {
-          return isSuperAdmin() || request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails;
+          return request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin();
         }
 
         function validScore(score) {
@@ -173,8 +175,8 @@ service cloud.firestore {
 
       match /calendar/{sessionId} {
         function isTeamAdmin() {
-          return request.auth != null && (isSuperAdmin() || request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+          return request.auth != null && (request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
         }
         allow read: if isTeamAdmin() && canTrainings();
         allow create: if isTeamAdmin() && canTrainings()
@@ -186,8 +188,8 @@ service cloud.firestore {
 
       match /testingSessions/{sessionId} {
         function isTeamAdmin() {
-          return request.auth != null && (isSuperAdmin() || request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+          return request.auth != null && (request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
         }
         allow read: if isTeamAdmin();
         allow create, update: if isTeamAdmin();
@@ -197,8 +199,8 @@ service cloud.firestore {
 
         match /entries/{entryId} {
           function isTeamAdmin() {
-            return request.auth != null && (isSuperAdmin() || request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+            return request.auth != null && (request.auth.token.email in
+              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
           }
           allow read: if isTeamAdmin();
           allow create, update: if isTeamAdmin()
@@ -209,8 +211,8 @@ service cloud.firestore {
 
       match /matches/{matchId} {
         function isTeamAdmin() {
-          return request.auth != null && (isSuperAdmin() || request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+          return request.auth != null && (request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
         }
         function validStatus(d) {
           return d.status in ['setup', 'live', 'finished'];
@@ -226,8 +228,8 @@ service cloud.firestore {
 
         match /events/{eventId} {
           function isTeamAdmin() {
-            return request.auth != null && (isSuperAdmin() || request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+            return request.auth != null && (request.auth.token.email in
+              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
           }
           function validEvent(d) {
             return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
@@ -244,8 +246,8 @@ service cloud.firestore {
 
       match /scoutProfile/{docId} {
         function isTeamAdmin() {
-          return request.auth != null && (isSuperAdmin() || request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails);
+          return request.auth != null && (request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
         }
         allow read, write: if isTeamAdmin();
       }

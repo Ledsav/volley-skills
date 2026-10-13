@@ -490,4 +490,168 @@ describe('ScoutPage', () => {
       expect(screen.getByRole('button', { name: 'Serve' })).toHaveAttribute('aria-pressed', 'true');
     });
   });
+
+  describe('keyboard', () => {
+    const press = (key: string, init: KeyboardEventInit = {}, target: EventTarget = window) =>
+      act(() => {
+        target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+      });
+    const actions = () => vi.mocked(api.addEvent).mock.calls.map((c) => c[2]).filter((e) => e.type === 'action');
+
+    it('scouts a whole receiving rally from the keyboard', async () => {
+      const ids = ['w1', 'w2', 'w3'];
+      vi.mocked(api.addEvent).mockImplementation(() => ({ id: ids.shift() ?? 'wx', written: Promise.resolve() }));
+      renderPage([]);
+      const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+      vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'start', written: Promise.resolve() });
+      fireEvent.click(within(dialog).getByRole('button', { name: /start set/i }));
+      const start: MatchEvent = { ...setStart, id: 'start' };
+      act(() => pushEvents([start]));
+      // Auto-select picks the receiver (#7 Ana, outside hitter) with Reception.
+      expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveAttribute('aria-pressed', 'true');
+
+      press('+', { shiftKey: true });
+      const r: MatchEvent = { id: 'w1', order: 2, source: 'tap', chunkId: null, type: 'action', playerId: 'oh1', skill: 'R', grade: '+' };
+      act(() => pushEvents([start, r]));
+      expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('aria-pressed', 'true');
+
+      press('#', { shiftKey: true });
+      const e: MatchEvent = { id: 'w2', order: 3, source: 'tap', chunkId: null, type: 'action', playerId: 's', skill: 'E', grade: '#' };
+      act(() => pushEvents([start, r, e]));
+
+      // #4 Olga: unique and no longer number starts with 4, so it selects at once.
+      press('4');
+      expect(screen.getByRole('button', { name: '#4 Olga' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Attack' })).toHaveAttribute('aria-pressed', 'true');
+      press('#', { shiftKey: true });
+
+      expect(actions()).toEqual([
+        expect.objectContaining({ playerId: 'oh1', skill: 'R', grade: '+' }),
+        expect.objectContaining({ playerId: 's', skill: 'E', grade: '#' }),
+        expect.objectContaining({ playerId: 'o', skill: 'A', grade: '#' }),
+      ]);
+    });
+
+    it('switches the fundamental and ignores grades it does not have', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#11 Marta' }));
+      press('a');
+      expect(screen.getByRole('button', { name: 'Attack' })).toHaveAttribute('aria-pressed', 'true');
+      press('e');
+      press('/');
+      expect(api.addEvent).not.toHaveBeenCalled();
+      press('-');
+      expect(actions()).toEqual([expect.objectContaining({ playerId: 'mb1', skill: 'E', grade: '-' })]);
+    });
+
+    it('waits on an ambiguous jersey prefix until Enter', async () => {
+      renderPage([setStart]);
+      await screen.findByRole('button', { name: 'Point us' });
+      press('1');
+      expect(screen.getByRole('status')).toHaveTextContent('#1…');
+      press('1');
+      expect(screen.getByRole('button', { name: '#11 Marta' })).toHaveAttribute('aria-pressed', 'true');
+      press('Escape');
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+      press('8');
+      expect(screen.getByRole('status')).toHaveTextContent('No player #8');
+    });
+
+    it('P then 1 records a point us and amends its reason', async () => {
+      renderPage([setStart]);
+      await screen.findByRole('button', { name: 'Point us' });
+      press('p');
+      expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'point', winner: 'us', reason: null }), 'u1');
+      press('1');
+      expect(api.updateEvent).toHaveBeenCalledWith('t1', 'm1', 'new', { reason: 'oppError' });
+      expect(screen.queryByRole('button', { name: 'Opp. error' })).not.toBeInTheDocument();
+    });
+
+    it('T / Shift+T call timeouts and Shift+S opens the substitution', async () => {
+      renderPage([setStart]);
+      await screen.findByRole('button', { name: 'Point us' });
+      press('t');
+      press('T', { shiftKey: true });
+      const calls = vi.mocked(api.addEvent).mock.calls.map((c) => c[2]);
+      expect(calls).toEqual([expect.objectContaining({ type: 'timeout', team: 'us' }), expect.objectContaining({ type: 'timeout', team: 'them' })]);
+      fireEvent.click(screen.getByRole('button', { name: '#9 Lucía' }));
+      press('S', { shiftKey: true });
+      expect(screen.getByRole('dialog', { name: 'Substitute #9 Lucía' })).toBeInTheDocument();
+      // Dialog open: keys do nothing.
+      press('p');
+      expect(api.addEvent).toHaveBeenCalledTimes(2);
+    });
+
+    it('Ctrl+Z and Backspace undo', async () => {
+      const last: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+      renderPage([setStart, last]);
+      await screen.findByRole('button', { name: 'Point us' });
+      press('z', { ctrlKey: true });
+      expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']);
+      vi.mocked(api.deleteEvents).mockClear();
+      press('Backspace');
+      expect(api.deleteEvents).toHaveBeenCalledTimes(1);
+    });
+
+    it('Shift+A toggles auto-select', async () => {
+      renderPage([setStart]);
+      const toggle = await screen.findByRole('button', { name: 'Auto-select next player' });
+      press('A', { shiftKey: true });
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('ignores keys while the set start dialog is open', async () => {
+      renderPage([]);
+      await screen.findByRole('dialog', { name: 'Start set 1' });
+      press('?');
+      press('p');
+      expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeInTheDocument();
+      expect(api.addEvent).not.toHaveBeenCalled();
+    });
+
+    it('ignores keys while typing in an input', async () => {
+      renderPage([setStart]);
+      await screen.findByRole('button', { name: 'Point us' });
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      try {
+        input.focus();
+        press('p', {}, input);
+        press('?', {}, input);
+        expect(api.addEvent).not.toHaveBeenCalled();
+        expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeInTheDocument();
+      } finally {
+        input.remove();
+      }
+    });
+
+    it('? opens the cheat sheet listing the keys, and ? closes it', async () => {
+      renderPage([setStart]);
+      await screen.findByRole('button', { name: 'Point us' });
+      press('?');
+      const sheet = screen.getByRole('dialog', { name: 'Keyboard shortcuts' });
+      for (const label of ['P', 'O', 'Shift+T', 'Ctrl+Z', 'Backspace', 'Shift+S', 'Shift+A', 'Esc', '#', '=', 'S', 'F']) {
+        expect(within(sheet).getAllByText(label, { selector: 'kbd' }).length).toBeGreaterThan(0);
+      }
+      expect(within(sheet).getByText('Point us')).toBeInTheDocument();
+      press('p');
+      expect(api.addEvent).not.toHaveBeenCalled();
+      press('?');
+      expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeInTheDocument();
+    });
+
+    it('records nothing between sets, but Undo still works', async () => {
+      const corr: MatchEvent = { id: 'c1', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+      const end: MatchEvent = { id: 'x1', order: 3, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+      renderPage([setStart, corr, end]);
+      await screen.findByRole('button', { name: 'Undo set end' });
+      press('p');
+      press('t');
+      press('7');
+      expect(api.addEvent).not.toHaveBeenCalled();
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+      press('z', { ctrlKey: true });
+      expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['x1']);
+    });
+  });
 });

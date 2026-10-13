@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Undo2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Tab } from '../../components/Tab';
 import { useMediaQuery } from '../../components/useMediaQuery';
-import type { ActionEvent, EventSource, Match, MatchEvent, MatchEventPayload, RoleMap, Side, UsageProfile } from '../../types/match';
+import type { ActionEvent, EventSource, Grade, Match, MatchEvent, MatchEventPayload, PointReason, RoleMap, Side, Skill, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
 import { nextOrder } from '../eventOrder';
 import { buildFinishPayload } from '../finish';
@@ -16,19 +16,23 @@ import { defaultLineup } from '../matchSetup';
 import { countsForPlayer, expectedSkill, orderSkills, predictPlayer } from '../nextActions';
 import { nextRotation, prevRotation, replay, resultFromState, rosterRoles, sameResult, sortEvents } from '../scoutEngine';
 import { playerForm } from '../scoutStats';
-import { rallyOutcome } from '../skillGrades';
+import { POINT_REASONS, rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
 import { ActionSheet } from './ActionSheet';
 import { BenchStrip } from './BenchStrip';
 import { CorrectionDialog } from './CorrectionDialog';
 import { CourtGrid } from './CourtGrid';
 import { EditEventDialog } from './EditEventDialog';
+import { HotkeyCheatSheet } from './HotkeyCheatSheet';
+import { keyLabel } from './hotkeys';
+import { Kbd } from './Kbd';
 import { RallyBar, type ReasonPrompt } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
 import { LiveStatsPanel } from './LiveStatsPanel';
 import { SetStartDialog } from './SetStartDialog';
 import { SubDialog } from './SubDialog';
 import { TimelineDrawer } from './TimelineDrawer';
+import { useScoutHotkeys, type ScoutHotkeysOptions } from './useScoutHotkeys';
 
 const HEARTBEAT_MS = 60_000;
 const REASON_PROMPT_MS = 5_000;
@@ -77,6 +81,20 @@ function nextSetServing(events: MatchEvent[], fallbackServing: Side): Side {
   return prev === 'us' ? 'them' : 'us';
 }
 
+/** Mounts the keyboard listener once the page is live and shows its jersey hint. */
+function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
+  const { hint } = useScoutHotkeys(props);
+  if (!hint) return null;
+  return (
+    <p
+      role="status"
+      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-md bg-ink px-3 py-1.5 text-sm font-medium tabular-nums text-white shadow-pop"
+    >
+      {hint}
+    </p>
+  );
+}
+
 export function ScoutPage() {
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
@@ -101,6 +119,9 @@ export function ScoutPage() {
   const [dismissedSetPoint, setDismissedSetPoint] = useState<string | null>(null);
   const [setDialogOpen, setSetDialogOpen] = useState(false);
   const [reasonPrompt, setReasonPrompt] = useState<ReasonPrompt | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  // The action panel's active fundamental, tied to the selection it was picked for.
+  const [sheetSkill, setSheetSkill] = useState<{ seq: number; skill: Skill } | null>(null);
   const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
   const selectedId = selection?.id ?? null;
   const selectionSeqRef = useRef(0);
@@ -247,6 +268,36 @@ export function ScoutPage() {
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
   }
 
+  function recordPoint(winner: Side) {
+    const id = record({ type: 'point', winner, reason: null });
+    if (id) setReasonPrompt({ eventId: id, winner });
+  }
+
+  function amendReason(eventId: string, reason: PointReason) {
+    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError('Could not save the point reason.'));
+    setReasonPrompt(null);
+  }
+
+  function recordTimeout(team: Side) {
+    record({ type: 'timeout', team });
+  }
+
+  function toggleAutoSelect() {
+    const next = !autoSelect;
+    setAutoSelect(next);
+    writeAutoSelect(next);
+  }
+
+  function gradeAction(playerId: string, skill: Skill, grade: Grade) {
+    setSelection(null);
+    record({ type: 'action', playerId, skill, grade });
+  }
+
+  function openSub(playerId: string) {
+    setSubOutId(playerId);
+    select(null);
+  }
+
   function undoSetEnd() {
     const lastEnd = sortEvents(events ?? []).filter((e) => e.type === 'setEnd').pop();
     if (!lastEnd) return;
@@ -312,6 +363,56 @@ export function ScoutPage() {
       history: usage.players[playerId] ?? null,
     });
   };
+  const panelPlayer = state.inSet && selection ? selected : undefined;
+  const panelSkills = panelPlayer ? skillsFor(panelPlayer.playerId) : [];
+  const panelSkill = panelPlayer && selection ? (sheetSkill?.seq === selection.seq ? sheetSkill.skill : panelSkills[0]) : null;
+  const canSub = !!panelPlayer && !liberoIds.has(panelPlayer.playerId);
+  const chooseSkill = (skill: Skill) => {
+    if (selection) setSheetSkill({ seq: selection.seq, skill });
+  };
+
+  // Keyboard commands call the same handlers as the buttons.
+  const onHotkey: ScoutHotkeysOptions['onCommand'] = (command) => {
+    switch (command.type) {
+      case 'grade':
+        if (panelPlayer && panelSkill) gradeAction(panelPlayer.playerId, panelSkill, command.grade);
+        return;
+      case 'skill':
+        chooseSkill(command.skill);
+        return;
+      case 'point':
+        if (state.inSet) recordPoint(command.winner);
+        return;
+      case 'reason': {
+        const reason = reasonPrompt ? POINT_REASONS[reasonPrompt.winner][command.index] : undefined;
+        if (reasonPrompt && reason) amendReason(reasonPrompt.eventId, reason);
+        return;
+      }
+      case 'timeout':
+        if (state.inSet) recordTimeout(command.team);
+        return;
+      case 'undo':
+        undo();
+        return;
+      case 'close':
+        if (selection) select(null);
+        return;
+      case 'sub':
+        if (panelPlayer && canSub) openSub(panelPlayer.playerId);
+        return;
+      case 'toggleAuto':
+        toggleAutoSelect();
+        return;
+      case 'toggleHelp':
+        setHelpOpen((open) => !open);
+        return;
+      case 'closeHelp':
+        setHelpOpen(false);
+        return;
+      default:
+        return;
+    }
+  };
 
   const courtColumn = (
     <div className="flex flex-col gap-3">
@@ -331,21 +432,17 @@ export function ScoutPage() {
         }}
       />
       <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />
-      {state.inSet && selected && selection && (
+      {panelPlayer && panelSkill && selection && (
         <ActionSheet
-          key={`${selected.playerId}-${selection.seq}`}
-          player={selected}
-          isLibero={liberoIds.has(selected.playerId)}
-          skills={skillsFor(selected.playerId)}
+          key={`${panelPlayer.playerId}-${selection.seq}`}
+          player={panelPlayer}
+          isLibero={liberoIds.has(panelPlayer.playerId)}
+          skills={panelSkills}
+          skill={panelSkill}
+          onSkillChange={chooseSkill}
           onClose={() => select(null)}
-          onSub={() => {
-            setSubOutId(selected.playerId);
-            select(null);
-          }}
-          onGrade={(skill, grade) => {
-            setSelection(null);
-            record({ type: 'action', playerId: selected.playerId, skill, grade });
-          }}
+          onSub={() => openSub(panelPlayer.playerId)}
+          onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
         />
       )}
       {state.inSet ? (
@@ -353,15 +450,9 @@ export function ScoutPage() {
           format={match.format}
           timeoutsUsed={state.timeoutsUsed}
           reasonPrompt={reasonPrompt}
-          onPoint={(winner) => {
-            const id = record({ type: 'point', winner, reason: null });
-            if (id) setReasonPrompt({ eventId: id, winner });
-          }}
-          onReason={(eventId, reason) => {
-            void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError('Could not save the point reason.'));
-            setReasonPrompt(null);
-          }}
-          onTimeout={(team) => record({ type: 'timeout', team })}
+          onPoint={recordPoint}
+          onReason={amendReason}
+          onTimeout={recordTimeout}
         />
       ) : (
         <p className="py-2 text-center text-sm text-slate">Start the set to record actions.</p>
@@ -400,11 +491,7 @@ export function ScoutPage() {
         pending={pending}
         disabled={!state.inSet}
         autoSelect={autoSelect}
-        onToggleAutoSelect={() => {
-          const next = !autoSelect;
-          setAutoSelect(next);
-          writeAutoSelect(next);
-        }}
+        onToggleAutoSelect={toggleAutoSelect}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>
           record(
@@ -467,7 +554,14 @@ export function ScoutPage() {
       )}
       <footer className="sticky bottom-0 flex items-center justify-between border-t border-border bg-surface px-3 py-2">
         <button type="button" onClick={undo} className="flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg">
-          <Undo2 size={16} aria-hidden="true" /> Undo
+          <Undo2 size={16} aria-hidden="true" /> Undo <Kbd>{keyLabel('undo')}</Kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          className="hidden min-h-11 items-center gap-1.5 rounded-md px-3 text-xs text-slate hover:bg-bg lg:inline-flex"
+        >
+          Keyboard: <Kbd>{keyLabel('help')}</Kbd>
         </button>
         <button
           type="button"
@@ -567,6 +661,24 @@ export function ScoutPage() {
           }}
         />
       )}
+
+      <ScoutHotkeys
+        context={{
+          inSet: state.inSet,
+          helpOpen,
+          panelSkill,
+          panelSkills,
+          canSub,
+          reasonCount: state.inSet && reasonPrompt ? POINT_REASONS[reasonPrompt.winner].length : 0,
+        }}
+        jerseyNumbers={match.roster.map((r) => r.number)}
+        onCommand={onHotkey}
+        onJersey={(number) => {
+          const entry = match.roster.find((r) => r.number === number);
+          if (entry && state.inSet) select(entry.playerId);
+        }}
+      />
+      {helpOpen && <HotkeyCheatSheet onClose={() => setHelpOpen(false)} />}
 
       {pendingUndo && (
         <ConfirmDialog

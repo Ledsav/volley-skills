@@ -1,4 +1,4 @@
-import { GRADES, type Grade, type Side, type Skill } from '../types/match';
+import { GRADES, type Grade, type PointReason, type Side, type Skill } from '../types/match';
 
 export const SKILL_LABELS: Record<Skill, string> = {
   S: 'Serve',
@@ -32,3 +32,9 @@ export function rallyOutcome(skill: Skill, grade: Grade): Side | null {
   if (grade === '/' && (skill === 'A' || skill === 'B')) return 'them';
   return null;
 }
+
+/** Point-reason chips per winner, in the order shown (keys 1–4 follow this order). */
+export const POINT_REASONS: Record<Side, PointReason[]> = {
+  us: ['oppError', 'unknown'],
+  them: ['oppKill', 'oppAce', 'oppBlock', 'unknown'],
+};

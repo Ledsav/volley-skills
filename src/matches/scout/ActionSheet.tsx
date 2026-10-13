@@ -3,6 +3,7 @@ import { ArrowLeftRight, X } from 'lucide-react';
 import type { Grade, RosterEntry, Skill } from '../../types/match';
 import { GRADE_LABELS, SKILL_LABELS, validGrades } from '../skillGrades';
 import { GRADE_CLASS } from './gradeStyles';
+import { Kbd } from './Kbd';
 
 interface ActionSheetProps {
   player: RosterEntry;
@@ -11,10 +12,18 @@ interface ActionSheetProps {
   onGrade: (skill: Skill, grade: Grade) => void;
   onSub: () => void;
   onClose: () => void;
+  /** Controlled active fundamental (keyboard shortcuts switch it); uncontrolled when omitted. */
+  skill?: Skill;
+  onSkillChange?: (skill: Skill) => void;
 }
 
-export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose }: ActionSheetProps) {
-  const [skill, setSkill] = useState<Skill>(skills[0]);
+export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose, skill: controlledSkill, onSkillChange }: ActionSheetProps) {
+  const [ownSkill, setOwnSkill] = useState<Skill>(skills[0]);
+  const skill = controlledSkill ?? ownSkill;
+  const setSkill = (s: Skill) => {
+    setOwnSkill(s);
+    onSkillChange?.(s);
+  };
 
   return (
     <section
@@ -43,11 +52,12 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose 
             type="button"
             aria-pressed={s === skill}
             onClick={() => setSkill(s)}
-            className={`min-h-11 rounded-full border px-3 text-sm ${
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm ${
               s === skill ? 'border-blue bg-blue text-white' : 'border-border bg-surface text-ink'
             }`}
           >
             {SKILL_LABELS[s]}
+            <Kbd>{s}</Kbd>
           </button>
         ))}
       </div>
@@ -59,8 +69,9 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose 
             type="button"
             aria-label={`${g} ${GRADE_LABELS[skill][g]}`}
             onClick={() => onGrade(skill, g)}
-            className={`flex min-h-14 flex-col items-center justify-center rounded-md text-sm font-semibold ${GRADE_CLASS[g]}`}
+            className={`relative flex min-h-14 flex-col items-center justify-center rounded-md text-sm font-semibold ${GRADE_CLASS[g]}`}
           >
+            <Kbd className="absolute right-1 top-1">{g}</Kbd>
             <span className="text-lg leading-none" aria-hidden="true">{g}</span>
             <span className="text-xs" aria-hidden="true">{GRADE_LABELS[skill][g]}</span>
           </button>

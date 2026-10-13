@@ -14,7 +14,7 @@ import { rosterMap } from '../format';
 import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult } from '../matchesApi';
 import { defaultLineup } from '../matchSetup';
 import { countsForPlayer, expectedSkill, orderSkills } from '../nextActions';
-import { nextRotation, prevRotation, replay, resultFromState, sortEvents } from '../scoutEngine';
+import { nextRotation, prevRotation, replay, resultFromState, sameResult, sortEvents } from '../scoutEngine';
 import { playerForm } from '../scoutStats';
 import { rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
@@ -72,13 +72,19 @@ export function ScoutPage() {
           setLoadError('Match not found.');
           return;
         }
+        // Only a live match takes events: a stale tab must not write into a
+        // match that is back in setup or already finished.
+        if (m.status !== 'live') {
+          navigate(`/teams/${teamId}/matches/${matchId}`, { replace: true });
+          return;
+        }
         setMatch(m);
         if (isLockedByOther(m.activeDevice, deviceId, Date.now())) setLocked(true);
         else void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
       })
       .catch(() => setLoadError("You don't have access to this match."));
     getUsageProfile(teamId).then(setUsage).catch(() => undefined);
-  }, [teamId, matchId, deviceId]);
+  }, [teamId, matchId, deviceId, navigate]);
 
   const matchLoaded = match !== null;
   useEffect(() => {
@@ -104,7 +110,7 @@ export function ScoutPage() {
   useEffect(() => {
     if (!match || !state || locked) return;
     const result = resultFromState(state);
-    if (JSON.stringify(result) === JSON.stringify(match.result)) return;
+    if (sameResult(result, match.result)) return;
     setMatch({ ...match, result });
     updateMatchResult(teamId, matchId, result).catch(() => undefined);
   }, [state, match, locked, teamId, matchId]);
@@ -240,6 +246,7 @@ export function ScoutPage() {
       <CourtGrid
         court={state.court}
         roster={roster}
+        liberos={match.liberos}
         activeLiberoId={state.activeLiberoId}
         selectedId={selectedId}
         form={(id) => playerForm(state, id)}

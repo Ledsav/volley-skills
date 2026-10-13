@@ -181,6 +181,16 @@ describe('TeamCalendarTab', () => {
       expect(screen.getByLabelText('Remove TR-0007 on 2026-09-10')).toBeInTheDocument();
     });
 
+    it('gives the match chip of the tapped day a 44px touch target', async () => {
+      render(
+        <MemoryRouter>
+          <TeamCalendarTab teamId="team-1" />
+        </MemoryRouter>
+      );
+      fireEvent.click(await screen.findByRole('button', { name: /Saturday 12 September/ }));
+      expect(screen.getByRole('link', { name: 'vs Rivals 3–1' }).className).toContain('min-h-11');
+    });
+
     it('opens the assign dialog for the selected day', async () => {
       render(
         <MemoryRouter>

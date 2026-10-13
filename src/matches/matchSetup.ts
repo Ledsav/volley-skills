@@ -18,6 +18,7 @@ export function validateSetup(input: MatchSetupInput): string | null {
   if (!input.opponent.trim()) return 'Enter the opponent.';
   const liberoIds = new Set(input.liberos.map((l) => l.playerId));
   if (input.liberos.length > 2) return 'At most two liberos.';
+  if (liberoIds.size < input.liberos.length) return 'Pick two different players as liberos.';
   if (input.liberos.some((l) => !input.roster.some((r) => r.playerId === l.playerId))) {
     return 'Each libero must be in the match roster.';
   }
@@ -26,6 +27,7 @@ export function validateSetup(input: MatchSetupInput): string | null {
   }
   const seen = new Set<number>();
   for (const r of input.roster) {
+    if (!Number.isInteger(r.number) || r.number < 1) return `Check the shirt number for ${r.name}.`;
     if (seen.has(r.number)) return `Two players share #${r.number}.`;
     seen.add(r.number);
   }

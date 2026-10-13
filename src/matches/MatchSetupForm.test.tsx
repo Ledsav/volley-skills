@@ -83,4 +83,16 @@ describe('MatchSetupForm', () => {
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save setup' })).toBeEnabled();
   });
+
+  it('defaults the date to the local calendar date', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(2026, 9, 14, 0, 30));
+      render(<MatchSetupForm teamId="t1" submitLabel="Create match" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      await screen.findByText('#7 Name a');
+      expect(screen.getByLabelText('Date')).toHaveValue('2026-10-14');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
-import type { RosterEntry } from '../../types/match';
+import type { LiberoConfig, LiberoMode, RosterEntry } from '../../types/match';
 
 interface CourtGridProps {
   court: string[];
   roster: Map<string, RosterEntry>;
+  liberos: LiberoConfig[];
   activeLiberoId: string | null;
   selectedId: string | null;
   form: (playerId: string) => 'good' | 'bad' | null;
@@ -14,8 +15,10 @@ interface CourtGridProps {
 // Seen from behind our baseline: front row P4 P3 P2 (net side), back row P5 P6 P1.
 const ZONES = [3, 2, 1, 4, 5, 0];
 const LONG_PRESS_MS = 500;
+// 'serving' liberos come on when we serve, i.e. to defend.
+const LIBERO_TILE_LABEL: Record<LiberoMode, string> = { receiving: 'L·rec', serving: 'L·def', always: 'L' };
 
-export function CourtGrid({ court, roster, activeLiberoId, selectedId, form, onSelect, onLongPress }: CourtGridProps) {
+export function CourtGrid({ court, roster, liberos, activeLiberoId, selectedId, form, onSelect, onLongPress }: CourtGridProps) {
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -61,7 +64,7 @@ export function CourtGrid({ court, roster, activeLiberoId, selectedId, form, onS
               } ${selectedId === id ? 'ring-2 ring-blue' : ''}`}
             >
               <span className="text-xl font-bold tabular-nums leading-none">{entry.number}</span>
-              <span className="max-w-full truncate px-1 text-xs text-slate">{isLibero ? 'L' : entry.name}</span>
+              <span className="max-w-full truncate px-1 text-xs text-slate">{isLibero ? LIBERO_TILE_LABEL[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}</span>
               <span className="absolute left-1 top-1 text-[10px] text-slate">P{zone + 1}</span>
               {f && (
                 <span

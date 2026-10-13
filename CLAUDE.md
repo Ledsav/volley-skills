@@ -19,6 +19,7 @@ The authoritative specs live in `docs/superpowers/`:
 | `specs/2026-09-04-volley-skills-app-design.md` | Product scope, **Firestore data model**, authorization model, screen list, fetching rules, migration, compliance. Read this before touching data shapes or rules. |
 | `specs/2026-09-04-volley-skills-design-system.md` | **Design system** — color tokens, typography (Inter), spacing/radius/elevation, status vocabulary, component specs. The source of truth for any UI work. |
 | `specs/2026-09-07-volley-skills-plan-2-design.md`, `plan-3-design.md` | Design detail for later plan increments. |
+| `specs/2026-10-13-volley-skills-scouting-design.md` | Match scouting: event-sourced live scouting, match/event data model, post-match report, offline behavior. |
 | `plans/*.md` | The phased implementation plans (foundation, plan 2, plan 3 calendar + library). |
 
 ## Commands
@@ -53,6 +54,7 @@ because all files share one emulator project.
   (:9099), Firestore (:8080), Emulator UI (:4000).
 - `npm run seed:emulator` writes one team, `skillGuide/config`, and 20 player docs
   from the gitignored `.xlsx`. Emulator is in-memory — re-seed after every restart.
+- `npm run seed:match` adds a finished and a live demo match to the seeded team.
 - The Auth emulator prints the email sign-in link to its console (no email is sent).
 - Prod seeding (`node scripts/seed/seed.mjs --prod`) needs a gitignored
   `serviceAccountKey.json` at the repo root and is guarded to run once.
@@ -79,7 +81,9 @@ VITE_USE_EMULATOR === 'true'`).
 
 `<feature>Api.ts` modules own all Firestore reads/writes and return plain typed
 objects (`{ id, ...data } as Team`). Components never call `firebase/firestore`
-directly. Writes use `serverTimestamp()`; computed fields (`avgScore`/`level` on a
+directly. Firestore uses a persistent local cache (`initializeFirestore` +
+`persistentLocalCache`, multi-tab) so offline writes survive reloads; scouting event
+writes are therefore never awaited. Writes use `serverTimestamp()`; computed fields (`avgScore`/`level` on a
 player, training `businessId`) are derived on write, not in the UI.
 
 ### Fetching discipline (app design spec §8)
@@ -98,7 +102,9 @@ not a subcollection scan. **When adding a query, add the matching index.**
 authenticated shell, `RequireSuperAdmin` gates `/admin/access`, and
 `RequireSection` (given a `section` prop) gates `/exercises`,
 `/exercises/:exerciseId/diagram` (the lazy-loaded court-diagram editor),
-`/trainings`, `/admin/guides`. Two roles: `superadmin` (full access to
+`/trainings`, `/admin/guides`. Match pages live at `/teams/:teamId/matches/:matchId`;
+the lazy-loaded full-screen scouting UI is `/teams/:teamId/matches/:matchId/scout`
+(outside `AppShell`). Two roles: `superadmin` (full access to
 everything) and `member` (read-only until granted access — invite flow for
 guardians/viewers is still TBD). A member's actual access is resolved per-team
 (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
@@ -113,7 +119,9 @@ model.
 ### Firestore model shape (see spec §5 for the full contract)
 
 Team-scoped: `teams/{teamId}` → `players/{playerId}` → `physicalTests/{testId}`,
-plus `teams/{teamId}/calendar/{sessionId}`. Club-global: `exercises/{id}`
+plus `teams/{teamId}/calendar/{sessionId}`, `teams/{teamId}/matches/{matchId}` →
+`events/{eventId}` (ordered by `order`; all match state is derived by pure replay in
+`src/matches/scoutEngine.ts`) and `teams/{teamId}/scoutProfile/usage`. Club-global: `exercises/{id}`
 (+ an ordered `exercises/{id}/diagrams/{diagramId}` subcollection of court
 diagrams — admin-only, no index), `trainings/{id}` (+ `counters/trainings` for
 transactional `businessId`), `skillGuide/config`, `physicalTestGuide/config`.

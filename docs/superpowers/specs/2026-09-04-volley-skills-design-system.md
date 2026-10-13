@@ -63,7 +63,7 @@ Single family: **Inter**. One face carries both the marketing header and dense r
 
 Large/page/section titles use a slight negative tracking (`-0.01em`) — the only typographic embellishment in the system.
 
-**Wordmark exception (2026-09-17).** The "Volley Skills" logo lockup is the one place Inter is not used: **Barlow Condensed Black Italic** (self-hosted via `@fontsource/barlow-condensed`, Tailwind `font-display`), uppercase, tight tracking, set as a stack — the logo badge stands in for the V of "OLLEY", with "SKILLS" in ball yellow `#F5C518` beneath. The badge is a white rounded square with a slanted navy V catching a yellow ball. Both live in `src/components/Logo.tsx` (`Logo`, `LogoMark`) with fixed hex colours so they don't shift in dark mode; `public/favicon.svg` is the blue-badge variant. Don't use `font-display` for anything else.
+**Logo (2026-10-13, replaces the 2026-09-17 V badge).** The mark is the **Spin Ball**: a volleyball reduced to three swirling panels in deep navy `#12295A`, navy `#2356A8` and ball yellow `#F5C518`, with a halftone-dot crescent shadow inside the ball, centred on the point where the yellow and navy panels meet at the left edge (light from the right). The wordmark is "VOLLEY / SKILLS" in Barlow Condensed Black Italic, **converted to outlines**, with SKILLS tracked to the width of VOLLEY — no font is loaded at runtime, and Barlow is not used anywhere else in the UI. All artwork is fixed SVG in `src/assets/brand/` (so it never shifts with dark mode), rendered by `Logo` / `LogoMark` in `src/components/Logo.tsx`; below ~32 px use the dot-free `-small` mark (that is what `public/favicon.svg` is). Variants, clear space, minimum sizes and misuse: `docs/brand/README.md`.
 
 ## 4. Spacing, radius, elevation
 

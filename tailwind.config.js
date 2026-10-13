@@ -34,8 +34,6 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        // Wordmark only ("Volley Skills"); everything else stays Inter.
-        display: ['"Barlow Condensed"', 'Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: { sm: '6px', md: '9px', lg: '14px' },
       boxShadow: {

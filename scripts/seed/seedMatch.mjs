@@ -29,28 +29,51 @@ const teamRef = teams.docs[0].ref;
 const players = (await teamRef.collection('players').orderBy('number').limit(30).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
 
 const byPos = (p) => players.filter((x) => x.positionCategory === p);
-const libero = byPos('L')[0] ?? null;
-const field = players.filter((p) => p.id !== libero?.id);
+const liberoPlayers = byPos('L');
+const isL = (p) => p.positionCategory === 'L';
+const field = players.filter((p) => !isL(p));
 const setter = byPos('S')[0] ?? field[0];
 const ordered = [setter, ...byPos('OH'), ...byPos('O'), ...byPos('MB'), ...field].filter(
-  (p, i, all) => p && all.findIndex((q) => q.id === p.id) === i && p.id !== libero?.id,
+  (p, i, all) => p && all.findIndex((q) => q.id === p.id) === i,
 );
-const lineup = ordered.slice(0, 6).map((p) => p.id);
-const middles = byPos('MB').map((p) => p.id);
-const roster = players.map((p) => ({ playerId: p.id, number: p.number, name: p.fullName, positionCategory: p.positionCategory }));
-const liberos = libero ? [{ playerId: libero.id, mode: 'always', replaces: middles }] : [];
+const lineupPlayers = ordered.slice(0, 6);
+const lineup = lineupPlayers.map((p) => p.id);
+// Match roster: at most 14 — lineup first, then the libero(s), then the rest by number.
+const rosterPlayers = [
+  ...lineupPlayers,
+  ...liberoPlayers.slice(0, 2),
+  ...players.filter((p) => !lineup.includes(p.id) && !isL(p)),
+].slice(0, 14);
+const roster = rosterPlayers.map((p) => ({ playerId: p.id, number: p.number, name: p.fullName, positionCategory: p.positionCategory }));
+const rosterLiberos = rosterPlayers.filter(isL);
+const middles = rosterPlayers.filter((p) => p.positionCategory === 'MB').map((p) => p.id);
+const lineupMiddles = lineup.filter((id) => middles.includes(id));
+// No middle in the lineup: replace the P2 and P5 players so the libero shows up.
+const replaces = lineupMiddles.length ? middles : [lineup[1], lineup[4]];
+const liberos =
+  rosterLiberos.length === 1
+    ? [{ playerId: rosterLiberos[0].id, mode: 'always', replaces }]
+    : rosterLiberos.length >= 2
+      ? [
+          { playerId: rosterLiberos[0].id, mode: 'receiving', replaces },
+          { playerId: rosterLiberos[1].id, mode: 'serving', replaces },
+        ]
+      : [];
+const liberoIds = new Set(liberos.map((l) => l.playerId));
 const format = { bestOf: 5, setPoints: 25, decidingSetPoints: 15, subsPerSet: 6, timeoutsPerSet: 2 };
 const ohIds = new Set(byPos('OH').map((p) => p.id));
 
-// Mirrors the engine's libero rule: replaces the first back-row middle (P5, P6,
-// then P1 only when we are not serving).
+// Mirrors the engine's applyLibero: pick the libero for the serve state, then
+// replace the first back-row player (P5, P6, then P1 only when we are not serving).
 function courtOf(rot, serving) {
   const court = [...rot];
+  const libero =
+    liberos.find((l) => l.mode === 'always') ?? liberos.find((l) => l.mode === (serving === 'us' ? 'serving' : 'receiving'));
   if (!libero) return court;
   for (const zone of [4, 5, 0]) {
     if (zone === 0 && serving === 'us') continue;
-    if (middles.includes(rot[zone])) {
-      court[zone] = libero.id;
+    if (libero.replaces.includes(rot[zone])) {
+      court[zone] = libero.playerId;
       break;
     }
   }
@@ -75,8 +98,8 @@ function buildSet(events, set, finalScore) {
     else usWins = rand() < rem.us / (rem.us + rem.them);
 
     const court = courtOf(rot, serving);
-    const attackers = court.filter((id) => id !== setter.id && id !== libero?.id);
-    const receivers = court.filter((id) => id === libero?.id || ohIds.has(id));
+    const attackers = court.filter((id) => id !== setter.id && !liberoIds.has(id));
+    const receivers = court.filter((id) => liberoIds.has(id) || ohIds.has(id));
     if (serving === 'us') push({ type: 'action', playerId: rot[0], skill: 'S', grade: usWins && rand() < 0.15 ? '#' : pick(['+', '-', '-']) });
     else push({ type: 'action', playerId: pick(receivers.length ? receivers : attackers), skill: 'R', grade: pick(['#', '+', '+', '!', '-']) });
     const last = events[events.length - 1];

@@ -15,6 +15,7 @@
     "emulator": "node scripts/seed/emulator.mjs",
     "seed:emulator": "node scripts/seed/seed.mjs --emulator --reset",
     "seed:library": "node scripts/seed/seedLibrary.mjs",
+    "seed:numbers": "node scripts/seed/applyNumbers.mjs",
     "seed:match": "node scripts/seed/seedMatch.mjs",
     "seed:prod": "node scripts/seed/seed.mjs --prod"
   },

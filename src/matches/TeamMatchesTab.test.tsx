@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import { TeamMatchesTab } from './TeamMatchesTab';
 import * as matchesApi from './matchesApi';
@@ -65,5 +65,17 @@ describe('TeamMatchesTab', () => {
     fireEvent.click(screen.getByText('mock-create'));
     expect(await screen.findByText('match page')).toBeInTheDocument();
     expect(matchesApi.createMatch).toHaveBeenCalledWith('t1', { opponent: 'New FC' }, 'u1');
+  });
+
+  describe('new-match default date', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("uses the local calendar date, not the UTC one", async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 9, 14, 0, 30));
+      render(<MemoryRouter><TeamMatchesTab teamId="t1" /></MemoryRouter>);
+      fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
+      expect(screen.getByText('setup-form 2026-10-14')).toBeInTheDocument();
+    });
   });
 });

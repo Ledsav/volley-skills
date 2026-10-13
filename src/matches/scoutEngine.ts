@@ -143,6 +143,16 @@ export function resultFromState(state: MatchState): MatchResult {
   return { setsUs: state.setsWon.us, setsThem: state.setsWon.them, sets: state.setScores };
 }
 
+/** Field-wise equality (key order in stored docs is not guaranteed, so no JSON compare). */
+export function sameResult(a: MatchResult, b: MatchResult): boolean {
+  return (
+    a.setsUs === b.setsUs &&
+    a.setsThem === b.setsThem &&
+    a.sets.length === b.sets.length &&
+    a.sets.every((s, i) => s.us === b.sets[i].us && s.them === b.sets[i].them)
+  );
+}
+
 function initialState(): MatchState {
   return {
     set: 0,

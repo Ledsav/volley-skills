@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { useAuth } from '../auth/AuthContext';
 import type { Match, MatchStatus } from '../types/match';
+import { todayIso } from '../calendar/monthGrid';
 import { createMatch, listMatches } from './matchesApi';
 import { MatchSetupForm } from './MatchSetupForm';
 
@@ -57,7 +58,7 @@ export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled 
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <Button variant="primary" size="sm" onClick={() => setCreatingDate(new Date().toISOString().slice(0, 10))}>
+        <Button variant="primary" size="sm" onClick={() => setCreatingDate(todayIso())}>
           <Plus size={16} aria-hidden="true" className="mr-1" />
           New match
         </Button>

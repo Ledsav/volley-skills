@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_FORMAT, type MatchEvent, type MatchEventPayload, type Side } from '../types/match';
-import { replay, resultFromState, type EngineMatch } from './scoutEngine';
+import { replay, resultFromState, sameResult, type EngineMatch } from './scoutEngine';
 import { ROSTER } from './testFixtures';
 
 const LINEUP = ['s', 'oh1', 'mb1', 'o', 'oh2', 'mb2'];
@@ -139,5 +139,13 @@ describe('replay — sets and corrections', () => {
   it('a serving correction changes who serves', () => {
     const s = replay(match, [start('us'), correct({ serving: 'them' })]);
     expect(s.serving).toBe('them');
+  });
+
+  it('compares match results field by field', () => {
+    const a = { setsUs: 1, setsThem: 0, sets: [{ us: 25, them: 20 }] };
+    expect(sameResult(a, { setsThem: 0, sets: [{ them: 20, us: 25 }], setsUs: 1 })).toBe(true);
+    expect(sameResult(a, { ...a, setsThem: 1 })).toBe(false);
+    expect(sameResult(a, { ...a, sets: [{ us: 25, them: 21 }] })).toBe(false);
+    expect(sameResult(a, { ...a, sets: [] })).toBe(false);
   });
 });

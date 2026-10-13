@@ -51,11 +51,13 @@ function matchLabel(m: Match): string {
   return m.status === 'setup' ? `vs ${m.opponent}` : `vs ${m.opponent} ${m.result.setsUs}–${m.result.setsThem}`;
 }
 
-function MatchChip({ teamId, match }: { teamId: string; match: Match }) {
+function MatchChip({ teamId, match, touch = false }: { teamId: string; match: Match; touch?: boolean }) {
   return (
     <Link
       to={`/teams/${teamId}/matches/${match.id}`}
-      className="flex items-center gap-1 truncate rounded-sm bg-orange/15 px-1.5 py-0.5 text-xs font-medium text-orange-strong hover:underline"
+      className={`flex items-center gap-1 truncate rounded-sm bg-orange/15 font-medium text-orange-strong hover:underline ${
+        touch ? 'min-h-11 px-3 text-sm' : 'px-1.5 py-0.5 text-xs'
+      }`}
       title={matchLabel(match)}
     >
       <Trophy size={11} aria-hidden="true" />
@@ -387,7 +389,7 @@ function MobileMonthView({
         {selectedMatches.length > 0 && (
           <div className="mb-2 space-y-1">
             {selectedMatches.map((m) => (
-              <MatchChip key={m.id} teamId={teamId} match={m} />
+              <MatchChip key={m.id} teamId={teamId} match={m} touch />
             ))}
           </div>
         )}

@@ -37,6 +37,19 @@ describe('matchSetup', () => {
     expect(validateSetup(input({ roster: dup }))).toMatch(/#1/);
   });
 
+  it('rejects the same player in both libero slots', () => {
+    const lib = { playerId: 'p0', mode: 'always' as const, replaces: [] };
+    expect(validateSetup(input({ roster: roster(8), liberos: [lib, { ...lib, mode: 'receiving' }] }))).toMatch(/libero/i);
+  });
+
+  it('rejects jersey numbers that are not positive integers', () => {
+    for (const bad of [0, -3, 2.5, Number.NaN]) {
+      const r = roster(7);
+      r[2] = { ...r[2], number: bad };
+      expect(validateSetup(input({ roster: r }))).toMatch(/number/i);
+    }
+  });
+
   it('defaults the lineup to the first six non-libero players', () => {
     expect(defaultLineup(roster(8), [{ playerId: 'p0', mode: 'always', replaces: [] }])).toEqual(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']);
   });

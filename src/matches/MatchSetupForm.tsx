@@ -10,6 +10,7 @@ import {
   type MatchSetupInput,
 } from '../types/match';
 import type { Player } from '../types/player';
+import { todayIso } from '../calendar/monthGrid';
 import { loadTeamRoster } from './matchesApi';
 import { buildRoster, validateSetup } from './matchSetup';
 
@@ -35,7 +36,7 @@ const LIBERO_MODES: { value: LiberoMode; label: string }[] = [
 
 export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel, onDirtyChange }: MatchSetupFormProps) {
   const [players, setPlayers] = useState<Player[] | null>(null);
-  const [date, setDate] = useState(initial?.date ?? defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayIso());
   const [opponent, setOpponent] = useState(initial?.opponent ?? '');
   const [competition, setCompetition] = useState<Competition>(initial?.competition ?? 'league');
   const [homeAway, setHomeAway] = useState<HomeAway>(initial?.homeAway ?? 'home');

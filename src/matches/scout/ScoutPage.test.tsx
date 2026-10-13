@@ -140,6 +140,16 @@ describe('ScoutPage', () => {
     await waitFor(() => expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']));
   });
 
+  it('sends a match that is not live back to the match page', async () => {
+    for (const status of ['setup', 'finished'] as const) {
+      vi.mocked(api.getMatch).mockResolvedValue({ ...match, status });
+      const { unmount } = renderPage([setStart]);
+      expect(await screen.findByText('match page')).toBeInTheDocument();
+      expect(api.claimDevice).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
+
   it('warns when another device is scouting', async () => {
     vi.mocked(api.getMatch).mockResolvedValue({ ...match, activeDevice: { id: 'other-device', at: Date.now() } });
     renderPage([setStart]);

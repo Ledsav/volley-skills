@@ -55,6 +55,8 @@ trainings (TR-0001…TR-0003) into the running emulator — emulator-only exampl
 content, re-runnable (it replaces its own `demo-` docs). `dev:emulator` runs it
 automatically after the roster seed.
 
+`npm run seed:numbers` gives the seeded players unique jersey numbers (and a libero) from the gitignored `reference/jersey-numbers.json` (emulator-only; skipped if the file is missing; run by `dev:emulator` right after the roster seed).
+
 `npm run seed:match` — a finished demo match and a live one for the seeded team
 (also run by `dev:emulator`).
 

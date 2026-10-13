@@ -23,8 +23,9 @@ connection, and walk out with a report.
 Two input modes share one event format:
 
 - **Court mode (tap)** — the primary mode.
-- **Text mode** — free text parsed by Groq into the same events, mixable inside a match, with a
-  reconciliation preview before merge.
+- **Text mode** — free text parsed by an AI model (provider chosen by the user; Groq by default,
+  see §4.8) into the same events, mixable inside a match, with a reconciliation preview before
+  merge.
 
 ## 2. Decisions log
 
@@ -37,7 +38,7 @@ Two input modes share one event format:
 | D5 | Action ordering | History seeds a player's ordering only until that player has actions in the current match; then current-match counts only. History averages recomputed at Finish |
 | D6 | Connectivity | Local-first: Firestore persistent cache, writes queue offline, "synced / N pending" indicator |
 | D7 | Access | Team admins + superadmins only (scout and read). No guardian/viewer access |
-| D8 | Groq key | Per user, stored only in that browser's `localStorage`; never in Firestore |
+| D8 | AI provider + key | Provider-agnostic OpenAI-compatible client. Provider (Groq default, OpenRouter, Local, Custom), model and key per user, stored only in that browser's `localStorage`; never in Firestore. Gemini free tier rejected (see §4.8) |
 | D9 | Text mode | Mixable with taps in the same match, anchored insert + replay preview + merge |
 | D10 | Architecture | Event log; all state derived by pure replay |
 | D11 | Input layout | Tap player → bottom sheet (fundamental chips + 6-grade grid); first chip = next expected fundamental |
@@ -45,7 +46,9 @@ Two input modes share one event format:
 | D13 | Extras in scope | Calendar linking, substitution limits, timeout tracking |
 
 Verified: Groq's API answers CORS preflight with `access-control-allow-origin: *` and allows
-`authorization, content-type` — direct browser calls work (checked 2026-10-13).
+`authorization, content-type` — direct browser calls work (checked 2026-10-13). OpenRouter
+(`*`) and Gemini's OpenAI-compatible endpoint (origin echoed) also pass preflight (checked
+2026-10-14).
 
 ## 3. Grading vocabulary
 
@@ -150,18 +153,24 @@ Scope toggle: this set / match.
 
 1. ✎ Text opens the panel showing its anchor (default: end of timeline; or the "Insert rally
    here" anchor), e.g. "Inserting after 12–10, P3, we serve".
-2. Free text, any language. Collapsible shorthand cheat sheet (not required).
+2. Free text, any language. Collapsible shorthand cheat sheet (not required). While the panel
+   has focus, scouting hotkeys and auto-select are suspended.
 3. Draft autosaved to `localStorage` per match (survives offline / reload).
-4. **Process** (disabled offline or with no key):
-   - Local privacy pass: replace roster player names (full and first name, case-insensitive)
-     with `#number`.
-   - Send to `https://api.groq.com/openai/v1/chat/completions` with the user's key, a system
-     prompt describing the vocabulary (§3), the roster as `{ number, position, isLibero }` only,
-     the anchor state, and a strict JSON schema (structured output):
-     `{ rallies: [{ actions: [{ number, skill, grade }], point?: { winner, reason },
+4. **Process** (disabled offline, or with no provider configured):
+   - Local privacy pass: replace roster player names (full and first name, accent- and
+     case-insensitive) with `#number`.
+   - `POST {baseUrl}/chat/completions` of the configured provider (§4.8) with the user's key
+     (none for Local), a system prompt describing the vocabulary (§3), the roster as
+     `{ number, role, isLibero }` only — `role` = the current set's role (per-set `roles`) —,
+     the anchor state (set, score, serving, rotation, on-court numbers), and the output
+     contract `{ rallies: [{ actions: [{ number, skill, grade }], point?: { winner, reason },
        subs?: [{ outNumber, inNumber }], timeouts?: [{ team }] }], unparsed: [string] }`.
+     Request JSON output via `response_format: { type: 'json_object' }` (widely supported on
+     OpenAI-compatible endpoints; retried once without it if the provider rejects the field);
+     the response is always validated locally against the contract — never trusted.
    - Text longer than a threshold is split by line into chunks processed sequentially
-     (stay under the per-minute token limit).
+     (stay under per-minute token limits).
+   - Point reasons map to `PointReason` (unknown → `null`, matching one-tap points).
 5. **Preview:** editable rows (number / skill / grade dropdowns, delete row, add "point us/them")
    grouped by rally, with a live replay from the anchor ("12–10 → 17–13 · P4 · we serve").
    Highlighted: `unparsed` lines, rallies with no derivable winner, unknown jersey numbers.
@@ -172,16 +181,39 @@ Scope toggle: this set / match.
    Writes events with `order` values strictly between the anchor event and the next event,
    `source: 'text'`, shared `chunkId`.
 
-Errors: no key → link to Settings; 401 → "Key rejected"; 429 → "Groq rate limit — retry in
-Ns" (draft kept); invalid JSON / schema mismatch → one automatic retry, then "Couldn't parse —
-edit the text or enter by taps"; network failure → draft kept.
+Errors: no provider/key → link to Settings; 401/403 → "Key rejected"; 429 → "<Provider> rate
+limit — retry in Ns" (from `retry-after` when present; draft kept); invalid JSON / contract
+mismatch → one automatic retry, then "Couldn't parse — edit the text or enter by taps";
+network failure / local server unreachable → draft kept, with a hint for Local ("Is Ollama /
+LM Studio running and allowing this site?").
 
-### 4.8 Settings
+### 4.8 Settings — AI provider
 
-Two fields in the existing Settings page, persisted only in `localStorage` (wrapped in
-try/catch): **Groq API key** (masked, with "Test key" button) and **Groq model** (default
-`openai/gpt-oss-120b`). Copy explains the key stays on this device and that limits are per
-Groq account.
+A "Text scouting (AI)" section in the existing Settings page, persisted only in `localStorage`
+(wrapped in try/catch, never Firestore):
+
+| Field | Notes |
+|---|---|
+| Provider | `Groq` (default) · `OpenRouter` · `Local (Ollama / LM Studio)` · `Custom` |
+| Base URL | Pre-filled per provider (`https://api.groq.com/openai/v1`, `https://openrouter.ai/api/v1`, `http://localhost:11434/v1`); editable only for Local/Custom |
+| API key | Masked; not required for Local |
+| Model | Free text with a per-provider default (Groq: a current free-tier model such as `openai/gpt-oss-120b`; Local: `qwen2.5:7b-instruct`); defaults verified when the plan is written |
+| Test connection | Sends a tiny prompt; shows OK / rejected key / unreachable / rate-limited |
+
+**Provider decision (2026-10-14):**
+- **Groq — default.** Free tier; by default does not retain inference data and offers Zero
+  Data Retention in its Data Controls (Settings copy recommends enabling it); browser CORS OK.
+- **OpenRouter — alternative.** Many free models, but data handling depends on the routed
+  provider; Settings copy says so.
+- **Local (Ollama / LM Studio) — most private.** Free and unlimited; nothing leaves the
+  laptop; needs a one-time CORS allowance (`OLLAMA_ORIGINS` / LM Studio "Enable CORS").
+  Laptop use, not phones.
+- **Gemini free tier — rejected.** Its terms allow only paid services for apps offered to EEA
+  users (the club is in Belgium), use unpaid-tier content to improve Google products with
+  human review, and say not to send personal information.
+
+Copy explains: the key stays on this device; limits are per provider account; only jersey
+numbers, roles, score and the name-stripped text are sent.
 
 ### 4.9 Calendar linking
 
@@ -372,9 +404,10 @@ src/matches/
   scout/TimelineDrawer.tsx
   scout/useMatchEvents.ts             snapshot listener, pending count, device lock
   text/TextScoutPanel.tsx (+ .test)   draft, process, preview, merge
-  text/groqClient.ts                  fetch wrapper (fakeable)
+  text/aiClient.ts                    OpenAI-compatible fetch wrapper (fakeable)
+  text/aiSettings.ts                  provider presets + localStorage read/write
   text/textScout.ts (+ .test)         see §6.4
-src/settings/                         + Groq key & model (localStorage)
+src/settings/                         + AI provider, base URL, key, model, Test connection
 src/calendar/                         + match chips, "+ Match"
 src/teams/TeamPage.tsx                + Matches tab
 src/App.tsx                           + match routes
@@ -394,16 +427,18 @@ Priority per CLAUDE.md:
    mid-log insert then replay; corrections.
 3. **nextActions / scoutStats / textScout** — pure unit tests.
 4. **Components** — ActionSheet (chip order, hidden grades, grade tap emits event),
-   MatchSetupForm (roster, liberos), TextScoutPanel (fake Groq → preview → edit row → replayed
+   MatchSetupForm (roster, liberos), TextScoutPanel (fake AI client → preview → edit row → replayed
    score updates → merge emits ordered events).
 
 ## 9. Compliance
 
 - Match data is team-admin-only (no guardian/viewer path).
-- Groq receives only jersey numbers, positions, libero flags, anchor state and the user's text
-  after the name→number pass. The Settings copy notes that free text should not contain other
-  personal data.
-- No analytics; key never leaves the device except in the `Authorization` header to Groq.
+- The AI provider receives only jersey numbers, per-set roles, libero flags, anchor state and
+  the user's text after the name→number pass. The Settings copy notes that free text should not
+  contain other personal data. Providers whose free terms forbid EEA use or train on free-tier
+  content (Gemini free tier) are not offered.
+- No analytics; the key never leaves the device except in the `Authorization` header to the
+  configured provider.
 
 ## 10. Delivery
 
@@ -412,8 +447,9 @@ One spec, two implementation plans:
 - **Plan A — Court scouting:** types + engine + stats; rules + API; persistent cache; Matches
   tab + setup + set start; scouting screen; live stats; undo + timeline; subs + timeouts;
   finish + usage; report; calendar linking; seed. Usable on its own.
-- **Plan B — Text scouting:** Settings key/model; groqClient; textScout; TextScoutPanel with
-  preview / reconciliation / merge; chunk undo.
+- **Plan B — Text scouting:** AI provider settings + Test connection; aiClient; textScout;
+  TextScoutPanel with preview / reconciliation / merge; chunk undo; hotkey/auto-select
+  suspension while typing.
 
 ## 11. Out of scope
 

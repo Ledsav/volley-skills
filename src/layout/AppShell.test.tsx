@@ -47,7 +47,7 @@ describe('AppShell', () => {
     mockSignOut.mockResolvedValue('signedOut');
     renderShell();
     fireEvent.click(screen.getAllByText('Sign out')[0]);
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false, beforeSignOut: expect.any(Function) }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
@@ -58,6 +58,6 @@ describe('AppShell', () => {
     const dialog = await screen.findByRole('alertdialog');
     expect(dialog).toHaveTextContent("Some scouting actions haven't synced yet. Sign out anyway? They will be lost.");
     fireEvent.click(screen.getByRole('button', { name: 'Sign out anyway' }));
-    await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true, beforeSignOut: expect.any(Function) }));
   });
 });

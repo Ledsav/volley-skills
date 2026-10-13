@@ -29,7 +29,7 @@ describe('SettingsPage', () => {
 
     fireEvent.click(screen.getByText('Sign out'));
 
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false, beforeSignOut: expect.any(Function) }));
   });
 
   it('asks before signing out when scouting actions have not synced', async () => {

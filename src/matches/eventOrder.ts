@@ -31,3 +31,28 @@ export function nextOrder(
   }
   return Math.max(appendOrder(events), maxWritten + 1);
 }
+
+/**
+ * Orders for a batch of `count` new events: strictly between the anchor and the
+ * event after it, or appended after everything (including this device's
+ * unsynced writes) when there is no anchor.
+ */
+export function batchOrders(
+  events: { id: string; order: number }[],
+  anchorId: string | null,
+  count: number,
+  maxWritten: number,
+): number[] {
+  if (count <= 0) return [];
+  const anchor = anchorId ? events.find((e) => e.id === anchorId) : undefined;
+  if (anchor) {
+    const later = events.map((e) => e.order).filter((o) => o > anchor.order);
+    if (later.length > 0) {
+      const step = (Math.min(...later) - anchor.order) / (count + 1);
+      return Array.from({ length: count }, (_, i) => anchor.order + step * (i + 1));
+    }
+    return Array.from({ length: count }, (_, i) => Math.max(anchor.order, maxWritten) + 1 + i);
+  }
+  const start = Math.max(appendOrder(events), maxWritten + 1);
+  return Array.from({ length: count }, (_, i) => start + i);
+}

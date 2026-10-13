@@ -136,7 +136,15 @@ export function TeamPage() {
               />
             </>
           )}
-          {activeTab === 'calendar' && canCalendar && <TeamCalendarTab teamId={teamId} />}
+          {activeTab === 'calendar' && canCalendar && (
+            <TeamCalendarTab
+              teamId={teamId}
+              onNewMatch={(date) => {
+                setNewMatchDate(date);
+                setTab('matches');
+              }}
+            />
+          )}
           {activeTab === 'matches' && (
             <TeamMatchesTab teamId={teamId} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
           )}

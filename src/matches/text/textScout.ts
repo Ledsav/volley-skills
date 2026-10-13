@@ -1,5 +1,5 @@
 import { GRADES, SKILLS, type Grade, type MatchEventPayload, type PointReason, type RosterEntry, type Side, type Skill } from '../../types/match';
-import { POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
+import { GRADE_LABELS, POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
 import type { ChatMessage } from './aiClient';
 
 export interface ParsedAction {
@@ -80,6 +80,11 @@ export function anonymizeNames(text: string, roster: RosterEntry[]): string {
   return replaced.replace(/(#\d+)(?:[\s-]+\1)+\b/g, '$1');
 }
 
+/** Built from the app's own buttons so the prompt can never drift from them. */
+const GRADE_TABLE = SKILLS.map(
+  (s) => `${s} (${SKILL_LABELS[s]}): ${validGrades(s).map((g) => `"${g}" ${GRADE_LABELS[s][g]}`).join(', ')}`,
+).join('\n');
+
 export const SYSTEM_PROMPT = `You convert a volleyball coach's match notes about THEIR OWN team into JSON.
 Players are identified only by jersey number ("#7" or "7"). "#?" means an unknown player: put that line in "unparsed".
 Fundamentals (skill): S serve, R reception, A attack, B block, D dig, E set, F free ball.
@@ -98,6 +103,15 @@ Result words -> grade:
 - blocked, bloqueado, contré (our attack) -> A "/"
 - good, bien, bon -> "+"; bad, poor, mal, mauvais -> "-"
 - overpass, over -> "/" for R, D or F
+- easy, too easy, fácil, facile -> "-" (for S, R, D, F, E it means poor/easy)
+- tough, hard, strong, difícil, difficile, pressure, presión -> "+" for S
+- covered, cubierto, couvert -> A "!"
+- tooled, tocada, block-out -> B "/" (from our block); touch, toque, touche -> B "+" (ours) unless the notes say theirs
+- perfect, perfecto, parfait -> "#" for R, D, E, F
+- ok, regular, moyen -> "!"
+The app's own grade labels per fundamental (grade symbol, label):
+${GRADE_TABLE}
+When the notes use one of these labels or an obvious synonym, use that grade.
 If the notes name the action but not its result, still output the action with "grade": null. Never put a line in unparsed just because the result is missing.
 A rally ends with a point. Add "point" only when the notes say who won it and no action already decides it (S#, A#, B# win; any "=", A/ or B/ lose).
 Point reasons (only for points not decided by our action): "oppError", "oppKill", "oppAce", "oppBlock", "unknown".

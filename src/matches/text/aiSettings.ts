@@ -45,6 +45,13 @@ export const AI_PROVIDERS: Record<
   },
 };
 
+/** Provider label without its parenthetical, for inline messages ("Groq", "Local"). */
+export function providerName(provider: AiProvider): string {
+  return AI_PROVIDERS[provider].label.replace(/\s*\(.*\)$/, '');
+}
+
+export const LOCAL_UNREACHABLE_HINT = 'Is Ollama / LM Studio running and allowing this site?';
+
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   provider: 'groq',
   baseUrl: AI_PROVIDERS.groq.baseUrl,

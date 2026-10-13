@@ -6,9 +6,9 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Tab } from '../../components/Tab';
 import { useMediaQuery } from '../../components/useMediaQuery';
-import type { ActionEvent, EventSource, Match, MatchEventPayload, UsageProfile } from '../../types/match';
+import type { ActionEvent, EventSource, Match, MatchEvent, MatchEventPayload, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
-import { appendOrder, orderAfter } from '../eventOrder';
+import { nextOrder } from '../eventOrder';
 import { buildFinishPayload } from '../finish';
 import { rosterMap } from '../format';
 import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult } from '../matchesApi';
@@ -97,26 +97,45 @@ export function ScoutPage() {
     if (!setPointReached) endedSetRef.current = null;
   }, [setPointReached]);
 
+  // Writes from this page, newest last: Undo removes what this device just did
+  // (even an insert mid-timeline), and rapid taps never reuse an order before
+  // the snapshot catches up.
+  const writtenRef = useRef<string[]>([]);
+  const lastWriteRef = useRef<{ id: string; order: number } | null>(null);
+  const maxOrderRef = useRef(0);
+
   const record = useCallback(
-    (payload: MatchEventPayload, source: EventSource = 'tap') => {
-      if (!events || !firebaseUser) return;
-      const order = anchorId ? orderAfter(events, anchorId) : appendOrder(events);
+    (payload: MatchEventPayload, source: EventSource = 'tap'): string | null => {
+      if (!events || !firebaseUser) return null;
+      const order = nextOrder(events, anchorId, lastWriteRef.current, maxOrderRef.current);
       const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
       written.catch(() => setWriteError('An action could not be saved. Check your connection and the timeline.'));
+      writtenRef.current.push(id);
+      lastWriteRef.current = { id, order };
+      maxOrderRef.current = Math.max(maxOrderRef.current, order);
       if (anchorId) {
         const endsRally =
           payload.type === 'point' || (payload.type === 'action' && rallyOutcome(payload.skill, payload.grade) !== null);
         setAnchorId(endsRally ? null : id);
       }
+      return id;
     },
     [events, firebaseUser, anchorId, teamId, matchId],
   );
 
   function undo() {
     if (!events || events.length === 0) return;
-    const sorted = sortEvents(events);
-    const last = sorted[sorted.length - 1];
-    const ids = last.chunkId ? events.filter((e) => e.chunkId === last.chunkId).map((e) => e.id) : [last.id];
+    let last: MatchEvent | undefined;
+    while (!last && writtenRef.current.length > 0) {
+      const id = writtenRef.current.pop();
+      last = events.find((e) => e.id === id);
+    }
+    if (!last) {
+      const sorted = sortEvents(events);
+      last = sorted[sorted.length - 1];
+    }
+    const chunkId = last.chunkId;
+    const ids = chunkId ? events.filter((e) => e.chunkId === chunkId).map((e) => e.id) : [last.id];
     if (ids.length > 1) setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));

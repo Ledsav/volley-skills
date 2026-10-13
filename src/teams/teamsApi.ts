@@ -16,9 +16,9 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
-import { deletePlayer } from '../players/playersApi';
 import type { Team } from '../types/team';
 import type { DevelopmentPlan } from '../types/developmentPlan';
 
@@ -104,8 +104,17 @@ export async function updateTeamDevelopmentPlan(teamId: string, plan: Developmen
   await updateDoc(doc(db, 'teams', teamId), { developmentPlan: plan });
 }
 
+/**
+ * Removes the team and everything under it (GDPR erasure — players are
+ * minors). Firestore never cascades, so each subcollection is cleared
+ * explicitly, children first, and the team doc goes last.
+ */
 export async function deleteTeam(teamId: string): Promise<void> {
-  const playersSnapshot = await getDocs(collection(db, 'teams', teamId, 'players'));
-  await Promise.all(playersSnapshot.docs.map((playerDoc) => deletePlayer(teamId, playerDoc.id)));
+  const sub = (...path: string[]) => collection(db, 'teams', teamId, ...(path as [string]));
+  await deleteCollection(sub('players'), (playerId) => deleteCollection(sub('players', playerId, 'physicalTests')));
+  await deleteCollection(sub('matches'), (matchId) => deleteCollection(sub('matches', matchId, 'events')));
+  await deleteCollection(sub('testingSessions'), (sessionId) => deleteCollection(sub('testingSessions', sessionId, 'entries')));
+  await deleteCollection(sub('calendar'));
+  await deleteCollection(sub('scoutProfile'));
   await deleteDoc(doc(db, 'teams', teamId));
 }

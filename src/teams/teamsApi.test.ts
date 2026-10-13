@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { bulkCreateTeams, createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
-import { deletePlayer } from '../players/playersApi';
+import { deleteCollection } from '../firebase/deleteCollection';
 
 const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
   mockAddDoc: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
-vi.mock('../players/playersApi');
+vi.mock('../firebase/deleteCollection');
 
 describe('teamsApi', () => {
   beforeEach(() => {
@@ -149,15 +149,29 @@ describe('teamsApi', () => {
     });
   });
 
-  it('deletes every player on the team before deleting the team itself', async () => {
-    mockGetDocs.mockResolvedValue({ docs: [{ id: 'player-1' }, { id: 'player-2' }] });
-    vi.mocked(deletePlayer).mockResolvedValue(undefined);
-    mockDeleteDoc.mockResolvedValue(undefined);
+  it('clears every team subcollection, children first, before deleting the team itself', async () => {
+    mockCollection.mockImplementation((...args: unknown[]) => args.slice(1).join('/') as never);
+    const order: string[] = [];
+    vi.mocked(deleteCollection).mockImplementation(async (col, beforeDelete) => {
+      order.push(String(col));
+      await beforeDelete?.('child-1');
+    });
+    mockDeleteDoc.mockImplementation(async () => {
+      order.push('team-doc');
+    });
 
     await deleteTeam('team-1');
 
-    expect(deletePlayer).toHaveBeenCalledWith('team-1', 'player-1');
-    expect(deletePlayer).toHaveBeenCalledWith('team-1', 'player-2');
-    expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
+    expect(order).toEqual([
+      'teams/team-1/players',
+      'teams/team-1/players/child-1/physicalTests',
+      'teams/team-1/matches',
+      'teams/team-1/matches/child-1/events',
+      'teams/team-1/testingSessions',
+      'teams/team-1/testingSessions/child-1/entries',
+      'teams/team-1/calendar',
+      'teams/team-1/scoutProfile',
+      'team-doc',
+    ]);
   });
 });

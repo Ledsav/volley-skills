@@ -202,10 +202,24 @@ describe('ScoutPage', () => {
     expect(screen.getByText('Inserting into the timeline')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /undo/i }));
     expect(screen.queryByText('Inserting into the timeline')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Point them' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Opp. kill' }));
-    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'point', order: 3 }), 'u1');
+    // A timeout does not end a rally: with a stale anchor it would re-anchor on the new event and show the banner.
+    fireEvent.click(screen.getByRole('button', { name: /T\/O us/ }));
+    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'timeout', order: 3 }), 'u1');
     expect(screen.queryByText('Inserting into the timeline')).not.toBeInTheDocument();
+  });
+
+  it('confirms before deleting a set start, but deletes an action immediately', async () => {
+    const last: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    renderPage([setStart, last]);
+    const deletes = await screen.findAllByRole('button', { name: 'Delete' });
+    fireEvent.click(deletes[0]);
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']);
+    vi.mocked(api.deleteEvents).mockClear();
+    fireEvent.click(deletes[deletes.length - 1]);
+    expect(await screen.findByText('Delete set start?')).toBeInTheDocument();
+    expect(api.deleteEvents).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }));
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e1']);
   });
 
   it('deleting the anchor event from the timeline clears the anchor', async () => {

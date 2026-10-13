@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Match } from '../types/match';
-import { deleteMatch, getMatch, setMatchStatus, updateMatchSetup } from './matchesApi';
+import { buildFinishPayload } from './finish';
+import { deleteMatch, finishMatch, getMatch, getUsageProfile, setMatchStatus, updateMatchSetup } from './matchesApi';
 import { MatchSetupForm } from './MatchSetupForm';
+import { MatchReport } from './report/MatchReport';
+import { replay } from './scoutEngine';
+import { useMatchEvents } from './useMatchEvents';
 
 export function MatchPage() {
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
@@ -23,6 +27,10 @@ export function MatchPage() {
       .catch(() => setError("You don't have access to this match."));
   }, [teamId, matchId]);
 
+  const { events } = useMatchEvents(teamId, matchId);
+  const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
+  const finishingRef = useRef(false);
+
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
   if (!match) return <p className="p-6 text-slate">Loading matchâ€¦</p>;
 
@@ -33,6 +41,35 @@ export function MatchPage() {
       navigate(`/teams/${teamId}/matches/${matchId}/scout`);
     } catch {
       setActionError('Could not start scouting. Please try again.');
+    }
+  }
+
+  async function finish() {
+    if (!match || !state || finishingRef.current) return;
+    finishingRef.current = true;
+    setActionError(null);
+    let profile;
+    try {
+      profile = await getUsageProfile(teamId);
+    } catch {
+      finishingRef.current = false;
+      setActionError('Could not load usage history — try finishing again.');
+      return;
+    }
+    const payload = buildFinishPayload(match, state, profile);
+    finishMatch(teamId, matchId, payload).catch(() => undefined);
+    finishingRef.current = false;
+    setMatch({ ...match, status: 'finished', summary: payload.summary, usageContribution: payload.usageContribution, result: payload.result });
+  }
+
+  async function reopen() {
+    if (!match) return;
+    setActionError(null);
+    try {
+      await setMatchStatus(teamId, matchId, 'live');
+      setMatch({ ...match, status: 'live' });
+    } catch {
+      setActionError('Could not reopen the match. Please try again.');
     }
   }
 
@@ -72,6 +109,28 @@ export function MatchPage() {
             />
           </>
         )}
+
+        {match.status === 'live' && (
+          <div className="mb-6 rounded-md bg-orange/10 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="font-medium text-ink">Scouting in progress</span>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" disabled={!state} onClick={() => void finish()}>Finish match</Button>
+                <Link to={`/teams/${teamId}/matches/${matchId}/scout`} className="inline-flex min-h-11 items-center rounded-md bg-navy px-3 text-sm font-medium text-white">
+                  Resume scouting
+                </Link>
+              </div>
+            </div>
+            {actionError && <p role="alert" className="mt-2 text-sm text-red">{actionError}</p>}
+          </div>
+        )}
+        {match.status === 'finished' && (
+          <div className="mb-6 flex flex-col items-end gap-1 print:hidden">
+            <Button variant="secondary" size="sm" onClick={() => void reopen()}>Reopen for editing</Button>
+            {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
+          </div>
+        )}
+        {match.status !== 'setup' && state && <MatchReport match={match} state={state} />}
       </div>
 
       {confirmDelete && (

@@ -55,3 +55,8 @@
     @apply bg-bg font-sans text-ink;
   }
 }
+
+@media print {
+  header, nav, footer { display: none !important; }
+  body { background: #fff; }
+}

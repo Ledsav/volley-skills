@@ -39,6 +39,10 @@ describe('MatchPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(matchesApi.getMatch).mockResolvedValue(match);
+    vi.mocked(matchesApi.subscribeEvents).mockImplementation((_t, _m, onChange) => {
+      onChange([], 0);
+      return () => undefined;
+    });
   });
 
   it('disables Start scouting while the setup has unsaved edits', async () => {
@@ -57,5 +61,15 @@ describe('MatchPage', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Start scouting' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/could not start/i));
+  });
+
+  it('does not finish a live match when the usage history cannot be loaded', async () => {
+    vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'live' });
+    vi.mocked(matchesApi.getUsageProfile).mockRejectedValue(new Error('offline'));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/could not load usage history/i));
+    expect(matchesApi.finishMatch).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Finish match' })).toBeEnabled();
   });
 });

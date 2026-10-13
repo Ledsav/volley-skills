@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
+import { AiProviderSettings } from './AiProviderSettings';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 export function SettingsPage() {
@@ -18,6 +19,8 @@ export function SettingsPage() {
           </div>
           <ThemeToggle className="flex w-full shrink-0 items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-ink hover:bg-bg sm:w-auto sm:justify-start" />
         </section>
+
+        <AiProviderSettings />
 
         <section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card sm:flex-row sm:items-center sm:justify-between">
           <div>

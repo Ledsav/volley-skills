@@ -26,6 +26,8 @@ async function hasUnsyncedWrites(): Promise<boolean> {
 interface SignOutOptions {
   /** Sign out even if some local writes have not synced (they are lost). */
   force?: boolean;
+  /** Runs only when sign-out proceeds, just before auth is signed out (e.g. wipe local-only data). */
+  beforeSignOut?: () => void;
   /** Full-page navigation; injectable for tests. */
   redirect?: (url: string) => void;
 }
@@ -38,9 +40,11 @@ interface SignOutOptions {
  */
 export async function signOutAndClearLocalData({
   force = false,
+  beforeSignOut,
   redirect = (url) => window.location.assign(url),
 }: SignOutOptions = {}): Promise<'unsynced' | 'signedOut'> {
   if (!force && (await hasUnsyncedWrites())) return 'unsynced';
+  beforeSignOut?.();
   await signOut(auth);
   try {
     await terminate(db);

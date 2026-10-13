@@ -28,8 +28,11 @@ const setStart: MatchEvent = {
   lineup: ['s', 'oh1', 'mb1', 'o', 'oh2', 'mb2'], serving: 'them',
 };
 
+let pushEvents: (e: MatchEvent[]) => void = () => undefined;
+
 function renderPage(events: MatchEvent[]) {
   vi.mocked(api.subscribeEvents).mockImplementation((_t, _m, onChange) => {
+    pushEvents = (e) => onChange(e, 0);
     onChange(events, 0);
     return () => undefined;
   });
@@ -220,6 +223,44 @@ describe('ScoutPage', () => {
     expect(api.deleteEvents).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }));
     expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e1']);
+  });
+
+  it('undo after an insert deletes the inserted event, not the tail', async () => {
+    const e2: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    const e3: MatchEvent = { id: 'e3', order: 3, source: 'tap', chunkId: null, type: 'timeout', team: 'them' };
+    renderPage([setStart, e2, e3]);
+    // Timeline is newest first: [e3, e2, e1].
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Insert after' }))[1]);
+    vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'ins', written: Promise.resolve() });
+    fireEvent.click(screen.getByRole('button', { name: /T\/O us/ }));
+    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'timeout', order: 2.5 }), 'u1');
+    const ins: MatchEvent = { id: 'ins', order: 2.5, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    act(() => pushEvents([setStart, e2, ins, e3]));
+    fireEvent.click(screen.getByRole('button', { name: /undo/i }));
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['ins']);
+  });
+
+  it('rapid taps before the snapshot lands never reuse an order', async () => {
+    let n = 0;
+    vi.mocked(api.addEvent).mockImplementation(() => ({ id: `w${++n}`, written: Promise.resolve() }));
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: /T\/O us/ }));
+    fireEvent.click(screen.getByRole('button', { name: /T\/O them/ }));
+    const orders = vi.mocked(api.addEvent).mock.calls.map((c) => c[2].order);
+    expect(orders).toEqual([2, 3]);
+  });
+
+  it('rapid inserts before the snapshot lands stay in sequence after the anchor', async () => {
+    let n = 0;
+    vi.mocked(api.addEvent).mockImplementation(() => ({ id: `w${++n}`, written: Promise.resolve() }));
+    const e2: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    const e3: MatchEvent = { id: 'e3', order: 3, source: 'tap', chunkId: null, type: 'timeout', team: 'them' };
+    renderPage([setStart, e2, e3]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Insert after' }))[1]);
+    fireEvent.click(screen.getByRole('button', { name: /T\/O us/ }));
+    fireEvent.click(screen.getByRole('button', { name: /T\/O them/ }));
+    const orders = vi.mocked(api.addEvent).mock.calls.map((c) => c[2].order);
+    expect(orders).toEqual([2.5, 2.75]);
   });
 
   it('deleting the anchor event from the timeline clears the anchor', async () => {

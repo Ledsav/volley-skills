@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Tab } from '../../components/Tab';
 import { useMediaQuery } from '../../components/useMediaQuery';
-import type { ActionEvent, EventSource, Match, MatchEvent, MatchEventPayload, UsageProfile } from '../../types/match';
+import type { ActionEvent, EventSource, Match, MatchEvent, MatchEventPayload, Side, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
 import { nextOrder } from '../eventOrder';
 import { buildFinishPayload } from '../finish';
@@ -32,6 +32,13 @@ import { TimelineDrawer } from './TimelineDrawer';
 
 const HEARTBEAT_MS = 60_000;
 
+/** First serve alternates set to set: the other side of the previous set's first server. */
+function nextSetServing(events: MatchEvent[], fallbackServing: Side): Side {
+  const prevStart = sortEvents(events).filter((e) => e.type === 'setStart').pop();
+  const prev = prevStart && prevStart.type === 'setStart' ? prevStart.serving : fallbackServing;
+  return prev === 'us' ? 'them' : 'us';
+}
+
 export function ScoutPage() {
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
@@ -53,6 +60,7 @@ export function ScoutPage() {
   const [phoneTab, setPhoneTab] = useState<'court' | 'live' | 'timeline'>('court');
   const [editing, setEditing] = useState<ActionEvent | null>(null);
   const [dismissedSetPoint, setDismissedSetPoint] = useState<string | null>(null);
+  const [setDialogOpen, setSetDialogOpen] = useState(false);
   const { events, pending, error: eventsError } = useMatchEvents(teamId, matchId);
 
   useEffect(() => {
@@ -79,6 +87,16 @@ export function ScoutPage() {
 
   const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
   const roster = useMemo(() => rosterMap(match?.roster ?? []), [match]);
+
+  // Before the very first set, open the lineup dialog once; later sets start
+  // from the banner so an accidental "Confirm set" can still be undone.
+  const autoOpenedRef = useRef(false);
+  const awaitingFirstSet = !!state && state.set === 0 && !state.inSet && !state.matchOver;
+  useEffect(() => {
+    if (!awaitingFirstSet || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    setSetDialogOpen(true);
+  }, [awaitingFirstSet]);
 
   // Keep the list/calendar result current without replaying there.
   useEffect(() => {
@@ -139,6 +157,13 @@ export function ScoutPage() {
     if (ids.length > 1) setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
+  }
+
+  function undoSetEnd() {
+    const lastEnd = sortEvents(events ?? []).filter((e) => e.type === 'setEnd').pop();
+    if (!lastEnd) return;
+    endedSetRef.current = null;
+    deleteFromTimeline([lastEnd.id]);
   }
 
   function deleteFromTimeline(ids: string[]) {
@@ -284,6 +309,21 @@ export function ScoutPage() {
           <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">Back to live</button>
         </div>
       )}
+      {!state.inSet && !state.matchOver && (
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-orange/10 px-4 py-2">
+          <span className="font-semibold text-ink">
+            {state.set === 0
+              ? 'Set the lineup to start scouting'
+              : `Set ${state.set} over · ${state.setScores[state.set - 1]?.us ?? 0}–${state.setScores[state.set - 1]?.them ?? 0}`}
+          </span>
+          <div className="flex gap-2">
+            {state.set > 0 && (
+              <Button variant="ghost" size="sm" onClick={undoSetEnd}>Undo set end</Button>
+            )}
+            <Button variant="primary" size="sm" onClick={() => setSetDialogOpen(true)}>Start set {state.set + 1}</Button>
+          </div>
+        </div>
+      )}
       {state.matchOver && (
         <div className="flex items-center justify-between gap-3 bg-green/15 px-4 py-3">
           <span className="font-semibold text-ink">
@@ -327,15 +367,18 @@ export function ScoutPage() {
         </button>
       </footer>
 
-      {!state.inSet && !state.matchOver && (
+      {setDialogOpen && !state.inSet && !state.matchOver && (
         <SetStartDialog
           setNumber={state.set + 1}
           roster={match.roster}
           liberos={match.liberos}
           initialLineup={state.setStartLineup.length === 6 ? state.setStartLineup : defaultLineup(match.roster, match.liberos)}
-          initialServing={state.serving === 'us' ? 'them' : 'us'}
-          onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
-          onStart={(lineup, serving) => record({ type: 'setStart', set: state.set + 1, lineup, serving })}
+          initialServing={nextSetServing(events ?? [], state.serving)}
+          onCancel={() => setSetDialogOpen(false)}
+          onStart={(lineup, serving) => {
+            record({ type: 'setStart', set: state.set + 1, lineup, serving });
+            setSetDialogOpen(false);
+          }}
         />
       )}
 

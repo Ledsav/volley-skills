@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
@@ -60,6 +60,37 @@ describe('ScoutPage', () => {
   it('asks for the lineup before the first set', async () => {
     renderPage([]);
     expect(await screen.findByRole('dialog', { name: 'Start set 1' })).toBeInTheDocument();
+  });
+
+  it('closing the first-set dialog keeps the scout screen usable', async () => {
+    renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Back' }));
+    expect(screen.queryByRole('dialog', { name: 'Start set 1' })).not.toBeInTheDocument();
+    expect(screen.queryByText('match page')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Start set 1' }));
+    expect(screen.getByRole('dialog', { name: 'Start set 1' })).toBeInTheDocument();
+  });
+
+  it('after a set ends, offers Start set and Undo set end instead of a blocking dialog', async () => {
+    const corr: MatchEvent = { id: 'c1', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    const end: MatchEvent = { id: 'x1', order: 3, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+    renderPage([setStart, corr, end]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo set end' }));
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['x1']);
+    expect(screen.queryByRole('dialog', { name: 'Start set 2' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start set 2' })).toBeInTheDocument();
+  });
+
+  it("defaults the next set's first serve to the other side of the previous set's first serve", async () => {
+    // Set 1: we served first; the last rally left them serving. Set 2 should default to them.
+    const start: MatchEvent = { ...setStart, serving: 'us' } as MatchEvent;
+    const corr: MatchEvent = { id: 'c1', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: 'them' };
+    const end: MatchEvent = { id: 'x1', order: 3, source: 'tap', chunkId: null, type: 'setEnd', set: 1 };
+    renderPage([start, corr, end]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Start set 2' }));
+    expect(screen.getByLabelText('They serve')).toBeChecked();
   });
 
   it('records player → grade with reception pre-selected when receiving', async () => {

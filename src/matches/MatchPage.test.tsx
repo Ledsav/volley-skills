@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchSetupInput } from '../types/match';
 import { MatchPage } from './MatchPage';
 import * as matchesApi from './matchesApi';
+import { buildReportData } from './report/reportData';
+import { replay } from './scoutEngine';
 
 vi.mock('./matchesApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
@@ -92,6 +94,28 @@ describe('MatchPage', () => {
     reject(new Error('denied'));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/could not reopen/i));
     expect(screen.getByRole('button', { name: 'Reopen for editing' })).toBeInTheDocument();
+  });
+
+  it('renders a finished match from its stored report without reading events', async () => {
+    const stats = buildReportData(replay(match, [])).all;
+    const report = { setsWon: { us: 3, them: 1 }, setScores: [{ us: 25, them: 20 }], sets: [1], all: stats, bySet: { 1: stats } };
+    vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'finished', report });
+    renderPage();
+    expect(await screen.findByText('3–1')).toBeInTheDocument();
+    expect(matchesApi.subscribeEvents).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the event log for a finished match without a stored report', async () => {
+    vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'finished' });
+    renderPage();
+    await screen.findByRole('button', { name: 'Reopen for editing' });
+    expect(matchesApi.subscribeEvents).toHaveBeenCalled();
+  });
+
+  it('does not read events while the match is in setup', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Start scouting' });
+    expect(matchesApi.subscribeEvents).not.toHaveBeenCalled();
   });
 
   it('does not finish a live match when the usage history cannot be loaded', async () => {

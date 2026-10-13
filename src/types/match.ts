@@ -132,6 +132,19 @@ export interface MatchStats {
 
 export type MatchSummary = MatchStats;
 
+/**
+ * Everything the post-match report shows, saved on the match doc at finish so a
+ * finished match renders without reading its (hundreds of) event docs.
+ */
+export interface MatchReportData {
+  setsWon: SetScore;
+  setScores: SetScore[];
+  /** Set numbers that have rallies or actions, ascending. */
+  sets: number[];
+  all: MatchStats;
+  bySet: Record<number, MatchStats>;
+}
+
 export interface ActiveDevice {
   id: string;
   /** Client clock, ms since epoch. */
@@ -153,6 +166,8 @@ export interface Match extends MatchSetupInput {
   status: MatchStatus;
   result: MatchResult;
   summary: MatchSummary | null;
+  /** Written on finish; missing on matches finished before it existed. */
+  report?: MatchReportData | null;
   usageContribution: UsageContribution | null;
   activeDevice: ActiveDevice | null;
   createdBy: string;

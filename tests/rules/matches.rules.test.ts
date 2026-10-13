@@ -80,6 +80,20 @@ describe('matches rules', () => {
     }
   });
 
+  // isTeamAdmin() checks team membership before the (billed) superadmin lookup;
+  // when the team doc is gone (mid team deletion) the membership get() errors,
+  // and the superadmin branch must still grant access while others stay denied.
+  it('still lets a superadmin clean up events under a team doc that no longer exists', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('teams/team-1').delete();
+    });
+    await assertFails((await as('coach-uid', 'coach@example.com')).doc('teams/team-1/matches/m1/events/e1').delete());
+    const db = await as('super-uid', 'super@example.com');
+    await assertSucceeds(db.doc('teams/team-1/matches/m1/events/e1').delete());
+    await assertSucceeds(db.doc('teams/team-1/matches/m1').delete());
+  });
+
   it('denies unauthenticated access', async () => {
     const db = (await getTestEnv()).unauthenticatedContext().firestore();
     await assertFails(db.doc('teams/team-1/matches/m1').get());

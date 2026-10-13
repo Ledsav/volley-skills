@@ -34,6 +34,21 @@ describe('MatchSetupForm', () => {
     expect(input.liberos).toEqual([{ playerId: 'l', mode: 'always', replaces: ['m1', 'm2'] }]);
   });
 
+  it('stores the per-match role from the role select, defaulting to the profile position', async () => {
+    const onSubmit = vi.fn<(input: MatchSetupInput) => Promise<void>>(() => Promise.resolve());
+    render(<MatchSetupForm teamId="t1" defaultDate="2026-10-18" submitLabel="Create match" onSubmit={onSubmit} onCancel={vi.fn()} />);
+    await screen.findByText('#7 Name a');
+    expect(screen.getByLabelText('Role for Name a')).toHaveValue('OH');
+    fireEvent.change(screen.getByLabelText('Role for Name a'), { target: { value: 'O' } });
+    fireEvent.change(screen.getByLabelText('Opponent'), { target: { value: 'Rivals' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create match' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const roster = onSubmit.mock.calls[0][0].roster;
+    expect(roster.find((r) => r.playerId === 'a')?.positionCategory).toBe('O');
+    expect(roster.find((r) => r.playerId === 'b')?.positionCategory).toBe('OH');
+  });
+
   it('shows the validation error instead of submitting', async () => {
     const onSubmit = vi.fn(() => Promise.resolve());
     render(<MatchSetupForm teamId="t1" defaultDate="2026-10-18" submitLabel="Create match" onSubmit={onSubmit} onCancel={vi.fn()} />);

@@ -1,5 +1,5 @@
 import type { LiberoConfig, MatchSetupInput, RosterEntry } from '../types/match';
-import type { Player } from '../types/player';
+import type { Player, PositionCategory } from '../types/player';
 
 export const MAX_ROSTER = 14;
 
@@ -13,7 +13,11 @@ export function defaultRosterIds(players: Player[]): string[] {
   return [...starters, ...liberos, ...rest].slice(0, MAX_ROSTER).map((p) => p.id);
 }
 
-export function buildRoster(players: Player[], picks: Record<string, { checked: boolean; number: number }>): RosterEntry[] {
+/** `role` is the per-match role (defaults to the profile position); the profile itself is never changed. */
+export function buildRoster(
+  players: Player[],
+  picks: Record<string, { checked: boolean; number: number; role?: PositionCategory }>,
+): RosterEntry[] {
   return players
     .filter((p) => picks[p.id]?.checked)
     .sort((a, b) => Number(b.starting) - Number(a.starting) || picks[a.id].number - picks[b.id].number)
@@ -21,7 +25,7 @@ export function buildRoster(players: Player[], picks: Record<string, { checked: 
       playerId: p.id,
       number: picks[p.id].number,
       name: p.fullName,
-      positionCategory: p.positionCategory,
+      positionCategory: picks[p.id].role ?? p.positionCategory,
     }));
 }
 

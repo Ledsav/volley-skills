@@ -62,7 +62,8 @@ export function PrivacyPage() {
       <h2 className="mt-6 text-lg font-semibold">Security</h2>
       <p className="mt-1 text-slate">
         Data is encrypted in transit (HTTPS) and at rest, and access is controlled by per-record
-        security rules.
+        security rules. So that matches can be scouted without a signal, match and player data may be
+        cached on the device until you sign out; signing out clears it.
       </p>
 
       <p className="mt-8 text-sm">

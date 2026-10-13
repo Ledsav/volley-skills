@@ -97,6 +97,14 @@ for the detailed steps.
       (`alberto.valdes.rey.official@gmail.com`) and an "internal use, parent
       access not enabled" banner. A **formal legal review is still owed** before
       any guardian sign-in (app design spec §10.1).
+- [x] **Offline cache of minors' data** — Firestore uses a persistent
+      (IndexedDB) cache so matches can be scouted without signal, so match and
+      player data stays on the device while signed in. Sign-out
+      (`signOutAndClearLocalData` in `src/firebase/signOut.ts`) waits ~1.5s for
+      pending writes (asks before discarding unsynced scouting actions), then
+      signs out, terminates Firestore, clears the IndexedDB cache and reloads.
+      The privacy page says so. Caveat: clearing fails while another tab of the
+      app is open; that tab's cache is cleared on a later sign-out.
 
 ### Custom domain + auth (console — no CLI for these)
 

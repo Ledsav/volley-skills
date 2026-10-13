@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
 import { replay } from '../scoutEngine';
 import { MatchReport } from './MatchReport';
+import { buildReportData } from './reportData';
 
 const roster = ['s', 'a', 'b', 'c', 'd', 'e'].map((id, i) => ({ playerId: id, number: i + 1, name: `N${id}`, positionCategory: 'OH' as const }));
 const match = {
@@ -22,7 +23,7 @@ const events: MatchEvent[] = [
 
 describe('MatchReport', () => {
   it('renders KPIs, players and filters by set', () => {
-    render(<MatchReport match={match} state={replay(match, events)} />);
+    render(<MatchReport match={match} report={buildReportData(replay(match, events))} />);
     expect(screen.getByText('Aces / serve errors')).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /#1 Ns/ })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /#2 Na/ })).toBeInTheDocument();

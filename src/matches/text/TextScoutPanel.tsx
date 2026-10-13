@@ -225,9 +225,15 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
       </p>
       {!anchorState.inSet && <p className="text-sm text-orange-strong">Start the set first.</p>}
       {!configured && (
-        <p className="text-sm text-slate">
-          No AI provider set up. <Link to="/settings" className="text-blue hover:underline">Open Settings</Link>
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-slate">No AI provider set up.</p>
+          <Link
+            to="/settings"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          >
+            Open Settings
+          </Link>
+        </div>
       )}
       {!online && <p className="text-sm text-slate">Offline — your notes are saved; process them when you're back online.</p>}
       <label className="flex flex-col gap-1 text-sm font-medium text-ink">

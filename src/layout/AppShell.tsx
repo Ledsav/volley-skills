@@ -65,6 +65,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
+        <NavLink to="/settings" className={sidebarLinkClass}>
+          <Settings size={20} strokeWidth={1.5} />
+          Settings
+        </NavLink>
         <ThemeToggle className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white" />
         <button
           onClick={signOut}

@@ -33,25 +33,34 @@ export function nextOrder(
 }
 
 /**
- * Orders for a batch of `count` new events: strictly between the anchor and the
- * event after it, or appended after everything (including this device's
- * unsynced writes) when there is no anchor.
+ * Orders for a batch of `count` new events. With an anchor, the orders sit
+ * strictly between the anchor and the next known order after it (events, this
+ * device's unsynced writes); `lastWrite` resolves an anchor that is this
+ * device's own unsynced write. Without an anchor, they are appended after
+ * everything, including unsynced writes.
  */
 export function batchOrders(
   events: { id: string; order: number }[],
   anchorId: string | null,
   count: number,
   maxWritten: number,
+  lastWrite: { id: string; order: number } | null = null,
 ): number[] {
   if (count <= 0) return [];
-  const anchor = anchorId ? events.find((e) => e.id === anchorId) : undefined;
-  if (anchor) {
-    const later = events.map((e) => e.order).filter((o) => o > anchor.order);
-    if (later.length > 0) {
-      const step = (Math.min(...later) - anchor.order) / (count + 1);
-      return Array.from({ length: count }, (_, i) => anchor.order + step * (i + 1));
+  let anchorOrder: number | null = null;
+  if (anchorId) {
+    const known = events.find((e) => e.id === anchorId);
+    if (known) anchorOrder = known.order;
+    else if (lastWrite && lastWrite.id === anchorId) anchorOrder = lastWrite.order;
+  }
+  if (anchorOrder !== null) {
+    const anchor = anchorOrder;
+    const bounds = [...events.map((e) => e.order), maxWritten, lastWrite?.order ?? -Infinity].filter((o) => o > anchor);
+    if (bounds.length > 0) {
+      const step = (Math.min(...bounds) - anchor) / (count + 1);
+      return Array.from({ length: count }, (_, i) => anchor + step * (i + 1));
     }
-    return Array.from({ length: count }, (_, i) => Math.max(anchor.order, maxWritten) + 1 + i);
+    return Array.from({ length: count }, (_, i) => Math.max(anchor, maxWritten) + 1 + i);
   }
   const start = Math.max(appendOrder(events), maxWritten + 1);
   return Array.from({ length: count }, (_, i) => start + i);

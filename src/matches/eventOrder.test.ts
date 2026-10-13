@@ -61,3 +61,16 @@ describe('batchOrders', () => {
     expect(batchOrders(events, 'a', 0, 0)).toEqual([]);
   });
 });
+
+describe('batchOrders with an unsynced anchor', () => {
+  const events = [{ id: 'a', order: 1 }, { id: 'b', order: 2 }, { id: 'c', order: 3 }];
+  it('inserts after the unsynced write that is the anchor', () => {
+    const o = batchOrders(events, 'x', 2, 1.5, { id: 'x', order: 1.5 });
+    expect(o).toHaveLength(2);
+    expect(o.every((x) => x > 1.5 && x < 2)).toBe(true);
+    expect([...o].sort((x, y) => x - y)).toEqual(o);
+  });
+  it('appends after the unsynced anchor when nothing is later', () => {
+    expect(batchOrders([{ id: 'a', order: 1 }], 'x', 2, 1.5, { id: 'x', order: 1.5 })).toEqual([2.5, 3.5]);
+  });
+});

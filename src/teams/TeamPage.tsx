@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ChevronDown } from 'lucide-react';
 import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
@@ -12,9 +11,8 @@ import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImport';
 import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
-import { Tab } from '../components/Tab';
+import { SectionTabs } from '../components/SectionTabs';
 import { PageSkeleton } from '../components/Skeleton';
-import { FIELD_CLASS } from '../components/Input';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
 import { TeamMatchesTab } from '../matches/TeamMatchesTab';
@@ -72,37 +70,7 @@ export function TeamPage() {
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{team.name}</h1>
         <p className="mt-1 text-slate">{team.description}</p>
 
-        {/* Phones get a full-width section picker (native OS picker on tap);
-            five underline tabs don't fit a phone-width card without scrolling. */}
-        <div className="relative mt-4 sm:hidden">
-          <label htmlFor="team-section" className="sr-only">
-            Team section
-          </label>
-          <select
-            id="team-section"
-            value={activeTab}
-            onChange={(e) => setTab(e.target.value as TeamTab)}
-            className={`${FIELD_CLASS} min-h-11 w-full cursor-pointer appearance-none pr-10 font-medium`}
-          >
-            {tabs.map(({ id, label }) => (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate"
-            aria-hidden="true"
-          />
-        </div>
-
-        <div role="tablist" aria-label="Team sections" className="mt-4 hidden flex-wrap gap-x-4 border-b border-border sm:flex md:gap-x-6">
-          {tabs.map(({ id, label }) => (
-            <Tab key={id} active={activeTab === id} onClick={() => setTab(id)}>
-              {label}
-            </Tab>
-          ))}
-        </div>
+        <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={setTab} className="mt-4" />
 
         <div className="mt-6">
           {activeTab === 'overview' && (

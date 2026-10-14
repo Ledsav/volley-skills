@@ -496,7 +496,8 @@ export function ScoutPage() {
               if (!liberoIds.has(id)) setSubOutId(id);
             }}
           />
-          <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />
+          {/* While a player's actions are open, grading gets the room. */}
+          {!panelPlayer && <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />}
         </>
       )}
       {panelPlayer && panelSkill && selection && (
@@ -553,7 +554,8 @@ export function ScoutPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
+    // A fixed full-height frame: header and events dock never scroll away; only the middle does.
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-bg">
       <ScoutHeader
         state={state}
         format={match.format}
@@ -601,7 +603,7 @@ export function ScoutPage() {
         </div>
       )}
       {isDesktop ? (
-        <main className="grid flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 p-4">
+        <main className="grid min-h-0 flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 overflow-y-auto p-4">
           {courtColumn}
           <div className="flex min-w-0 flex-col gap-4">
             {textPanel}
@@ -617,7 +619,7 @@ export function ScoutPage() {
             <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
             <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>Text</Tab>
           </div>
-          <main className="flex-1 p-3">
+          <main className="min-h-0 flex-1 overflow-y-auto p-3">
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}
@@ -628,7 +630,7 @@ export function ScoutPage() {
       {state.inSet && (
         <section
           aria-label="Match events"
-          className="sticky bottom-0 z-30 border-t border-border bg-surface px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-pop"
+          className="shrink-0 border-t border-border bg-surface px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-pop"
         >
           <div className="mx-auto w-full max-w-3xl">
             <RallyBar

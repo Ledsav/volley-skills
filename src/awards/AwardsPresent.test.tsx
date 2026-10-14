@@ -40,6 +40,34 @@ describe('AwardsPresent', () => {
     expect(onExit).toHaveBeenCalled();
   });
 
+  it('final grid shows the jersey number or the photo for each winner', () => {
+    const photo = document.createElement('canvas');
+    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={(k) => ({ photo: k === 'mvp' ? photo : null, background: null })} onExit={vi.fn()} />);
+    for (let i = 0; i < 6; i++) fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(document.querySelectorAll('li canvas')).toHaveLength(1);
+  });
+
+  it('keeps the canvas 9:16 inside the letterbox box', () => {
+    const { container } = render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
+    expect(container.querySelector('canvas')!.className).toContain('object-contain');
+  });
+
+  it('releases a wake lock that resolves after unmount', async () => {
+    const release = vi.fn().mockResolvedValue(undefined);
+    let resolve!: (l: { release: () => Promise<void> }) => void;
+    const request = vi.fn(() => new Promise<{ release: () => Promise<void> }>((r) => { resolve = r; }));
+    Object.defineProperty(navigator, 'wakeLock', { value: { request }, configurable: true });
+    const { unmount } = render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
+    unmount();
+    resolve({ release });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(release).toHaveBeenCalled();
+    // @ts-expect-error test cleanup
+    delete navigator.wakeLock;
+  });
+
   it('never shows runners-up (only winners are in cards)', () => {
     render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
     expect(screen.queryByText(/Runners-up/)).toBeNull();

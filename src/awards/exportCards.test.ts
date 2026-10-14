@@ -33,9 +33,15 @@ describe('exportCards', () => {
     URL.createObjectURL = vi.fn(() => 'blob:x');
     URL.revokeObjectURL = vi.fn();
     const p = shareOrDownload([new File(['x'], 'a.png'), new File(['y'], 'b.png')], 'Awards');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(click).toHaveBeenCalledTimes(2);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
     await vi.runAllTimersAsync();
     expect(await p).toBe('downloaded');
     expect(click).toHaveBeenCalledTimes(2);
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
 });

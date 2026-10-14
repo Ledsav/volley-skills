@@ -28,3 +28,9 @@ export function renderCrop(src: ImageBitmap, crop: Crop, out = 1080): HTMLCanvas
   canvas.getContext('2d')!.drawImage(src, sx, sy, size, size, 0, 0, side, side);
   return canvas;
 }
+
+/** Scale (w, h) so the long side is at most `max`, keeping the aspect ratio. */
+export function fitSize(w: number, h: number, max: number): { w: number; h: number } {
+  const k = Math.min(1, max / Math.max(w, h));
+  return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) };
+}

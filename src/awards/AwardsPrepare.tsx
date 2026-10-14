@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, ImagePlus, Play, Share2, X } from 'lucide-react';
 import { Button } from '../components/Button';
 import type { Person } from '../teams/stats/rosterIndex';
 import { CUSTOM_NOTE_MAX, CUSTOM_TITLE_MAX, MAX_CUSTOM_AWARDS } from '../types/awards';
 import { PRESETS, themeFromPrefs, type ThemePrefs } from './card/cardTheme';
-import type { CardModel } from './card/drawAwardCard';
+import type { CardArt, CardModel } from './card/drawAwardCard';
 import { CardThumbnail } from './CardThumbnail';
 import { NAME_STYLE_LABELS, type NameStyle } from './nameStyle';
 import { PhotoCropDialog } from './PhotoCropDialog';
-import type { ResolvedAward } from './resolveAwards';
+import { revealable, type ResolvedAward } from './resolveAwards';
 
 export type PrepareAction =
   | { type: 'pick'; key: string; playerId: string | null }
@@ -24,6 +24,8 @@ export interface AwardsPrepareProps {
   saveState: 'saved' | 'saving' | 'offline' | 'error';
   nameStyle: NameStyle; onNameStyle: (s: NameStyle) => void;
   themePrefs: ThemePrefs; onThemePrefs: (p: ThemePrefs) => void;
+  notice?: string | null;
+  artFor: (key: string) => CardArt;
   hasBackground: boolean; onBackground: (file: File | null) => void;
   photos: Map<string, HTMLCanvasElement>;
   onPhoto: (key: string, img: HTMLCanvasElement | null) => void;
@@ -44,7 +46,10 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
   const customCount = awards.filter((a) => a.kind === 'custom').length;
   const byId = new Map(people.map((p) => [p.playerId, p]));
   const who = (id: string) => byId.get(id) ?? unknown(id);
-  const theme = themeFromPrefs(props.themePrefs);
+  const theme = useMemo(() => themeFromPrefs(props.themePrefs), [props.themePrefs]);
+  const { cardFor } = props;
+  const cards = useMemo(() => new Map(awards.map((a) => [a.key, cardFor(a)])), [awards, cardFor]);
+  const noWinners = revealable(awards).length === 0;
   const custom = props.themePrefs.custom;
 
   return (
@@ -55,10 +60,13 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           <p className="text-slate">{props.heading}</p>
         </div>
         <span role="status" className={`text-sm ${props.saveState === 'error' ? 'text-red' : 'text-slate'}`}>{SAVE_LABEL[props.saveState]}</span>
-        <Button variant="secondary" onClick={props.onExportAll}><Share2 size={16} aria-hidden="true" /> Export cards</Button>
-        <Button variant="primary" onClick={props.onPresent}><Play size={16} aria-hidden="true" /> Present</Button>
+        <Button variant="secondary" disabled={noWinners} onClick={props.onExportAll}><Share2 size={16} aria-hidden="true" /> Export cards</Button>
+        <Button variant="primary" disabled={noWinners} onClick={props.onPresent}><Play size={16} aria-hidden="true" /> Present</Button>
         <Button variant="ghost" onClick={props.onClose} aria-label="Close awards"><X size={16} aria-hidden="true" /></Button>
       </header>
+
+      {noWinners && <p className="mb-3 text-sm text-slate">Pick at least one winner to present or export cards.</p>}
+      {props.notice && <p role="alert" className="mb-3 text-sm text-red">{props.notice}</p>}
 
       <section aria-label="Card settings" className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-surface p-4">
         <label className="text-sm text-slate">Theme
@@ -80,7 +88,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           </>
         )}
         <label className="text-sm text-slate">Background image
-          <input type="file" accept="image/*" className="ml-2 text-sm" onChange={(e) => props.onBackground(e.target.files?.[0] ?? null)} />
+          <input type="file" accept="image/*" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
         </label>
         {props.hasBackground && <Button variant="ghost" size="sm" onClick={() => props.onBackground(null)}>Remove background</Button>}
         <label className="text-sm text-slate">Names on cards
@@ -94,12 +102,12 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
       <ol className="space-y-3">
         {awards.map((a, i) => {
           const titleId = `award-${a.key}`;
-          const card = props.cardFor(a);
+          const card = cards.get(a.key) ?? null;
           const photo = props.photos.get(a.key) ?? null;
           return (
             <li key={a.key}>
               <section aria-labelledby={titleId} className={`flex flex-wrap gap-4 rounded-lg border border-border bg-surface p-4 shadow-card ${a.hidden ? 'opacity-60' : ''}`}>
-                {card && <CardThumbnail card={card} theme={theme} art={{ photo, background: null }} />}
+                {card && <CardThumbnail card={card} theme={theme} art={props.artFor(a.key)} />}
                 <div className="min-w-0 flex-1 space-y-2">
                   <h2 id={titleId} className="font-semibold text-ink">{a.title}</h2>
                   {a.kind === 'stats' ? (

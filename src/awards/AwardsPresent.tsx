@@ -15,16 +15,35 @@ function useReducedMotion(): boolean {
 function useWakeLock() {
   useEffect(() => {
     let lock: { release: () => Promise<void> } | null = null;
+    let gone = false;
     const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } };
-    const acquire = () => nav.wakeLock?.request('screen').then((l) => (lock = l)).catch(() => undefined);
+    const acquire = () => nav.wakeLock?.request('screen').then((l) => { if (gone) void l.release().catch(() => undefined); else lock = l; }).catch(() => undefined);
     void acquire();
     const onVisible = () => document.visibilityState === 'visible' && void acquire();
     document.addEventListener('visibilitychange', onVisible);
     return () => {
+      gone = true;
       document.removeEventListener('visibilitychange', onVisible);
       void lock?.release().catch(() => undefined);
     };
   }, []);
+}
+
+/** Winner photo (if any) or jersey number, in a circle. */
+function Avatar({ photo, number, color }: { photo: CardArt['photo']; number: number | null; color: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = photo ? ref.current?.getContext('2d') : null;
+    if (!photo || !ctx) return;
+    ctx.clearRect(0, 0, 160, 160);
+    ctx.drawImage(photo, 0, 0, 160, 160);
+  }, [photo]);
+  if (photo) return <canvas ref={ref} width={160} height={160} className="h-20 w-20 rounded-full object-cover" aria-hidden="true" />;
+  return (
+    <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 text-3xl font-black tabular-nums" style={{ borderColor: color, color }} aria-hidden="true">
+      {number ?? '–'}
+    </span>
+  );
 }
 
 export function AwardsPresent({ cards, theme, artFor, onExit }: { cards: PresentCard[]; theme: CardTheme; artFor: (key: string) => CardArt; onExit: () => void }) {
@@ -106,8 +125,9 @@ export function AwardsPresent({ cards, theme, artFor, onExit }: { cards: Present
           <h1 className="mb-8 text-center text-5xl font-black" style={{ color: theme.accent }}>Winners</h1>
           <ul className="grid grid-cols-2 gap-6 sm:grid-cols-3">
             {cards.map((c) => (
-              <li key={c.key} className="text-center">
-                <p className="text-sm uppercase tracking-wide opacity-75">{c.title}</p>
+              <li key={c.key} className="flex flex-col items-center text-center">
+                <Avatar photo={artFor(c.key).photo} number={c.model.number} color={theme.accent} />
+                <p className="mt-2 text-sm uppercase tracking-wide opacity-75">{c.title}</p>
                 <p className="text-2xl font-extrabold">{c.model.name}</p>
               </li>
             ))}
@@ -116,7 +136,7 @@ export function AwardsPresent({ cards, theme, artFor, onExit }: { cards: Present
       ) : (
         // Letterboxed 9:16; tap halves = back / next.
         <div className="relative aspect-[9/16] h-full max-w-full">
-          <canvas ref={canvasRef} width={CARD_W} height={CARD_H} className="h-full w-full" aria-hidden="true" />
+          <canvas ref={canvasRef} width={CARD_W} height={CARD_H} className="h-full w-full object-contain" aria-hidden="true" />
           <button type="button" aria-label="Previous" className="absolute inset-y-0 left-0 w-1/2 cursor-w-resize" onClick={back} />
           <button type="button" aria-label="Next" className="absolute inset-y-0 right-0 w-1/2 cursor-e-resize" onClick={next} />
         </div>

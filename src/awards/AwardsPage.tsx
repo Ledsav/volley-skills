@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { NotFoundState } from '../components/NotFoundState';
+import { Button } from '../components/Button';
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { usePageMeta } from '../layout/usePageMeta';
 import { getMatch, listFinishedMatches, loadTeamRoster } from '../matches/matchesApi';
 import { latestRosterIndex, withCurrentRoster, type Person } from '../teams/stats/rosterIndex';
@@ -16,15 +17,16 @@ import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi'
 import { applyPrepareAction } from './awardsReducer';
 import { readThemePrefs, themeFromPrefs, writeThemePrefs, type ThemePrefs } from './card/cardTheme';
 import type { CardModel } from './card/drawAwardCard';
-import { cardFileName, renderCardPng, shareOrDownload } from './exportCards';
+import { cardFileName, ensureCardFonts, renderCardPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
-import { loadImageFile, renderCrop } from './photo';
+import { fitSize, loadImageFile } from './photo';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
 
 type Load =
   | { state: 'loading' }
   | { state: 'notFound' }
   | { state: 'notFinished' }
+  | { state: 'error' }
   | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person> };
 
 const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -41,7 +43,17 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const [themePrefs, setThemePrefs] = useState<ThemePrefs>(readThemePrefs);
   const [photos, setPhotos] = useState<Map<string, HTMLCanvasElement>>(new Map());
   const [background, setBackground] = useState<HTMLCanvasElement | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const dirty = useRef(false);
+  const configRef = useRef<AwardsInput>(EMPTY_AWARDS);
+  const photosRef = useRef(photos);
+  const backgroundRef = useRef<HTMLCanvasElement | null>(null);
+  const saveSeq = useRef(0);
+  const target = useRef({ scope, teamId, matchId, uid: firebaseUser?.uid ?? '' });
+  useEffect(() => {
+    target.current = { scope, teamId, matchId, uid: firebaseUser?.uid ?? '' };
+  });
   usePageMeta({ title: scope === 'season' ? 'Season awards' : 'Match awards' });
 
   useEffect(() => {
@@ -63,38 +75,64 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         if (scope === 'match' && !match) return setLoad({ state: 'notFound' });
         if (scope === 'match' && match!.status !== 'finished') return setLoad({ state: 'notFinished' });
         const all = scope === 'match' ? [match!] : matches;
-        setConfig((scope === 'match' ? match!.awards : saved) ?? EMPTY_AWARDS);
+        // Fonts must be ready before the first draw; a font failure never blocks.
+        try { await ensureCardFonts(); } catch { /* fall back to system font */ }
+        if (cancelled) return;
+        const initial = (scope === 'match' ? match!.awards : saved) ?? EMPTY_AWARDS;
+        configRef.current = initial;
+        setConfig(initial);
         setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster) });
-      } catch {
-        if (!cancelled) setLoad({ state: 'notFound' });
+      } catch (e) {
+        if (!cancelled) setLoad({ state: isNotFoundError(e) ? 'notFound' : 'error' });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [teamId, matchId, scope, firebaseUser?.email, access]);
+  }, [teamId, matchId, scope, firebaseUser?.email, access, attempt]);
+
+  // Write the latest config now. `track` updates the indicator; a stale write never shows "Saved".
+  const writeNow = useCallback((track: boolean) => {
+    const t = target.current;
+    const n = ++saveSeq.current;
+    dirty.current = false;
+    const write = t.scope === 'season' ? saveSeasonAwards(t.teamId, configRef.current, t.uid) : saveMatchAwards(t.teamId, t.matchId, configRef.current, t.uid);
+    write.then(
+      () => { if (track && n === saveSeq.current) setSaveState('saved'); },
+      () => { if (track && n === saveSeq.current) setSaveState('error'); },
+    );
+  }, []);
 
   // Debounced save, not awaited for UI (offline-safe persistent cache).
   useEffect(() => {
     if (!dirty.current || load.state !== 'ready') return;
     setSaveState(navigator.onLine === false ? 'offline' : 'saving');
-    const id = window.setTimeout(() => {
-      const uid = firebaseUser?.uid ?? '';
-      const write = scope === 'season' ? saveSeasonAwards(teamId, config, uid) : saveMatchAwards(teamId, matchId, config, uid);
-      write.then(() => setSaveState('saved')).catch(() => setSaveState('error'));
-    }, 800);
+    const id = window.setTimeout(() => writeNow(true), 800);
     return () => window.clearTimeout(id);
-  }, [config, load.state, scope, teamId, matchId, firebaseUser?.uid]);
+  }, [config, load.state, writeNow]);
 
-  // Release in-memory images on leave.
-  useEffect(() => () => { photos.forEach((c) => { c.width = 0; }); }, [photos]);
+  // Flush a pending edit when leaving (unmount, tab hide/close).
+  useEffect(() => {
+    const flush = () => { if (dirty.current) writeNow(false); };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [writeNow]);
+
+  // Release in-memory images on leave only.
+  useEffect(() => () => {
+    photosRef.current.forEach((c) => { c.width = 0; });
+    if (backgroundRef.current) backgroundRef.current.width = 0;
+  }, []);
 
   const ready = load.state === 'ready' ? load : null;
   const awards: ResolvedAward[] = useMemo(
     () => (ready ? resolveAwards(scope, ready.matches, config, ready.people) : []),
     [ready, scope, config],
   );
-  const theme = themeFromPrefs(themePrefs);
+  const theme = useMemo(() => themeFromPrefs(themePrefs), [themePrefs]);
   const heading = ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent} · ${fmtDate(ready.match!.date)}`) : '';
 
   const cardFor = useCallback((a: ResolvedAward): CardModel | null => {
@@ -107,8 +145,22 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
 
   const artFor = useCallback((key: string) => ({ photo: photos.get(key) ?? null, background }), [photos, background]);
 
+  const cards = useMemo(
+    () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
+    [awards, cardFor],
+  );
+
   async function exportKeys(keys: string[]) {
     if (!ready) return;
+    setNotice(null);
+    try {
+      await doExport(ready, keys);
+    } catch {
+      setNotice('Could not export the cards. Please try again.');
+    }
+  }
+
+  async function doExport(ready: Extract<Load, { state: 'ready' }>, keys: string[]) {
     const files: File[] = [];
     for (const a of awards.filter((x) => keys.includes(x.key))) {
       const card = cardFor(a);
@@ -123,10 +175,17 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   if (load.state === 'loading') return <p className="p-6 text-slate">Loading awards…</p>;
   if (load.state === 'notFound') return <NotFoundState title="Awards not found" message="The team or match may not exist, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
   if (load.state === 'notFinished') return <NotFoundState title="Match awards" message="Awards are available once the match is finished." backTo={`/teams/${teamId}/matches/${matchId}`} backLabel="Back to match" />;
+  if (load.state === 'error') {
+    return (
+      <div className="p-6">
+        <p role="alert" className="text-red">Could not load awards.</p>
+        <Button variant="secondary" className="mt-3" onClick={() => { setLoad({ state: 'loading' }); setAttempt((n) => n + 1); }}>Try again</Button>
+      </div>
+    );
+  }
   if (!ready) return null;
 
   if (mode === 'present') {
-    const cards = revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! }));
     return <AwardsPresent cards={cards} theme={theme} artFor={artFor} onExit={() => setMode('prepare')} />;
   }
 
@@ -141,21 +200,42 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       themePrefs={themePrefs}
       onThemePrefs={(p) => { setThemePrefs(p); writeThemePrefs(p); }}
       hasBackground={!!background}
+      notice={notice}
+      artFor={artFor}
       onBackground={(file) => {
-        if (!file) return setBackground(null);
+        setNotice(null);
+        const swap = (next: HTMLCanvasElement | null) => {
+          const old = backgroundRef.current;
+          backgroundRef.current = next;
+          setBackground(next);
+          if (old) old.width = 0;
+        };
+        if (!file) return swap(null);
         void loadImageFile(file).then((bmp) => {
-          const scale = Math.min(1, 1920 / Math.max(bmp.width, bmp.height));
-          const c = renderCrop(bmp, { cx: 0.5, cy: 0.5, zoom: 1 }, Math.round(Math.min(bmp.width, bmp.height) * scale));
+          const { w, h } = fitSize(bmp.width, bmp.height, 1920);
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          c.getContext('2d')!.drawImage(bmp, 0, 0, w, h);
           bmp.close();
-          setBackground(c);
-        }).catch(() => undefined);
+          swap(c);
+        }).catch(() => setNotice('Could not load that background image.'));
       }}
       photos={photos}
-      onPhoto={(key, img) => setPhotos((prev) => { const next = new Map(prev); if (img) next.set(key, img); else next.delete(key); return next; })}
+      onPhoto={(key, img) => {
+        const next = new Map(photosRef.current);
+        const old = next.get(key);
+        if (img) next.set(key, img); else next.delete(key);
+        photosRef.current = next;
+        setPhotos(next);
+        if (old && old !== img) old.width = 0;
+      }}
       cardFor={cardFor}
       onAction={(a) => {
         dirty.current = true;
-        setConfig((c) => applyPrepareAction(c, a, awards.map((x) => x.key), () => `c-${Date.now().toString(36)}`));
+        const next = applyPrepareAction(configRef.current, a, awards.map((x) => x.key), () => `c-${Date.now().toString(36)}`);
+        configRef.current = next;
+        setConfig(next);
       }}
       onPresent={() => setMode('present')}
       onExportAll={() => void exportKeys(revealable(awards).map((a) => a.key))}

@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue } from '../test/authValue';
 import type { Team } from '../types/team';
 import * as teamsApi from '../teams/teamsApi';
 import * as matchesApi from '../matches/matchesApi';
+import * as exportCards from './exportCards';
 import * as awardsApi from './awardsApi';
 import { finished, player } from './testMatches';
 import AwardsPage from './AwardsPage';
@@ -16,6 +17,16 @@ vi.mock('../matches/matchesApi', async (orig) => ({
   ...(await orig<typeof import('../matches/matchesApi')>()),
   getMatch: vi.fn(), listFinishedMatches: vi.fn(), loadTeamRoster: vi.fn(),
 }));
+vi.mock('./exportCards', async (orig) => ({
+  ...(await orig<typeof import('./exportCards')>()),
+  ensureCardFonts: vi.fn().mockResolvedValue(undefined),
+  renderCardPng: vi.fn(),
+}));
+let nextCrop: HTMLCanvasElement[] = [];
+vi.mock('./PhotoCropDialog', () => ({
+  PhotoCropDialog: ({ open, onDone }: { open: boolean; onDone: (c: HTMLCanvasElement) => void }) =>
+    open ? <button onClick={() => onDone(nextCrop.shift()!)}>Done crop</button> : null,
+}));
 const useAuthMock = vi.fn();
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => useAuthMock() }));
 
@@ -23,7 +34,7 @@ const team = { id: 't1', name: 'U17 Girls', season: '2026-27', adminEmails: ['us
 const m = finished('m1', '2026-10-12', [player('a', { A: '########' })]);
 
 function renderAt(path: string, scope: 'season' | 'match') {
-  render(
+  return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/teams/:teamId/awards" element={<AwardsPage scope={scope} />} />
@@ -34,9 +45,18 @@ function renderAt(path: string, scope: 'season' | 'match') {
   );
 }
 
+const flush = () => act(async () => { await Promise.resolve(); });
+
 describe('AwardsPage', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     useAuthMock.mockReturnValue(authValue());
     vi.mocked(teamsApi.getTeam).mockResolvedValue(team);
     vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([m]);
@@ -52,9 +72,67 @@ describe('AwardsPage', () => {
     renderAt('/teams/t1/awards', 'season');
     const row = await screen.findByRole('region', { name: 'Best attacker' });
     fireEvent.change(row.querySelector('select')!, { target: { value: 'a' } });
-    await vi.advanceTimersByTimeAsync(900);
+    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
     expect(awardsApi.saveSeasonAwards).toHaveBeenCalledWith('t1', expect.objectContaining({ picks: { attacker: { playerId: 'a', hidden: false } } }), 'u-1');
-    vi.useRealTimers();
+  });
+
+  it('initial load never saves', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(awardsApi.saveSeasonAwards).not.toHaveBeenCalled();
+  });
+
+  it('flushes a pending edit when the page unmounts before the debounce fires', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { unmount } = renderAt('/teams/t1/awards', 'season');
+    const row = await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.change(row.querySelector('select')!, { target: { value: 'a' } });
+    expect(awardsApi.saveSeasonAwards).not.toHaveBeenCalled();
+    unmount();
+    expect(awardsApi.saveSeasonAwards).toHaveBeenCalledTimes(1);
+    expect(awardsApi.saveSeasonAwards).toHaveBeenCalledWith('t1', expect.objectContaining({ picks: { attacker: { playerId: 'a', hidden: false } } }), 'u-1');
+  });
+
+  it('a non-permission load error is retryable, not "not found"', async () => {
+    vi.mocked(teamsApi.getTeam).mockRejectedValueOnce(new Error('network'));
+    renderAt('/teams/t1/awards', 'season');
+    expect(await screen.findByText('Could not load awards.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Awards not found' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('region', { name: 'Best attacker' })).toBeInTheDocument();
+  });
+
+  it('loads card fonts before showing the page', async () => {
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    expect(exportCards.ensureCardFonts).toHaveBeenCalled();
+  });
+
+  it('adding a second photo keeps the first photo alive', async () => {
+    const a = document.createElement('canvas'); a.width = 300;
+    const b = document.createElement('canvas'); b.width = 300;
+    nextCrop = [a, b];
+    renderAt('/teams/t1/awards', 'season');
+    const attacker = await screen.findByRole('region', { name: 'Best attacker' });
+    const pick = async (row: HTMLElement) => {
+      fireEvent.change(row.querySelector('input[type=file]')!, { target: { files: [new File(['x'], 'p.png', { type: 'image/png' })] } });
+      fireEvent.click(await screen.findByRole('button', { name: 'Done crop' }));
+      await flush();
+    };
+    await pick(attacker);
+    await pick(screen.getByRole('region', { name: 'MVP' }));
+    expect(a.width).toBe(300);
+    expect(b.width).toBe(300);
+  });
+
+  it('shows an inline alert when exporting fails', async () => {
+    vi.mocked(exportCards.renderCardPng).mockRejectedValue(new Error('boom'));
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('button', { name: /Export cards/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not export');
   });
 
   it('match: unfinished match shows a message', async () => {
@@ -77,6 +155,5 @@ describe('AwardsPage', () => {
     expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(await screen.findByRole('region', { name: 'Best attacker' })).toBeInTheDocument();
-    vi.unstubAllGlobals();
   });
 });

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Download, Printer } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
 import { buildFinishPayload } from './finish';
 import { deleteMatch, finishMatch, getMatch, getUsageProfile, setMatchStatus, updateMatchSetup } from './matchesApi';
 import { MatchSetupForm } from './MatchSetupForm';
 import { MatchReport } from './report/MatchReport';
+import { reportCsv, reportCsvFileName } from './report/reportCsv';
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
 import { useMatchEvents } from './useMatchEvents';
@@ -21,6 +23,7 @@ export function MatchPage() {
   const [dirty, setDirty] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [reportSet, setReportSet] = useState<number | 'all'>('all');
 
   useEffect(() => {
     getMatch(teamId, matchId)
@@ -78,18 +81,24 @@ export function MatchPage() {
     });
   }
 
+  function exportCsv() {
+    if (!match || !report) return;
+    const stats = (reportSet === 'all' ? report.all : report.bySet[reportSet]) ?? report.all;
+    downloadText(reportCsvFileName(match, reportSet), reportCsv(match, stats), 'text/csv;charset=utf-8');
+  }
+
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <Link to={`/teams/${teamId}`} className="mb-3 inline-flex items-center gap-1 text-sm text-blue hover:underline">
+      <Link to={`/teams/${teamId}`} className="mb-3 inline-flex items-center gap-1 text-sm text-blue hover:underline print:hidden">
         <ChevronLeft size={16} aria-hidden="true" /> Back to team
       </Link>
-      <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
+      <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm tabular-nums text-slate">{match.date} · {match.homeAway === 'home' ? 'Home' : 'Away'}</p>
+            <p className="text-sm tabular-nums text-slate">{match.date} · {match.homeAway === 'home' ? 'Home' : 'Away'} · <span className="capitalize">{match.competition}</span></p>
             <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">vs {match.opponent}</h1>
           </div>
-          <Button variant="dangerGhost" size="sm" onClick={() => setConfirmDelete(true)}>Delete match</Button>
+          <Button variant="dangerGhost" size="sm" className="print:hidden" onClick={() => setConfirmDelete(true)}>Delete match</Button>
         </div>
 
         {match.status === 'setup' && (
@@ -131,11 +140,19 @@ export function MatchPage() {
         )}
         {match.status === 'finished' && (
           <div className="mb-6 flex flex-col items-end gap-1 print:hidden">
-            <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => window.print()}>
+                <Printer size={16} aria-hidden="true" /> Print / PDF
+              </Button>
+              <Button variant="secondary" size="sm" disabled={!report} onClick={exportCsv}>
+                <Download size={16} aria-hidden="true" /> Export CSV
+              </Button>
+              <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
+            </div>
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
           </div>
         )}
-        {match.status !== 'setup' && report && <MatchReport match={match} report={report} />}
+        {match.status !== 'setup' && report && <MatchReport match={match} report={report} set={reportSet} onSetChange={setReportSet} />}
       </div>
 
       {confirmDelete && (

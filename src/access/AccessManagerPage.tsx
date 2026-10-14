@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -19,6 +20,7 @@ function sameGrants(a: GrantSet, b: GrantSet): boolean {
 }
 
 export function AccessManagerPage() {
+  usePageMeta({ title: 'Access' });
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [holders, setHolders] = useState<GrantHolder[]>([]);
   const [selected, setSelected] = useState<string | null>(null);

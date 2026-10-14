@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -71,6 +72,7 @@ function intersects(a: Rect, b: Rect): boolean {
 }
 
 export function DiagramEditorPage() {
+  usePageMeta({ title: 'Court diagram' });
   const { exerciseId = '' } = useParams();
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();

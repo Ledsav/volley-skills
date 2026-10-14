@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useState } from 'react';
 import { Tab } from '../components/Tab';
 import { SkillGuideEditor } from '../skillGuide/SkillGuideEditor';
@@ -6,6 +7,7 @@ import { PhysicalTestGuideEditor } from '../physicalTestGuide/PhysicalTestGuideE
 type GuideTab = 'skills' | 'physicalTests';
 
 export function GuidesPage() {
+  usePageMeta({ title: 'Guides' });
   const [tab, setTab] = useState<GuideTab>('skills');
 
   return (

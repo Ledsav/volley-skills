@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
@@ -35,6 +36,7 @@ export function TeamPage() {
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
+  usePageMeta({ title: team?.name ?? 'Team' });
 
   useEffect(() => {
     if (!teamId) return;

@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -64,6 +65,7 @@ const SECTION_LABEL: Record<PlayerSection, string> = {
 };
 
 export function PlayerCardPage() {
+  usePageMeta({ title: 'Player' });
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();

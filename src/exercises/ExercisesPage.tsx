@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
@@ -19,6 +20,7 @@ const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
 const USAGE_UNKNOWN = -1;
 
 export function ExercisesPage() {
+  usePageMeta({ title: 'Exercises' });
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);

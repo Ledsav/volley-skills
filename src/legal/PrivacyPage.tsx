@@ -3,6 +3,7 @@
 // formal legal review — do that before telling any guardian they can log in.
 // Kept region-agnostic on purpose: clubs are tenants and may be anywhere in
 // the EU; the operator (not a club) is the responsible party for now.
+import { usePageMeta } from '../layout/usePageMeta';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -28,6 +29,7 @@ function Contact() {
 }
 
 export function PrivacyPage() {
+  usePageMeta({ title: 'Privacy', description: 'How Volley Skills handles player and guardian data.', robots: 'index', canonicalPath: '/privacy' });
   return (
     <div className="mx-auto max-w-2xl p-6 text-ink">
       <h1 className="text-2xl font-semibold tracking-[-0.01em]">Privacy Policy</h1>

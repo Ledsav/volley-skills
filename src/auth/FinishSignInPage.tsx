@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
@@ -6,6 +7,7 @@ import { AuthShell } from './AuthShell';
 import { takeEmailForSignIn } from './emailLinkStorage';
 
 export function FinishSignInPage() {
+  usePageMeta({ title: 'Signing in' });
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 

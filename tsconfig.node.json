@@ -7,5 +7,5 @@
     "allowSyntheticDefaultImports": true,
     "outDir": ".tsbuild/node"
   },
-  "include": ["vite.config.ts", "vitest.rules.config.ts"]
+  "include": ["vite.config.ts", "src/seo/seoRoutes.ts", "vitest.rules.config.ts"]
 }

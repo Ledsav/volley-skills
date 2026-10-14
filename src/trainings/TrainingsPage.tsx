@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
@@ -24,6 +25,7 @@ import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import { TrainingViewSheet } from './TrainingViewSheet';
 
 export function TrainingsPage() {
+  usePageMeta({ title: 'Trainings' });
   const [searchParams] = useSearchParams();
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);

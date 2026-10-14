@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { usePageMeta } from '../layout/usePageMeta';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { isTeamAdmin } from './teamAccess';
 import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
@@ -13,6 +15,7 @@ import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { SectionTabs } from '../components/SectionTabs';
 import { PageSkeleton } from '../components/Skeleton';
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
 import { TeamMatchesTab } from '../matches/TeamMatchesTab';
@@ -20,45 +23,70 @@ import { TeamPhysicalSessionTab } from '../physicalSessions/TeamPhysicalSessionT
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
-type TeamTab = 'overview' | 'calendar' | 'matches' | 'plan' | 'settings' | 'physicalSession';
+const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
+
+type TeamTab = 'overview' | 'calendar' | 'matches' | 'stats' | 'plan' | 'settings' | 'physicalSession';
+const TEAM_TABS: TeamTab[] = ['overview', 'calendar', 'matches', 'stats', 'plan', 'settings', 'physicalSession'];
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const { firebaseUser, access } = useAuth();
   const canCalendar = !!access?.sections.trainings;
   const [team, setTeam] = useState<Team | null>(null);
-  const [tab, setTab] = useState<TeamTab>('overview');
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get('tab');
+  const tab: TeamTab = TEAM_TABS.includes(tabParam as TeamTab) ? (tabParam as TeamTab) : 'overview';
   const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
+  usePageMeta({ title: team?.name ?? 'Team' });
 
   useEffect(() => {
     if (!teamId) return;
-    setError(null);
+    setNotFound(false);
+    setLoadError(false);
     void getTeam(teamId)
-      .then(setTeam)
-      .catch(() => setError("You don't have access to this team."));
-  }, [teamId]);
+      .then((t) => (t ? setTeam(t) : setNotFound(true)))
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setLoadError(true)));
+  }, [teamId, loadAttempt]);
 
-  if (error) {
+  if (notFound) {
+    return <NotFoundState title="Team not found" message="It may have been deleted, or you don't have access." backTo="/teams" backLabel="All teams" />;
+  }
+
+  if (loadError && !team) {
     return (
-      <p role="alert" className="p-6 text-red">
-        {error}
-      </p>
+      <div role="alert" className="p-6">
+        <p className="text-red">Could not load this team.</p>
+        <Button variant="secondary" size="sm" className="mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
+          Try again
+        </Button>
+      </div>
     );
   }
 
   if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;
 
-  const activeTab = tab === 'calendar' && !canCalendar ? 'overview' : tab;
+  const changeTab = (next: TeamTab) => {
+    const p = new URLSearchParams(params);
+    // stats filter params belong to the Stats tab only
+    for (const k of ['comp', 'ha', 'range', 'from', 'to']) p.delete(k);
+    p.set('tab', next);
+    setParams(p, { replace: true });
+  };
+  const admin = isTeamAdmin(team, firebaseUser?.email, access);
+  const activeTab = (tab === 'calendar' && !canCalendar) || (tab === 'stats' && !admin) ? 'overview' : tab;
   const tabs: { id: TeamTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     ...(canCalendar ? [{ id: 'calendar' as const, label: 'Calendar' }] : []),
     { id: 'matches', label: 'Matches' },
+    ...(admin ? [{ id: 'stats' as const, label: 'Stats' }] : []),
     { id: 'physicalSession', label: 'Physical Session' },
     { id: 'plan', label: 'Development Plan' },
     { id: 'settings', label: 'Settings' },
@@ -66,11 +94,11 @@ export function TeamPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
+      <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{team.name}</h1>
-        <p className="mt-1 text-slate">{team.description}</p>
+        <p className="mt-1 text-slate print:hidden">{team.description}</p>
 
-        <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={setTab} className="mt-4" />
+        <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={changeTab} className="mt-4 print:hidden" />
 
         <div className="mt-6">
           {activeTab === 'overview' && (
@@ -112,12 +140,17 @@ export function TeamPage() {
               teamId={teamId}
               onNewMatch={(date) => {
                 setNewMatchDate(date);
-                setTab('matches');
+                changeTab('matches');
               }}
             />
           )}
           {activeTab === 'matches' && (
             <TeamMatchesTab teamId={teamId} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+          )}
+          {activeTab === 'stats' && admin && (
+            <Suspense fallback={<p className="text-slate">Loading team stats…</p>}>
+              <TeamStatsTab team={team} />
+            </Suspense>
           )}
           {activeTab === 'physicalSession' && (
             <TeamPhysicalSessionTab

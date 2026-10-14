@@ -160,4 +160,23 @@ describe('MatchPage', () => {
     expect(matchesApi.finishMatch).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Finish match' })).toBeEnabled();
   });
+
+  it('shows the not-found state for a missing match', async () => {
+    vi.mocked(matchesApi.getMatch).mockResolvedValue(null);
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Match not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to team' })).toHaveAttribute('href', '/teams/t1');
+  });
+
+  it('shows the same state when access is denied', async () => {
+    vi.mocked(matchesApi.getMatch).mockRejectedValue({ code: 'permission-denied' });
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Match not found' })).toBeInTheDocument();
+  });
+
+  it('finished match links to match awards', async () => {
+    vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'finished' });
+    renderPage();
+    expect(await screen.findByRole('link', { name: /Match awards/ })).toHaveAttribute('href', '/teams/t1/matches/m1/awards');
+  });
 });

@@ -1,9 +1,11 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Download, FileSpreadsheet, Printer, Trophy } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageSkeleton } from '../components/Skeleton';
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { Menu } from '../components/Menu';
 import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
@@ -20,7 +22,9 @@ export function MatchPage() {
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
   const [match, setMatch] = useState<Match | null>(null);
+  usePageMeta({ title: match ? `vs ${match.opponent}` : 'Match' });
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -28,9 +32,11 @@ export function MatchPage() {
   const [reportSet, setReportSet] = useState<number | 'all'>('all');
 
   useEffect(() => {
+    setNotFound(false);
+    setError(null);
     getMatch(teamId, matchId)
-      .then((m) => (m ? setMatch(m) : setError('Match not found.')))
-      .catch(() => setError("You don't have access to this match."));
+      .then((m) => (m ? setMatch(m) : setNotFound(true)))
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this match.')));
   }, [teamId, matchId]);
 
   // A finished match carries its report, so it never reads the event log; only
@@ -44,6 +50,9 @@ export function MatchPage() {
   );
   const finishingRef = useRef(false);
 
+  if (notFound) {
+    return <NotFoundState title="Match not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+  }
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
   if (!match) return <PageSkeleton layout="match" label="Loading match…" />;
 
@@ -158,6 +167,9 @@ export function MatchPage() {
                   { kind: 'action', label: 'CSV · Excel (English) / Sheets', icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('en') },
                 ]}
               />
+              <Link to={`/teams/${teamId}/matches/${matchId}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange px-4 font-medium text-white hover:bg-orange-strong">
+                <Trophy size={16} aria-hidden="true" /> Match awards
+              </Link>
               <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
             </div>
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}

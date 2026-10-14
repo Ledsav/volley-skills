@@ -3,6 +3,7 @@
 // formal legal review — do that before telling any guardian they can log in.
 // Kept region-agnostic on purpose: clubs are tenants and may be anywhere in
 // the EU; the operator (not a club) is the responsible party for now.
+import { usePageMeta } from '../layout/usePageMeta';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -28,6 +29,7 @@ function Contact() {
 }
 
 export function PrivacyPage() {
+  usePageMeta({ title: 'Privacy', description: 'How Volley Skills handles player and guardian data.', robots: 'index', canonicalPath: '/privacy' });
   return (
     <div className="mx-auto max-w-2xl p-6 text-ink">
       <h1 className="text-2xl font-semibold tracking-[-0.01em]">Privacy Policy</h1>
@@ -83,6 +85,13 @@ export function PrivacyPage() {
           The coaches and administrators of the player&apos;s team, and the app operator. Once parent access is
           available, a linked parent or guardian will be able to see their own child&apos;s record and nothing else.
           We do not sell or share the data with anyone else, except the service providers below.
+        </p>
+      </Section>
+
+      <Section title="Award cards">
+        <p>
+          Photos added to award cards are processed only in your browser to create the image; they are never
+          uploaded or stored by Volley Skills.
         </p>
       </Section>
 

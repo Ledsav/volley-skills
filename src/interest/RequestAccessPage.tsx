@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -15,6 +16,7 @@ const ROLE_OPTIONS: { key: InterestSignupRole; label: string }[] = [
 ];
 
 export function RequestAccessPage() {
+  usePageMeta({ title: 'Request access', description: 'Ask for access to Volley Skills.', robots: 'index', canonicalPath: '/request-access' });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InterestSignupRole>('coach');

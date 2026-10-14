@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { Link } from 'react-router-dom';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
@@ -6,6 +7,7 @@ import { SettingsSection } from './SettingsSection';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 export function SettingsPage() {
+  usePageMeta({ title: 'Settings' });
   const { signOut, unsyncedDialog } = useSignOut();
 
   return (

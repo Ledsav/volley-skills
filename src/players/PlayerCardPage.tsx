@@ -1,6 +1,9 @@
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
+import { usePageMeta } from '../layout/usePageMeta';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { isTeamAdmin } from '../teams/teamAccess';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
@@ -64,12 +67,14 @@ const SECTION_LABEL: Record<PlayerSection, string> = {
 };
 
 export function PlayerCardPage() {
+  usePageMeta({ title: 'Player' });
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const navigate = useNavigate();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, access } = useAuth();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -84,13 +89,18 @@ export function PlayerCardPage() {
   useEffect(() => {
     if (!teamId || !playerId) return;
     setError(null);
+    setNotFound(false);
     void Promise.all([getPlayer(teamId, playerId), getTeam(teamId).catch(() => null)])
       .then(([fetchedPlayer, fetchedTeam]) => {
+        if (!fetchedPlayer) {
+          setNotFound(true);
+          return;
+        }
         setPlayer(fetchedPlayer);
-        setIsAdmin(Boolean(firebaseUser?.email && fetchedTeam?.adminEmails.includes(firebaseUser.email)));
+        setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, firebaseUser?.email, access));
       })
-      .catch(() => setError("You don't have access to this player."));
-  }, [teamId, playerId, firebaseUser?.email]);
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this player.')));
+  }, [teamId, playerId, firebaseUser?.email, access]);
 
   const handleLatestLoaded = useCallback(
     (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),
@@ -118,6 +128,10 @@ export function PlayerCardPage() {
   const ratings = useMemo(() => (season ? matchRatings(season) : undefined), [season]);
   const [section, setSection] = useState<PlayerSection>('skills');
   const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
+
+  if (notFound) {
+    return <NotFoundState title="Player not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+  }
 
   if (error) {
     return (

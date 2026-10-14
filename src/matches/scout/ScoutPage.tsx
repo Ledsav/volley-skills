@@ -1,3 +1,5 @@
+import { NotFoundState, isNotFoundError } from '../../components/NotFoundState';
+import { usePageMeta } from '../../layout/usePageMeta';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -98,6 +100,7 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
 }
 
 export function ScoutPage() {
+  usePageMeta({ title: 'Scouting' });
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();
@@ -107,6 +110,7 @@ export function ScoutPage() {
   const [match, setMatch] = useState<Match | null>(null);
   const [usage, setUsage] = useState<UsageProfile>({ players: {} });
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -156,10 +160,12 @@ export function ScoutPage() {
   }, []);
 
   useEffect(() => {
+    setNotFound(false);
+    setLoadError(null);
     getMatch(teamId, matchId)
       .then((m) => {
         if (!m) {
-          setLoadError('Match not found.');
+          setNotFound(true);
           return;
         }
         // Only a live match takes events: a stale tab must not write into a
@@ -172,7 +178,7 @@ export function ScoutPage() {
         if (isLockedByOther(m.activeDevice, deviceId, Date.now())) setLocked(true);
         else void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
       })
-      .catch(() => setLoadError("You don't have access to this match."));
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setLoadError('Could not load this match.')));
     getUsageProfile(teamId).then(setUsage).catch(() => undefined);
   }, [teamId, matchId, deviceId, navigate]);
 
@@ -379,6 +385,9 @@ export function ScoutPage() {
     record({ type: 'setEnd', set: state.set });
   }
 
+  if (notFound) {
+    return <NotFoundState title="Match not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+  }
   if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
   if (!match || !state) return <p className="p-6 text-slate">Loading match…</p>;
 

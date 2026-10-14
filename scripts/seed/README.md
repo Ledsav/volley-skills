@@ -57,7 +57,7 @@ automatically after the roster seed.
 
 `npm run seed:numbers` gives the seeded players unique jersey numbers (and a libero) from the gitignored `reference/jersey-numbers.json` (emulator-only; skipped if the file is missing; run by `dev:emulator` right after the roster seed).
 
-`npm run seed:match` — a finished demo match and a live one for the seeded team
+`npm run seed:match` — a season of 10 finished matches, a finished demo match and a live one for the seeded team, with summaries (Stats tab / awards)
 (also run by `dev:emulator`). Team: `--team <teamId>`, else the team written by
 `seed.mjs`, else the team with the most players. The lineup is a 5-1 when
 positions allow (P1 S, P2 OH, P3 MB, P4 O, P5 OH, P6 MB, falling back to U/OH),

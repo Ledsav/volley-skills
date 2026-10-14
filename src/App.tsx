@@ -18,6 +18,7 @@ import { SettingsPage } from './settings/SettingsPage';
 import { AccessManagerPage } from './access/AccessManagerPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
 import { NotFoundPage } from './layout/NotFoundPage';
+import { HomePage } from './home/HomePage';
 import { MatchPage } from './matches/MatchPage';
 
 const DiagramEditorPage = lazy(() =>
@@ -46,6 +47,7 @@ export function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/request-access" element={<RequestAccessPage />} />
           <Route element={<AuthenticatedLayout />}>
+            <Route path="/" element={<HomePage />} />
             <Route path="/teams" element={<TeamsListPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/teams/:teamId" element={<TeamPage />} />
@@ -107,7 +109,6 @@ export function App() {
               </RequireAuth>
             }
           />
-          <Route path="/" element={<Navigate to="/teams" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

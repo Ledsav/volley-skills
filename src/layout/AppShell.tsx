@@ -1,6 +1,6 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, House, KeyRound, LogOut, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Menu } from '../components/Menu';
@@ -16,7 +16,7 @@ function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
 }
 
 // Icon + short label at every width: icons alone (Dumbbell, ClipboardList,
-// BookOpen…) are ambiguous. Six 11px labels fit a 375px bar.
+// BookOpen…) are ambiguous. Five 11px labels fit a 375px bar.
 function bottomTabClass({ isActive }: { isActive: boolean }): string {
   return `flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] font-medium leading-tight sm:gap-1 sm:text-xs ${
     isActive ? 'text-blue' : 'text-slate'
@@ -32,6 +32,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const { signOut, unsyncedDialog } = useSignOut();
   const [pendingSignups, setPendingSignups] = useState(0);
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  const firstRender = useRef(true);
+
+  // Move focus into the new page on route change (not on the initial load).
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const heading = mainRef.current?.querySelector<HTMLElement>('h1');
+    if (heading) {
+      if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+    } else {
+      mainRef.current?.focus({ preventScroll: true });
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!access?.isSuperAdmin) return;
@@ -41,7 +59,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(SIGNUPS_CHANGED_EVENT, recount);
   }, [access?.isSuperAdmin]);
 
-  const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number; admin?: boolean }[] = [
+  const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number; admin?: boolean; end?: boolean }[] = [
+    { to: '/', label: 'Home', Icon: House, show: true, end: true },
     { to: '/teams', label: 'Teams', Icon: Users, show: true },
     { to: '/exercises', label: 'Exercises', Icon: Dumbbell, show: !!access?.sections.exercises },
     { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
@@ -52,8 +71,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     },
   ].filter((item) => item.show);
 
-  const renderSidebarLink = ({ to, label, Icon, badge }: (typeof navItems)[number]) => (
-    <NavLink key={to} to={to} className={sidebarLinkClass}>
+  const phoneItems = navItems.filter((i) => !i.admin).slice(0, 4);
+
+  const renderSidebarLink = ({ to, label, Icon, badge, end }: (typeof navItems)[number]) => (
+    <NavLink key={to} to={to} end={end} className={sidebarLinkClass}>
       <Icon size={20} strokeWidth={1.5} />
       {label}
       {!!badge && (
@@ -64,9 +85,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg lg:flex">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink focus:shadow-pop">
+        Skip to content
+      </a>
       <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto bg-navy p-4 lg:sticky lg:top-0 lg:flex lg:h-screen">
         <div className="mb-6 px-3">
-          <Logo className="text-[28px]" />
+          <NavLink to="/" aria-label="Volley Skills home">
+            <Logo className="text-[28px]" />
+          </NavLink>
         </div>
         <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
           {navItems.filter((item) => !item.admin).map(renderSidebarLink)}
@@ -98,6 +124,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             }
             items={[
               { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
+              ...(access?.sections.guides ? [{ kind: 'action' as const, label: 'Guides', icon: <BookOpen size={16} />, onSelect: () => navigate('/admin/guides') }] : []),
+              ...(access?.isSuperAdmin ? [{ kind: 'action' as const, label: 'Access', icon: <KeyRound size={16} />, onSelect: () => navigate('/admin/access') }] : []),
               { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
               { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
               { kind: 'divider' },
@@ -111,12 +139,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           would otherwise stretch the whole page past the viewport. */}
       <div className="min-w-0 flex-1 pb-16 lg:pb-0">
         {/* One content width for every page: long lines on a wide monitor are hard to scan. */}
-        <div className="mx-auto w-full max-w-screen-xl">{children}</div>
+        <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto w-full max-w-screen-xl focus:outline-none">
+          {children}
+        </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
-        {navItems.map(({ to, label, Icon, badge }) => (
-          <NavLink key={to} to={to} className={bottomTabClass}>
+      <nav aria-label="Main (phone)" className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
+        {phoneItems.map(({ to, label, Icon, badge, end }) => (
+          <NavLink key={to} to={to} end={end} className={bottomTabClass}>
             <span className="relative">
               <Icon size={22} strokeWidth={1.5} />
               {!!badge && (

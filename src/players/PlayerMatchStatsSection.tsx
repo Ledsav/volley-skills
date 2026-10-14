@@ -36,17 +36,17 @@ export function PlayerMatchStatsSection({ teamId, season, error }: PlayerMatchSt
         <table className="w-full text-sm tabular-nums">
           <thead className="bg-bg text-left text-xs uppercase text-slate">
             <tr>
-              <th className="px-2 py-2 font-medium">Date</th>
-              <th className="px-2 py-2 font-medium">Opponent</th>
-              <th className="px-2 py-2 font-medium">Att. eff</th>
-              <th className="px-2 py-2 font-medium">Serve eff</th>
-              <th className="px-2 py-2 font-medium">Rec +</th>
-              <th className="px-2 py-2 font-medium">Pts / Err</th>
+              <th scope="col" className="px-2 py-2 font-medium">Date</th>
+              <th scope="col" className="px-2 py-2 font-medium">Opponent</th>
+              <th scope="col" className="px-2 py-2 font-medium">Att. eff</th>
+              <th scope="col" className="px-2 py-2 font-medium">Serve eff</th>
+              <th scope="col" className="px-2 py-2 font-medium">Rec +</th>
+              <th scope="col" className="px-2 py-2 font-medium">Pts / Err</th>
             </tr>
           </thead>
           <tbody>
             {season.rows.map((row) => (
-              <tr key={row.matchId} aria-label={`${row.date} vs ${row.opponent}`} className="border-t border-border">
+              <tr key={row.matchId} className="border-t border-border">
                 <td className="whitespace-nowrap px-2 py-2 text-slate">{row.date}</td>
                 <td className="px-2 py-2">
                   <Link to={`/teams/${teamId}/matches/${row.matchId}`} className="text-blue hover:underline">

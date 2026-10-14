@@ -24,6 +24,7 @@ import { PlayerKpiTiles } from './PlayerKpiTiles';
 import { deletePlayer, getPlayer, recordPlayerConsent, setPlayerLeftClub, updatePlayerDevelopmentPlan } from './playersApi';
 import { deletionDueDate, todayIso } from './retention';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
+import { PageSkeleton } from '../components/Skeleton';
 
 function Tile({
   title,
@@ -111,7 +112,7 @@ export function PlayerCardPage() {
     );
   }
 
-  if (!player || !teamId || !playerId) return <p className="p-6 text-slate">Loading player...</p>;
+  if (!player || !teamId || !playerId) return <PageSkeleton layout="player" label="Loading player..." />;
 
   async function handleDelete() {
     setDeleteError(null);

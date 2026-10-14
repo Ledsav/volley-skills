@@ -609,12 +609,12 @@ export function ScoutPage() {
         </main>
       ) : (
         <>
-          <nav className="flex gap-4 border-b border-border bg-surface px-4">
+          <div role="tablist" aria-label="Scouting views" className="flex gap-4 border-b border-border bg-surface px-4">
             <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>Court</Tab>
             <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
             <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
             <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>Text</Tab>
-          </nav>
+          </div>
           <main className="flex-1 p-3">
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}

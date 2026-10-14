@@ -211,7 +211,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
               <span className="min-w-0 flex-1 truncate text-sm text-ink">#{p.number} {p.fullName}</span>
               <select
                 aria-label={`Role for ${p.fullName}`}
-                className={`${FIELD_CLASS} min-h-11 w-20 px-2 text-sm`}
+                className={`${FIELD_CLASS} min-h-11 w-20 px-2 text-base sm:text-sm`}
                 value={picks[p.id]?.role ?? p.positionCategory}
                 onChange={(e) =>
                   setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], role: e.target.value as PositionCategory } }))

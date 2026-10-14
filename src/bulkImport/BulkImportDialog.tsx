@@ -178,7 +178,7 @@ export function BulkImportDialog<TInput>({
         )}
 
         {ready && (
-          <p className="mt-3 text-sm text-green">
+          <p className="mt-3 text-sm text-green-strong">
             {ready.length} {ready.length === 1 ? 'entry' : 'entries'} ready to import.
           </p>
         )}

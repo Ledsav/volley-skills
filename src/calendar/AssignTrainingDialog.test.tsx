@@ -132,4 +132,31 @@ describe('AssignTrainingDialog', () => {
     await screen.findByRole('alert');
     expect(createSpy).not.toHaveBeenCalled();
   });
+
+  it('assigns once even when Assign is clicked twice', async () => {
+    const createSpy = vi.mocked(calendarApi.createCalendarSession).mockReturnValue(new Promise(() => undefined));
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.click(await screen.findByLabelText(/Passing circuit/));
+    fireEvent.click(screen.getByText('Assign'));
+    fireEvent.click(screen.getByRole('button', { name: 'Saving…' }));
+    expect(createSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
+    
+    const onClose = vi.fn();
+    const { unmount } = render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={onClose} onSaved={vi.fn()} />);
+    expect(await screen.findByRole('dialog', { name: 'Assign training' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={onClose} onSaved={vi.fn()} />);
+    await screen.findByRole('dialog', { name: 'Assign training' });
+    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Focus' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

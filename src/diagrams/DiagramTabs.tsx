@@ -29,7 +29,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 value={d.title}
                 onChange={(e) => dispatch({ type: 'renameDiagram', id: d.id, title: e.target.value })}
                 maxLength={SCENE_LIMITS.titleLength}
-                className="w-28 bg-transparent text-ink focus:outline-none"
+                className="w-28 rounded-sm bg-transparent text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
               />
             ) : (
               <button

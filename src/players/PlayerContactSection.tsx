@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
-import { Input } from '../components/Input';
+import { FIELD_CLASS, Input } from '../components/Input';
 import { updatePlayerContact } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Player, type PositionCategory, type ShirtSize } from '../types/player';
 
@@ -87,7 +87,7 @@ export function PlayerContactSection({
         <dd className="font-medium text-ink">
           {POSITION_LABELS[player.positionCategory]}
           {player.starting && (
-            <span className="ml-2 inline-flex items-center rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green">
+            <span className="ml-2 inline-flex items-center rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
               Starting
             </span>
           )}
@@ -103,7 +103,7 @@ export function PlayerContactSection({
       </dl>
 
       {editing && isAdmin && (
-        <Dialog title="Edit contact & registration" onClose={() => onEditingChange(false)}>
+        <Dialog title="Edit contact & registration" onClose={() => onEditingChange(false)} guardUnsaved>
           <form onSubmit={handleSave} aria-label="Edit contact information">
             <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
               Name
@@ -135,7 +135,7 @@ export function PlayerContactSection({
               id="player-position-category"
               value={positionCategory}
               onChange={(e) => setPositionCategory(e.target.value as PositionCategory)}
-              className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-blue focus:outline-none"
+              className={`${FIELD_CLASS} mb-3 w-full text-base sm:text-sm`}
             >
               {POSITION_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -151,7 +151,7 @@ export function PlayerContactSection({
               id="player-shirt-size"
               value={shirtSize}
               onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
-              className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-blue focus:outline-none"
+              className={`${FIELD_CLASS} mb-3 w-full text-base sm:text-sm`}
             >
               <option value="">Not set</option>
               {SHIRT_SIZES.map((size) => (

@@ -69,20 +69,20 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
           <table className="w-full text-sm tabular-nums">
             <thead className="bg-bg text-left text-xs uppercase text-slate">
               <tr>
-                <th className="px-2 py-2 font-medium">Player</th>
+                <th scope="col" className="px-2 py-2 font-medium">Player</th>
                 {SKILLS.map((s) => (
-                  <th key={s} className="px-2 py-2 font-medium">{SKILL_LABELS[s]}</th>
+                  <th scope="col" key={s} className="px-2 py-2 font-medium">{SKILL_LABELS[s]}</th>
                 ))}
-                <th className="px-2 py-2 font-medium">Att. eff</th>
-                <th className="px-2 py-2 font-medium">Rec +</th>
-                <th className="px-2 py-2 font-medium">Pts / Err</th>
+                <th scope="col" className="px-2 py-2 font-medium">Att. eff</th>
+                <th scope="col" className="px-2 py-2 font-medium">Rec +</th>
+                <th scope="col" className="px-2 py-2 font-medium">Pts / Err</th>
               </tr>
             </thead>
             <tbody>
               {players.map((p) => {
                 const entry = roster.get(p.playerId);
                 return (
-                  <tr key={p.playerId} aria-label={`${playerLabel(entry)} ${entry?.name ?? ''}`} className="border-t border-border">
+                  <tr key={p.playerId} className="border-t border-border">
                     <td className="whitespace-nowrap px-2 py-2 text-ink">{playerLabel(entry)} {entry?.name}</td>
                     {SKILLS.map((s) => {
                       const line = p.skills[s];

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { OfflineError, useSave } from '../components/useSave';
 import { Dialog } from '../components/Dialog';
 import { EditButton } from '../components/EditButton';
 import { Input, Textarea } from '../components/Input';
@@ -35,20 +36,21 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
     listDiagrams(exercise.id).then(setDiagrams).catch(() => setDiagrams([]));
   }, [exercise]);
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) {
       setError('Name is required.');
       return;
     }
+    const uid = firebaseUser?.uid;
+    if (!exercise && !uid) return;
     setError(null);
     try {
-      if (exercise) {
-        await updateExercise(exercise.id, { name: name.trim(), description, category });
-      } else {
-        if (!firebaseUser) return;
-        await createExercise({ name: name.trim(), description, category }, firebaseUser.uid);
-      }
+      const fields = { name: name.trim(), description, category };
+      const done = await save(() => (exercise ? updateExercise(exercise.id, fields) : createExercise(fields, uid ?? '')));
+      if (!done) return;
       onSaved();
     } catch {
       setError('Could not save the exercise. Please try again.');
@@ -62,16 +64,25 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
     }
     if (!firebaseUser) return;
     setError(null);
+    const uid = firebaseUser.uid;
     try {
-      const id = await createExercise({ name: name.trim(), description, category }, firebaseUser.uid);
+      let id = '';
+      const done = await save(
+        async () => {
+          id = await createExercise({ name: name.trim(), description, category }, uid);
+        },
+        { offline: 'block' },
+      );
+      if (!done) return;
       navigate(`/exercises/${id}/diagram`);
-    } catch {
-      setError('Could not create the exercise. Please try again.');
+    } catch (e) {
+      setError(e instanceof OfflineError ? "You're offline. Creating an exercise and opening its diagram editor needs a connection; use Save instead, or try again when online." : 'Could not create the exercise. Please try again.');
     }
   }
 
   return (
     <Dialog
+      guardUnsaved
       title={exercise ? 'Edit exercise' : 'New exercise'}
       onClose={onClose}
       mobileSheet
@@ -81,12 +92,12 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
             Cancel
           </Button>
           {!exercise && (
-            <Button variant="secondary" onClick={handleCreateAndDraw} className="flex-1 sm:flex-none">
+            <Button variant="secondary" onClick={handleCreateAndDraw} disabled={saving} className="flex-1 sm:flex-none">
               Create &amp; add diagrams
             </Button>
           )}
-          <Button variant="primary" type="submit" form={FORM_ID} className="flex-1 sm:flex-none">
-            Save
+          <Button variant="primary" type="submit" form={FORM_ID} disabled={saving} className="flex-1 sm:flex-none">
+            {saving ? 'Saving…' : 'Save'}
           </Button>
         </>
       }

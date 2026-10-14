@@ -13,7 +13,7 @@ interface Props {
   onDelete: () => void;
 }
 
-const SELECT = `${FIELD_CLASS} min-h-11 px-2 py-1 text-sm`;
+const SELECT = `${FIELD_CLASS} min-h-11 px-2 py-1 text-base sm:text-sm`;
 
 export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDelete }: Props) {
   const n = index + 1;

@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { GRADES, type RosterEntry, type Skill } from '../../types/match';
 import { fmtEff, fmtPct, playerLabel } from '../format';
@@ -38,9 +39,14 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
         <div role="alert" className="mb-2 space-y-1 rounded-md bg-red/10 p-2 text-sm font-medium text-red-strong">
           {alerts.map((a) =>
             a.kind === 'playerErrors' ? (
-              <p key={a.playerId}>⚠ {playerLabel(roster.get(a.playerId))} {roster.get(a.playerId)?.name}: {a.errors} errors this set</p>
+              <p key={a.playerId} className="flex items-center gap-1.5">
+                <TriangleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
+                {playerLabel(roster.get(a.playerId))} {roster.get(a.playerId)?.name}: {a.errors} errors this set</p>
             ) : (
-              <p key="run">⚠ Opp run 0–{a.run} — timeout?</p>
+              <p key="run" className="flex items-center gap-1.5">
+                <TriangleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
+                Opp run 0–{a.run} — timeout?
+              </p>
             ),
           )}
         </div>
@@ -50,12 +56,12 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
         <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-left text-xs uppercase text-slate">
-              <th className="py-1 pr-2 font-medium">Player</th>
-              <th className="px-2 font-medium">Serve</th>
-              <th className="px-2 font-medium">Rec +</th>
-              <th className="px-2 font-medium">Attack</th>
-              <th className="px-2 font-medium">Block</th>
-              <th className="px-2 font-medium">Pts / Err</th>
+              <th scope="col" className="py-1 pr-2 font-medium">Player</th>
+              <th scope="col" className="px-2 font-medium">Serve</th>
+              <th scope="col" className="px-2 font-medium">Rec +</th>
+              <th scope="col" className="px-2 font-medium">Attack</th>
+              <th scope="col" className="px-2 font-medium">Block</th>
+              <th scope="col" className="px-2 font-medium">Pts / Err</th>
             </tr>
           </thead>
           <tbody>
@@ -68,7 +74,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
               const open = openId === p.playerId;
               return (
                 <Fragment key={p.playerId}>
-                  <tr aria-label={`${playerLabel(entry)} ${entry?.name ?? ''}`} className="border-t border-border">
+                  <tr className="border-t border-border">
                     <td className="py-1 pr-2 text-ink">
                       <button
                         type="button"

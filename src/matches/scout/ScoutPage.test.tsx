@@ -507,13 +507,13 @@ describe('ScoutPage', () => {
 
     it('keeps the text preview across tab switches', async () => {
       renderPage([setStart]);
-      const nav = await screen.findByRole('navigation');
-      fireEvent.click(within(nav).getByRole('button', { name: 'Text' }));
+      const nav = await screen.findByRole('tablist', { name: 'Scouting views' });
+      fireEvent.click(within(nav).getByRole('tab', { name: 'Text' }));
       fireEvent.click(screen.getByRole('button', { name: 'process-stub' }));
-      fireEvent.click(within(nav).getByRole('button', { name: 'Court' }));
+      fireEvent.click(within(nav).getByRole('tab', { name: 'Court' }));
       expect(screen.queryByRole('button', { name: 'process-stub' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: '#7 Ana' })).toBeInTheDocument();
-      fireEvent.click(within(nav).getByRole('button', { name: 'Text' }));
+      fireEvent.click(within(nav).getByRole('tab', { name: 'Text' }));
       expect(screen.getByText('batch-stub')).toBeInTheDocument();
     });
   });

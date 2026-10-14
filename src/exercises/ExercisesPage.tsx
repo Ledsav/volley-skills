@@ -134,7 +134,7 @@ export function ExercisesPage() {
         </p>
       )}
 
-      {notice && <p className="mb-4 text-sm text-green">{notice}</p>}
+      {notice && <p className="mb-4 text-sm text-green-strong">{notice}</p>}
 
       {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
           one bordered container with hairline dividers between rows. */}

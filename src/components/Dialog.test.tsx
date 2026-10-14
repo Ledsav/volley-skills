@@ -96,4 +96,89 @@ describe('Dialog', () => {
     expect(screen.getByRole('dialog').className).not.toMatch(/h-full/);
     expect(screen.getByRole('dialog').className).toMatch(/rounded-lg/);
   });
+
+  it('keeps Tab focus inside the dialog, wrapping at both ends', () => {
+    render(
+      <>
+        <button>Outside</button>
+        <Dialog title="Edit contact" onClose={vi.fn()}>
+          <input aria-label="First field" />
+          <button>Save</button>
+        </Dialog>
+      </>
+    );
+    const close = screen.getByRole('button', { name: 'Close' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    save.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(save).toHaveFocus();
+  });
+
+  it('returns focus to the element that opened it when it closes', () => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          {open && (
+            <Dialog title="Edit contact" onClose={() => setOpen(false)}>
+              <p>Body</p>
+            </Dialog>
+          )}
+        </>
+      );
+    }
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    fireEvent.click(opener);
+    expect(screen.getByRole('dialog')).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(opener).toHaveFocus();
+  });
+
+  it('asks before discarding unsaved changes on backdrop, Escape or close', () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog title="New training" onClose={onClose} dirty>
+        <p>Body</p>
+      </Dialog>
+    );
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' }); // closes only the confirm (top layer)
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('with guardUnsaved, closes freely until something is edited, then asks', () => {
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <Dialog title="Edit skills" onClose={onClose} guardUnsaved>
+        <input aria-label="Serve" />
+      </Dialog>
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(
+      <Dialog title="Edit skills" onClose={onClose} guardUnsaved>
+        <input aria-label="Serve" />
+      </Dialog>
+    );
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '7' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

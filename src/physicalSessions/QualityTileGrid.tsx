@@ -60,7 +60,7 @@ export function QualityTileGrid({
                 {TILE_LABEL_OVERRIDES[testType] ?? PHYSICAL_TEST_LABELS[testType]}
               </span>
               <span
-                className={`text-xs ${done ? 'text-green' : status === 'In progress' ? 'text-orange' : 'text-slate'}`}
+                className={`text-xs ${done ? 'text-green-strong' : status === 'In progress' ? 'text-orange-strong' : 'text-slate'}`}
               >
                 {status}
               </span>

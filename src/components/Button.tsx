@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'dangerGhost' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'icon';
@@ -31,9 +31,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-export function Button({ variant, size = 'md', className = '', children, type, ...rest }: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant, size = 'md', className = '', children, type, ...rest },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type={type ?? 'button'}
       className={`${BASE_CLASS} ${SIZE_CLASS[size]} ${VARIANT_CLASS[variant]} ${className}`.trim()}
       {...rest}
@@ -41,4 +45,4 @@ export function Button({ variant, size = 'md', className = '', children, type, .
       {children}
     </button>
   );
-}
+});

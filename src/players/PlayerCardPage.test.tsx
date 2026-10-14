@@ -119,8 +119,7 @@ describe('PlayerCardPage', () => {
 
     renderPlayerCard();
 
-    // Three chained loads (player → team → matches); allow for a busy parallel test run.
-    expect(await screen.findByText('Match 10.0 · 15 att.', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText('Match 10.0 · 15 att.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Match stats' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Rivals' })).toBeInTheDocument();
     expect(matchesApi.listFinishedMatches).toHaveBeenCalledWith('team-1');

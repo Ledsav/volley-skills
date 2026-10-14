@@ -13,7 +13,7 @@ import { saveEmailForSignIn } from './emailLinkStorage';
 const googleProvider = new GoogleAuthProvider();
 
 export function LoginPage() {
-  usePageMeta({ title: 'Sign in', description: 'Sign in to Volley Skills, the Volley Club Belair team tool.', robots: 'index', canonicalPath: '/login' });
+  usePageMeta({ title: 'Sign in', description: 'Sign in to Volley Skills, the team tool for volleyball clubs.', robots: 'index', canonicalPath: '/login' });
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);

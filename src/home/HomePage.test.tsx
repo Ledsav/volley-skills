@@ -18,7 +18,7 @@ const useAuthMock = vi.fn();
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => useAuthMock() }));
 
 const team: Team = {
-  id: 't1', name: 'U17 Girls', club: 'VCB', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
+  id: 't1', name: 'U17 Girls', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
   adminEmails: ['user@example.com'], developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' }, createdBy: '', createdAt: null,
 };
 const live: Match = {

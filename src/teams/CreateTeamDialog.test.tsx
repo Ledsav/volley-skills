@@ -20,14 +20,14 @@ describe('CreateTeamDialog', () => {
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={onCreated} />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
-    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'VCB' } });
+    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'Demo VC' } });
     fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
     fireEvent.click(screen.getByText('Create'));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
     expect(createTeamSpy).toHaveBeenCalledWith(
-      { name: 'U17', club: 'VCB', ageGroup: 'U17', season: '2026-27', description: '' },
+      { name: 'U17', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '' },
       'coach-uid',
       'coach@example.com'
     );
@@ -43,7 +43,7 @@ describe('CreateTeamDialog', () => {
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={onCreated} />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
-    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'VCB' } });
+    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'Demo VC' } });
     fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
     fireEvent.click(screen.getByText('Create'));
@@ -59,7 +59,7 @@ describe('CreateTeamDialog', () => {
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockReturnValue(new Promise(() => undefined));
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
-    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'VCB' } });
+    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'Demo VC' } });
     fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
     fireEvent.click(screen.getByText('Create'));

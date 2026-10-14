@@ -4,7 +4,7 @@ import { PRESETS } from './card/cardTheme';
 import type { CardModel } from './card/drawAwardCard';
 import { AwardsPresent } from './AwardsPresent';
 
-const model = (key: string, name: string): CardModel => ({ key, awardTitle: key, name, number: 7, statLine: null, footer: '', teamName: 'U17', note: '' });
+const model = (key: string, name: string): CardModel => ({ key, awardTitle: key, name, number: 7, statLine: null, footer: '', teamName: 'U17', clubName: '', note: '' });
 const cards = [
   { key: 'server', title: 'Best server', model: model('server', 'Ana L.') },
   { key: 'mvp', title: 'MVP', model: model('mvp', 'Bea S.') },

@@ -293,7 +293,7 @@ export async function parseWorkbook(filePath) {
 
   const team = {
     name: ageGroup,
-    club: 'Volley Club Belair (VCB)',
+    club: 'Demo Volley Club',
     ageGroup,
     season,
     description: '',

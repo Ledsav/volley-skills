@@ -14,7 +14,7 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 const team: Team = {
   id: 'team-1',
   name: 'U17 Girls',
-  club: 'VCB',
+  club: 'Demo VC',
   ageGroup: 'U17',
   season: '2026-27',
   description: '',
@@ -43,7 +43,7 @@ describe('TeamsListPage', () => {
     );
 
     expect(await screen.findByText('U17 Girls')).toBeInTheDocument();
-    expect(screen.getByText('VCB · U17')).toBeInTheDocument();
+    expect(screen.getByText('Demo VC · U17')).toBeInTheDocument();
     expect(screen.getByText('Season 2026-27')).toBeInTheDocument();
   });
 

@@ -13,6 +13,7 @@ import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImp
 import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { Tab } from '../components/Tab';
+import { PageSkeleton } from '../components/Skeleton';
 import { FIELD_CLASS } from '../components/Input';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
@@ -53,7 +54,7 @@ export function TeamPage() {
     );
   }
 
-  if (!team || !teamId) return <p className="p-6 text-slate">Loading team...</p>;
+  if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;
 
   const activeTab = tab === 'calendar' && !canCalendar ? 'overview' : tab;
   const tabs: { id: TeamTab; label: string }[] = [

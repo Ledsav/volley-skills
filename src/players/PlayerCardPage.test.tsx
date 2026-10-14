@@ -10,6 +10,8 @@ import { useAuth } from '../auth/AuthContext';
 import { authValue, superAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
+import * as matchesApi from '../matches/matchesApi';
+import type { Match } from '../types/match';
 
 const mockNavigate = vi.fn();
 
@@ -18,6 +20,7 @@ vi.mock('../teams/teamsApi');
 vi.mock('./physicalTestsApi');
 vi.mock('./playerExport');
 vi.mock('./playerFootprintApi');
+vi.mock('../matches/matchesApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -89,6 +92,50 @@ describe('PlayerCardPage', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null, appUser: null }));
+    vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([]);
+  });
+
+  it('shows match stats and skill suggestions to a team admin', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    const serve = { attempts: 15, grades: { '#': 15, '+': 0, '!': 0, '-': 0, '/': 0, '=': 0 } };
+    vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([
+      {
+        id: 'm1', date: '2026-10-08', opponent: 'Rivals',
+        summary: {
+          players: { 'player-1': { playerId: 'player-1', skills: { S: serve }, points: 15, errors: 0, attackEff: null, serveEff: 1, receptionPos: null, receptionPerfect: null } },
+          team: {}, timeoutEffects: [], sourceCounts: { tap: 15, text: 0 },
+        },
+      } as unknown as Match,
+    ]);
+
+    renderPlayerCard();
+
+    expect(await screen.findByText('Match 10.0 · 15 att.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Match stats' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rivals' })).toBeInTheDocument();
+    expect(matchesApi.listFinishedMatches).toHaveBeenCalledWith('team-1');
+  });
+
+  it('does not load or show match stats for a viewer', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    vi.mocked(matchesApi.listFinishedMatches).mockClear();
+
+    renderPlayerCard();
+
+    expect(await screen.findByText('Test Player')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Match stats' })).not.toBeInTheDocument();
+    expect(matchesApi.listFinishedMatches).not.toHaveBeenCalled();
   });
 
   it('shows an access message instead of loading forever when the read is rejected', async () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { EditButton } from '../components/EditButton';
 import { StatusChip } from '../components/StatusChip';
+import { listFinishedMatches } from '../matches/matchesApi';
 import { getTeam } from '../teams/teamsApi';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import type { Player } from '../types/player';
@@ -17,6 +18,8 @@ import { nextObjective } from './playerDashboard';
 import { downloadPlayerExport } from './playerExport';
 import { loadPlayerFootprint } from './playerFootprintApi';
 import { PlayerIdentityCard } from './PlayerIdentityCard';
+import { matchRatings, seasonStats, type SeasonStats } from './matchRating';
+import { PlayerMatchStatsSection } from './PlayerMatchStatsSection';
 import { PlayerKpiTiles } from './PlayerKpiTiles';
 import { deletePlayer, getPlayer, recordPlayerConsent, setPlayerLeftClub, updatePlayerDevelopmentPlan } from './playersApi';
 import { deletionDueDate, todayIso } from './retention';
@@ -61,6 +64,8 @@ export function PlayerCardPage() {
   const [leftError, setLeftError] = useState<string | null>(null);
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [editingSection, setEditingSection] = useState<'skills' | 'plan' | 'contact' | 'guardians' | null>(null);
+  const [season, setSeason] = useState<SeasonStats | null>(null);
+  const [matchStatsError, setMatchStatsError] = useState(false);
 
   useEffect(() => {
     if (!teamId || !playerId) return;
@@ -77,6 +82,26 @@ export function PlayerCardPage() {
     (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),
     []
   );
+
+  // Matches are team-admin data: only admins load them, viewers never query.
+  useEffect(() => {
+    if (!isAdmin || !teamId || !playerId) return;
+    let active = true;
+    setSeason(null);
+    setMatchStatsError(false);
+    listFinishedMatches(teamId)
+      .then((matches) => {
+        if (active) setSeason(seasonStats(matches, playerId));
+      })
+      .catch(() => {
+        if (active) setMatchStatsError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAdmin, teamId, playerId]);
+
+  const ratings = useMemo(() => (season ? matchRatings(season) : undefined), [season]);
 
   if (error) {
     return (
@@ -160,6 +185,7 @@ export function PlayerCardPage() {
               player={player}
               onPlayerUpdated={setPlayer}
               isAdmin={isAdmin}
+              ratings={isAdmin ? ratings : undefined}
               editing={editingSection === 'skills'}
               onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
             />
@@ -191,6 +217,12 @@ export function PlayerCardPage() {
             />
           </Tile>
         </div>
+
+        {isAdmin && (
+          <Tile title="Match stats">
+            <PlayerMatchStatsSection teamId={teamId} season={season} error={matchStatsError} />
+          </Tile>
+        )}
 
         {/* Region C — next action, contacts, and (admin) data controls */}
         <div

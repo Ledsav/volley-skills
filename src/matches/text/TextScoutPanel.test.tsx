@@ -44,6 +44,11 @@ function renderPanel(over: Partial<Parameters<typeof TextScoutPanel>[0]> = {}) {
 }
 
 describe('TextScoutPanel', () => {
+  it('suggests keyboard dictation', () => {
+    renderPanel();
+    expect(screen.getByText(/tap your keyboard's microphone to dictate/)).toBeInTheDocument();
+  });
+
   beforeEach(() => {
     localStorage.clear();
     writeAiSettings({ ...DEFAULT_AI_SETTINGS, apiKey: 'k' });

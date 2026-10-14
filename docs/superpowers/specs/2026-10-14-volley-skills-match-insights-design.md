@@ -119,14 +119,14 @@ The suggested integer for the edit form is `Math.round(rating)`, clamped to 1–
   with the existing `fmtEff` / `fmtPct` from `src/matches/format.ts`, `tabular-nums`.
 - Per-match table (newest first): date, opponent, att. eff., serve eff., rec +, pts / err; the
   opponent links to `/teams/:teamId/matches/:matchId`. Horizontal scroll on phone.
-- Empty: "No finished matches yet." Loading: "Loading match stats…".
+- Empty (no match where the player has an action): "No scouted matches for this player yet." Loading: "Loading match stats…".
 
 **Skills tile, read view** (`PlayerSkillsSection` gains an optional `ratings` prop; absent for
 non-admins, so viewers see exactly today's UI):
 
 - For each mapped skill with data, a secondary line under the row:
   `Match 6.8 · 42 att.`, or `Match — · 8 att. (not enough data)`.
-- When `rating` is non-null and `|rating − score| ≥ 1` (or score is null), an up/down arrow
+- When `rating` and `score` are both non-null and `|rating − score| ≥ 1`, an up/down arrow
   (`lucide-react` `ArrowUp`/`ArrowDown`, `aria-label="Match data suggests higher|lower"`).
 
 **Edit skills dialog:** for each skill with a non-null rating, a ghost button "Use 7" next to
@@ -148,8 +148,9 @@ The report's set selector state moves up from `MatchReport` to `MatchPage` (cont
 
 **Print stylesheet** (`src/index.css` `@media print` + `print:` utilities):
 
-- A print-only heading in `MatchReport`: opponent, date, competition, home/away
-  (`hidden print:block`).
+- The match page header (date, home/away, "vs opponent") already prints; it gains the
+  competition. The "Back to team" link and "Delete match" button get `print:hidden`, and the
+  page card drops its border/shadow/padding in print (`print:border-0 print:shadow-none print:p-0`).
 - `tr { break-inside: avoid; }`, sections `break-inside: avoid` where they fit on a page.
 - `print-color-adjust: exact` on the grade bars and rotation cards so colors survive.
 - The table drops `overflow-x-auto` in print (`print:overflow-visible`).

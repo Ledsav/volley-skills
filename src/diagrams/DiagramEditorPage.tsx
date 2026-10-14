@@ -1,3 +1,4 @@
+import { NotFoundState } from '../components/NotFoundState';
 import { usePageMeta } from '../layout/usePageMeta';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -77,7 +78,7 @@ export function DiagramEditorPage() {
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();
   const uid = firebaseUser?.uid ?? '';
-  const { state, activeDiagram, dispatch, save, saving, dirty, loadError, saveError } = useDiagramEditor(exerciseId, uid);
+  const { state, activeDiagram, dispatch, save, saving, dirty, loadError, notFound, saveError } = useDiagramEditor(exerciseId, uid);
   const stageApi = useRef<StageApi | null>(null);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const [snapOn, setSnapOn] = useState(true);
@@ -429,6 +430,10 @@ export function DiagramEditorPage() {
       },
     },
   ];
+
+  if (notFound) {
+    return <NotFoundState title="Exercise not found" message="It may have been deleted, or you don't have access." backTo="/exercises" backLabel="All exercises" />;
+  }
 
   if (loadError) {
     return (

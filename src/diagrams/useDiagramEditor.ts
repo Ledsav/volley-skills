@@ -1,3 +1,4 @@
+import { isNotFoundError } from '../components/NotFoundState';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '../types/diagram';
 import { listDiagrams, saveDiagramSet, type DiagramSaveOps } from './diagramsApi';
@@ -402,6 +403,7 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   const [state, dispatch] = useReducer(diagramReducer, initialEditorState);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -421,8 +423,10 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
           })),
         });
       })
-      .catch(() => {
-        if (!cancelled) setLoadError('Could not load diagrams. Please refresh.');
+      .catch((e) => {
+        if (cancelled) return;
+        if (isNotFoundError(e)) setNotFound(true);
+        else setLoadError('Could not load diagrams. Please refresh.');
       });
     return () => {
       cancelled = true;
@@ -457,5 +461,5 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   const activeDiagram = state.diagrams.find((d) => d.id === state.activeDiagramId) ?? null;
   const dirty = state.dirtyIds.size > 0 || state.deletedIds.length > 0;
 
-  return { state, activeDiagram, dispatch, save, saving, dirty, loadError, saveError };
+  return { state, activeDiagram, dispatch, save, saving, dirty, loadError, notFound, saveError };
 }

@@ -1,3 +1,4 @@
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { usePageMeta } from '../layout/usePageMeta';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -72,6 +73,7 @@ export function PlayerCardPage() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -86,12 +88,17 @@ export function PlayerCardPage() {
   useEffect(() => {
     if (!teamId || !playerId) return;
     setError(null);
+    setNotFound(false);
     void Promise.all([getPlayer(teamId, playerId), getTeam(teamId).catch(() => null)])
       .then(([fetchedPlayer, fetchedTeam]) => {
+        if (!fetchedPlayer) {
+          setNotFound(true);
+          return;
+        }
         setPlayer(fetchedPlayer);
         setIsAdmin(Boolean(firebaseUser?.email && fetchedTeam?.adminEmails.includes(firebaseUser.email)));
       })
-      .catch(() => setError("You don't have access to this player."));
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this player.')));
   }, [teamId, playerId, firebaseUser?.email]);
 
   const handleLatestLoaded = useCallback(
@@ -120,6 +127,10 @@ export function PlayerCardPage() {
   const ratings = useMemo(() => (season ? matchRatings(season) : undefined), [season]);
   const [section, setSection] = useState<PlayerSection>('skills');
   const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
+
+  if (notFound) {
+    return <NotFoundState title="Player not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+  }
 
   if (error) {
     return (

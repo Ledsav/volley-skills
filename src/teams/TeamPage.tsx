@@ -14,6 +14,7 @@ import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { SectionTabs } from '../components/SectionTabs';
 import { PageSkeleton } from '../components/Skeleton';
+import { NotFoundState } from '../components/NotFoundState';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
 import { TeamMatchesTab } from '../matches/TeamMatchesTab';
@@ -30,7 +31,7 @@ export function TeamPage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [tab, setTab] = useState<TeamTab>('overview');
   const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
@@ -40,18 +41,14 @@ export function TeamPage() {
 
   useEffect(() => {
     if (!teamId) return;
-    setError(null);
+    setNotFound(false);
     void getTeam(teamId)
-      .then(setTeam)
-      .catch(() => setError("You don't have access to this team."));
+      .then((t) => (t ? setTeam(t) : setNotFound(true)))
+      .catch(() => setNotFound(true));
   }, [teamId]);
 
-  if (error) {
-    return (
-      <p role="alert" className="p-6 text-red">
-        {error}
-      </p>
-    );
+  if (notFound) {
+    return <NotFoundState title="Team not found" message="It may have been deleted, or you don't have access." backTo="/teams" backLabel="All teams" />;
   }
 
   if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;

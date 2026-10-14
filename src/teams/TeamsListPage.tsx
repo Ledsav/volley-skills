@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
@@ -18,6 +19,7 @@ function teamMonogram(name: string): string {
 }
 
 export function TeamsListPage() {
+  usePageMeta({ title: 'Teams' });
   const { appUser, access } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);

@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../layout/usePageMeta';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -98,6 +99,7 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
 }
 
 export function ScoutPage() {
+  usePageMeta({ title: 'Scouting' });
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();

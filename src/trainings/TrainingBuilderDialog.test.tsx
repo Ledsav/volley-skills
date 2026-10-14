@@ -109,7 +109,7 @@ describe('TrainingBuilderDialog', () => {
     );
 
     expect(await screen.findByText('Pepper')).toBeInTheDocument();
-    expect(screen.getByText('⚠ Deleted exercise')).toBeInTheDocument();
+    expect(screen.getByText('Deleted exercise')).toBeInTheDocument();
   });
 
   it('paginates the exercise picker with Load more', async () => {

@@ -1,4 +1,4 @@
-import { CornerDownRight, Pencil, Trash2 } from 'lucide-react';
+import { CornerDownRight, Pencil, PenLine, Trash2, TriangleAlert } from 'lucide-react';
 import type { ActionEvent, MatchEvent, RosterEntry } from '../../types/match';
 import { describeEvent } from '../format';
 import { sortEvents, type MatchState } from '../scoutEngine';
@@ -30,10 +30,15 @@ export function TimelineDrawer({ events, state, roster, onDelete, onEdit, onInse
           <li key={ev.id} className={`flex items-center gap-2 px-3 py-2 text-sm ${isHeader ? 'bg-bg font-semibold' : ''}`}>
             <div className="min-w-0 flex-1">
               <span className="text-ink">
-                {ev.source === 'text' && <span aria-label="from text" className="mr-1">✎</span>}
+                {ev.source === 'text' && <PenLine role="img" aria-label="From text" className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
                 {describeEvent(ev, roster)}
               </span>
-              {warn && <span className="block text-xs text-orange-strong">⚠ {warn.join(' ')}</span>}
+              {warn && (
+                <span className="mt-0.5 flex items-center gap-1 text-xs text-orange-strong">
+                  <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                  {warn.join(' ')}
+                </span>
+              )}
             </div>
             {score && (
               <span className="rounded-full bg-navy px-2 py-0.5 text-xs font-semibold tabular-nums text-white">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, Pencil, Play } from 'lucide-react';
+import { ChevronRight, Clock, Pencil, Play, TriangleAlert } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
@@ -138,7 +138,12 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
                       <span
                         className={`block truncate text-sm font-medium ${entry.name ? 'text-ink' : 'text-red'}`}
                       >
-                        {entry.name ?? '⚠ Deleted exercise'}
+                        {entry.name ?? (
+                          <span className="inline-flex items-center gap-1">
+                            <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                            Deleted exercise
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
                         {entry.category ? `${CATEGORY_LABEL[entry.category]} · ` : ''}

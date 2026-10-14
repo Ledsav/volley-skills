@@ -44,6 +44,18 @@ describe('awards rules', () => {
     }
   });
 
+  it('superadmin can read', async () => {
+    const db = await as('super-uid', 'super@example.com');
+    await assertSucceeds(db.doc('teams/team-1/awards/season').get());
+  });
+
+  it('viewer (guardian) and outsiders cannot delete', async () => {
+    for (const [uid, email] of [['parent-uid', 'parent@example.com'], ['x-uid', 'x@example.com']]) {
+      const db = await as(uid, email);
+      await assertFails(db.doc('teams/team-1/awards/season').delete());
+    }
+  });
+
   it('only the "season" doc id is allowed', async () => {
     const db = await as('coach-uid', 'coach@example.com');
     await assertFails(db.doc('teams/team-1/awards/other').set(CONFIG));

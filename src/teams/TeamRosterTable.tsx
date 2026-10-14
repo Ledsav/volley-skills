@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FIELD_CLASS } from '../components/Input';
 import { LevelPill } from '../components/LevelPill';
 import { deletePlayer, listPlayers, setPlayerStarting } from '../players/playersApi';
 import { ageFromDob } from '../players/age';
@@ -132,7 +133,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, position, number"
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-slate focus:border-blue focus:outline-none"
+            className={`${FIELD_CLASS} w-full text-base sm:text-sm`}
           />
         </label>
         <label className="flex items-center gap-2 text-sm text-slate">
@@ -141,7 +142,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
             aria-label="Sort roster"
             value={sort}
             onChange={(e) => setSort(e.target.value as RosterSort)}
-            className="rounded-md border border-border bg-surface px-2 py-2 text-sm text-ink focus:border-blue focus:outline-none"
+            className={`${FIELD_CLASS} px-2 text-base sm:text-sm`}
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

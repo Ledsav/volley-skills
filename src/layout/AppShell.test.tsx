@@ -101,4 +101,9 @@ describe('AppShell', () => {
       expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
     }
   });
+
+  it('caps page content at one shared width so wide screens keep readable lines', () => {
+    renderShell();
+    expect(screen.getByText('Page content').parentElement).toHaveClass('mx-auto', 'max-w-screen-xl');
+  });
 });

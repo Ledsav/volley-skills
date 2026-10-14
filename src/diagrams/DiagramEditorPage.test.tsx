@@ -31,7 +31,6 @@ describe('DiagramEditorPage', () => {
     // The clipboard is a module-level singleton — reset it so a copy in one test
     // can't make a later paste-test pass for the wrong reason.
     clearDiagramClipboard();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never }));
     vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([
       { id: 'd1', title: 'Setup', order: 0, scene: { v: 1, court: 'full', showZones: false, items: [] }, updatedBy: 'x', updatedAt: null },
@@ -261,18 +260,25 @@ describe('DiagramEditorPage', () => {
     expect(stage().querySelectorAll('[data-item-type="cone"]')).toHaveLength(1);
   });
 
-  it('confirms before leaving via "‹ Exercises" when the editor is dirty', async () => {
+  it('confirms in-app before leaving via "‹ Exercises" when the editor is dirty', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmSpy = vi.spyOn(window, 'confirm');
 
     // Make the editor dirty by adding an element.
     fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
     await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeEnabled());
 
     fireEvent.click(screen.getByRole('button', { name: '‹ Exercises' }));
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    const dialog = screen.getByRole('alertdialog', { name: 'Leave without saving?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.queryByText('Exercises list')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '‹ Exercises' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
     expect(await screen.findByText('Exercises list')).toBeInTheDocument();
+    expect(confirmSpy).not.toHaveBeenCalled();
   });
 
   it('shows the active diagram\'s current court in the Court select', async () => {

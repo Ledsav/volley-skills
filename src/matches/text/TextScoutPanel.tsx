@@ -248,6 +248,9 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
         />
         <span className="text-xs font-normal text-slate">Tip: add the result — kill, out, blocked, good…</span>
         <span className="text-xs font-normal text-slate">
+          Tip: tap your keyboard&apos;s microphone to dictate — e.g. &quot;good serve from 7, then a kill by 12&quot;.
+        </span>
+        <span className="text-xs font-normal text-slate">
           Notes are sent to your AI provider: use jersey numbers only, no names (including opponents&apos;) and no
           injury or health details.
         </span>

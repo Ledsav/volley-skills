@@ -14,10 +14,10 @@ function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   }`;
 }
 
-// Icon-only on phones (labels stay as sr-only text for screen readers); labels
-// reappear from `sm` up, where the bar has room for them.
+// Icon + short label at every width: icons alone (Dumbbell, ClipboardList,
+// BookOpen…) are ambiguous. Six 11px labels fit a 375px bar.
 function bottomTabClass({ isActive }: { isActive: boolean }): string {
-  return `flex min-h-12 flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium ${
+  return `flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] font-medium leading-tight sm:gap-1 sm:text-xs ${
     isActive ? 'text-blue' : 'text-slate'
   }`;
 }
@@ -97,12 +97,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </span>
-            <span className="sr-only sm:not-sr-only">{label}</span>
+            <span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
         <NavLink to="/settings" className={bottomTabClass}>
           <Settings size={22} strokeWidth={1.5} />
-          <span className="sr-only sm:not-sr-only">Settings</span>
+          <span className="max-w-full truncate">Settings</span>
         </NavLink>
       </nav>
       {unsyncedDialog}

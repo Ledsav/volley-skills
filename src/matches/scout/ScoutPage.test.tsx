@@ -118,6 +118,27 @@ describe('ScoutPage', () => {
     expect(within(header).getByRole('button', { name: /undo/i })).toBeInTheDocument();
   });
 
+  it('hides the bench while a player actions sheet is open, to leave room for grading', async () => {
+    renderPage([setStart]);
+    expect(await screen.findByLabelText('Bench')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '#7 Ana' }));
+    expect(screen.getByRole('region', { name: /^Actions for/ })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Bench')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close actions' }));
+    expect(screen.getByLabelText('Bench')).toBeInTheDocument();
+  });
+
+  it('lays the dock out in one mirrored row: our timeout, our point, their point, their timeout', async () => {
+    renderPage([setStart]);
+    const dock = await screen.findByRole('region', { name: 'Match events' });
+    expect(within(dock).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual([
+      'T/O us (2 left)',
+      expect.stringMatching(/^Point us/),
+      expect.stringMatching(/^Point them/),
+      'T/O them (2 left)',
+    ]);
+  });
+
   it('puts the app tools in one Match tools menu', async () => {
     renderPage([setStart]);
     fireEvent.click(await screen.findByRole('button', { name: 'Match tools' }));

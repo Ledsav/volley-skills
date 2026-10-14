@@ -45,14 +45,14 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
         </button>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
         {skills.map((s) => (
           <button
             key={s}
             type="button"
             aria-pressed={s === skill}
             onClick={() => setSkill(s)}
-            className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm ${
+            className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm ${
               s === skill ? 'border-blue bg-blue text-white' : 'border-border bg-surface text-ink'
             }`}
           >

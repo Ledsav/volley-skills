@@ -23,32 +23,33 @@ interface RallyBarProps {
 }
 
 export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format, size = 'normal' }: RallyBarProps) {
-  const pointSize = size === 'large' ? 'min-h-24 text-xl' : 'min-h-14 text-base';
-  const side = (team: Side) => {
-    const us = team === 'us';
+  const height = size === 'large' ? 'min-h-20 text-xl' : 'min-h-12 text-base';
+  const timeout = (team: Side) => {
     const left = Math.max(0, format.timeoutsPerSet - timeoutsUsed[team]);
     return (
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <span className="px-1 text-xs font-semibold uppercase tracking-wide text-slate">{us ? 'Us' : 'Them'}</span>
-        <button
-          type="button"
-          onClick={() => onPoint(team)}
-          className={`inline-flex ${pointSize} items-center justify-center gap-2 rounded-md font-semibold ${
-            us ? 'bg-green/15 text-green-strong' : 'bg-red/10 text-red-strong'
-          }`}
-        >
-          Point {team} <Kbd>{keyLabel(us ? 'pointUs' : 'pointThem')}</Kbd>
-        </button>
-        <button
-          type="button"
-          onClick={() => onTimeout(team)}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border text-sm text-ink"
-        >
-          T/O {team} ({left}) <Kbd>{keyLabel(us ? 'timeoutUs' : 'timeoutThem')}</Kbd>
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => onTimeout(team)}
+        aria-label={`T/O ${team} (${left} left)`}
+        title={`Timeout ${team} · key ${keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem')}`}
+        className={`flex ${height} min-w-14 flex-col items-center justify-center rounded-md border border-border px-2 text-xs font-medium leading-tight text-ink`}
+      >
+        <span>T/O</span>
+        <span className="tabular-nums text-slate">{left} left</span>
+      </button>
     );
   };
+  const point = (team: Side) => (
+    <button
+      type="button"
+      onClick={() => onPoint(team)}
+      className={`inline-flex ${height} min-w-0 items-center justify-center gap-2 rounded-md font-semibold ${
+        team === 'us' ? 'bg-green/15 text-green-strong' : 'bg-red/10 text-red-strong'
+      }`}
+    >
+      Point {team} <Kbd>{keyLabel(team === 'us' ? 'pointUs' : 'pointThem')}</Kbd>
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -74,10 +75,12 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
           ))}
         </div>
       )}
-      {/* Mirrored: our side left, theirs right — each timeout under its own side's point. */}
-      <div className="grid grid-cols-2 gap-3">
-        {side('us')}
-        {side('them')}
+      {/* One mirrored row: our timeout and point on the left, theirs on the right. */}
+      <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2">
+        {timeout('us')}
+        {point('us')}
+        {point('them')}
+        {timeout('them')}
       </div>
     </div>
   );

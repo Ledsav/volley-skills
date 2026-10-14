@@ -80,7 +80,7 @@ describe('TeamPage', () => {
 
     renderTeamPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Calendar' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Calendar' }));
 
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
   });
@@ -98,7 +98,7 @@ describe('TeamPage', () => {
     fireEvent.change(picker, { target: { value: 'calendar' } });
 
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Calendar' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('tab', { name: 'Calendar' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('tightens the page chrome and stacks the roster action buttons on mobile', async () => {
@@ -127,7 +127,7 @@ describe('TeamPage', () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
     await screen.findByRole('heading', { name: 'U17 Boys' });
-    expect(screen.queryByRole('button', { name: 'Calendar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Calendar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Calendar' })).not.toBeInTheDocument();
   });
 
@@ -138,7 +138,7 @@ describe('TeamPage', () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
-    expect(await screen.findByRole('button', { name: 'Calendar' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Calendar' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Calendar' })).toBeInTheDocument();
   });
 

@@ -3,26 +3,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { Tab } from './Tab';
 
 describe('Tab', () => {
-  it('marks the active tab with aria-current and the blue underline', () => {
+  it('marks the active tab as selected with the blue underline', () => {
     render(
       <Tab active onClick={vi.fn()}>
         Overview
       </Tab>
     );
-    const tab = screen.getByRole('button', { name: 'Overview' });
-    expect(tab).toHaveAttribute('aria-current', 'page');
+    const tab = screen.getByRole('tab', { name: 'Overview' });
+    expect(tab).toHaveAttribute('aria-selected', 'true');
     expect(tab.className).toContain('border-blue');
   });
 
-  it('leaves an inactive tab without aria-current and calls onClick', () => {
+  it('leaves an inactive tab unselected and calls onClick', () => {
     const onClick = vi.fn();
     render(
       <Tab active={false} onClick={onClick}>
         Settings
       </Tab>
     );
-    const tab = screen.getByRole('button', { name: 'Settings' });
-    expect(tab).not.toHaveAttribute('aria-current');
+    const tab = screen.getByRole('tab', { name: 'Settings' });
+    expect(tab).toHaveAttribute('aria-selected', 'false');
     fireEvent.click(tab);
     expect(onClick).toHaveBeenCalledTimes(1);
   });

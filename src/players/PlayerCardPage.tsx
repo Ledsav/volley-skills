@@ -3,6 +3,7 @@ import { usePageMeta } from '../layout/usePageMeta';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { isTeamAdmin } from '../teams/teamAccess';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
@@ -69,7 +70,7 @@ export function PlayerCardPage() {
   usePageMeta({ title: 'Player' });
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const navigate = useNavigate();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, access } = useAuth();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,10 +97,10 @@ export function PlayerCardPage() {
           return;
         }
         setPlayer(fetchedPlayer);
-        setIsAdmin(Boolean(firebaseUser?.email && fetchedTeam?.adminEmails.includes(firebaseUser.email)));
+        setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, firebaseUser?.email, access));
       })
       .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this player.')));
-  }, [teamId, playerId, firebaseUser?.email]);
+  }, [teamId, playerId, firebaseUser?.email, access]);
 
   const handleLatestLoaded = useCallback(
     (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),

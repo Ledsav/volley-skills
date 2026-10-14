@@ -4,7 +4,7 @@ import { CARD_H, CARD_W, drawAwardCard, drawTitleCard, type CardModel } from './
 import { recordingCtx } from './testCtx';
 
 const card: CardModel = {
-  key: 'mvp', awardTitle: 'MVP', name: 'Lena P.', number: 12, statLine: '6.2 MVP pts', footer: 'vs Rivals · 12 Oct 2026', teamName: 'U17 Girls', note: '',
+  key: 'mvp', awardTitle: 'MVP', name: 'Lena P.', number: 12, statLine: '6.2 MVP pts', footer: 'vs Rivals · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC', note: '',
 };
 const fakeImage = { width: 800, height: 600 } as unknown as ImageBitmap;
 
@@ -13,7 +13,14 @@ describe('drawAwardCard', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, card, PRESETS[0], { photo: null, background: null }, 1);
     const all = texts();
-    for (const s of ['MVP', 'Lena P.', '6.2 MVP pts', 'vs Rivals · 12 Oct 2026', 'U17 GIRLS']) expect(all).toContain(s);
+    for (const s of ['MVP', 'Lena P.', '6.2 MVP pts', 'vs Rivals · 12 Oct 2026', 'DEMO VC', 'U17 GIRLS']) expect(all).toContain(s);
+  });
+
+  it('omits the club line when the team has no club', () => {
+    const { ctx, texts } = recordingCtx();
+    drawAwardCard(ctx, { ...card, clubName: '  ' }, PRESETS[0], { photo: null, background: null }, 1);
+    expect(texts()).toContain('U17 GIRLS');
+    expect(texts()).not.toContain('');
   });
 
   it('draws the jersey number when there is no photo, the photo otherwise', () => {

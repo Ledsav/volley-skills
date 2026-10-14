@@ -4,11 +4,11 @@ import { validateTeamRows } from './teamsImport';
 describe('validateTeamRows', () => {
   it('accepts a full row', () => {
     const result = validateTeamRows([
-      { name: 'VCB U15', club: 'VCB', ageGroup: 'U15', season: '2026-27', description: 'girls' },
+      { name: 'U15 Girls', club: 'Demo VC', ageGroup: 'U15', season: '2026-27', description: 'girls' },
     ]);
     expect(result.errors).toEqual([]);
     expect(result.inputs).toEqual([
-      { name: 'VCB U15', club: 'VCB', ageGroup: 'U15', season: '2026-27', description: 'girls' },
+      { name: 'U15 Girls', club: 'Demo VC', ageGroup: 'U15', season: '2026-27', description: 'girls' },
     ]);
   });
 

@@ -44,7 +44,7 @@ describe('teamsApi', () => {
     mockAddDoc.mockResolvedValue({ id: 'team-1' });
 
     const id = await createTeam(
-      { name: 'U17', club: 'VCB', ageGroup: 'U17', season: '2026-27', description: '' },
+      { name: 'U17', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '' },
       'creator-uid',
       'coach@example.com'
     );

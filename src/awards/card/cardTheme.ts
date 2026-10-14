@@ -1,7 +1,7 @@
 export interface CardTheme { id: string; label: string; bgFrom: string; bgTo: string; accent: string; text: string; muted: string }
 
 export const PRESETS: CardTheme[] = [
-  { id: 'navy', label: 'VCB Navy', bgFrom: '#1C4586', bgTo: '#0B1B36', accent: '#F97316', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
+  { id: 'navy', label: 'Navy', bgFrom: '#1C4586', bgTo: '#0B1B36', accent: '#F97316', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
   { id: 'gold', label: 'Gold Night', bgFrom: '#1A1A1A', bgTo: '#3A2A05', accent: '#F5C542', text: '#FFFFFF', muted: 'rgba(255,255,255,0.75)' },
   { id: 'court', label: 'Court Orange', bgFrom: '#F97316', bgTo: '#B4410B', accent: '#FFFFFF', text: '#FFFFFF', muted: 'rgba(255,255,255,0.8)' },
   { id: 'light', label: 'Clean Light', bgFrom: '#F8FAFC', bgTo: '#E2E8F0', accent: '#2356A8', text: '#0F172A', muted: '#475569' },

@@ -7,8 +7,8 @@ export function cardFileName(
   c: { kind: 'match'; date: string; opponent: string } | { kind: 'season'; season: string },
 ): string {
   return c.kind === 'match'
-    ? `vcb-${awardKey}-${c.date}-vs-${fileSlug(c.opponent)}.png`
-    : `vcb-${awardKey}-season-${fileSlug(c.season)}.png`;
+    ? `award-${awardKey}-${c.date}-vs-${fileSlug(c.opponent)}.png`
+    : `award-${awardKey}-season-${fileSlug(c.season)}.png`;
 }
 
 /** Text drawn before Inter loads silently falls back to another font. */

@@ -44,7 +44,7 @@ export function PrivacyPage() {
         <p>
           This app is run by {OPERATOR_NAME} (&quot;we&quot;), who decides how the personal data in it is used and is
           responsible for it under the EU General Data Protection Regulation (GDPR). Volleyball clubs use the app to
-          manage their own teams; it is currently used by Volley Club Belair. Contact: <Contact />.
+          manage their own teams. Contact: <Contact />.
         </p>
       </Section>
 

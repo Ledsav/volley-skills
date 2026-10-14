@@ -4,7 +4,7 @@ import { robotsTxt, sitemapXml } from './src/seo/seoRoutes';
 
 function seoFiles(origin: string): Plugin {
   return {
-    name: 'vcb-seo-files',
+    name: 'seo-files',
     apply: 'build',
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robotsTxt(origin) });
@@ -15,7 +15,7 @@ function seoFiles(origin: string): Plugin {
 
 function siteUrlToken(origin: string): Plugin {
   return {
-    name: 'vcb-site-url-token',
+    name: 'site-url-token',
     transformIndexHtml: (html) => html.split('__SITE_URL__').join(origin),
   };
 }

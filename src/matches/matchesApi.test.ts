@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT } from '../types/match';
-import { addEvent, createMatch, listMatchesInRange, loadTeamRoster, subscribeEvents } from './matchesApi';
+import { addEvent, createMatch, listFinishedMatches, listMatchesInRange, loadTeamRoster, subscribeEvents } from './matchesApi';
 import * as playersApi from '../players/playersApi';
 
 const m = vi.hoisted(() => ({
@@ -46,6 +46,12 @@ describe('matchesApi', () => {
       { id: 'new-id' },
       expect.objectContaining({ status: 'setup', summary: null, usageContribution: null, activeDevice: null, createdBy: 'uid-1' }),
     );
+  });
+
+  it('lists finished matches', async () => {
+    m.getDocs.mockResolvedValue({ docs: [{ id: 'm1', data: () => ({ date: '2026-10-18', status: 'finished' }) }] });
+    expect(await listFinishedMatches('team-1')).toEqual([{ id: 'm1', date: '2026-10-18', status: 'finished' }]);
+    expect(m.where).toHaveBeenCalledWith('status', '==', 'finished');
   });
 
   it('queries matches in a date range', async () => {

@@ -53,6 +53,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
     event.preventDefault();
     setError(null);
     if (!firebaseUser?.email || !consentGiven) return;
+    const { uid } = firebaseUser;
+    const email = firebaseUser.email;
     try {
       const done = await save(() => createPlayer(
         teamId,
@@ -68,8 +70,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           playerPhone,
           guardians,
         },
-        firebaseUser.uid,
-        firebaseUser.email
+        uid,
+        email
       ));
       if (!done) return;
     } catch {

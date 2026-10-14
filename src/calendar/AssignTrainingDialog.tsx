@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { useSave } from '../components/useSave';
 import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { getExercisesByIds } from '../exercises/exercisesApi';
@@ -106,6 +107,8 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
     }
   }
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!selected) {
@@ -115,7 +118,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
     if (!firebaseUser) return;
     setError(null);
     try {
-      await createCalendarSession(
+      const done = await save(() => createCalendarSession(
         teamId,
         {
           date: sessionDate,
@@ -125,7 +128,8 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
           notes,
         },
         firebaseUser.uid
-      );
+      ));
+      if (!done) return;
       onSaved();
     } catch {
       setError('Could not assign the training. Please try again.');
@@ -258,8 +262,8 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Assign
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Assign'}
           </Button>
         </div>
       </form>

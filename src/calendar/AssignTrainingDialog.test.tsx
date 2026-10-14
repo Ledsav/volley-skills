@@ -132,4 +132,13 @@ describe('AssignTrainingDialog', () => {
     await screen.findByRole('alert');
     expect(createSpy).not.toHaveBeenCalled();
   });
+
+  it('assigns once even when Assign is clicked twice', async () => {
+    const createSpy = vi.mocked(calendarApi.createCalendarSession).mockReturnValue(new Promise(() => undefined));
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.click(await screen.findByLabelText(/Passing circuit/));
+    fireEvent.click(screen.getByText('Assign'));
+    fireEvent.click(screen.getByRole('button', { name: 'Saving…' }));
+    expect(createSpy).toHaveBeenCalledTimes(1);
+  });
 });

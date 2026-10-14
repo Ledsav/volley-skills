@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
@@ -37,11 +37,16 @@ const team: Team = {
   createdAt: null,
 };
 
-function renderTeamPage() {
+function LocationProbe() {
+  const l = useLocation();
+  return <div data-testid="loc">{l.pathname + l.search}</div>;
+}
+
+function renderTeamPage(url = '/teams/team-1') {
   return render(
-    <MemoryRouter initialEntries={['/teams/team-1']}>
+    <MemoryRouter initialEntries={[url]}>
       <Routes>
-        <Route path="/teams/:teamId" element={<TeamPage />} />
+        <Route path="/teams/:teamId" element={<><TeamPage /><LocationProbe /></>} />
       </Routes>
     </MemoryRouter>
   );
@@ -76,6 +81,24 @@ describe('TeamPage', () => {
     expect(screen.queryByRole('heading', { name: 'Team not found' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('heading', { name: 'U17 Boys' })).toBeInTheDocument();
+  });
+
+  it('opens the tab named in ?tab= and updates the URL on tab change, dropping stats filters', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=stats&comp=cup&range=last5');
+    expect(await screen.findByRole('tab', { name: 'Stats', selected: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Matches' }));
+    expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=matches');
+  });
+
+  it('falls back to Overview for ?tab=stats when not a team admin', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=stats');
+    expect(await screen.findByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument();
   });
 
   it('shows the team calendar when the Calendar tab is selected', async () => {

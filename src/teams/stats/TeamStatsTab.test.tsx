@@ -60,6 +60,21 @@ describe('TeamStatsTab', () => {
     expect(downloadText).toHaveBeenCalledWith(expect.stringMatching(/U17-Girls-stats/), expect.any(String), 'text/csv;charset=utf-8');
   });
 
+  it('switching Last 5 to Dates seeds the inputs from all matches and keeps data', async () => {
+    vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([
+      finished('m1', '2026-09-01', [player('a', { A: '#' })]),
+      finished('m2', '2026-09-08', [player('a', { A: '#' })]),
+    ]);
+    render(<MemoryRouter><TeamStatsTab team={team} /></MemoryRouter>);
+    await screen.findByText(/Based on 2 scouted matches/);
+    fireEvent.change(screen.getByLabelText('Range'), { target: { value: 'last5' } });
+    expect(await screen.findByText(/Showing the last 5 scouted matches/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Range'), { target: { value: 'dates' } });
+    expect(await screen.findByLabelText('From')).toHaveValue('2026-09-01');
+    expect(screen.getByLabelText('To')).toHaveValue('2026-09-08');
+    expect(screen.getByRole('region', { name: 'Top scorer' })).toBeInTheDocument();
+  });
+
   it('filter changes the URL-driven view', async () => {
     vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([
       finished('m1', '2026-09-01', [player('a', { A: '#' })], { competition: 'cup' }),

@@ -1,17 +1,15 @@
-import { mvpAverage, scoutedMatches } from '../../awards/awardRules';
-import { FINISHED_MATCHES_CAP } from '../../matches/matchesApi';
+import { hasActions, mvpAverage, scoutedMatches } from '../../awards/awardRules';
+import { FINISHED_MATCHES_CAP } from '../../matches/limits';
 import { attackEff, mergeLines, ratio } from '../../matches/scoutStats';
 import { matchRatings, seasonStats, type MatchRatings } from '../../players/matchRating';
-import type { Competition, HomeAway, Match, PlayerStats } from '../../types/match';
+import type { Competition, HomeAway, Match } from '../../types/match';
 import { UNKNOWN_PERSON, type Person } from './rosterIndex';
 
-export type StatsRange = { kind: 'season' } | { kind: 'last'; count: 5 | 10 } | { kind: 'dates'; from: string; to: string };
+export type StatsRange = { kind: 'season' } | { kind: 'last'; count: 5 | 10 } | { kind: 'dates'; from: string; to: string } /* '' = open bound */;
 export interface StatsFilter { competition: Competition | 'all'; range: StatsRange; homeAway: HomeAway | 'all' }
 export const DEFAULT_FILTER: StatsFilter = { competition: 'all', range: { kind: 'season' }, homeAway: 'all' };
 
 export interface Coverage { scouted: number; scoreOnly: number; skipped: number; capped: boolean }
-
-const hasActions = (p: PlayerStats) => Object.values(p.skills).some((l) => !!l && l.attempts > 0);
 
 export function seasonCoverage(all: Match[]): Coverage {
   let scouted = 0, scoreOnly = 0, skipped = 0;
@@ -29,13 +27,15 @@ export function filterMatches(matches: Match[], f: StatsFilter): Match[] {
     .filter((m) => f.homeAway === 'all' || m.homeAway === f.homeAway)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (f.range.kind === 'dates') {
-    const { from, to } = f.range;
-    out = out.filter((m) => m.date >= from && m.date <= to);
+    // empty bound = open-ended; a reversed range is swapped
+    let { from, to } = f.range;
+    if (from && to && from > to) [from, to] = [to, from];
+    out = out.filter((m) => (!from || m.date >= from) && (!to || m.date <= to));
   }
   if (f.range.kind === 'last') {
     const count = f.range.count;
     const scouted = new Set(scoutedMatches(out).map((m) => m.id));
-    out = out.filter((m) => scouted.has(m.id)).slice(-count).reverse();
+    out = out.filter((m) => scouted.has(m.id)).slice(-count);
   }
   return out;
 }

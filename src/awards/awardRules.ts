@@ -34,6 +34,7 @@ export function quality(l: SkillLine | undefined): number | null {
 }
 
 const actionCount = (p: PlayerStats) => Object.values(p.skills).reduce((n, l) => n + (l?.attempts ?? 0), 0);
+export const hasActions = (p: PlayerStats) => actionCount(p) > 0;
 
 export function mvpScore(p: PlayerStats): number {
   let bonus = 0;
@@ -45,7 +46,7 @@ export function mvpScore(p: PlayerStats): number {
 }
 
 export function scoutedMatches(matches: Match[]): Match[] {
-  return matches.filter((m) => m.summary && Object.values(m.summary.players).some((p) => actionCount(p) > 0));
+  return matches.filter((m) => m.summary && Object.values(m.summary.players).some(hasActions));
 }
 
 /** Per player: their PlayerStats in each scouted match they played, oldest first. */

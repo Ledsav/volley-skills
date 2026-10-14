@@ -17,7 +17,7 @@ export function Leaderboards({ teamId, rankings, people }: { teamId: string; ran
               <p className="text-sm text-slate">No data yet</p>
             ) : (
               <ol className="space-y-1">
-                {r.ranked.slice(0, 3).map((x) => {
+                {r.ranked.filter((x) => x.rank <= 3).map((x) => {
                   const p = person(x.playerId);
                   return (
                     <li key={x.playerId} className="flex items-baseline gap-2">

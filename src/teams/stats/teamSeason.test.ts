@@ -23,8 +23,16 @@ describe('teamSeason', () => {
   it('filters by competition, home/away, last N and dates', () => {
     expect(filterMatches(ms, { ...DEFAULT_FILTER, competition: 'cup' }).map((m) => m.id)).toEqual(['m2']);
     expect(filterMatches(ms, { ...DEFAULT_FILTER, homeAway: 'home' }).map((m) => m.id)).toEqual(['m1', 'm3', 'm4']);
-    expect(filterMatches(ms, { ...DEFAULT_FILTER, range: { kind: 'last', count: 5 } }).map((m) => m.id)).toEqual(['m2', 'm1']);
+    expect(filterMatches(ms, { ...DEFAULT_FILTER, range: { kind: 'last', count: 5 } }).map((m) => m.id)).toEqual(['m1', 'm2']);
     expect(filterMatches(ms, { ...DEFAULT_FILTER, range: { kind: 'dates', from: '2026-09-05', to: '2026-09-20' } }).map((m) => m.id)).toEqual(['m2', 'm3']);
+  });
+
+  it('dates range is open-ended when a bound is empty, and swaps a reversed range', () => {
+    const ids = (from: string, to: string) => filterMatches(ms, { ...DEFAULT_FILTER, range: { kind: 'dates', from, to } }).map((m) => m.id);
+    expect(ids('', '2026-09-08')).toEqual(['m1', 'm2']);
+    expect(ids('2026-09-08', '')).toEqual(['m2', 'm3', 'm4']);
+    expect(ids('', '')).toEqual(['m1', 'm2', 'm3', 'm4']);
+    expect(ids('2026-09-20', '2026-09-05')).toEqual(ids('2026-09-05', '2026-09-20'));
   });
 
   it('aggregates record, side-out from summed totals and rotations', () => {

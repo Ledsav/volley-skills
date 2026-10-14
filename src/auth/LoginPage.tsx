@@ -1,3 +1,4 @@
+import { usePageMeta } from '../layout/usePageMeta';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -6,11 +7,13 @@ import { auth } from '../firebase/config';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { AuthShell } from './AuthShell';
+import { takeReturnTo } from './returnTo';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
 const googleProvider = new GoogleAuthProvider();
 
 export function LoginPage() {
+  usePageMeta({ title: 'Sign in', description: 'Sign in to Volley Skills, the Volley Club Belair team tool.', robots: 'index', canonicalPath: '/login' });
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -35,7 +38,7 @@ export function LoginPage() {
     setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate('/teams', { replace: true });
+      navigate(takeReturnTo(), { replace: true });
     } catch {
       setError('Could not sign in with Google. Please try again.');
     }

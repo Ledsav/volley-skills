@@ -29,8 +29,12 @@ describe('AppShell', () => {
 
   it('shows every nav destination in both shells for a super-admin', () => {
     renderShell();
-    for (const label of ['Teams', 'Exercises', 'Trainings', 'Guides', 'Access']) {
+    for (const label of ['Home', 'Teams', 'Exercises', 'Trainings']) {
       expect(screen.getAllByText(label)).toHaveLength(2);
+    }
+    // Admin destinations live in the sidebar only; phones reach them via the account menu.
+    for (const label of ['Guides', 'Access']) {
+      expect(screen.getAllByText(label)).toHaveLength(1);
     }
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });
@@ -97,7 +101,7 @@ describe('AppShell', () => {
   it('shows text labels in the phone bottom bar, not icons alone', () => {
     const { container } = renderShell();
     const bottomBar = container.querySelector('nav.fixed') as HTMLElement;
-    for (const label of ['Teams', 'Exercises', 'Trainings', 'Guides', 'Access', 'Settings']) {
+    for (const label of ['Home', 'Teams', 'Exercises', 'Trainings', 'Settings']) {
       expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
     }
   });
@@ -105,5 +109,36 @@ describe('AppShell', () => {
   it('caps page content at one shared width so wide screens keep readable lines', () => {
     renderShell();
     expect(screen.getByText('Page content').parentElement).toHaveClass('mx-auto', 'max-w-screen-xl');
+  });
+
+  it('has a skip link to main and Home first in the sidebar', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    renderShell();
+    const skip = screen.getByRole('link', { name: 'Skip to content' });
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(document.getElementById('main')?.tagName).toBe('MAIN');
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const labels = within(nav).getAllByRole('link').map((l) => l.textContent?.trim());
+    expect(labels.indexOf('Home')).toBeGreaterThanOrEqual(0);
+    expect(labels.indexOf('Home')).toBeLessThan(labels.indexOf('Teams'));
+  });
+
+  it('caps the phone bottom bar at 5 items for a superadmin', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ access: superAdminAccess, appUser: { uid: 'u-1', email: 'user@example.com', role: 'superadmin' } })
+    );
+    renderShell();
+    const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
+    expect(within(bottom).getAllByRole('link')).toHaveLength(5);
+    expect(within(bottom).queryByText('Guides')).toBeNull();
+    expect(within(bottom).queryByText('Access')).toBeNull();
+  });
+
+  it('offers Guides and Access in the account menu for a superadmin', () => {
+    renderShell();
+    openAccountMenu();
+    const menu = screen.getByRole('menu', { name: /^Account/ });
+    expect(within(menu).getByRole('menuitem', { name: 'Guides' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Access' })).toBeInTheDocument();
   });
 });

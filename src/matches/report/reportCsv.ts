@@ -4,7 +4,7 @@ import { rosterMap } from '../format';
 import { mergeLines, ratio, serveEff } from '../scoutStats';
 import { SKILL_LABELS } from '../skillGrades';
 
-type Cell = string | number | null;
+export type Cell = string | number | null;
 
 /** `eu`: `;` + decimal comma (French/Dutch/German Excel). `en`: `,` + decimal point (English Excel, Sheets). */
 export type CsvFormat = 'eu' | 'en';
@@ -39,6 +39,11 @@ const HEADER: Cell[] = [
 
 function skillCells(line: SkillLine | undefined): Cell[] {
   return line ? [line.attempts, ...GRADES.map((g) => line.grades[g])] : [0, ...GRADES.map(() => 0)];
+}
+
+/** A whole CSV document: BOM (Excel), separator per format, CRLF line ends. */
+export function csvDocument(rows: Cell[][], format: CsvFormat): string {
+  return BOM + rows.map((row) => row.map((cell) => csvCell(cell, format)).join(SEPARATOR[format])).join('\r\n') + '\r\n';
 }
 
 /** The report's player table (one set or the whole match) as an Excel-friendly CSV. */
@@ -80,7 +85,7 @@ export function reportCsv(match: Match, stats: MatchStats, format: CsvFormat = '
     ratio(t.sideOut.won, t.sideOut.total),
     ratio(t.breakPoint.won, t.breakPoint.total),
   ]);
-  return BOM + rows.map((row) => row.map((cell) => csvCell(cell, format)).join(SEPARATOR[format])).join('\r\n') + '\r\n';
+  return csvDocument(rows, format);
 }
 
 export function reportCsvFileName(match: Match, set: number | 'all'): string {

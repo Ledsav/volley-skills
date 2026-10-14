@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
@@ -37,11 +37,16 @@ const team: Team = {
   createdAt: null,
 };
 
-function renderTeamPage() {
+function LocationProbe() {
+  const l = useLocation();
+  return <div data-testid="loc">{l.pathname + l.search}</div>;
+}
+
+function renderTeamPage(url = '/teams/team-1') {
   return render(
-    <MemoryRouter initialEntries={['/teams/team-1']}>
+    <MemoryRouter initialEntries={[url]}>
       <Routes>
-        <Route path="/teams/:teamId" element={<TeamPage />} />
+        <Route path="/teams/:teamId" element={<><TeamPage /><LocationProbe /></>} />
       </Routes>
     </MemoryRouter>
   );
@@ -59,19 +64,41 @@ describe('TeamPage', () => {
     );
   });
 
-  it('shows an access message instead of loading forever when the read is rejected', async () => {
+  it('shows the not-found state when the team cannot be read', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
-
-    render(
-      <MemoryRouter initialEntries={['/teams/team-1']}>
-        <Routes>
-          <Route path="/teams/:teamId" element={<TeamPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    expect(await screen.findByRole('alert')).toHaveTextContent("You don't have access to this team.");
+    renderTeamPage();
+    expect(await screen.findByRole('heading', { name: 'Team not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/teams');
     expect(screen.queryByText('Loading team...')).not.toBeInTheDocument();
+  });
+
+  it('shows a retryable error (not not-found) when the team load fails transiently', async () => {
+    const spy = vi.spyOn(teamsApi, 'getTeam').mockRejectedValueOnce({ code: 'unavailable' });
+    spy.mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByText('Could not load this team.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Team not found' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { name: 'U17 Boys' })).toBeInTheDocument();
+  });
+
+  it('opens the tab named in ?tab= and updates the URL on tab change, dropping stats filters', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=stats&comp=cup&range=last5');
+    expect(await screen.findByRole('tab', { name: 'Stats', selected: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Matches' }));
+    expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=matches');
+  });
+
+  it('falls back to Overview for ?tab=stats when not a team admin', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=stats');
+    expect(await screen.findByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument();
   });
 
   it('shows the team calendar when the Calendar tab is selected', async () => {
@@ -177,5 +204,22 @@ describe('TeamPage', () => {
       await screen.findByText(/imported 2 players with consent not given/i)
     ).toBeInTheDocument();
     expect(playersApi.bulkCreatePlayers).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the Stats tab only to team admins', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['user@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByRole('tab', { name: 'Stats' })).toBeInTheDocument();
+  });
+
+  it('hides the Stats tab for viewers', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['someone@else.be'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('tab', { name: 'Overview' });
+    expect(screen.queryByRole('tab', { name: 'Stats' })).toBeNull();
   });
 });

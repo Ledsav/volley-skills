@@ -92,7 +92,7 @@ describe('TeamSettingsTab', () => {
     expect(deleteSpy).not.toHaveBeenCalled();
   });
 
-  it('deletes the team and navigates to /teams when confirmed', async () => {
+  it('deletes the team and navigates to / when confirmed', async () => {
     const deleteSpy = vi.spyOn(teamsApi, 'deleteTeam').mockResolvedValue(undefined);
     renderSettings(baseTeam, vi.fn());
 
@@ -100,7 +100,7 @@ describe('TeamSettingsTab', () => {
     fireEvent.click(screen.getByText('Yes, delete team'));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1'));
-    expect(mockNavigate).toHaveBeenCalledWith('/teams', { replace: true });
+    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
   });
 
   it('shows an error message when deleting the team fails', async () => {

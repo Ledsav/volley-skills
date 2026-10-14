@@ -17,12 +17,15 @@ import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { AccessManagerPage } from './access/AccessManagerPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
+import { NotFoundPage } from './layout/NotFoundPage';
+import { HomePage } from './home/HomePage';
 import { MatchPage } from './matches/MatchPage';
 
 const DiagramEditorPage = lazy(() =>
   import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
 );
 
+const AwardsPage = lazy(() => import('./awards/AwardsPage'));
 const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
 
 function AuthenticatedLayout() {
@@ -45,6 +48,7 @@ export function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/request-access" element={<RequestAccessPage />} />
           <Route element={<AuthenticatedLayout />}>
+            <Route path="/" element={<HomePage />} />
             <Route path="/teams" element={<TeamsListPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/teams/:teamId" element={<TeamPage />} />
@@ -94,6 +98,7 @@ export function App() {
             />
             {/* Old link target: requests now live on the Access page. */}
             <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route
             path="/teams/:teamId/matches/:matchId/scout"
@@ -105,7 +110,26 @@ export function App() {
               </RequireAuth>
             }
           />
-          <Route path="/" element={<Navigate to="/teams" replace />} />
+          <Route
+            path="/teams/:teamId/awards"
+            element={
+              <RequireAuth>
+                <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                  <AwardsPage scope="season" />
+                </Suspense>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/teams/:teamId/matches/:matchId/awards"
+            element={
+              <RequireAuth>
+                <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                  <AwardsPage scope="match" />
+                </Suspense>
+              </RequireAuth>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

@@ -246,6 +246,20 @@ service cloud.firestore {
         }
       }
 
+      match /awards/{scope} {
+        function isTeamAdmin() {
+          return request.auth != null && (request.auth.token.email in
+            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
+        }
+        allow read, delete: if isTeamAdmin();
+        allow create, update: if isTeamAdmin()
+          && scope == 'season'
+          && request.resource.data.picks is map
+          && request.resource.data.custom is list
+          && request.resource.data.custom.size() <= 5
+          && request.resource.data.order is list;
+      }
+
       match /scoutProfile/{docId} {
         function isTeamAdmin() {
           return request.auth != null && (request.auth.token.email in

@@ -44,4 +44,20 @@ describe('RequireAuth', () => {
 
     expect(screen.getByText('Protected content')).toBeInTheDocument();
   });
+
+  it('remembers the requested deep link before redirecting to login', () => {
+    localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null, appUser: null, access: null }));
+
+    render(
+      <MemoryRouter initialEntries={['/teams/t1/matches/m1?x=1']}>
+        <RequireAuth>
+          <p>Protected content</p>
+        </RequireAuth>
+      </MemoryRouter>
+    );
+
+    expect(localStorage.getItem('vcb.auth.returnTo')).toBe('/teams/t1/matches/m1?x=1');
+    localStorage.clear();
+  });
 });

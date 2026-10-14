@@ -193,7 +193,7 @@ export function DevelopmentPlanEditor({
       )}
 
       {editing && isAdmin && (
-        <Dialog title="Edit development plan" size="lg" onClose={handleCancel}>
+        <Dialog title="Edit development plan" size="lg" onClose={handleCancel} guardUnsaved>
           <form onSubmit={handleSave} aria-label="Edit development plan">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate">Short-term objectives</h3>
             {shortTermObjectives.map((o, i) => (

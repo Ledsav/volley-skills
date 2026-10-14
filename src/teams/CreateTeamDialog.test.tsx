@@ -67,4 +67,22 @@ describe('CreateTeamDialog', () => {
     expect(createTeamSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
   });
+
+  it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    const onClose = vi.fn();
+    const { unmount } = render(<CreateTeamDialog onClose={onClose} onCreated={vi.fn()} />);
+    expect(await screen.findByRole('dialog', { name: 'Create team' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(<CreateTeamDialog onClose={onClose} onCreated={vi.fn()} />);
+    await screen.findByRole('dialog', { name: 'Create team' });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

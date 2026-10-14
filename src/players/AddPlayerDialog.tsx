@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input, FIELD_CLASS } from '../components/Input';
 import { useSave } from '../components/useSave';
 import { createPlayer } from './playersApi';
@@ -82,13 +83,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label="Add player"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Add player</h2>
+    <Dialog title="Add player" onClose={onClose} guardUnsaved size="lg" mobileSheet>
+      <form onSubmit={handleSubmit} aria-label="Add player">
 
         <div className={fieldClass}>
           <label htmlFor="player-number" className={labelClass}>
@@ -255,6 +251,6 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           </p>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }

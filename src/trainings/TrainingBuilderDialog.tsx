@@ -169,6 +169,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
 
   return (
     <Dialog
+      guardUnsaved
       title={training ? `${training.businessId} · ${training.name}` : 'New training'}
       size="lg"
       mobileSheet

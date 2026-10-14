@@ -28,6 +28,11 @@ interface DialogProps {
    * body still call `onClose` directly.
    */
   dirty?: boolean;
+  /**
+   * Treat the dialog as dirty once any field inside it changes (inputs bubble
+   * `onChange`), so form dialogs get the discard guard without tracking state.
+   */
+  guardUnsaved?: boolean;
 }
 
 const SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
@@ -40,10 +45,12 @@ const MOBILE_SHEET_SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> 
   lg: 'sm:max-w-2xl',
 };
 
-export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false, footer, dirty = false }: DialogProps) {
+export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false, footer, dirty = false, guardUnsaved = false }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const requestClose = () => (dirty ? setConfirmDiscard(true) : onClose());
+  const [edited, setEdited] = useState(false);
+  const markEdited = guardUnsaved ? () => setEdited(true) : undefined;
+  const requestClose = () => (dirty || edited ? setConfirmDiscard(true) : onClose());
 
   // Focus the panel once on mount only — re-running this on every render (e.g.
   // because `onClose` is an inline function recreated by the parent) would
@@ -92,6 +99,7 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
             </button>
           </header>
           <div
+            onChange={markEdited}
             className={`min-h-0 flex-1 overflow-y-auto overscroll-contain py-5 [scrollbar-gutter:stable] ${
               mobileSheet ? 'px-4 sm:pl-6 sm:pr-3' : 'pl-6 pr-3'
             }`}
@@ -100,6 +108,7 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
           </div>
           {footer && (
             <footer
+              onChange={markEdited}
               className={`flex shrink-0 items-center justify-end gap-3 border-t border-border bg-surface ${
                 mobileSheet ? 'px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3' : 'px-6 py-3'
               }`}

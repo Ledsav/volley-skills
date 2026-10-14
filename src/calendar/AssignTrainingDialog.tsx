@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { useSave } from '../components/useSave';
 import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
@@ -137,13 +138,8 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label="Assign training"
-        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Assign training</h2>
+    <Dialog title="Assign training" onClose={onClose} guardUnsaved mobileSheet>
+      <form onSubmit={handleSubmit} aria-label="Assign training">
 
         <label htmlFor="session-date" className="mb-1 block text-sm font-medium text-ink">
           Date
@@ -267,6 +263,6 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
           </Button>
         </div>
       </form>
-    </div>
+    </Dialog>
   );
 }

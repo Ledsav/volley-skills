@@ -1,5 +1,6 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useModalLayer } from './useModalLayer';
 
 interface DialogProps {
@@ -21,6 +22,12 @@ interface DialogProps {
    * in the body wires its submit button here via the `form` attribute.
    */
   footer?: ReactNode;
+  /**
+   * The form has unsaved changes: a backdrop tap, Escape or the close button asks
+   * "Discard changes?" first instead of closing. Explicit Cancel buttons in the
+   * body still call `onClose` directly.
+   */
+  dirty?: boolean;
 }
 
 const SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> = {
@@ -33,8 +40,10 @@ const MOBILE_SHEET_SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> 
   lg: 'sm:max-w-2xl',
 };
 
-export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false, footer }: DialogProps) {
+export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false, footer, dirty = false }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const requestClose = () => (dirty ? setConfirmDiscard(true) : onClose());
 
   // Focus the panel once on mount only — re-running this on every render (e.g.
   // because `onClose` is an inline function recreated by the parent) would
@@ -43,61 +52,75 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
     panelRef.current?.focus();
   }, []);
 
-  useModalLayer(onClose);
+  useModalLayer(requestClose, panelRef);
 
   return (
-    <div
-      data-testid="dialog-backdrop"
-      className={`fixed inset-0 z-50 flex bg-black/50 ${
-        mobileSheet ? 'items-stretch justify-stretch p-0 sm:items-center sm:justify-center sm:p-4' : 'items-center justify-center p-4'
-      }`}
-      onClick={onClose}
-    >
+    <>
       <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-        onClick={(event) => event.stopPropagation()}
-        className={`flex w-full flex-col overflow-hidden bg-surface focus:outline-none ${
-          mobileSheet
-            ? `h-full max-h-none rounded-none border-0 shadow-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border sm:border-border sm:shadow-pop ${MOBILE_SHEET_SIZE_CLASS[size]}`
-            : `max-h-[90vh] rounded-lg border border-border shadow-pop ${SIZE_CLASS[size]}`
+        data-testid="dialog-backdrop"
+        className={`fixed inset-0 z-50 flex bg-black/50 ${
+          mobileSheet ? 'items-stretch justify-stretch p-0 sm:items-center sm:justify-center sm:p-4' : 'items-center justify-center p-4'
         }`}
+        onClick={requestClose}
       >
-        <header
-          className={`flex shrink-0 items-center justify-between gap-4 border-b border-border ${
-            mobileSheet ? 'px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4' : 'px-6 py-4'
-          }`}
-        >
-          <h2 className="min-w-0 truncate text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="-mr-2 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate transition-colors hover:bg-bg hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue sm:h-9 sm:w-9"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </header>
         <div
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain py-5 [scrollbar-gutter:stable] ${
-            mobileSheet ? 'px-4 sm:pl-6 sm:pr-3' : 'pl-6 pr-3'
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          tabIndex={-1}
+          onClick={(event) => event.stopPropagation()}
+          className={`flex w-full flex-col overflow-hidden bg-surface focus:outline-none ${
+            mobileSheet
+              ? `h-full max-h-none rounded-none border-0 shadow-none sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border sm:border-border sm:shadow-pop ${MOBILE_SHEET_SIZE_CLASS[size]}`
+              : `max-h-[90vh] rounded-lg border border-border shadow-pop ${SIZE_CLASS[size]}`
           }`}
         >
-          {children}
-        </div>
-        {footer && (
-          <footer
-            className={`flex shrink-0 items-center justify-end gap-3 border-t border-border bg-surface ${
-              mobileSheet ? 'px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3' : 'px-6 py-3'
+          <header
+            className={`flex shrink-0 items-center justify-between gap-4 border-b border-border ${
+              mobileSheet ? 'px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4' : 'px-6 py-4'
             }`}
           >
-            {footer}
-          </footer>
-        )}
+            <h2 className="min-w-0 truncate text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+            <button
+              type="button"
+              onClick={requestClose}
+              aria-label="Close"
+              className="-mr-2 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate transition-colors hover:bg-bg hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue sm:h-9 sm:w-9"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </header>
+          <div
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain py-5 [scrollbar-gutter:stable] ${
+              mobileSheet ? 'px-4 sm:pl-6 sm:pr-3' : 'pl-6 pr-3'
+            }`}
+          >
+            {children}
+          </div>
+          {footer && (
+            <footer
+              className={`flex shrink-0 items-center justify-end gap-3 border-t border-border bg-surface ${
+                mobileSheet ? 'px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3' : 'px-6 py-3'
+              }`}
+            >
+              {footer}
+            </footer>
+          )}
+        </div>
       </div>
-    </div>
+      {confirmDiscard && (
+        <ConfirmDialog
+          title="Discard changes?"
+          message="Your changes haven't been saved."
+          confirmLabel="Discard"
+          onCancel={() => setConfirmDiscard(false)}
+          onConfirm={() => {
+            setConfirmDiscard(false);
+            onClose();
+          }}
+        />
+      )}
+    </>
   );
 }

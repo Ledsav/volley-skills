@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2, TriangleAlert } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
@@ -238,7 +238,12 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                     />
                     <span className="min-w-0 flex-1">
                       <span className={`block truncate text-sm font-medium ${row.name ? 'text-ink' : 'text-red'}`}>
-                        {row.name ?? '⚠ Deleted exercise'}
+                        {row.name ?? (
+                          <span className="inline-flex items-center gap-1">
+                            <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                            Deleted exercise
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
                         {row.category ? `${CATEGORY_LABEL[row.category]} · ` : ''}min {startMinute}–

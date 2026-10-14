@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { GRADES, type RosterEntry, type Skill } from '../../types/match';
 import { fmtEff, fmtPct, playerLabel } from '../format';
@@ -38,9 +39,14 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
         <div role="alert" className="mb-2 space-y-1 rounded-md bg-red/10 p-2 text-sm font-medium text-red-strong">
           {alerts.map((a) =>
             a.kind === 'playerErrors' ? (
-              <p key={a.playerId}>⚠ {playerLabel(roster.get(a.playerId))} {roster.get(a.playerId)?.name}: {a.errors} errors this set</p>
+              <p key={a.playerId} className="flex items-center gap-1.5">
+                <TriangleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
+                {playerLabel(roster.get(a.playerId))} {roster.get(a.playerId)?.name}: {a.errors} errors this set</p>
             ) : (
-              <p key="run">⚠ Opp run 0–{a.run} — timeout?</p>
+              <p key="run" className="flex items-center gap-1.5">
+                <TriangleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
+                Opp run 0–{a.run} — timeout?
+              </p>
             ),
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
@@ -229,7 +229,12 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
                         className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
                       />
                       <span className={`min-w-0 flex-1 truncate text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
-                        {row.name ?? '⚠ Deleted exercise'}
+                        {row.name ?? (
+                          <span className="inline-flex items-center gap-1">
+                            <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                            Deleted exercise
+                          </span>
+                        )}
                       </span>
                       <span className="shrink-0 text-xs tabular-nums text-slate">{row.durationMinutes} min</span>
                     </div>

@@ -8,8 +8,6 @@ export function robotsTxt(origin: string): string {
   return [
     'User-agent: *',
     ...PUBLIC_ROUTES.map((r) => `Allow: ${r}`),
-    'Disallow: /$',
-    ...PRIVATE_PREFIXES.map((p) => `Disallow: ${p}`),
     '',
     `Sitemap: ${origin}/sitemap.xml`,
     '',

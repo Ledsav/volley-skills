@@ -34,14 +34,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [pendingSignups, setPendingSignups] = useState(0);
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
-  const firstRender = useRef(true);
+  const prevPathname = useRef(pathname);
 
   // Move focus into the new page on route change (not on the initial load).
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
+    if (prevPathname.current === pathname) return;
+    prevPathname.current = pathname;
     const heading = mainRef.current?.querySelector<HTMLElement>('h1');
     if (heading) {
       if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');

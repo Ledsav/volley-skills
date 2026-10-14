@@ -1,16 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PRIVATE_PREFIXES, PUBLIC_ROUTES, noindexHeaderSources, robotsTxt, sitemapXml } from './seoRoutes';
+import { PUBLIC_ROUTES, noindexHeaderSources, robotsTxt, sitemapXml } from './seoRoutes';
 
 describe('seoRoutes', () => {
   it('public routes are exactly the three indexable pages', () => {
     expect([...PUBLIC_ROUTES]).toEqual(['/login', '/privacy', '/request-access']);
   });
 
-  it('robots.txt allows public, disallows private prefixes, links the sitemap', () => {
+  it('robots.txt allows public, has no Disallow (so crawlers see the noindex header), links the sitemap', () => {
     const txt = robotsTxt('https://example.org');
     for (const r of PUBLIC_ROUTES) expect(txt).toContain(`Allow: ${r}`);
-    for (const p of PRIVATE_PREFIXES) expect(txt).toContain(`Disallow: ${p}`);
+    expect(txt).not.toContain('Disallow');
     expect(txt).toContain('Sitemap: https://example.org/sitemap.xml');
     expect(txt).not.toMatch(/[0-9a-zA-Z]{20}/); // no doc IDs
   });

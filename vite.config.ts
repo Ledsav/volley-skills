@@ -13,11 +13,18 @@ function seoFiles(origin: string): Plugin {
   };
 }
 
+function siteUrlToken(origin: string): Plugin {
+  return {
+    name: 'vcb-site-url-token',
+    transformIndexHtml: (html) => html.split('__SITE_URL__').join(origin),
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const origin = (env.VITE_SITE_URL || 'https://volley-skills.web.app').replace(/\/$/, '');
   return {
-    plugins: [react(), seoFiles(origin)],
+    plugins: [react(), seoFiles(origin), siteUrlToken(origin)],
     test: {
       environment: 'jsdom',
       globals: true,

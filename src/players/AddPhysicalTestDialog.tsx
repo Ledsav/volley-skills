@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
+import { useSave } from '../components/useSave';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { AttemptsInput } from '../components/AttemptsInput';
 import { computeBodyMassRatio } from './physicalTestMath';
@@ -56,6 +57,8 @@ export function AddPhysicalTestDialog({
     });
   }, [teamId, playerId, testType]);
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -86,7 +89,8 @@ export function AddPhysicalTestDialog({
     const input = buildPhysicalTestInput(testType, fields, date, notes, latestBodyMassKg);
 
     try {
-      await createPhysicalTest(teamId, playerId, input, recordedByUid);
+      const done = await save(() => createPhysicalTest(teamId, playerId, input, recordedByUid));
+      if (!done) return;
     } catch {
       setError('Could not save the test entry. Please try again.');
       return;
@@ -328,8 +332,8 @@ export function AddPhysicalTestDialog({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Save
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
         {error && (

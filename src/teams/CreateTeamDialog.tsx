@@ -28,8 +28,10 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
     event.preventDefault();
     setError(null);
     if (!firebaseUser?.email) return;
+    const { uid } = firebaseUser;
+    const email = firebaseUser.email;
     try {
-      const done = await save(() => createTeam({ name, club, ageGroup, season, description }, firebaseUser.uid, firebaseUser.email));
+      const done = await save(() => createTeam({ name, club, ageGroup, season, description }, uid, email));
       if (!done) return;
     } catch {
       setError('Could not create the team. Please try again.');

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PenLine, Undo2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -28,6 +27,7 @@ import { keyLabel } from './hotkeys';
 import { Kbd } from './Kbd';
 import { RallyBar, type ReasonPrompt } from './RallyBar';
 import { ScoutHeader } from './ScoutHeader';
+import type { MenuItem } from '../../components/Menu';
 import { LiveStatsPanel } from './LiveStatsPanel';
 import { SetStartDialog } from './SetStartDialog';
 import { TextScoutPanel } from '../text/TextScoutPanel';
@@ -461,6 +461,22 @@ export function ScoutPage() {
     }
   };
 
+  // App tools — not match events (dock) and not corrections (header).
+  const tools: MenuItem[] = [
+    { kind: 'check', label: 'Quick score', checked: quickScore, onSelect: toggleQuickScore },
+    ...(quickScore
+      ? []
+      : [{ kind: 'check' as const, label: 'Auto-select next player', checked: autoSelect, onSelect: toggleAutoSelect, hint: <Kbd>{keyLabel('auto')}</Kbd> }]),
+    ...(isDesktop
+      ? [
+          { kind: 'check' as const, label: 'Text panel', checked: textOpen, onSelect: () => setTextOpen((v) => !v) },
+          { kind: 'action' as const, label: 'Keyboard shortcuts', onSelect: () => setHelpOpen(true), hint: <Kbd>{keyLabel('help')}</Kbd> },
+        ]
+      : []),
+    { kind: 'divider' },
+    { kind: 'action', label: 'Exit to match', onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}`) },
+  ];
+
   const courtColumn = (
     <div className="flex flex-col gap-3">
       {!quickScore && (
@@ -496,19 +512,7 @@ export function ScoutPage() {
           onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
         />
       )}
-      {state.inSet ? (
-        <RallyBar
-          size={quickScore ? 'large' : 'normal'}
-          format={match.format}
-          timeoutsUsed={state.timeoutsUsed}
-          reasonPrompt={reasonPrompt}
-          onPoint={recordPoint}
-          onReason={amendReason}
-          onTimeout={recordTimeout}
-        />
-      ) : (
-        <p className="py-2 text-center text-sm text-slate">Start the set to record actions.</p>
-      )}
+      {!state.inSet && <p className="py-2 text-center text-sm text-slate">Start the set to record actions.</p>}
     </div>
   );
 
@@ -556,10 +560,8 @@ export function ScoutPage() {
         opponent={match.opponent}
         pending={pending}
         disabled={!state.inSet}
-        autoSelect={autoSelect}
-        onToggleAutoSelect={toggleAutoSelect}
-        quickScore={quickScore}
-        onToggleQuickScore={toggleQuickScore}
+        onUndo={undo}
+        tools={tools}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>
           record(
@@ -623,33 +625,24 @@ export function ScoutPage() {
           </main>
         </>
       )}
-      <footer className="sticky bottom-0 flex items-center justify-between border-t border-border bg-surface px-3 py-2">
-        <button type="button" onClick={undo} className="flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg">
-          <Undo2 size={16} aria-hidden="true" /> Undo <Kbd>{keyLabel('undo')}</Kbd>
-        </button>
-        <button
-          type="button"
-          onClick={() => setTextOpen((v) => !v)}
-          aria-pressed={textOpen}
-          className="hidden min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-ink hover:bg-bg lg:flex"
+      {state.inSet && (
+        <section
+          aria-label="Match events"
+          className="sticky bottom-0 z-30 border-t border-border bg-surface px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-pop"
         >
-          <PenLine size={16} aria-hidden="true" /> Text
-        </button>
-        <button
-          type="button"
-          onClick={() => setHelpOpen(true)}
-          className="hidden min-h-11 items-center gap-1.5 rounded-md px-3 text-xs text-slate hover:bg-bg lg:inline-flex"
-        >
-          Keyboard: <Kbd>{keyLabel('help')}</Kbd>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
-          className="min-h-11 rounded-md px-3 text-sm text-blue hover:bg-blue/10"
-        >
-          Exit
-        </button>
-      </footer>
+          <div className="mx-auto w-full max-w-3xl">
+            <RallyBar
+              size={quickScore ? 'large' : 'normal'}
+              format={match.format}
+              timeoutsUsed={state.timeoutsUsed}
+              reasonPrompt={reasonPrompt}
+              onPoint={recordPoint}
+              onReason={amendReason}
+              onTimeout={recordTimeout}
+            />
+          </div>
+        </section>
+      )}
 
       {setDialogOpen && !state.inSet && !state.matchOver && (
         <SetStartDialog

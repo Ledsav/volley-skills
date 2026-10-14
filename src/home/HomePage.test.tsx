@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue } from '../test/authValue';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import type { Team } from '../types/team';
+import { finished, player } from '../awards/testMatches';
 import { HomePage } from './HomePage';
 import * as teamsApi from '../teams/teamsApi';
 import * as calendarApi from '../calendar/calendarApi';
@@ -63,5 +64,11 @@ describe('HomePage', () => {
     renderHome();
     expect(await screen.findByText('Could not load upcoming sessions.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Resume scouting/ })).toBeInTheDocument();
+  });
+
+  it('recent results show the MVP', async () => {
+    vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([finished('m9', '2026-10-12', [player('a', { A: '###' })])]);
+    renderHome();
+    expect(await screen.findByText('MVP: #1 Player a.')).toBeInTheDocument();
   });
 });

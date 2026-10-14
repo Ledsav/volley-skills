@@ -88,6 +88,13 @@ export function PrivacyPage() {
         </p>
       </Section>
 
+      <Section title="Award cards">
+        <p>
+          Photos added to award cards are processed only in your browser to create the image; they are never
+          uploaded or stored by Volley Skills.
+        </p>
+      </Section>
+
       <Section title="Service providers">
         <p>
           The app runs on Google Firebase (sign-in, database and hosting), which processes the data on our behalf

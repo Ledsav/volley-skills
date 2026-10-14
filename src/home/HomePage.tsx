@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ClipboardList, Dumbbell, Users } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { PageSkeleton } from '../components/Skeleton';
+import { matchMvpLabel } from '../awards/matchMvp';
 import { usePageMeta } from '../layout/usePageMeta';
 import { liveMatches, nextUp, recentResults } from './homeFeed';
 import { LiveNowBlock } from './LiveNowBlock';
@@ -49,7 +50,7 @@ export function HomePage() {
           <LiveNowBlock items={liveMatches(state.feed)} />
           <div className="grid gap-6 lg:grid-cols-2">
             <NextUpBlock items={nextUp(state.feed, today)} failed={state.errors.sessions} />
-            <RecentResultsBlock items={recentResults(state.feed)} failed={state.errors.matches} />
+            <RecentResultsBlock items={recentResults(state.feed)} failed={state.errors.matches} mvpFor={(fm) => matchMvpLabel(fm.match)} />
           </div>
           {state.teams.length > 0 && (
             <section aria-labelledby="your-teams" className="mb-6">

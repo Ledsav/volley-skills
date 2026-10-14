@@ -173,4 +173,10 @@ describe('MatchPage', () => {
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Match not found' })).toBeInTheDocument();
   });
+
+  it('finished match links to match awards', async () => {
+    vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'finished' });
+    renderPage();
+    expect(await screen.findByRole('link', { name: /Match awards/ })).toHaveAttribute('href', '/teams/t1/matches/m1/awards');
+  });
 });

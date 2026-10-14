@@ -1,7 +1,7 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Download, FileSpreadsheet, Printer, Trophy } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageSkeleton } from '../components/Skeleton';
@@ -167,6 +167,9 @@ export function MatchPage() {
                   { kind: 'action', label: 'CSV · Excel (English) / Sheets', icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('en') },
                 ]}
               />
+              <Link to={`/teams/${teamId}/matches/${matchId}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange px-4 font-medium text-white hover:bg-orange-strong">
+                <Trophy size={16} aria-hidden="true" /> Match awards
+              </Link>
               <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
             </div>
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}

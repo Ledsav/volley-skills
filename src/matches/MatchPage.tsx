@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, Download, FileSpreadsheet, Printer } from 'lu
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageSkeleton } from '../components/Skeleton';
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { Menu } from '../components/Menu';
 import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
@@ -23,6 +24,7 @@ export function MatchPage() {
   const [match, setMatch] = useState<Match | null>(null);
   usePageMeta({ title: match ? `vs ${match.opponent}` : 'Match' });
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -31,8 +33,8 @@ export function MatchPage() {
 
   useEffect(() => {
     getMatch(teamId, matchId)
-      .then((m) => (m ? setMatch(m) : setError('Match not found.')))
-      .catch(() => setError("You don't have access to this match."));
+      .then((m) => (m ? setMatch(m) : setNotFound(true)))
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this match.')));
   }, [teamId, matchId]);
 
   // A finished match carries its report, so it never reads the event log; only
@@ -46,6 +48,9 @@ export function MatchPage() {
   );
   const finishingRef = useRef(false);
 
+  if (notFound) {
+    return <NotFoundState title="Match not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+  }
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
   if (!match) return <PageSkeleton layout="match" label="Loading match…" />;
 

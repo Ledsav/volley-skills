@@ -59,18 +59,11 @@ describe('TeamPage', () => {
     );
   });
 
-  it('shows an access message instead of loading forever when the read is rejected', async () => {
+  it('shows the not-found state when the team cannot be read', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
-
-    render(
-      <MemoryRouter initialEntries={['/teams/team-1']}>
-        <Routes>
-          <Route path="/teams/:teamId" element={<TeamPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    expect(await screen.findByRole('alert')).toHaveTextContent("You don't have access to this team.");
+    renderTeamPage();
+    expect(await screen.findByRole('heading', { name: 'Team not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/teams');
     expect(screen.queryByText('Loading team...')).not.toBeInTheDocument();
   });
 

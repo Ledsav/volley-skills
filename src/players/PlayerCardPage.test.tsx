@@ -145,13 +145,13 @@ describe('PlayerCardPage', () => {
     expect(matchesApi.listFinishedMatches).not.toHaveBeenCalled();
   });
 
-  it('shows an access message instead of loading forever when the read is rejected', async () => {
+  it('shows the not-found state instead of loading forever when the read is rejected', async () => {
     vi.spyOn(playersApi, 'getPlayer').mockRejectedValue({ code: 'permission-denied' });
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(null);
 
     renderPlayerCard();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent("You don't have access to this player.");
+    expect(await screen.findByRole('heading', { name: 'Player not found' })).toBeInTheDocument();
     expect(screen.queryByText('Loading player...')).not.toBeInTheDocument();
   });
 

@@ -32,11 +32,11 @@ import {
   type UsageProfile,
 } from '../types/match';
 import type { FinishPayload } from './finish';
+import { FINISHED_MATCHES_CAP } from './limits';
 
 const MATCHES_PAGE_SIZE = 20;
 const MATCHES_MONTH_CAP = 50;
-/** One team is one season; a youth season has well under this many matches. */
-export const FINISHED_MATCHES_CAP = 60;
+export { FINISHED_MATCHES_CAP };
 export const MATCH_EVENTS_CAP = 2000;
 
 const matchesCol = (teamId: string) => collection(db, 'teams', teamId, 'matches');

@@ -28,6 +28,11 @@ function Kpi({ value, label }: { value: string; label: string }) {
   );
 }
 
+function dateBounds(all: Match[]): { from: string; to: string } {
+  const dates = all.map((m) => m.date).sort();
+  return { from: dates[0] ?? '', to: dates[dates.length - 1] ?? '' };
+}
+
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 'es'}`;
 
 export function TeamStatsTab({ team }: { team: Team }) {
@@ -109,7 +114,7 @@ export function TeamStatsTab({ team }: { team: Team }) {
               setFilter({
                 ...filter,
                 range: v === 'last5' ? { kind: 'last', count: 5 } : v === 'last10' ? { kind: 'last', count: 10 }
-                  : v === 'dates' ? { kind: 'dates', from: filtered[0]?.date ?? '', to: filtered[filtered.length - 1]?.date ?? '' }
+                  : v === 'dates' ? { kind: 'dates', ...dateBounds(matches ?? []) }
                   : { kind: 'season' },
               });
             }}>
@@ -152,7 +157,9 @@ export function TeamStatsTab({ team }: { team: Team }) {
         Based on {plural(coverage.scouted, 'scouted match')}
         {coverage.scoreOnly > 0 && ` · ${coverage.scoreOnly} score-only`}
         {coverage.skipped > 0 && ` · ${coverage.skipped} skipped (finished before stats existed)`}
-        {filtered.length !== total && ` · Showing ${filtered.length} of ${total} matches`}
+        {filter.range.kind === 'last'
+          ? ` · Showing the last ${filter.range.count} scouted matches`
+          : filtered.length !== total && ` · Showing ${filtered.length} of ${total} matches`}
         {coverage.capped && ' · Showing the latest 60 matches.'}
       </p>
 

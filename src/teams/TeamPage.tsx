@@ -34,10 +34,8 @@ export function TeamPage() {
   const canCalendar = !!access?.sections.trainings;
   const [team, setTeam] = useState<Team | null>(null);
   const [params, setParams] = useSearchParams();
-  const [tab, setTab] = useState<TeamTab>(() => {
-    const t = params.get('tab');
-    return TEAM_TABS.includes(t as TeamTab) ? (t as TeamTab) : 'overview';
-  });
+  const tabParam = params.get('tab');
+  const tab: TeamTab = TEAM_TABS.includes(tabParam as TeamTab) ? (tabParam as TeamTab) : 'overview';
   const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -76,8 +74,9 @@ export function TeamPage() {
   if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;
 
   const changeTab = (next: TeamTab) => {
-    setTab(next);
     const p = new URLSearchParams(params);
+    // stats filter params belong to the Stats tab only
+    for (const k of ['comp', 'ha', 'range', 'from', 'to']) p.delete(k);
     p.set('tab', next);
     setParams(p, { replace: true });
   };
@@ -141,7 +140,7 @@ export function TeamPage() {
               teamId={teamId}
               onNewMatch={(date) => {
                 setNewMatchDate(date);
-                setTab('matches');
+                changeTab('matches');
               }}
             />
           )}

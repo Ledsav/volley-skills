@@ -2,6 +2,7 @@ import { DEFAULT_FILTER, type StatsFilter } from './teamSeason';
 
 const COMPETITIONS = ['league', 'cup', 'friendly', 'tournament'] as const;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_OR_EMPTY = (s: string) => s === '' || ISO.test(s);
 
 export function parseStatsFilter(p: URLSearchParams): StatsFilter {
   const comp = p.get('comp');
@@ -15,7 +16,7 @@ export function parseStatsFilter(p: URLSearchParams): StatsFilter {
     range:
       range === 'last5' ? { kind: 'last', count: 5 }
       : range === 'last10' ? { kind: 'last', count: 10 }
-      : range === 'dates' && ISO.test(from) && ISO.test(to) ? { kind: 'dates', from, to }
+      : range === 'dates' && ISO_OR_EMPTY(from) && ISO_OR_EMPTY(to) ? { kind: 'dates', from, to }
       : DEFAULT_FILTER.range,
   };
 }

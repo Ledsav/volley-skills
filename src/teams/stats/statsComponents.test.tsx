@@ -32,6 +32,12 @@ describe('stats components', () => {
     expect(within(card).getByText(/Not enough data: Unknown player/)).toBeInTheDocument();
   });
 
+  it('leaderboards: shows every player tied at rank 3', () => {
+    const tied = ['a', 'b', 'c', 'd'].map((playerId) => ({ playerId, value: 0.3, display: '+30% att. eff.', attempts: 20, rank: 1 }));
+    render(<MemoryRouter><Leaderboards teamId="t1" rankings={[{ id: 'attacker', ranked: tied, notEnoughData: [] }]} people={people} /></MemoryRouter>);
+    expect(within(screen.getByRole('region', { name: 'Best attacker' })).getAllByRole('listitem')).toHaveLength(4);
+  });
+
   it('leaderboard with no ranked players says so', () => {
     render(<MemoryRouter><Leaderboards teamId="t1" rankings={[{ id: 'setter', ranked: [], notEnoughData: [] }]} people={people} /></MemoryRouter>);
     expect(within(screen.getByRole('region', { name: 'Best setter' })).getByText('No data yet')).toBeInTheDocument();

@@ -25,9 +25,9 @@ export function fileSlug(text: string): string {
   return text.trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'export';
 }
 
-/** Saves `payload` as a pretty-printed JSON download. */
-export function downloadJson(fileName: string, payload: unknown): void {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+/** Saves `text` as a file download. */
+export function downloadText(fileName: string, text: string, mime: string): void {
+  const blob = new Blob([text], { type: mime });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -36,4 +36,9 @@ export function downloadJson(fileName: string, payload: unknown): void {
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
+}
+
+/** Saves `payload` as a pretty-printed JSON download. */
+export function downloadJson(fileName: string, payload: unknown): void {
+  downloadText(fileName, JSON.stringify(payload, null, 2), 'application/json');
 }

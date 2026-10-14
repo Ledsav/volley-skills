@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
-import { applyTheme, getInitialTheme, type Theme } from './theme';
+import type { Theme } from './theme';
+import { useTheme } from './useTheme';
 
 interface ThemeToggleProps {
   className?: string;
@@ -9,18 +9,13 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '', compact = false }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
+  const [theme, toggle] = useTheme();
   const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
   const Icon = theme === 'dark' ? Sun : Moon;
   const label = nextTheme === 'dark' ? 'Dark mode' : 'Light mode';
 
   return (
-    <button type="button" onClick={() => setTheme(nextTheme)} className={className}>
+    <button type="button" onClick={toggle} className={className}>
       <Icon size={compact ? 18 : 20} strokeWidth={1.5} />
       <span className={compact ? 'sr-only' : ''}>{label}</span>
     </button>

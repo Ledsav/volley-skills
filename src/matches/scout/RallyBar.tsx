@@ -18,16 +18,19 @@ interface RallyBarProps {
   reasonPrompt: ReasonPrompt | null;
   timeoutsUsed: SetScore;
   format: MatchFormat;
+  /** `large` (quick score): taller point buttons with bigger type. */
+  size?: 'normal' | 'large';
 }
 
-export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format }: RallyBarProps) {
+export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format, size = 'normal' }: RallyBarProps) {
+  const pointSize = size === 'large' ? 'min-h-24 text-xl' : 'min-h-12';
   return (
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => onPoint('us')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-green/15 font-semibold text-green-strong">
+        <button type="button" onClick={() => onPoint('us')} className={`inline-flex ${pointSize} items-center justify-center gap-2 rounded-md bg-green/15 font-semibold text-green-strong`}>
           Point us <Kbd>{keyLabel('pointUs')}</Kbd>
         </button>
-        <button type="button" onClick={() => onPoint('them')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-red/10 font-semibold text-red-strong">
+        <button type="button" onClick={() => onPoint('them')} className={`inline-flex ${pointSize} items-center justify-center gap-2 rounded-md bg-red/10 font-semibold text-red-strong`}>
           Point them <Kbd>{keyLabel('pointThem')}</Kbd>
         </button>
         <button

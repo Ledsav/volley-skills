@@ -33,6 +33,7 @@ import { SetStartDialog } from './SetStartDialog';
 import { TextScoutPanel } from '../text/TextScoutPanel';
 import { SubDialog } from './SubDialog';
 import { TimelineDrawer } from './TimelineDrawer';
+import { readQuickScore, writeQuickScore } from './quickScore';
 import { useScoutHotkeys, type ScoutHotkeysOptions } from './useScoutHotkeys';
 
 const HEARTBEAT_MS = 60_000;
@@ -110,6 +111,7 @@ export function ScoutPage() {
   const [locked, setLocked] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [autoSelect, setAutoSelect] = useState(readAutoSelect);
+  const [quickScore, setQuickScore] = useState(readQuickScore);
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [pendingUndo, setPendingUndo] = useState<string[] | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ ids: string[]; kind: 'setStart' | 'setEnd' } | null>(null);
@@ -326,6 +328,13 @@ export function ScoutPage() {
     writeAutoSelect(next);
   }
 
+  function toggleQuickScore() {
+    const next = !quickScore;
+    setQuickScore(next);
+    writeQuickScore(next);
+    if (next) select(null);
+  }
+
   function gradeAction(playerId: string, skill: Skill, grade: Grade) {
     setSelection(null);
     record({ type: 'action', playerId, skill, grade });
@@ -401,7 +410,7 @@ export function ScoutPage() {
       history: usage.players[playerId] ?? null,
     });
   };
-  const panelPlayer = state.inSet && selection ? selected : undefined;
+  const panelPlayer = state.inSet && selection && !quickScore ? selected : undefined;
   const panelSkills = panelPlayer ? skillsFor(panelPlayer.playerId) : [];
   const panelSkill = panelPlayer && selection ? (sheetSkill?.seq === selection.seq ? sheetSkill.skill : panelSkills[0]) : null;
   const canSub = !!panelPlayer && !liberoIds.has(panelPlayer.playerId);
@@ -439,7 +448,7 @@ export function ScoutPage() {
         if (panelPlayer && canSub) openSub(panelPlayer.playerId);
         return;
       case 'toggleAuto':
-        toggleAutoSelect();
+        if (!quickScore) toggleAutoSelect();
         return;
       case 'toggleHelp':
         setHelpOpen((open) => !open);
@@ -454,22 +463,26 @@ export function ScoutPage() {
 
   const courtColumn = (
     <div className="flex flex-col gap-3">
-      <CourtGrid
-        court={state.court}
-        roster={roster}
-        roles={state.roles}
-        liberos={match.liberos}
-        activeLiberoId={state.activeLiberoId}
-        selectedId={selectedId}
-        autoSelected={selection?.auto ?? false}
-        form={(id) => playerForm(state, id)}
-        disabled={!state.inSet}
-        onSelect={(id) => select(id)}
-        onLongPress={(id) => {
-          if (!liberoIds.has(id)) setSubOutId(id);
-        }}
-      />
-      <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />
+      {!quickScore && (
+        <>
+          <CourtGrid
+            court={state.court}
+            roster={roster}
+            roles={state.roles}
+            liberos={match.liberos}
+            activeLiberoId={state.activeLiberoId}
+            selectedId={selectedId}
+            autoSelected={selection?.auto ?? false}
+            form={(id) => playerForm(state, id)}
+            disabled={!state.inSet}
+            onSelect={(id) => select(id)}
+            onLongPress={(id) => {
+              if (!liberoIds.has(id)) setSubOutId(id);
+            }}
+          />
+          <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />
+        </>
+      )}
       {panelPlayer && panelSkill && selection && (
         <ActionSheet
           key={`${panelPlayer.playerId}-${selection.seq}`}
@@ -485,6 +498,7 @@ export function ScoutPage() {
       )}
       {state.inSet ? (
         <RallyBar
+          size={quickScore ? 'large' : 'normal'}
           format={match.format}
           timeoutsUsed={state.timeoutsUsed}
           reasonPrompt={reasonPrompt}
@@ -544,6 +558,8 @@ export function ScoutPage() {
         disabled={!state.inSet}
         autoSelect={autoSelect}
         onToggleAutoSelect={toggleAutoSelect}
+        quickScore={quickScore}
+        onToggleQuickScore={toggleQuickScore}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>
           record(
@@ -738,7 +754,7 @@ export function ScoutPage() {
         onCommand={onHotkey}
         onJersey={(number) => {
           const entry = match.roster.find((r) => r.number === number);
-          if (entry && state.inSet) select(entry.playerId);
+          if (entry && state.inSet && !quickScore) select(entry.playerId);
         }}
       />
       {helpOpen && <HotkeyCheatSheet onClose={() => setHelpOpen(false)} />}

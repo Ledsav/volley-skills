@@ -20,6 +20,7 @@ The authoritative specs live in `docs/superpowers/`:
 | `specs/2026-09-04-volley-skills-design-system.md` | **Design system** — color tokens, typography (Inter), spacing/radius/elevation, status vocabulary, component specs. The source of truth for any UI work. |
 | `specs/2026-09-07-volley-skills-plan-2-design.md`, `plan-3-design.md` | Design detail for later plan increments. |
 | `specs/2026-10-13-volley-skills-scouting-design.md` | Match scouting: event-sourced live scouting, match/event data model, post-match report, offline behavior. |
+| `specs/2026-10-14-volley-skills-home-stats-awards-design.md` | Home dashboard (`/`), team stats tab, season/match awards cards, 404 + SEO (`noindex` everywhere except `/login`, `/privacy`, `/request-access`). |
 | `plans/*.md` | The phased implementation plans (foundation, plan 2, plan 3 calendar + library). |
 
 ## Commands
@@ -108,9 +109,11 @@ not a subcollection scan. **When adding a query, add the matching index.**
 authenticated shell, `RequireSuperAdmin` gates `/admin/access`, and
 `RequireSection` (given a `section` prop) gates `/exercises`,
 `/exercises/:exerciseId/diagram` (the lazy-loaded court-diagram editor),
-`/trainings`, `/admin/guides`. Match pages live at `/teams/:teamId/matches/:matchId`;
+`/trainings`, `/admin/guides`. `/` is the home dashboard and the `*` catch-all is the 404 page. Match pages live at `/teams/:teamId/matches/:matchId`;
 the lazy-loaded full-screen scouting UI is `/teams/:teamId/matches/:matchId/scout`
-(outside `AppShell`). Two roles: `superadmin` (full access to
+(outside `AppShell`); the lazy full-screen awards routes (`/teams/:teamId/awards`,
+`/teams/:teamId/matches/:matchId/awards`) are also outside `AppShell` and team-admin only.
+Two roles: `superadmin` (full access to
 everything) and `member` (read-only until granted access — invite flow for
 guardians/viewers is still TBD). A member's actual access is resolved per-team
 (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
@@ -127,7 +130,7 @@ model.
 Team-scoped: `teams/{teamId}` → `players/{playerId}` → `physicalTests/{testId}`,
 plus `teams/{teamId}/calendar/{sessionId}`, `teams/{teamId}/matches/{matchId}` →
 `events/{eventId}` (ordered by `order`; all match state is derived by pure replay in
-`src/matches/scoutEngine.ts`) and `teams/{teamId}/scoutProfile/usage`. Club-global: `exercises/{id}`
+`src/matches/scoutEngine.ts`) `teams/{teamId}/scoutProfile/usage`, `teams/{teamId}/awards/season` and `matches/{id}.awards` (coach award choices; photos are never stored). Club-global: `exercises/{id}`
 (+ an ordered `exercises/{id}/diagrams/{diagramId}` subcollection of court
 diagrams — admin-only, no index), `trainings/{id}` (+ `counters/trainings` for
 transactional `businessId`), `skillGuide/config`, `physicalTestGuide/config`.

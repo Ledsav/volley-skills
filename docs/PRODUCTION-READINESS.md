@@ -81,6 +81,8 @@ Last reviewed: 2026-10-14
       `*.googleusercontent.com` (img avatars). Verified sign-in works
       2026-09-10.
 
+- [ ] **Set `VITE_SITE_URL` for the production build** (canonical links, `robots.txt`, `sitemap.xml`).
+
 ## B. At / right after the first deploy
 
 Need a real URL to exist. See `docs/superpowers/runbooks/2026-09-09-quota-protection-setup.md`
@@ -129,6 +131,8 @@ for the detailed steps.
       signs out, terminates Firestore, clears the IndexedDB cache and reloads.
       The privacy page says so. Caveat: clearing fails while another tab of the
       app is open; that tab's cache is cleared on a later sign-out.
+
+- [ ] **Check SEO headers after the first deploy**: `/robots.txt`, `/sitemap.xml`, and an `X-Robots-Tag` header on `/teams` with `curl -I`.
 
 ### Custom domain + auth (console — no CLI for these)
 

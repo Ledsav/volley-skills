@@ -14,8 +14,18 @@ function Kpi({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function MatchReport({ match, report }: { match: Match; report: MatchReportData }) {
-  const [set, setSet] = useState<number | 'all'>('all');
+interface MatchReportProps {
+  match: Match;
+  report: MatchReportData;
+  /** Controlled set filter; omit both to let the report own it. */
+  set?: number | 'all';
+  onSetChange?: (set: number | 'all') => void;
+}
+
+export function MatchReport({ match, report, set: setProp, onSetChange }: MatchReportProps) {
+  const [localSet, setLocalSet] = useState<number | 'all'>('all');
+  const set = setProp ?? localSet;
+  const setSet = onSetChange ?? setLocalSet;
   const stats = (set === 'all' ? report.all : report.bySet[set]) ?? report.all;
   const roster = rosterMap(match.roster);
   const t = stats.team;
@@ -54,7 +64,7 @@ export function MatchReport({ match, report }: { match: Match; report: MatchRepo
 
       <section>
         <h2 className="mb-2 font-semibold text-ink">Players</h2>
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border print:overflow-visible">
           <table className="w-full text-sm tabular-nums">
             <thead className="bg-bg text-left text-xs uppercase text-slate">
               <tr>

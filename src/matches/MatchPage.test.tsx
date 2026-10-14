@@ -6,9 +6,14 @@ import { MatchPage } from './MatchPage';
 import * as matchesApi from './matchesApi';
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
+import { downloadText } from '../export/exportJson';
 
 vi.mock('./matchesApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../export/exportJson', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../export/exportJson')>()),
+  downloadText: vi.fn(),
+}));
 vi.mock('./MatchSetupForm', () => ({
   MatchSetupForm: ({
     onDirtyChange,
@@ -103,6 +108,24 @@ describe('MatchPage', () => {
     renderPage();
     expect(await screen.findByText('3–1')).toBeInTheDocument();
     expect(matchesApi.subscribeEvents).not.toHaveBeenCalled();
+  });
+
+  it('prints and exports the selected set of a finished match as CSV', async () => {
+    const stats = buildReportData(replay(match, [])).all;
+    const report = { setsWon: { us: 3, them: 1 }, setScores: [{ us: 25, them: 20 }], sets: [1], all: stats, bySet: { 1: stats } };
+    vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'finished', report });
+    const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Print / PDF' }));
+    expect(print).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number,Name'), 'text/csv;charset=utf-8');
+
+    fireEvent.change(screen.getByLabelText('Set'), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-set1.csv', expect.any(String), 'text/csv;charset=utf-8');
   });
 
   it('falls back to the event log for a finished match without a stored report', async () => {

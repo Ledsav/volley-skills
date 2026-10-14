@@ -59,4 +59,6 @@
 @media print {
   header, nav, footer { display: none !important; }
   body { background: #fff; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tr, section { break-inside: avoid; }
 }

@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { AuthShell } from './AuthShell';
+import { rememberReturnTo } from './returnTo';
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { firebaseUser, loading, authError } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -28,6 +30,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!firebaseUser) return <Navigate to="/login" replace />;
+  if (!firebaseUser) {
+    rememberReturnTo(`${location.pathname}${location.search}`);
+    return <Navigate to="/login" replace />;
+  }
   return <>{children}</>;
 }

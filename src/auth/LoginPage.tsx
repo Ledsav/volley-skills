@@ -7,6 +7,7 @@ import { auth } from '../firebase/config';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { AuthShell } from './AuthShell';
+import { takeReturnTo } from './returnTo';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
 const googleProvider = new GoogleAuthProvider();
@@ -37,7 +38,7 @@ export function LoginPage() {
     setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate('/teams', { replace: true });
+      navigate(takeReturnTo(), { replace: true });
     } catch {
       setError('Could not sign in with Google. Please try again.');
     }

@@ -11,14 +11,14 @@ export function GuidesPage() {
   return (
     <div className="w-full bg-bg p-6 lg:p-8">
       <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">Guides</h1>
-      <nav className="mb-6 flex gap-6 border-b border-border">
+      <div role="tablist" aria-label="Guides" className="mb-6 flex gap-6 border-b border-border">
         <Tab active={tab === 'skills'} onClick={() => setTab('skills')}>
           Skill Guide
         </Tab>
         <Tab active={tab === 'physicalTests'} onClick={() => setTab('physicalTests')}>
           Physical Test Guide
         </Tab>
-      </nav>
+      </div>
       {tab === 'skills' && <SkillGuideEditor />}
       {tab === 'physicalTests' && <PhysicalTestGuideEditor />}
     </div>

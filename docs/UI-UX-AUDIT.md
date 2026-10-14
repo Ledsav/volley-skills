@@ -6,6 +6,28 @@ plus WCAG 2.2 AA and mobile/touch heuristics. Contrast ratios are computed from 
 values in `src/index.css`. Nothing was rendered in a browser — items marked **(check on device)**
 need a quick look on a phone.
 
+## Status — 2026-10-14 (branch `fix/ui-ux-audit`)
+
+All items below are fixed except where noted:
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Light-mode contrast | Fixed — `orange-strong` → `#C2410C`; pills, chips, warnings, badges use `-strong`; guarded by `src/theme/contrast.test.ts` |
+| 2 | Double submit + offline hang | Fixed — `useSave` in all six create dialogs; offline plain writes queue and close, new trainings and create-and-draw explain they need a connection |
+| 3 | Dialog focus / unsaved forms | Fixed — focus trap + return in `useModalLayer`; `Dialog guardUnsaved` asks "Discard changes?"; the four hand-built create forms moved onto `Dialog` (they had no `role="dialog"`, Escape or scroll lock) |
+| 4 | iOS focus zoom | Fixed — `text-base sm:text-sm`; guarded by `src/theme/formFieldSize.test.ts` |
+| 5 | Hand-rolled fields | Fixed — on `FIELD_CLASS` (blue focus ring) |
+| 6 | Icon-only bottom nav | Fixed — 11px labels at every width |
+| 7 | Roster table on phones | **No change needed — audit was wrong.** The roster already renders a card per player below 1280px; the code grep only saw the desktop table. |
+| 8 | Loading layout jump | Fixed — `PageSkeleton` on player, team and match pages (`motion-safe` pulse) |
+| 9 | Destructive row action | No change needed — Remove sits in the card footer behind a confirm (see 7) |
+| 10 | Glyph icons | Fixed — Lucide `TriangleAlert` / `PenLine` |
+| 11 | `window.confirm` | Fixed — `ConfirmDialog` ("Leave without saving?") |
+| 12 | Table semantics | Fixed — `scope="col"`, no row `aria-label`; guarded by `src/theme/tableSemantics.test.ts` |
+| 13 | Tab semantics | Fixed — `role="tablist"` / `role="tab"` + `aria-selected` |
+| 14 | Tiny nav badge | Fixed — 11px on `orange-strong` |
+| 15 | Reduced motion | Fixed for the one new animation (skeleton pulse is `motion-safe:`) |
+
 ## Summary
 
 The foundations are strong: tokenized colors with a working dark theme, `Button`/`Input`/`Dialog`

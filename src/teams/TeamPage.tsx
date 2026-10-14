@@ -96,13 +96,13 @@ export function TeamPage() {
           />
         </div>
 
-        <nav className="mt-4 hidden flex-wrap gap-x-4 border-b border-border sm:flex md:gap-x-6">
+        <div role="tablist" aria-label="Team sections" className="mt-4 hidden flex-wrap gap-x-4 border-b border-border sm:flex md:gap-x-6">
           {tabs.map(({ id, label }) => (
             <Tab key={id} active={activeTab === id} onClick={() => setTab(id)}>
               {label}
             </Tab>
           ))}
-        </nav>
+        </div>
 
         <div className="mt-6">
           {activeTab === 'overview' && (

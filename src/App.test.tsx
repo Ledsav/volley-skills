@@ -2,14 +2,22 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
+const signedIn = vi.hoisted(() => ({ value: false }));
+
 vi.mock('firebase/auth', () => ({
-  onAuthStateChanged: (_auth: unknown, callback: (user: null) => void) => {
-    callback(null);
+  onAuthStateChanged: (_auth: unknown, callback: (user: unknown) => void) => {
+    callback(signedIn.value ? { uid: 'u-1', email: 'user@example.com' } : null);
     return () => {};
   },
   GoogleAuthProvider: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock('./firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('./auth/usersApi', () => ({
+  ensureUserDoc: async () => ({ uid: 'u-1', email: 'user@example.com', role: 'member' }),
+}));
+vi.mock('./auth/access', () => ({
+  resolveAccess: async () => ({ isSuperAdmin: false, sections: { exercises: false, trainings: false, guides: false } }),
+}));
 
 describe('App', () => {
   it('redirects an unauthenticated visitor at "/" to the login page', async () => {
@@ -22,5 +30,13 @@ describe('App', () => {
     window.history.pushState({}, '', '/privacy');
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Privacy Policy' })).toBeInTheDocument();
+  });
+
+  it('renders the 404 page for an unknown URL', async () => {
+    signedIn.value = true;
+    window.history.pushState({}, '', '/does-not-exist');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'This page is out of bounds' })).toBeInTheDocument();
+    signedIn.value = false;
   });
 });

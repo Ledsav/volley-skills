@@ -260,7 +260,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                   type="button"
                   onClick={() => onAdd(cell.date)}
                   aria-label={`Add training on ${cell.date}`}
-                  className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate/50 transition-colors hover:bg-blue/10 hover:text-blue focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue group-hover:text-blue"
+                  className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate transition-colors hover:bg-blue/10 hover:text-blue focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue group-hover:text-blue"
                 >
                   <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
                   <span>Add</span>
@@ -270,7 +270,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                     type="button"
                     onClick={() => onNewMatch(cell.date)}
                     aria-label={`Add match on ${cell.date}`}
-                    className="flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate/50 hover:bg-orange/10 hover:text-orange-strong group-hover:text-orange-strong"
+                    className="flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate hover:bg-orange/10 hover:text-orange-strong group-hover:text-orange-strong"
                   >
                     <Trophy size={12} aria-hidden="true" /> Match
                   </button>

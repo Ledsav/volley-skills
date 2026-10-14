@@ -1,10 +1,10 @@
 import type { Level } from '../types/player';
 
 const LEVEL_PILL_CLASS: Record<Level, string> = {
-  Beginner: 'bg-red/10 text-red',
-  Developing: 'bg-orange/10 text-orange',
-  Advanced: 'bg-blue/10 text-blue',
-  Elite: 'bg-green/10 text-green',
+  Beginner: 'bg-red/10 text-red-strong',
+  Developing: 'bg-orange/10 text-orange-strong',
+  Advanced: 'bg-blue/10 text-blue-strong',
+  Elite: 'bg-green/10 text-green-strong',
 };
 
 export function levelPillClass(level: Level | null): string {

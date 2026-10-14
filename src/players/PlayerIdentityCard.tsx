@@ -18,7 +18,7 @@ export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
         </div>
         <div className="min-w-0">
           <h1 className="break-words text-2xl font-semibold leading-tight tracking-[-0.01em]">{player.fullName}</h1>
-          <p className="mt-0.5 text-sm text-white/70">
+          <p className="mt-0.5 text-sm text-white/80">
             {player.number ? `#${player.number} · ` : ''}
             {POSITION_LABELS[player.positionCategory]}
             {player.starting && ' · Starting'}
@@ -44,27 +44,27 @@ export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
 
       <dl className="mt-auto grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-white/50">Team</dt>
+          <dt className="text-xs uppercase tracking-wide text-white/80">Team</dt>
           <dd className="mt-0.5 font-medium">{player.teamName}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-white/50">Age group</dt>
+          <dt className="text-xs uppercase tracking-wide text-white/80">Age group</dt>
           <dd className="mt-0.5 font-medium">{player.ageGroup}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-white/50">Season</dt>
+          <dt className="text-xs uppercase tracking-wide text-white/80">Season</dt>
           <dd className="mt-0.5 font-medium tabular-nums">{player.season}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-white/50">Date of birth</dt>
+          <dt className="text-xs uppercase tracking-wide text-white/80">Date of birth</dt>
           <dd className="mt-0.5 font-medium tabular-nums">{player.dob || '—'}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-white/50">Nationality</dt>
+          <dt className="text-xs uppercase tracking-wide text-white/80">Nationality</dt>
           <dd className="mt-0.5 font-medium">{player.nationality || '—'}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-white/50">License</dt>
+          <dt className="text-xs uppercase tracking-wide text-white/80">License</dt>
           <dd className="mt-0.5 font-medium tabular-nums">{player.licenseNumber || '—'}</dd>
         </div>
       </dl>

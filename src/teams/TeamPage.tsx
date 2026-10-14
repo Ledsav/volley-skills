@@ -126,7 +126,7 @@ export function TeamPage() {
                   + Add player
                 </Button>
               </div>
-              {importNotice && <p className="mb-4 text-sm text-green">{importNotice}</p>}
+              {importNotice && <p className="mb-4 text-sm text-green-strong">{importNotice}</p>}
               <TeamRosterTable
                 key={rosterRefreshKey}
                 teamId={teamId}

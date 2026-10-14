@@ -19,6 +19,8 @@ A live, browsable version of this system (all tokens and components rendered, li
 | `navy` | `#2356A8` | Primary buttons, sidebar, logo mark, auth court background — highest-emphasis surfaces. Brightened from `#0F2D5B` on 2026-09-17 to match the auth page. Dark theme uses `#1C4586`. |
 | `blue` | `#2865F6` | Links, active tab/nav indicator, secondary buttons — the interactive accent |
 | `orange` | `#F97316` | Priority flags, "Attention" status — signal, never decoration |
+
+**Text in a brand hue (2026-10-14).** `orange` (2.8:1) and `green` (3.7:1) are too light for text on white, and the plain hues on their own `/10` tints also miss WCAG AA. They are fills, dots and meter segments only. Any text or small icon in those hues — level pills, status chips, warnings, badges — uses the `-strong` token: `red-strong` `#B91C1C`, `orange-strong` `#C2410C` (darkened from `#DC5F0A`), `blue-strong` `#1E4FDC`, `green-strong` `#0C7C4F`; all are ≥ 4.5:1 on white and on their `/10` tint. White text sits on `orange-strong`, never on `orange`. Guarded by `src/theme/contrast.test.ts`.
 | `green` | `#109861` | Success, on-track, elite skill band |
 | `red` | `#DC2626` | Destructive actions (delete player), Beginner skill band. Not in the source image — added to cover the app's real destructive-action and validation-error needs. |
 

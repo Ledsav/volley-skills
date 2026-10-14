@@ -87,7 +87,7 @@ export function PlayerContactSection({
         <dd className="font-medium text-ink">
           {POSITION_LABELS[player.positionCategory]}
           {player.starting && (
-            <span className="ml-2 inline-flex items-center rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green">
+            <span className="ml-2 inline-flex items-center rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
               Starting
             </span>
           )}

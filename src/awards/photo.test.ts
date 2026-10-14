@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { cropRect, loadImageFile } from './photo';
+import { cropRect, fitSize, loadImageFile } from './photo';
 
 describe('photo', () => {
+  it('fitSize keeps the aspect ratio and caps the long side', () => {
+    expect(fitSize(4000, 2000, 1920)).toEqual({ w: 1920, h: 960 });
+    expect(fitSize(1000, 3000, 1920)).toEqual({ w: 640, h: 1920 });
+    expect(fitSize(800, 600, 1920)).toEqual({ w: 800, h: 600 });
+  });
+
   it('centre crop of a landscape image at zoom 1 is the full height square', () => {
     expect(cropRect(1600, 1000, { cx: 0.5, cy: 0.5, zoom: 1 })).toEqual({ sx: 300, sy: 0, size: 1000 });
   });

@@ -36,7 +36,8 @@ function download(file: File) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Revoke later: some browsers start the download asynchronously.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function shareOrDownload(files: File[], title: string): Promise<'shared' | 'downloaded' | 'cancelled'> {

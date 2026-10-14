@@ -16,7 +16,7 @@ function setup(over: Partial<AwardsPrepareProps> = {}) {
   const props: AwardsPrepareProps = {
     heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
     nameStyle: 'firstInitial', onNameStyle: vi.fn(), themePrefs: { presetId: 'navy', custom: null }, onThemePrefs: vi.fn(),
-    hasBackground: false, onBackground: vi.fn(), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
+    hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
     onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
   };
   render(<AwardsPrepare {...props} />);
@@ -68,6 +68,18 @@ describe('AwardsPrepare', () => {
     const customs = Array.from({ length: 5 }, (_, i) => award({ key: `c${i}`, kind: 'custom', title: `C${i}` }));
     setup({ awards: customs });
     expect(screen.getByRole('button', { name: '+ Custom award' })).toBeDisabled();
+  });
+
+  it('disables present and export with a hint when no winners', () => {
+    setup({ awards: [award({ winner: null, suggested: null, runnersUp: [] })] });
+    expect(screen.getByRole('button', { name: /Present/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Export cards/ })).toBeDisabled();
+    expect(screen.getByText(/Pick at least one winner/)).toBeInTheDocument();
+  });
+
+  it('shows a surfaced error as an alert', () => {
+    setup({ notice: 'Could not export the cards. Please try again.' });
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not export');
   });
 
   it('save indicator and present', () => {

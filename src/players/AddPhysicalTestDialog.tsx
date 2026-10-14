@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { useSave } from '../components/useSave';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { AttemptsInput } from '../components/AttemptsInput';
@@ -99,13 +100,8 @@ export function AddPhysicalTestDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label={`Add ${PHYSICAL_TEST_LABELS[testType]} entry`}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Add {PHYSICAL_TEST_LABELS[testType]}</h2>
+    <Dialog title={`Add ${PHYSICAL_TEST_LABELS[testType]}`} onClose={onClose} guardUnsaved mobileSheet>
+      <form onSubmit={handleSubmit} aria-label={`Add ${PHYSICAL_TEST_LABELS[testType]} entry`}>
 
         <div className="mb-4">
           <label htmlFor="physical-test-date" className="mb-1 block text-sm font-medium text-ink">
@@ -342,6 +338,6 @@ export function AddPhysicalTestDialog({
           </p>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }

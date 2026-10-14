@@ -103,7 +103,7 @@ export function PlayerContactSection({
       </dl>
 
       {editing && isAdmin && (
-        <Dialog title="Edit contact & registration" onClose={() => onEditingChange(false)}>
+        <Dialog title="Edit contact & registration" onClose={() => onEditingChange(false)} guardUnsaved>
           <form onSubmit={handleSave} aria-label="Edit contact information">
             <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
               Name

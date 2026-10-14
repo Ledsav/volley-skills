@@ -178,7 +178,7 @@ export function PlayerSkillsSection({
       </div>
 
       {editing && isAdmin && (
-        <Dialog title="Edit skills" onClose={() => onEditingChange(false)}>
+        <Dialog title="Edit skills" onClose={() => onEditingChange(false)} guardUnsaved>
           <div aria-label="Edit skills">
             <p className="mb-4 text-sm text-slate">
               Average: <span className="font-semibold tabular-nums text-ink">{previewAvg?.toFixed(1) ?? '—'}</span>{' '}

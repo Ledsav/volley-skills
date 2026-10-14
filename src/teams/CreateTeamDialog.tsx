@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
 import { useSave } from '../components/useSave';
 import { createTeam } from './teamsApi';
@@ -41,13 +42,8 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label="Create team"
-        className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-pop"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Create team</h2>
+    <Dialog title="Create team" onClose={onClose} guardUnsaved>
+      <form onSubmit={handleSubmit} aria-label="Create team">
 
         <div className={fieldClass}>
           <label htmlFor="team-name" className={labelClass}>
@@ -103,6 +99,6 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           </p>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }

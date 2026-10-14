@@ -82,6 +82,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
 
   return (
     <Dialog
+      guardUnsaved
       title={exercise ? 'Edit exercise' : 'New exercise'}
       onClose={onClose}
       mobileSheet

@@ -164,4 +164,22 @@ describe('AddPlayerDialog', () => {
     expect(createPlayerSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
   });
+
+  it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    const onClose = vi.fn();
+    const { unmount } = render(<AddPlayerDialog teamId="team-1" team={team} onClose={onClose} onCreated={vi.fn()} />);
+    expect(await screen.findByRole('dialog', { name: 'Add player' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(<AddPlayerDialog teamId="team-1" team={team} onClose={onClose} onCreated={vi.fn()} />);
+    await screen.findByRole('dialog', { name: 'Add player' });
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Ana' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

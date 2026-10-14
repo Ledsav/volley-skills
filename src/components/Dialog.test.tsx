@@ -158,4 +158,27 @@ describe('Dialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('with guardUnsaved, closes freely until something is edited, then asks', () => {
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <Dialog title="Edit skills" onClose={onClose} guardUnsaved>
+        <input aria-label="Serve" />
+      </Dialog>
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(
+      <Dialog title="Edit skills" onClose={onClose} guardUnsaved>
+        <input aria-label="Serve" />
+      </Dialog>
+    );
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '7' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

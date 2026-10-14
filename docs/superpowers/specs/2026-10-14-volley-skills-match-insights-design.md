@@ -32,7 +32,7 @@ parent helper can keep the score with two big buttons.
 | D3 | Match → skill score | Suggest only; coach applies in the edit dialog and saves as today. Saved scores stay coach-authored |
 | D4 | Rating formula | Grade-weighted quality → 1–10, min 15 attempts, constants in one file |
 | D5 | PDF | `window.print()` + print stylesheet; no PDF library |
-| D6 | CSV | Pure generator, RFC 4180 quoting, UTF-8 BOM, formula-injection guard |
+| D6 | CSV | Pure generator, RFC 4180 quoting, UTF-8 BOM, formula-injection guard; coach picks the format per device — `eu` (`;` + decimal comma, default, Belgian Excel) or `en` (`,` + decimal point) |
 | D7 | Quick score | Per-device toggle (localStorage), switchable mid-match; no data-model change |
 | D8 | Voice | OS keyboard dictation only — a UI hint, no speech API, no audio leaves via the app |
 

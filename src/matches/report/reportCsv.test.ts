@@ -96,3 +96,16 @@ describe('reportCsvFileName', () => {
     expect(reportCsvFileName(match, 2)).toBe('2026-10-18-Rivals-B-set2.csv');
   });
 });
+
+describe('EU (semicolon) format', () => {
+  it('uses ; between cells and a decimal comma', () => {
+    expect(csvCell(-0.25, 'eu')).toBe('-0,25');
+    expect(csvCell(7, 'eu')).toBe('7');
+    expect(csvCell('Doe; Jo', 'eu')).toBe('"Doe; Jo"');
+    const lines = reportCsv(match, stats, 'eu').slice(1).split('\r\n');
+    expect(lines[0].startsWith('Number;Name;Serve att;')).toBe(true);
+    const bea = lines[1].split(';');
+    expect(bea).toHaveLength(59);
+    expect(bea[51]).toBe('0,25');
+  });
+});

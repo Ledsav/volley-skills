@@ -121,7 +121,12 @@ describe('MatchPage', () => {
     expect(print).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number;Name'), 'text/csv;charset=utf-8');
+
+    fireEvent.change(screen.getByLabelText('CSV format'), { target: { value: 'en' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number,Name'), 'text/csv;charset=utf-8');
+    expect(window.localStorage.getItem('vcb.report.csvFormat')).toBe('en');
 
     fireEvent.change(screen.getByLabelText('Set'), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));

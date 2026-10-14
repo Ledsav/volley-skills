@@ -109,7 +109,7 @@ describe('TrainingBuilderDialog', () => {
     );
 
     expect(await screen.findByText('Pepper')).toBeInTheDocument();
-    expect(screen.getByText('⚠ Deleted exercise')).toBeInTheDocument();
+    expect(screen.getByText('Deleted exercise')).toBeInTheDocument();
   });
 
   it('paginates the exercise picker with Load more', async () => {
@@ -253,5 +253,25 @@ describe('TrainingBuilderDialog', () => {
 
     expect(screen.getByRole('button', { name: 'Add Serve targets' })).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Training exercises' })).getByText('Pepper')).toBeInTheDocument();
+  });
+
+  it('creates the training once even when Save is clicked twice', () => {
+    const createSpy = vi.mocked(trainingsApi.createTraining).mockReturnValue(new Promise(() => undefined));
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Passing circuit' } });
+    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Saving…' }));
+    expect(createSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('offline, a new training explains it needs a connection instead of hanging', async () => {
+    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    const createSpy = vi.mocked(trainingsApi.createTraining);
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Passing circuit' } });
+    fireEvent.click(screen.getByText('Save'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/offline/i);
+    expect(createSpy).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 });

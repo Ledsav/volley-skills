@@ -67,4 +67,12 @@ describe('AppShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out anyway' }));
     await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true, beforeSignOut: expect.any(Function) }));
   });
+
+  it('shows text labels in the phone bottom bar, not icons alone', () => {
+    const { container } = renderShell();
+    const bottomBar = container.querySelector('nav.fixed') as HTMLElement;
+    for (const label of ['Teams', 'Exercises', 'Trainings', 'Guides', 'Access', 'Settings']) {
+      expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
+    }
+  });
 });

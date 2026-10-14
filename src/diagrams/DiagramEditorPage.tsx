@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useMediaQuery } from '../components/useMediaQuery';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItemType } from '../types/diagram';
 import { CanvasContextMenu, type MenuAction } from './CanvasContextMenu';
@@ -177,9 +178,11 @@ export function DiagramEditorPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 
+  const [confirmLeave, setConfirmLeave] = useState(false);
+
   function leaveEditor() {
-    if (dirty && !window.confirm('You have unsaved diagram changes. Leave anyway?')) return;
-    navigate('/exercises');
+    if (dirty) setConfirmLeave(true);
+    else navigate('/exercises');
   }
 
   const addFromPalette = useCallback(
@@ -721,6 +724,15 @@ export function DiagramEditorPage() {
           <p>No diagrams yet.</p>
           <Button variant="primary" size="sm" onClick={() => dispatch({ type: 'addDiagram' })}>Add the first diagram</Button>
         </div>
+      )}
+      {confirmLeave && (
+        <ConfirmDialog
+          title="Leave without saving?"
+          message="You have unsaved diagram changes."
+          confirmLabel="Leave"
+          onCancel={() => setConfirmLeave(false)}
+          onConfirm={() => navigate('/exercises')}
+        />
       )}
     </div>
   );

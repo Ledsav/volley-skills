@@ -230,4 +230,36 @@ describe('AddPhysicalTestDialog', () => {
       )
     );
   });
+
+  it('saves the entry once even when Save is clicked twice', () => {
+    const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockReturnValue(new Promise(() => undefined));
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="growth" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Height (cm)'), { target: { value: '160' } });
+    fireEvent.change(screen.getByLabelText('Body mass (kg)'), { target: { value: '50' } });
+    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Saving…' }));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+  });
+
+  it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
+    
+    const onClose = vi.fn();
+    const { unmount } = render(<AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="growth" recordedByUid="coach-uid" onClose={onClose} onSaved={vi.fn()} />);
+    expect(await screen.findByRole('dialog', { name: /^Add / })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(<AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="growth" recordedByUid="coach-uid" onClose={onClose} onSaved={vi.fn()} />);
+    await screen.findByRole('dialog', { name: /^Add / });
+    fireEvent.change(screen.getByLabelText('Height (cm)'), { target: { value: '160' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

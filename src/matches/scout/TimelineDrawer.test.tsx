@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type MatchEvent } from '../../types/match';
 import { rosterMap } from '../format';
@@ -26,7 +26,8 @@ describe('TimelineDrawer', () => {
     render(<TimelineDrawer events={events} state={state} roster={rosterMap(roster)} onDelete={vi.fn()} onEdit={vi.fn()} onInsertAfter={vi.fn()} />);
     const rows = screen.getAllByRole('listitem');
     expect(rows[0]).toHaveTextContent('#7 Dig + Good');
-    expect(rows[0]).toHaveTextContent('✎');
+    expect(within(rows[0]).getByRole('img', { name: 'From text' })).toBeInTheDocument();
+    expect(rows[0]).not.toHaveTextContent('✎');
     expect(screen.getByText('1–0')).toBeInTheDocument();
   });
 

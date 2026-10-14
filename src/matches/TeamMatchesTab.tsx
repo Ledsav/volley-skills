@@ -93,7 +93,7 @@ export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled 
         </div>
       )}
       {creatingDate && firebaseUser && (
-        <Dialog title="New match" onClose={closeCreate} size="lg" mobileSheet>
+        <Dialog title="New match" onClose={closeCreate} size="lg" mobileSheet guardUnsaved>
           <MatchSetupForm
             teamId={teamId}
             defaultDate={creatingDate}

@@ -90,7 +90,7 @@ export function GuardiansSection({
       )}
 
       {editing && isAdmin && (
-        <Dialog title="Edit guardians" onClose={handleCancel}>
+        <Dialog title="Edit guardians" onClose={handleCancel} guardUnsaved>
           <form onSubmit={handleSave} aria-label="Edit guardians">
             {guardians.map((guardian, index) => (
               <div key={index} className="mb-4 rounded-md border border-border p-3">

@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input, FIELD_CLASS } from '../components/Input';
+import { useSave } from '../components/useSave';
 import { createPlayer } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory, type ShirtSize } from '../types/player';
 import type { Team } from '../types/team';
@@ -46,12 +48,16 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
     setGuardians((current) => current.filter((_, i) => i !== index));
   }
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     if (!firebaseUser?.email || !consentGiven) return;
+    const { uid } = firebaseUser;
+    const email = firebaseUser.email;
     try {
-      await createPlayer(
+      const done = await save(() => createPlayer(
         teamId,
         team,
         {
@@ -65,9 +71,10 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           playerPhone,
           guardians,
         },
-        firebaseUser.uid,
-        firebaseUser.email
-      );
+        uid,
+        email
+      ));
+      if (!done) return;
     } catch {
       setError('Could not create the player. Please try again.');
       return;
@@ -76,13 +83,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label="Add player"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Add player</h2>
+    <Dialog title="Add player" onClose={onClose} guardUnsaved size="lg" mobileSheet>
+      <form onSubmit={handleSubmit} aria-label="Add player">
 
         <div className={fieldClass}>
           <label htmlFor="player-number" className={labelClass}>
@@ -239,8 +241,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Create
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Create'}
           </Button>
         </div>
         {error && (
@@ -249,6 +251,6 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           </p>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }

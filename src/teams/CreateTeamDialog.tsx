@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
+import { useSave } from '../components/useSave';
 import { createTeam } from './teamsApi';
 
 interface CreateTeamDialogProps {
@@ -21,12 +23,17 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     if (!firebaseUser?.email) return;
+    const { uid } = firebaseUser;
+    const email = firebaseUser.email;
     try {
-      await createTeam({ name, club, ageGroup, season, description }, firebaseUser.uid, firebaseUser.email);
+      const done = await save(() => createTeam({ name, club, ageGroup, season, description }, uid, email));
+      if (!done) return;
     } catch {
       setError('Could not create the team. Please try again.');
       return;
@@ -35,13 +42,8 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label="Create team"
-        className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-pop"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Create team</h2>
+    <Dialog title="Create team" onClose={onClose} guardUnsaved>
+      <form onSubmit={handleSubmit} aria-label="Create team">
 
         <div className={fieldClass}>
           <label htmlFor="team-name" className={labelClass}>
@@ -87,8 +89,8 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Create
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Create'}
           </Button>
         </div>
         {error && (
@@ -97,6 +99,6 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           </p>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }

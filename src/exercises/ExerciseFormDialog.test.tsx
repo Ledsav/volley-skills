@@ -151,4 +151,35 @@ describe('ExerciseFormDialog', () => {
     await screen.findByRole('button', { name: /edit diagrams/i });
     expect(screen.queryByText('Create & add diagrams')).not.toBeInTheDocument();
   });
+
+  it('creates the exercise once even when Save is clicked twice', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockReturnValue(new Promise(() => undefined));
+    render(
+      <MemoryRouter>
+        <ExerciseFormDialog onClose={vi.fn()} onSaved={vi.fn()} />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pepper' } });
+    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('button', { name: 'Saving…' }));
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /Create & add diagrams/ })).toBeDisabled();
+  });
+
+  it('offline, "Create & add diagrams" explains it needs a connection instead of hanging', async () => {
+    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockClear();
+    render(
+      <MemoryRouter>
+        <ExerciseFormDialog onClose={vi.fn()} onSaved={vi.fn()} />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pepper' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create & add diagrams/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/offline/i);
+    expect(createSpy).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
 });

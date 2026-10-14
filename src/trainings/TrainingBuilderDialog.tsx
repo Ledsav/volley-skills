@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2, TriangleAlert } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { OfflineError, useSave } from '../components/useSave';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
@@ -138,6 +139,8 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
 
   const totalMinutes = useMemo(() => rows.reduce((sum, r) => sum + (r.durationMinutes || 0), 0), [rows]);
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) {
@@ -150,21 +153,23 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
       order: i + 1,
       durationMinutes: row.durationMinutes,
     }));
+    const uid = firebaseUser?.uid;
+    if (!training && !uid) return;
+    const fields = { name: name.trim(), description, ageGroupTarget, exercises };
     try {
-      if (training) {
-        await updateTraining(training.id, { name: name.trim(), description, ageGroupTarget, exercises });
-      } else {
-        if (!firebaseUser) return;
-        await createTraining({ name: name.trim(), description, ageGroupTarget, exercises }, firebaseUser.uid);
-      }
+      const done = training
+        ? await save(() => updateTraining(training.id, fields))
+        : await save(() => createTraining(fields, uid ?? ''), { offline: 'block' });
+      if (!done) return;
       onSaved();
-    } catch {
-      setError('Could not save the training. Please try again.');
+    } catch (e) {
+      setError(e instanceof OfflineError ? "You're offline. A new training gets its number from the server, so creating one needs a connection." : 'Could not save the training. Please try again.');
     }
   }
 
   return (
     <Dialog
+      guardUnsaved
       title={training ? `${training.businessId} · ${training.name}` : 'New training'}
       size="lg"
       mobileSheet
@@ -177,8 +182,8 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
           <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={FORM_ID}>
-            Save
+          <Button variant="primary" type="submit" form={FORM_ID} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </Button>
         </>
       }
@@ -233,7 +238,12 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                     />
                     <span className="min-w-0 flex-1">
                       <span className={`block truncate text-sm font-medium ${row.name ? 'text-ink' : 'text-red'}`}>
-                        {row.name ?? '⚠ Deleted exercise'}
+                        {row.name ?? (
+                          <span className="inline-flex items-center gap-1">
+                            <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                            Deleted exercise
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
                         {row.category ? `${CATEGORY_LABEL[row.category]} · ` : ''}min {startMinute}–

@@ -108,7 +108,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
       <div className="mb-3 flex items-center gap-2">
         <h2 id="access-requests-heading" className="text-lg font-semibold text-ink">Access requests</h2>
         {pending > 0 && (
-          <span className="rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange">
+          <span className="rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange-strong">
             {pending} new
           </span>
         )}
@@ -132,7 +132,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
                       {ROLE_LABEL[s.role]}
                     </span>
                     {!s.reviewed && (
-                      <span className="shrink-0 rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange">
+                      <span className="shrink-0 rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange-strong">
                         New
                       </span>
                     )}

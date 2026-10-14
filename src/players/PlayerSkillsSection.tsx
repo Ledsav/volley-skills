@@ -147,7 +147,7 @@ export function PlayerSkillsSection({
             const diff = rating?.rating != null && score !== null ? rating.rating - score : 0;
             return (
               <li key={key} className="grid grid-cols-[6.5rem_2rem_1fr] items-center gap-x-2">
-                <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange' : 'text-ink'}`}>
+                <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange-strong' : 'text-ink'}`}>
                   {SKILL_LABELS[key]}
                   {guide[key] && (
                     <InfoTooltip label={`${SKILL_LABELS[key]} scoring guide`}>
@@ -158,7 +158,7 @@ export function PlayerSkillsSection({
                     <Target
                       role="img"
                       aria-label="Focus area"
-                      className="h-3.5 w-3.5 shrink-0 text-orange"
+                      className="h-3.5 w-3.5 shrink-0 text-orange-strong"
                     />
                   )}
                 </span>
@@ -167,8 +167,8 @@ export function PlayerSkillsSection({
                 {rating && (
                   <p className="col-span-2 col-start-2 flex items-center gap-1 text-xs tabular-nums text-slate">
                     {matchLine(rating)}
-                    {diff >= 1 && <ArrowUp role="img" aria-label="Match data suggests higher" className="h-3 w-3 text-green" />}
-                    {diff <= -1 && <ArrowDown role="img" aria-label="Match data suggests lower" className="h-3 w-3 text-orange" />}
+                    {diff >= 1 && <ArrowUp role="img" aria-label="Match data suggests higher" className="h-3 w-3 text-green-strong" />}
+                    {diff <= -1 && <ArrowDown role="img" aria-label="Match data suggests lower" className="h-3 w-3 text-orange-strong" />}
                   </p>
                 )}
               </li>
@@ -178,7 +178,7 @@ export function PlayerSkillsSection({
       </div>
 
       {editing && isAdmin && (
-        <Dialog title="Edit skills" onClose={() => onEditingChange(false)}>
+        <Dialog title="Edit skills" onClose={() => onEditingChange(false)} guardUnsaved>
           <div aria-label="Edit skills">
             <p className="mb-4 text-sm text-slate">
               Average: <span className="font-semibold tabular-nums text-ink">{previewAvg?.toFixed(1) ?? '—'}</span>{' '}

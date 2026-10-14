@@ -79,7 +79,7 @@ export function TeamsListPage() {
         </div>
       </div>
 
-      {notice && <p className="mb-4 text-sm text-green">{notice}</p>}
+      {notice && <p className="mb-4 text-sm text-green-strong">{notice}</p>}
 
       {teams.length === 0 ? (
         <div className="rounded-lg border border-border bg-surface p-6 text-center text-sm text-slate shadow-card">

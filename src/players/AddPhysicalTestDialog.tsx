@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
+import { useSave } from '../components/useSave';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { AttemptsInput } from '../components/AttemptsInput';
 import { computeBodyMassRatio } from './physicalTestMath';
@@ -56,6 +58,8 @@ export function AddPhysicalTestDialog({
     });
   }, [teamId, playerId, testType]);
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -86,7 +90,8 @@ export function AddPhysicalTestDialog({
     const input = buildPhysicalTestInput(testType, fields, date, notes, latestBodyMassKg);
 
     try {
-      await createPhysicalTest(teamId, playerId, input, recordedByUid);
+      const done = await save(() => createPhysicalTest(teamId, playerId, input, recordedByUid));
+      if (!done) return;
     } catch {
       setError('Could not save the test entry. Please try again.');
       return;
@@ -95,13 +100,8 @@ export function AddPhysicalTestDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        aria-label={`Add ${PHYSICAL_TEST_LABELS[testType]} entry`}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]"
-      >
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">Add {PHYSICAL_TEST_LABELS[testType]}</h2>
+    <Dialog title={`Add ${PHYSICAL_TEST_LABELS[testType]}`} onClose={onClose} guardUnsaved mobileSheet>
+      <form onSubmit={handleSubmit} aria-label={`Add ${PHYSICAL_TEST_LABELS[testType]} entry`}>
 
         <div className="mb-4">
           <label htmlFor="physical-test-date" className="mb-1 block text-sm font-medium text-ink">
@@ -328,8 +328,8 @@ export function AddPhysicalTestDialog({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Save
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
         {error && (
@@ -338,6 +338,6 @@ export function AddPhysicalTestDialog({
           </p>
         )}
       </form>
-    </div>
+    </Dialog>
   );
 }

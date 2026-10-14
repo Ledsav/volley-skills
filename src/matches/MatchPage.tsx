@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Download, Printer } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Download, FileSpreadsheet, Printer } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageSkeleton } from '../components/Skeleton';
-import { FIELD_CLASS } from '../components/Input';
+import { Menu } from '../components/Menu';
 import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
 import { buildFinishPayload } from './finish';
 import { deleteMatch, finishMatch, getMatch, getUsageProfile, setMatchStatus, updateMatchSetup } from './matchesApi';
 import { MatchSetupForm } from './MatchSetupForm';
 import { MatchReport } from './report/MatchReport';
-import { readCsvFormat, writeCsvFormat } from './report/csvFormat';
 import { reportCsv, reportCsvFileName, type CsvFormat } from './report/reportCsv';
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
@@ -27,7 +26,6 @@ export function MatchPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [reportSet, setReportSet] = useState<number | 'all'>('all');
-  const [csvFormat, setCsvFormat] = useState<CsvFormat>(readCsvFormat);
 
   useEffect(() => {
     getMatch(teamId, matchId)
@@ -85,7 +83,7 @@ export function MatchPage() {
     });
   }
 
-  function exportCsv() {
+  function exportCsv(csvFormat: CsvFormat) {
     if (!match || !report) return;
     const stats = (reportSet === 'all' ? report.all : report.bySet[reportSet]) ?? report.all;
     downloadText(reportCsvFileName(match, reportSet), reportCsv(match, stats, csvFormat), 'text/csv;charset=utf-8');
@@ -145,25 +143,21 @@ export function MatchPage() {
         {match.status === 'finished' && (
           <div className="mb-6 flex flex-col items-end gap-1 print:hidden">
             <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => window.print()}>
-                <Printer size={16} aria-hidden="true" /> Print / PDF
-              </Button>
-              <select
-                aria-label="CSV format"
-                className={`${FIELD_CLASS} w-auto text-base sm:text-sm`}
-                value={csvFormat}
-                onChange={(e) => {
-                  const next: CsvFormat = e.target.value === 'en' ? 'en' : 'eu';
-                  setCsvFormat(next);
-                  writeCsvFormat(next);
-                }}
-              >
-                <option value="eu">Excel (Belgium/EU)</option>
-                <option value="en">Excel (English) / Sheets</option>
-              </select>
-              <Button variant="secondary" size="sm" disabled={!report} onClick={exportCsv}>
-                <Download size={16} aria-hidden="true" /> Export CSV
-              </Button>
+              <Menu
+                label="Export"
+                triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-3 text-sm font-medium text-blue hover:bg-blue/10 disabled:opacity-50"
+                trigger={
+                  <>
+                    <Download size={16} aria-hidden="true" /> Export <ChevronDown size={16} aria-hidden="true" />
+                  </>
+                }
+                items={[
+                  { kind: 'action', label: 'Print / PDF', icon: <Printer size={16} />, onSelect: () => window.print() },
+                  { kind: 'divider' },
+                  { kind: 'action', label: 'CSV · Excel (Belgium/EU)', icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('eu') },
+                  { kind: 'action', label: 'CSV · Excel (English) / Sheets', icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('en') },
+                ]}
+              />
               <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
             </div>
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}

@@ -109,7 +109,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* min-w-0: as a flex item beside the sidebar, wide content (tables)
           would otherwise stretch the whole page past the viewport. */}
-      <div className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</div>
+      <div className="min-w-0 flex-1 pb-16 lg:pb-0">
+        {/* One content width for every page: long lines on a wide monitor are hard to scan. */}
+        <div className="mx-auto w-full max-w-screen-xl">{children}</div>
+      </div>
 
       <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
         {navItems.map(({ to, label, Icon, badge }) => (

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Download, Printer } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PageSkeleton } from '../components/Skeleton';
 import { FIELD_CLASS } from '../components/Input';
 import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
@@ -46,7 +47,7 @@ export function MatchPage() {
   const finishingRef = useRef(false);
 
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
-  if (!match) return <p className="p-6 text-slate">Loading match…</p>;
+  if (!match) return <PageSkeleton layout="match" label="Loading match…" />;
 
   // Setup-phase writes are fire-and-forget like scouting events: offline, a
   // Firestore write only resolves once the server acks, so awaiting would hang.

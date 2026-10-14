@@ -1,12 +1,28 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { robotsTxt, sitemapXml } from './src/seo/seoRoutes';
 
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: './tests/setupTests.ts',
-    exclude: ['**/node_modules/**', '**/dist/**', 'tests/rules/**'],
-  },
+function seoFiles(origin: string): Plugin {
+  return {
+    name: 'vcb-seo-files',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robotsTxt(origin) });
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemapXml(origin) });
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const origin = (env.VITE_SITE_URL || 'https://volley-skills.web.app').replace(/\/$/, '');
+  return {
+    plugins: [react(), seoFiles(origin)],
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: './tests/setupTests.ts',
+      exclude: ['**/node_modules/**', '**/dist/**', 'tests/rules/**'],
+    },
+  };
 });

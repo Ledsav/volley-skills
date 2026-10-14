@@ -160,6 +160,8 @@ export function ScoutPage() {
   }, []);
 
   useEffect(() => {
+    setNotFound(false);
+    setLoadError(null);
     getMatch(teamId, matchId)
       .then((m) => {
         if (!m) {

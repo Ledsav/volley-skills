@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
 const signedIn = vi.hoisted(() => ({ value: false }));
@@ -20,6 +20,10 @@ vi.mock('./auth/access', () => ({
 }));
 
 describe('App', () => {
+  afterEach(() => {
+    signedIn.value = false;
+  });
+
   it('redirects an unauthenticated visitor at "/" to the login page', async () => {
     window.history.pushState({}, '', '/');
     render(<App />);
@@ -37,6 +41,5 @@ describe('App', () => {
     window.history.pushState({}, '', '/does-not-exist');
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'This page is out of bounds' })).toBeInTheDocument();
-    signedIn.value = false;
   });
 });

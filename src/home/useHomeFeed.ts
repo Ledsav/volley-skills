@@ -7,6 +7,7 @@ import { addDays, todayIso, type FeedInput } from './homeFeed';
 
 export interface HomeFeedState {
   loading: boolean;
+  today: string;
   teams: Team[];
   hasMoreTeams: boolean;
   feed: FeedInput[];
@@ -15,11 +16,14 @@ export interface HomeFeedState {
 
 export function useHomeFeed(email: string | null): HomeFeedState {
   const [state, setState] = useState<HomeFeedState>({
-    loading: true, teams: [], hasMoreTeams: false, feed: [], errors: { teams: false, sessions: false, matches: false },
+    loading: true, today: todayIso(), teams: [], hasMoreTeams: false, feed: [], errors: { teams: false, sessions: false, matches: false },
   });
 
   useEffect(() => {
-    if (!email) return;
+    if (!email) {
+      setState((s) => (s.loading ? { ...s, loading: false } : s));
+      return;
+    }
     let cancelled = false;
     const today = todayIso();
     void (async () => {
@@ -51,7 +55,7 @@ export function useHomeFeed(email: string | null): HomeFeedState {
         }),
       );
       if (!cancelled) {
-        setState({ loading: false, teams, hasMoreTeams, feed, errors: { teams: false, sessions: sessionsFailed, matches: matchesFailed } });
+        setState({ loading: false, today, teams, hasMoreTeams, feed, errors: { teams: false, sessions: sessionsFailed, matches: matchesFailed } });
       }
     })();
     return () => {

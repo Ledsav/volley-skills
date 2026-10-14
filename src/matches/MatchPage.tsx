@@ -32,6 +32,8 @@ export function MatchPage() {
   const [reportSet, setReportSet] = useState<number | 'all'>('all');
 
   useEffect(() => {
+    setNotFound(false);
+    setError(null);
     getMatch(teamId, matchId)
       .then((m) => (m ? setMatch(m) : setNotFound(true)))
       .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this match.')));

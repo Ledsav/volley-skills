@@ -67,6 +67,17 @@ describe('TeamPage', () => {
     expect(screen.queryByText('Loading team...')).not.toBeInTheDocument();
   });
 
+  it('shows a retryable error (not not-found) when the team load fails transiently', async () => {
+    const spy = vi.spyOn(teamsApi, 'getTeam').mockRejectedValueOnce({ code: 'unavailable' });
+    spy.mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByText('Could not load this team.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Team not found' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { name: 'U17 Boys' })).toBeInTheDocument();
+  });
+
   it('shows the team calendar when the Calendar tab is selected', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });

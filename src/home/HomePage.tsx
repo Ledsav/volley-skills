@@ -3,7 +3,7 @@ import { ClipboardList, Dumbbell, Users } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { PageSkeleton } from '../components/Skeleton';
 import { usePageMeta } from '../layout/usePageMeta';
-import { liveMatches, nextUp, recentResults, todayIso } from './homeFeed';
+import { liveMatches, nextUp, recentResults } from './homeFeed';
 import { LiveNowBlock } from './LiveNowBlock';
 import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
@@ -20,8 +20,8 @@ export function HomePage() {
   const email = appUser?.email ?? null;
   const name = (email?.split('@')[0] ?? '').split(/[._-]/)[0];
   const state = useHomeFeed(email);
-  const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.isSuperAdmin);
-  const today = todayIso();
+  const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isSuperAdmin);
+  const today = state.today;
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">

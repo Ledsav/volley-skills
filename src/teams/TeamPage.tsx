@@ -14,7 +14,7 @@ import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { SectionTabs } from '../components/SectionTabs';
 import { PageSkeleton } from '../components/Skeleton';
-import { NotFoundState } from '../components/NotFoundState';
+import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
 import { TeamCalendarTab } from '../calendar/TeamCalendarTab';
 import { TeamMatchesTab } from '../matches/TeamMatchesTab';
@@ -32,6 +32,8 @@ export function TeamPage() {
   const [tab, setTab] = useState<TeamTab>('overview');
   const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
@@ -42,13 +44,25 @@ export function TeamPage() {
   useEffect(() => {
     if (!teamId) return;
     setNotFound(false);
+    setLoadError(false);
     void getTeam(teamId)
       .then((t) => (t ? setTeam(t) : setNotFound(true)))
-      .catch(() => setNotFound(true));
-  }, [teamId]);
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setLoadError(true)));
+  }, [teamId, loadAttempt]);
 
   if (notFound) {
     return <NotFoundState title="Team not found" message="It may have been deleted, or you don't have access." backTo="/teams" backLabel="All teams" />;
+  }
+
+  if (loadError && !team) {
+    return (
+      <div role="alert" className="p-6">
+        <p className="text-red">Could not load this team.</p>
+        <Button variant="secondary" size="sm" className="mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;

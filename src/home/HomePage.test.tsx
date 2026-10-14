@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue } from '../test/authValue';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import type { Team } from '../types/team';
@@ -38,6 +38,10 @@ describe('HomePage', () => {
     vi.mocked(teamsApi.listMyTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
     vi.mocked(calendarApi.listCalendarSessions).mockResolvedValue([]);
     vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([live]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('greets and shows a live match to resume', async () => {

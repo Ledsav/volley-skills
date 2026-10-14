@@ -233,17 +233,17 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-border">
-              <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Start</th>
-              <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Name</th>
-              <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
+              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Start</th>
+              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Name</th>
+              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
                 Position
               </th>
-              <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
+              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
                 Born
               </th>
-              <th className={`${NUMERIC_HEADER_CLASS} whitespace-nowrap`}>Skill avg</th>
-              <th className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Level</th>
-              <th className="px-3 py-2 text-right">
+              <th scope="col" className={`${NUMERIC_HEADER_CLASS} whitespace-nowrap`}>Skill avg</th>
+              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">Level</th>
+              <th scope="col" className="px-3 py-2 text-right">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>

@@ -33,7 +33,7 @@ describe('PlayerMatchStatsSection', () => {
     expect(screen.getByText('55%')).toBeInTheDocument();
     expect(screen.getByText('14 / 6')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Rivals' })).toHaveAttribute('href', '/teams/t1/matches/m2');
-    expect(screen.getByRole('row', { name: '2026-10-01 vs Neighbours' })).toHaveTextContent('8 / 4');
+    expect(screen.getByRole('row', { name: /2026-10-01 Neighbours/ })).toHaveTextContent('8 / 4');
   });
 
   it('shows loading, error and empty states', () => {

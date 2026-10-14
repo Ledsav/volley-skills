@@ -69,6 +69,8 @@ describe('HomePage', () => {
   it('recent results show the MVP', async () => {
     vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([finished('m9', '2026-10-12', [player('a', { A: '###' })])]);
     renderHome();
-    expect(await screen.findByText('MVP: #1 Player a.')).toBeInTheDocument();
+    const mvp = await screen.findByText('MVP: #1 Player a.');
+    expect(mvp.closest('a')).toHaveAttribute('href', expect.stringMatching(/\/teams\/[^/]+\/matches\/m9\/awards$/));
+    expect(mvp.closest('a')!.parentElement!.querySelectorAll('a a')).toHaveLength(0);
   });
 });

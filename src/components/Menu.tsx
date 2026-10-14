@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode 
 import { Check } from 'lucide-react';
 
 export type MenuItem =
-  | { kind: 'action'; label: string; onSelect: () => void; icon?: ReactNode; danger?: boolean }
+  | { kind: 'action'; label: string; onSelect: () => void; icon?: ReactNode; danger?: boolean; hint?: ReactNode }
   | { kind: 'check'; label: string; checked: boolean; onSelect: () => void; hint?: ReactNode }
   | { kind: 'divider' };
 
@@ -122,6 +122,7 @@ export function Menu({ label, trigger, items, triggerClassName = '', align = 'en
               >
                 {item.icon && <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden="true">{item.icon}</span>}
                 <span className="flex-1">{item.label}</span>
+                {item.hint}
               </button>
             );
           })}

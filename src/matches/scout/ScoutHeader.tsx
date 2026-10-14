@@ -14,6 +14,9 @@ interface ScoutHeaderProps {
   /** Auto-select the next probable player after each recorded event. */
   autoSelect: boolean;
   onToggleAutoSelect: () => void;
+  /** Score-only mode: no court, just the rally buttons. */
+  quickScore: boolean;
+  onToggleQuickScore: () => void;
   /** No set in play: the engine ignores corrections, so they are unavailable. */
   disabled?: boolean;
 }
@@ -28,7 +31,7 @@ function Dots({ used, total }: { used: number; total: number }) {
   );
 }
 
-export function ScoutHeader({ state, format, opponent, pending, onEditScore, onRotate, autoSelect, onToggleAutoSelect, disabled = false }: ScoutHeaderProps) {
+export function ScoutHeader({ state, format, opponent, pending, onEditScore, onRotate, autoSelect, onToggleAutoSelect, quickScore, onToggleQuickScore, disabled = false }: ScoutHeaderProps) {
   return (
     <header className="bg-navy px-3 py-2 text-white sm:px-4">
       <div className="flex items-center justify-between gap-2">
@@ -47,16 +50,29 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
           <span className="flex items-center gap-1">
             <button
               type="button"
-              aria-label="Auto-select next player"
-              aria-pressed={autoSelect}
-              onClick={onToggleAutoSelect}
-              className={`mr-1 flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 font-semibold ${
-                autoSelect ? 'bg-white text-navy' : 'bg-white/10 text-white/80'
+              aria-label="Quick score"
+              aria-pressed={quickScore}
+              onClick={onToggleQuickScore}
+              className={`flex min-h-11 items-center justify-center rounded-md px-2 font-semibold ${
+                quickScore ? 'bg-white text-navy' : 'bg-white/10 text-white/80'
               }`}
             >
-              Auto
-              <Kbd>{keyLabel('auto')}</Kbd>
+              Quick
             </button>
+            {!quickScore && (
+              <button
+                type="button"
+                aria-label="Auto-select next player"
+                aria-pressed={autoSelect}
+                onClick={onToggleAutoSelect}
+                className={`mr-1 flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 font-semibold ${
+                  autoSelect ? 'bg-white text-navy' : 'bg-white/10 text-white/80'
+                }`}
+              >
+                Auto
+                <Kbd>{keyLabel('auto')}</Kbd>
+              </button>
+            )}
             <button type="button" aria-label="Previous rotation" onClick={() => onRotate(-1)} disabled={disabled} className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10 disabled:opacity-40">
               <ChevronLeft size={16} aria-hidden="true" />
             </button>

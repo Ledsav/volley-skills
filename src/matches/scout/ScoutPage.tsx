@@ -274,10 +274,10 @@ export function ScoutPage() {
     if (!awaited || !events || !state || !match) return;
     if (!events.some((e) => e.id === awaited)) return;
     autoAfterRef.current = null;
-    if (!autoSelect || !state.inSet || textVisible) return;
+    if (!autoSelect || quickScore || !state.inSet || textVisible) return;
     const id = predictPlayer({ state, skill: expectedSkill(state), roster, liberos: match.liberos, usage });
     if (id) select(id, true);
-  }, [events, state, match, roster, usage, autoSelect, select, textVisible]);
+  }, [events, state, match, roster, usage, autoSelect, quickScore, select, textVisible]);
 
   useEffect(() => {
     if (textVisible) setSelection(null);

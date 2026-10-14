@@ -551,6 +551,17 @@ describe('ScoutPage', () => {
       expect(screen.getByRole('button', { name: 'Serve' })).toHaveAttribute('aria-pressed', 'true');
     });
 
+    it('does not auto-select in quick score, so leaving it opens no sheet', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Quick score' }));
+      fireEvent.click(screen.getByRole('button', { name: /Point us/ }));
+      const point: MatchEvent = { id: 'new', order: 2, source: 'tap', chunkId: null, type: 'point', winner: 'us', reason: null };
+      act(() => pushEvents([setStart, point]));
+      fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+      expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByRole('button', { name: 'Serve' })).not.toBeInTheDocument();
+    });
+
     it('closing the sheet suppresses auto-select until the next recorded event', async () => {
       renderPage([setStart]);
       fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));

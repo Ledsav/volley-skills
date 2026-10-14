@@ -30,4 +30,11 @@ describe('MatchReport', () => {
     fireEvent.change(screen.getByLabelText('Set'), { target: { value: '2' } });
     expect(screen.queryByRole('row', { name: /#1 Ns/ })).toBeNull();
   });
+
+  it('labels a single-set view for print, and not the whole match', () => {
+    render(<MatchReport match={match} report={buildReportData(replay(match, events))} />);
+    expect(screen.queryByText(/Set \d+ only/)).toBeNull();
+    fireEvent.change(screen.getByLabelText('Set'), { target: { value: '2' } });
+    expect(screen.getByText('Set 2 only')).toHaveClass('hidden', 'print:block');
+  });
 });

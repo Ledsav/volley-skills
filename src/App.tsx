@@ -17,6 +17,7 @@ import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { AccessManagerPage } from './access/AccessManagerPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
+import { NotFoundPage } from './layout/NotFoundPage';
 import { MatchPage } from './matches/MatchPage';
 
 const DiagramEditorPage = lazy(() =>
@@ -94,6 +95,7 @@ export function App() {
             />
             {/* Old link target: requests now live on the Access page. */}
             <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route
             path="/teams/:teamId/matches/:matchId/scout"

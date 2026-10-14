@@ -1,0 +1,59 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { Menu } from './Menu';
+
+function renderMenu(onExport = vi.fn(), onToggle = vi.fn()) {
+  render(
+    <>
+      <p>Outside</p>
+      <Menu
+        label="Export"
+        trigger="Export"
+        items={[
+          { kind: 'action', label: 'Print / PDF', onSelect: onExport },
+          { kind: 'check', label: 'Quick score', checked: true, onSelect: onToggle },
+          { kind: 'divider' },
+          { kind: 'action', label: 'Sign out', onSelect: vi.fn(), danger: true },
+        ]}
+      />
+    </>,
+  );
+  return screen.getByRole('button', { name: 'Export' });
+}
+
+describe('Menu', () => {
+  it('opens a labelled menu and runs the chosen item, then closes', () => {
+    const onExport = vi.fn();
+    const trigger = renderMenu(onExport);
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menu', { name: 'Export' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Quick score' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Print / PDF' }));
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('focuses the first item, moves with arrow keys, and Escape returns focus to the trigger', () => {
+    const trigger = renderMenu();
+    fireEvent.click(trigger);
+    const first = screen.getByRole('menuitem', { name: 'Print / PDF' });
+    expect(first).toHaveFocus();
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Quick score' })).toHaveFocus();
+    fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowUp' });
+    expect(first).toHaveFocus();
+    fireEvent.keyDown(first, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('closes on a click outside', () => {
+    const trigger = renderMenu();
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(screen.getByText('Outside'));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+});

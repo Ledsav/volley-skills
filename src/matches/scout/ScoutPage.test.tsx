@@ -77,6 +77,23 @@ function renderPage(events: MatchEvent[]) {
   );
 }
 
+/** App tools (Quick score, Auto-select, Text panel, Exit) live in the header's Match tools menu. */
+async function openTools() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Match tools' }));
+}
+async function chooseTool(name: RegExp) {
+  await openTools();
+  fireEvent.click(screen.queryByRole('menuitemcheckbox', { name }) ?? screen.getByRole('menuitem', { name }));
+}
+/** aria-checked of a toggle in the tools menu (closes the menu again). */
+async function toolState(name: RegExp) {
+  await openTools();
+  const item = screen.getByRole('menuitemcheckbox', { name });
+  const checked = item.getAttribute('aria-checked');
+  fireEvent.keyDown(item, { key: 'Escape' });
+  return checked;
+}
+
 describe('ScoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -90,11 +107,34 @@ describe('ScoutPage', () => {
     vi.mocked(api.updateEvent).mockResolvedValue();
   });
 
+  it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
+    renderPage([setStart]);
+    const dock = await screen.findByRole('region', { name: 'Match events' });
+    for (const name of [/^Point us/, /^Point them/, /T\/O us/, /T\/O them/]) {
+      expect(within(dock).getByRole('button', { name })).toBeInTheDocument();
+    }
+    expect(within(dock).queryByRole('button', { name: /undo/i })).not.toBeInTheDocument();
+    const header = screen.getByRole('banner');
+    expect(within(header).getByRole('button', { name: /undo/i })).toBeInTheDocument();
+  });
+
+  it('puts the app tools in one Match tools menu', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Match tools' }));
+    const menu = screen.getByRole('menu', { name: 'Match tools' });
+    expect(within(menu).getByRole('menuitemcheckbox', { name: /Quick score/ })).toHaveAttribute('aria-checked', 'false');
+    expect(within(menu).getByRole('menuitemcheckbox', { name: /Auto-select next player/ })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Exit to match' }));
+    expect(screen.getByText('match page')).toBeInTheDocument();
+  });
+
   it('quick score hides the court and still records points', async () => {
     renderPage([setStart]);
-    fireEvent.click(await screen.findByRole('button', { name: 'Quick score' }));
+    await chooseTool(/Quick score/);
     expect(screen.queryByRole('button', { name: '#7 Ana' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Auto-select next player' })).not.toBeInTheDocument();
+    await openTools();
+    expect(screen.queryByRole('menuitemcheckbox', { name: /Auto-select/ })).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: /Point us/ }));
     expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'point', winner: 'us' }), 'u1');
     expect(window.localStorage.getItem('vcb.scout.quickScore')).toBe('on');
@@ -104,9 +144,9 @@ describe('ScoutPage', () => {
     renderPage([setStart]);
     fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
     expect(screen.getByRole('button', { name: 'Reception' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+    await chooseTool(/Quick score/);
     expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+    await chooseTool(/Quick score/);
     expect(screen.getByRole('button', { name: '#7 Ana' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
   });
@@ -114,7 +154,7 @@ describe('ScoutPage', () => {
   it('starts in quick score when this device chose it before', async () => {
     window.localStorage.setItem('vcb.scout.quickScore', 'on');
     renderPage([setStart]);
-    expect(await screen.findByRole('button', { name: 'Quick score' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await toolState(/Quick score/)).toBe('true');
     expect(screen.queryByRole('button', { name: '#7 Ana' })).not.toBeInTheDocument();
   });
 
@@ -462,7 +502,7 @@ describe('ScoutPage', () => {
 
   it('merges text events as one batch with source text and a shared chunkId', async () => {
     renderPage([setStart]);
-    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    await chooseTool(/Text panel/);
     fireEvent.click(screen.getByRole('button', { name: 'merge-stub' }));
     const calls = vi.mocked(api.addEvent).mock.calls.map((c) => c[2]);
     expect(calls).toHaveLength(2);
@@ -474,7 +514,7 @@ describe('ScoutPage', () => {
 
   it('reports that an empty text merge wrote nothing', async () => {
     renderPage([setStart]);
-    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    await chooseTool(/Text panel/);
     fireEvent.click(screen.getByRole('button', { name: 'merge-empty-stub' }));
     expect(screen.getByText('merged-false')).toBeInTheDocument();
     expect(api.addEvent).not.toHaveBeenCalled();
@@ -482,11 +522,11 @@ describe('ScoutPage', () => {
 
   it('keeps the text preview when the desktop panel is closed and reopened', async () => {
     renderPage([setStart]);
-    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    await chooseTool(/Text panel/);
     fireEvent.click(screen.getByRole('button', { name: 'process-stub' }));
-    fireEvent.click(screen.getByRole('button', { name: /text/i }));
+    await chooseTool(/Text panel/);
     expect(screen.queryByRole('button', { name: 'process-stub' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /text/i }));
+    await chooseTool(/Text panel/);
     expect(screen.getByText('batch-stub')).toBeInTheDocument();
   });
 
@@ -505,6 +545,14 @@ describe('ScoutPage', () => {
       delete (window as { matchMedia?: unknown }).matchMedia;
     });
 
+    it('keeps the events dock when switching away from the court tab', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('tab', { name: 'Live' }));
+      expect(screen.getByRole('region', { name: 'Match events' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }));
+      expect(within(screen.getByRole('region', { name: 'Match events' })).getByRole('button', { name: /^Point us/ })).toBeInTheDocument();
+    });
+
     it('keeps the text preview across tab switches', async () => {
       renderPage([setStart]);
       const nav = await screen.findByRole('tablist', { name: 'Scouting views' });
@@ -520,7 +568,7 @@ describe('ScoutPage', () => {
 
   it('does not auto-select while the text panel is open', async () => {
     renderPage([setStart]);
-    fireEvent.click(await screen.findByRole('button', { name: /text/i }));
+    await chooseTool(/Text panel/);
     expect(screen.queryByRole('region', { name: /actions for/i })).toBeNull();
   });
 
@@ -553,11 +601,11 @@ describe('ScoutPage', () => {
 
     it('does not auto-select in quick score, so leaving it opens no sheet', async () => {
       renderPage([setStart]);
-      fireEvent.click(await screen.findByRole('button', { name: 'Quick score' }));
+      await chooseTool(/Quick score/);
       fireEvent.click(screen.getByRole('button', { name: /Point us/ }));
       const point: MatchEvent = { id: 'new', order: 2, source: 'tap', chunkId: null, type: 'point', winner: 'us', reason: null };
       act(() => pushEvents([setStart, point]));
-      fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+      await chooseTool(/Quick score/);
       expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveAttribute('aria-pressed', 'false');
       expect(screen.queryByRole('button', { name: 'Serve' })).not.toBeInTheDocument();
     });
@@ -582,10 +630,9 @@ describe('ScoutPage', () => {
 
     it('does nothing with the Auto toggle off, and remembers the choice on this device', async () => {
       renderPage([setStart]);
-      const toggle = await screen.findByRole('button', { name: 'Auto-select next player' });
-      expect(toggle).toHaveAttribute('aria-pressed', 'true');
-      fireEvent.click(toggle);
-      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(await toolState(/Auto-select/)).toBe('true');
+      await chooseTool(/Auto-select/);
+      expect(await toolState(/Auto-select/)).toBe('false');
       expect(window.localStorage.getItem('vcb.scoutAutoSelect')).toBe('off');
       fireEvent.click(screen.getByRole('button', { name: '#7 Ana' }));
       fireEvent.click(screen.getByRole('button', { name: '+ Good' }));
@@ -597,7 +644,7 @@ describe('ScoutPage', () => {
     it('starts with Auto off when the device stored that preference', async () => {
       window.localStorage.setItem('vcb.scoutAutoSelect', 'off');
       renderPage([setStart]);
-      expect(await screen.findByRole('button', { name: 'Auto-select next player' })).toHaveAttribute('aria-pressed', 'false');
+      expect(await toolState(/Auto-select/)).toBe('false');
     });
 
     it('does not auto-select between sets', async () => {
@@ -729,9 +776,9 @@ describe('ScoutPage', () => {
 
     it('Shift+A toggles auto-select', async () => {
       renderPage([setStart]);
-      const toggle = await screen.findByRole('button', { name: 'Auto-select next player' });
+      await screen.findByRole('button', { name: 'Match tools' });
       press('A', { shiftKey: true });
-      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(await toolState(/Auto-select/)).toBe('false');
     });
 
     it('ignores keys while the set start dialog is open', async () => {

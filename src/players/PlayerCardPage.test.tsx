@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerCardPage } from './PlayerCardPage';
@@ -88,6 +88,12 @@ function renderPlayerCard() {
   );
 }
 
+/** Sections other than Skills are hidden until their tab is chosen. */
+async function openSection(name: string) {
+  const tabs = await screen.findByRole('tablist', { name: 'Player sections' });
+  fireEvent.click(within(tabs).getByRole('tab', { name }));
+}
+
 describe('PlayerCardPage', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
@@ -120,6 +126,7 @@ describe('PlayerCardPage', () => {
     renderPlayerCard();
 
     expect(await screen.findByText('Match 10.0 · 15 att.')).toBeInTheDocument();
+    await openSection('Matches');
     expect(screen.getByRole('heading', { name: 'Match stats' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Rivals' })).toBeInTheDocument();
     expect(matchesApi.listFinishedMatches).toHaveBeenCalledWith('team-1');
@@ -203,6 +210,7 @@ describe('PlayerCardPage', () => {
 
     renderPlayerCard();
     await screen.findByText('Test Player');
+    await openSection('Privacy');
 
     fireEvent.click(screen.getByText('Export data (JSON)'));
 
@@ -226,6 +234,7 @@ describe('PlayerCardPage', () => {
 
     renderPlayerCard();
     await screen.findByText('Test Player');
+    await openSection('Privacy');
 
     fireEvent.click(screen.getByText('Export data (JSON)'));
 
@@ -263,6 +272,7 @@ describe('PlayerCardPage', () => {
       .mockResolvedValue({ given: true, date: '2026-10-14', confirmedBy: 'coach@example.com' });
 
     renderPlayerCard();
+    await openSection('Privacy');
     expect(await screen.findByText('Guardian consent not recorded')).toBeInTheDocument();
     const record = screen.getByRole('button', { name: 'Record consent' });
     expect(record).toBeDisabled();
@@ -288,6 +298,7 @@ describe('PlayerCardPage', () => {
     const leftSpy = vi.spyOn(playersApi, 'setPlayerLeftClub').mockResolvedValue(undefined);
 
     renderPlayerCard();
+    await openSection('Privacy');
     fireEvent.click(await screen.findByRole('button', { name: 'Mark as left the club' }));
 
     await waitFor(() => expect(leftSpy).toHaveBeenCalledWith('team-1', 'player-1', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
@@ -296,5 +307,36 @@ describe('PlayerCardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Still in the club' }));
     await waitFor(() => expect(leftSpy).toHaveBeenLastCalledWith('team-1', 'player-1', null));
     expect(await screen.findByRole('button', { name: 'Mark as left the club' })).toBeInTheDocument();
+  });
+
+  it('splits the profile into sections, with Matches and Privacy for admins only', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
+        access: superAdminAccess,
+      })
+    );
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+    const tabs = await screen.findByRole('tablist', { name: 'Player sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Skills', 'Matches', 'Physical', 'Plan', 'Contact', 'Privacy']);
+    expect(within(tabs).getByRole('tab', { name: 'Skills' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Skills' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete player' })).not.toBeInTheDocument();
+    fireEvent.click(within(tabs).getByRole('tab', { name: 'Privacy' }));
+    expect(screen.getByRole('button', { name: 'Delete player' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Skills' })).not.toBeInTheDocument();
+  });
+
+  it('shows a viewer only the sections they can use', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+    const tabs = await screen.findByRole('tablist', { name: 'Player sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Skills', 'Physical', 'Plan', 'Contact']);
   });
 });

@@ -1,9 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { BookOpen, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Users, type LucideIcon } from 'lucide-react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, KeyRound, LogOut, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
-import { ThemeToggle } from '../theme/ThemeToggle';
+import { Menu } from '../components/Menu';
+import { useTheme } from '../theme/useTheme';
 import { countUnreviewedInterestSignups } from '../interest/interestApi';
 import { SIGNUPS_CHANGED_EVENT } from '../interest/signupEvents';
 import { Logo } from '../components/Logo';
@@ -23,7 +24,12 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { access } = useAuth();
+  const { access, firebaseUser } = useAuth();
+  const navigate = useNavigate();
+  const [theme, toggleTheme] = useTheme();
+  const adminGroupId = useId();
+  const email = firebaseUser?.email ?? '';
+  const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const { signOut, unsyncedDialog } = useSignOut();
   const [pendingSignups, setPendingSignups] = useState(0);
 
@@ -35,16 +41,26 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(SIGNUPS_CHANGED_EVENT, recount);
   }, [access?.isSuperAdmin]);
 
-  const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number }[] = [
+  const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number; admin?: boolean }[] = [
     { to: '/teams', label: 'Teams', Icon: Users, show: true },
     { to: '/exercises', label: 'Exercises', Icon: Dumbbell, show: !!access?.sections.exercises },
     { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
-    { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides },
+    { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides, admin: true },
     {
-      to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isSuperAdmin,
+      to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isSuperAdmin, admin: true,
       badge: pendingSignups > 0 ? pendingSignups : undefined,
     },
   ].filter((item) => item.show);
+
+  const renderSidebarLink = ({ to, label, Icon, badge }: (typeof navItems)[number]) => (
+    <NavLink key={to} to={to} className={sidebarLinkClass}>
+      <Icon size={20} strokeWidth={1.5} />
+      {label}
+      {!!badge && (
+        <span className="ml-auto rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">{badge}</span>
+      )}
+    </NavLink>
+  );
 
   return (
     <div className="min-h-screen bg-bg lg:flex">
@@ -52,39 +68,51 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mb-6 px-3">
           <Logo className="text-[28px]" />
         </div>
-        <nav className="flex flex-1 flex-col gap-1">
-          {navItems.map(({ to, label, Icon, badge }) => (
-            <NavLink key={to} to={to} className={sidebarLinkClass}>
-              <Icon size={20} strokeWidth={1.5} />
-              {label}
-              {!!badge && (
-                <span className="ml-auto rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">
-                  {badge}
-                </span>
-              )}
-            </NavLink>
-          ))}
+        <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
+          {navItems.filter((item) => !item.admin).map(renderSidebarLink)}
+          {navItems.some((item) => item.admin) && (
+            <div role="group" aria-labelledby={adminGroupId} className="mt-6 flex flex-col gap-1">
+              <p id={adminGroupId} className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                <Shield size={14} strokeWidth={1.75} aria-hidden="true" />
+                Admin
+              </p>
+              {navItems.filter((item) => item.admin).map(renderSidebarLink)}
+            </div>
+          )}
         </nav>
-        <NavLink to="/settings" className={sidebarLinkClass}>
-          <Settings size={20} strokeWidth={1.5} />
-          Settings
-        </NavLink>
-        <ThemeToggle className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white" />
-        <button
-          onClick={signOut}
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white"
-        >
-          <LogOut size={20} strokeWidth={1.5} />
-          Sign out
-        </button>
-        <NavLink to="/privacy" className="px-3 py-2 text-xs font-medium text-white/80 hover:text-white">
-          Privacy
-        </NavLink>
+        {/* Who is signed in, and everything about the account, behind one row. */}
+        <div className="border-t border-white/10 pt-3">
+          <Menu
+            label={`Account: ${email}`}
+            placement="up"
+            align="start"
+            triggerClassName="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm text-white/80 hover:bg-white/5 hover:text-white"
+            trigger={
+              <>
+                <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white">
+                  {initials}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{email}</span>
+                <ChevronsUpDown size={16} aria-hidden="true" className="shrink-0" />
+              </>
+            }
+            items={[
+              { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
+              { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
+              { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
+              { kind: 'divider' },
+              { kind: 'action', label: 'Sign out', icon: <LogOut size={16} />, danger: true, onSelect: signOut },
+            ]}
+          />
+        </div>
       </aside>
 
       {/* min-w-0: as a flex item beside the sidebar, wide content (tables)
           would otherwise stretch the whole page past the viewport. */}
-      <div className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</div>
+      <div className="min-w-0 flex-1 pb-16 lg:pb-0">
+        {/* One content width for every page: long lines on a wide monitor are hard to scan. */}
+        <div className="mx-auto w-full max-w-screen-xl">{children}</div>
+      </div>
 
       <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
         {navItems.map(({ to, label, Icon, badge }) => (

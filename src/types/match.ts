@@ -1,3 +1,4 @@
+import type { AwardsConfig } from './awards';
 import type { PositionCategory } from './player';
 
 export type Skill = 'S' | 'R' | 'A' | 'B' | 'D' | 'E' | 'F';
@@ -168,6 +169,8 @@ export interface Match extends MatchSetupInput {
   summary: MatchSummary | null;
   /** Written on finish; missing on matches finished before it existed. */
   report?: MatchReportData | null;
+  /** Coach award choices; absent on matches without prepared awards. */
+  awards?: AwardsConfig | null;
   usageContribution: UsageContribution | null;
   activeDevice: ActiveDevice | null;
   createdBy: string;

@@ -122,4 +122,12 @@ describe('matches rules', () => {
     await assertFails(db.doc('teams/team-1/matches/m1/events/e1').update({ grade: '++' }));
     await assertSucceeds(events.add({ type: 'point', order: 3, source: 'tap', chunkId: null, winner: 'us', reason: null }));
   });
+
+  it('team admin can save match awards; a guardian cannot', async () => {
+    const awards = { picks: { mvp: { playerId: 'p1', hidden: false } }, custom: [], order: ['mvp'], updatedBy: 'coach-uid', updatedAt: new Date() };
+    const coach = await as('coach-uid', 'coach@example.com');
+    await assertSucceeds(coach.doc('teams/team-1/matches/m1').update({ awards }));
+    const parent = await as('parent-uid', 'parent@example.com');
+    await assertFails(parent.doc('teams/team-1/matches/m1').update({ awards }));
+  });
 });

@@ -5,7 +5,7 @@ import type { Team } from '../types/team';
 import { addDays, liveMatches, nextUp, recentResults, todayIso } from './homeFeed';
 
 const team = (id: string): Team => ({
-  id, name: id.toUpperCase(), club: 'VCB', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
+  id, name: id.toUpperCase(), club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
   adminEmails: [], developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' }, createdBy: '', createdAt: null,
 });
 const match = (id: string, date: string, status: Match['status'], setsUs = 0, setsThem = 0): Match => ({

@@ -17,7 +17,7 @@ export function getInitialTheme(): Theme {
 }
 
 /** Fired on window after the theme changes, so every toggle on screen stays in sync. */
-export const THEME_CHANGED_EVENT = 'vcb-theme-changed';
+export const THEME_CHANGED_EVENT = 'theme-changed';
 
 export function applyTheme(theme: Theme): void {
   const changed = document.documentElement.classList.contains('dark') !== (theme === 'dark');

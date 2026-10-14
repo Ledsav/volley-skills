@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { AuthShell } from './AuthShell';
+import { takeReturnTo } from './returnTo';
 import { takeEmailForSignIn } from './emailLinkStorage';
 
 export function FinishSignInPage() {
@@ -26,7 +27,7 @@ export function FinishSignInPage() {
       }
       try {
         await signInWithEmailLink(auth, email, window.location.href);
-        navigate('/teams', { replace: true });
+        navigate(takeReturnTo(), { replace: true });
       } catch {
         setError('This sign-in link could not be used. Please request a new one.');
       }

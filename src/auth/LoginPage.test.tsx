@@ -71,13 +71,13 @@ describe('LoginPage', () => {
     await waitFor(() => expect(mockSignInWithPopup).toHaveBeenCalledWith({}, {}));
   });
 
-  it('navigates to /teams after a successful Google sign-in', async () => {
+  it('navigates to / after a successful Google sign-in', async () => {
     mockSignInWithPopup.mockResolvedValue(undefined);
     renderLoginPage();
 
     fireEvent.click(screen.getByText('Continue with Google'));
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/teams', { replace: true }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }));
   });
 
   it('shows an error message when Google sign-in fails', async () => {

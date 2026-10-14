@@ -64,7 +64,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
       setDeleteError('Could not delete the team. Please try again.');
       return;
     }
-    navigate('/teams', { replace: true });
+    navigate('/', { replace: true });
   }
 
   return (

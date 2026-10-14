@@ -1,0 +1,79 @@
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { ResolvedAward } from './resolveAwards';
+import { AwardsPrepare, type AwardsPrepareProps } from './AwardsPrepare';
+
+const ana = { playerId: 'a', name: 'Ana Lopez', number: 7, current: true };
+const bea = { playerId: 'b', name: 'Bea Smit', number: 9, current: true };
+const award = (over: Partial<ResolvedAward>): ResolvedAward => ({
+  key: 'attacker', title: 'Best attacker', kind: 'stats', winner: ana, statLine: '+40% att. eff. · 40 att.',
+  suggested: { playerId: 'a', value: 0.4, display: '+40% att. eff.', attempts: 40, rank: 1 },
+  runnersUp: [{ playerId: 'b', value: 0.3, display: '+30% att. eff.', attempts: 33, rank: 2 }],
+  overridden: false, hidden: false, note: '', ...over,
+});
+
+function setup(over: Partial<AwardsPrepareProps> = {}) {
+  const props: AwardsPrepareProps = {
+    heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
+    nameStyle: 'firstInitial', onNameStyle: vi.fn(), themePrefs: { presetId: 'navy', custom: null }, onThemePrefs: vi.fn(),
+    hasBackground: false, onBackground: vi.fn(), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
+    onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
+  };
+  render(<AwardsPrepare {...props} />);
+  return props;
+}
+
+describe('AwardsPrepare', () => {
+  it('lists awards with suggested winner and runners-up', () => {
+    setup();
+    const row = screen.getByRole('region', { name: 'Best attacker' });
+    expect(within(row).getByText('+40% att. eff. · 40 att.')).toBeInTheDocument();
+    expect(within(row).getByText(/Runners-up: #9 Bea Smit/)).toBeInTheDocument();
+  });
+
+  it('picking a winner and hiding dispatch actions', () => {
+    const p = setup();
+    const row = screen.getByRole('region', { name: 'Best attacker' });
+    fireEvent.change(within(row).getByLabelText('Winner'), { target: { value: 'b' } });
+    expect(p.onAction).toHaveBeenCalledWith({ type: 'pick', key: 'attacker', playerId: 'b' });
+    fireEvent.change(within(row).getByLabelText('Winner'), { target: { value: '' } });
+    expect(p.onAction).toHaveBeenCalledWith({ type: 'pick', key: 'attacker', playerId: null });
+    fireEvent.click(within(row).getByRole('checkbox', { name: 'Hide' }));
+    expect(p.onAction).toHaveBeenCalledWith({ type: 'hide', key: 'attacker', hidden: true });
+  });
+
+  it('shows the stats suggestion when overridden', () => {
+    setup({ awards: [award({ winner: bea, overridden: true, statLine: null })] });
+    expect(screen.getByText('Stats suggest: #7 Ana Lopez')).toBeInTheDocument();
+  });
+
+  it('reorders with buttons; first cannot move up', () => {
+    const p = setup();
+    const first = screen.getByRole('region', { name: 'Best attacker' });
+    expect(within(first).getByRole('button', { name: 'Move Best attacker up' })).toBeDisabled();
+    fireEvent.click(within(first).getByRole('button', { name: 'Move Best attacker down' }));
+    expect(p.onAction).toHaveBeenCalledWith({ type: 'move', key: 'attacker', dir: 1 });
+  });
+
+  it('adds a custom award; limit of 5', () => {
+    const p = setup();
+    fireEvent.click(screen.getByRole('button', { name: '+ Custom award' }));
+    fireEvent.change(screen.getByLabelText('Award title'), { target: { value: 'Spirit of the team' } });
+    fireEvent.change(screen.getByLabelText('Player'), { target: { value: 'b' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add award' }));
+    expect(p.onAction).toHaveBeenCalledWith({ type: 'addCustom', title: 'Spirit of the team', playerId: 'b', note: '' });
+  });
+
+  it('disables custom award when 5 exist', () => {
+    const customs = Array.from({ length: 5 }, (_, i) => award({ key: `c${i}`, kind: 'custom', title: `C${i}` }));
+    setup({ awards: customs });
+    expect(screen.getByRole('button', { name: '+ Custom award' })).toBeDisabled();
+  });
+
+  it('save indicator and present', () => {
+    const p = setup({ saveState: 'offline' });
+    expect(screen.getByText('Offline — will sync')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Present/ }));
+    expect(p.onPresent).toHaveBeenCalled();
+  });
+});

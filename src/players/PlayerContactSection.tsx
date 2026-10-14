@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
-import { Input } from '../components/Input';
+import { FIELD_CLASS, Input } from '../components/Input';
 import { updatePlayerContact } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Player, type PositionCategory, type ShirtSize } from '../types/player';
 
@@ -135,7 +135,7 @@ export function PlayerContactSection({
               id="player-position-category"
               value={positionCategory}
               onChange={(e) => setPositionCategory(e.target.value as PositionCategory)}
-              className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-blue focus:outline-none"
+              className={`${FIELD_CLASS} mb-3 w-full text-base sm:text-sm`}
             >
               {POSITION_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -151,7 +151,7 @@ export function PlayerContactSection({
               id="player-shirt-size"
               value={shirtSize}
               onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
-              className="mb-3 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-blue focus:outline-none"
+              className={`${FIELD_CLASS} mb-3 w-full text-base sm:text-sm`}
             >
               <option value="">Not set</option>
               {SHIRT_SIZES.map((size) => (

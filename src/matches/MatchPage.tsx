@@ -149,7 +149,7 @@ export function MatchPage() {
               </Button>
               <select
                 aria-label="CSV format"
-                className={`${FIELD_CLASS} w-auto text-sm`}
+                className={`${FIELD_CLASS} w-auto text-base sm:text-sm`}
                 value={csvFormat}
                 onChange={(e) => {
                   const next: CsvFormat = e.target.value === 'en' ? 'en' : 'eu';

@@ -4,21 +4,21 @@ import type { MatchState } from './scoutEngine';
 
 const emptyGrades = (): GradeCounts => ({ '#': 0, '+': 0, '!': 0, '-': 0, '/': 0, '=': 0 });
 
-function ratio(numerator: number, attempts: number): number | null {
+export function ratio(numerator: number, attempts: number): number | null {
   return attempts === 0 ? null : numerator / attempts;
 }
 
-function attackEff(line: SkillLine | undefined): number | null {
+export function attackEff(line: SkillLine | undefined): number | null {
   if (!line) return null;
   return ratio(line.grades['#'] - line.grades['='] - line.grades['/'], line.attempts);
 }
 
-function serveEff(line: SkillLine | undefined): number | null {
+export function serveEff(line: SkillLine | undefined): number | null {
   if (!line) return null;
   return ratio(line.grades['#'] - line.grades['='], line.attempts);
 }
 
-function mergeLines(lines: (SkillLine | undefined)[]): SkillLine | undefined {
+export function mergeLines(lines: (SkillLine | undefined)[]): SkillLine | undefined {
   const present = lines.filter((l): l is SkillLine => !!l);
   if (present.length === 0) return undefined;
   const grades = emptyGrades();

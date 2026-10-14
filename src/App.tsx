@@ -25,6 +25,7 @@ const DiagramEditorPage = lazy(() =>
   import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
 );
 
+const AwardsPage = lazy(() => import('./awards/AwardsPage'));
 const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
 
 function AuthenticatedLayout() {
@@ -105,6 +106,26 @@ export function App() {
               <RequireAuth>
                 <Suspense fallback={<div className="p-6 text-slate">Loading scouting…</div>}>
                   <ScoutPage />
+                </Suspense>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/teams/:teamId/awards"
+            element={
+              <RequireAuth>
+                <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                  <AwardsPage scope="season" />
+                </Suspense>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/teams/:teamId/matches/:matchId/awards"
+            element={
+              <RequireAuth>
+                <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                  <AwardsPage scope="match" />
                 </Suspense>
               </RequireAuth>
             }

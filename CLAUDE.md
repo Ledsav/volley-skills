@@ -55,7 +55,7 @@ because all files share one emulator project.
   (:9099), Firestore (:8080), Emulator UI (:4000).
 - `npm run seed:emulator` writes one team, `skillGuide/config`, and 20 player docs
   from the gitignored `.xlsx`. Emulator is in-memory — re-seed after every restart.
-- `npm run seed:match` adds a finished and a live demo match to the seeded team.
+- `npm run seed:match` adds a season of 10 finished matches, a finished demo match and a live one to the seeded team, then writes their summaries (`backfillSummaries.ts`, via vite-node) so the Stats tab and awards have data.
 - The Auth emulator prints the email sign-in link to its console (no email is sent).
 - Prod seeding (`node scripts/seed/seed.mjs --prod`) needs a gitignored
   `serviceAccountKey.json` at the repo root and is guarded to run once.

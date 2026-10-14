@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Seeds a finished demo match and a live one into the LOCAL Firestore emulator,
-// for the seeded team, so the Matches tab / report / scouting screen have data.
+// Seeds a season of 10 finished matches (one a week), a finished demo match and a
+// live one into the LOCAL Firestore emulator, for the seeded team, so the Matches
+// tab / report / scouting screen / Stats tab / awards have data. Summaries are
+// written afterwards by backfillSummaries.ts (`npm run seed:match` runs both).
 //
 //   npm run seed:match              # against a running emulator (127.0.0.1:8080)
 //   node scripts/seed/seedMatch.mjs --team <teamId>
@@ -126,7 +128,10 @@ function courtOf(rot, serving) {
   return court;
 }
 
-function buildSet(events, set, finalScore) {
+// `form` (0..1) biases rallies toward one "improving" attacker (p2) as the season goes on,
+// so the Most improved award and the leaderboards have something to show.
+function buildSet(events, set, finalScore, form = 0) {
+  const pickAttacker = (list) => (list.includes(p2.id) && rand() < form * 0.5 ? p2.id : pick(list));
   let order = events.length;
   const push = (e) => events.push({ order: ++order, source: 'tap', chunkId: null, createdBy: 'seed-match', ...e });
   let serving = set % 2 === 1 ? 'us' : 'them';
@@ -151,8 +156,11 @@ function buildSet(events, set, finalScore) {
     const last = events[events.length - 1];
     if (!(last.skill === 'S' && last.grade === '#')) {
       push({ type: 'action', playerId: setter.id, skill: 'E', grade: pick(['#', '+', '+', '!']) });
-      if (usWins) push({ type: 'action', playerId: pick(attackers), skill: 'A', grade: '#' });
-      else if (rand() < 0.5) push({ type: 'action', playerId: pick(attackers), skill: 'A', grade: pick(['=', '/']) });
+      // Some rallies go long: a dig (back row / libero) before the decisive ball.
+      if (rand() < 0.35) push({ type: 'action', playerId: pick(receivers.length ? receivers : attackers), skill: 'D', grade: pick(['#', '+', '+', '!', '-']) });
+      if (usWins && rand() < 0.15) push({ type: 'action', playerId: pick(attackers), skill: 'B', grade: '#' });
+      else if (usWins) push({ type: 'action', playerId: pickAttacker(attackers), skill: 'A', grade: '#' });
+      else if (rand() < 0.5) push({ type: 'action', playerId: pickAttacker(attackers), skill: 'A', grade: pick(['=', '/']) });
       else push({ type: 'point', winner: 'them', reason: pick(['oppKill', 'oppBlock', 'oppAce']) });
     }
     if (usWins) {
@@ -169,7 +177,7 @@ function buildSet(events, set, finalScore) {
   return score;
 }
 
-async function writeMatch(id, meta, sets, finished) {
+async function writeMatch(id, meta, sets, finished, form = 0) {
   const ref = teamRef.collection('matches').doc(id);
   const old = await ref.collection('events').limit(2000).get();
   for (let i = 0; i < old.docs.length; i += 400) {
@@ -180,7 +188,7 @@ async function writeMatch(id, meta, sets, finished) {
   const events = [];
   const results = [];
   for (const [i, s] of sets.entries()) {
-    results.push(buildSet(events, i + 1, s));
+    results.push(buildSet(events, i + 1, s, form));
     if (finished || i < sets.length - 1) events.push({ order: events.length + 1, source: 'tap', chunkId: null, createdBy: 'seed-match', type: 'setEnd', set: i + 1 });
   }
   const done = finished ? results : results.slice(0, -1);
@@ -207,6 +215,31 @@ async function writeMatch(id, meta, sets, finished) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+
+// A season of finished matches, one a week, oldest first — feeds the Stats tab and awards.
+const SEASON = [
+  ['Volley Waterloo', 'league', 'home', [[25, 20], [25, 22], [25, 17]]],
+  ['VC Ottignies', 'league', 'away', [[22, 25], [25, 23], [19, 25], [21, 25]]],
+  ['Braine Volley', 'cup', 'home', [[25, 18], [25, 21], [25, 23]]],
+  ['VBC Wavre', 'league', 'away', [[25, 23], [23, 25], [25, 20], [25, 19]]],
+  ['Nivelles VC', 'friendly', 'home', [[18, 25], [25, 22], [25, 20], [22, 25], [15, 12]]],
+  ['VC Gembloux', 'league', 'home', [[25, 16], [25, 19], [25, 21]]],
+  ['Tubize Volley', 'cup', 'away', [[25, 22], [21, 25], [25, 23], [25, 20]]],
+  ['VC Lasne', 'league', 'away', [[25, 21], [25, 18], [23, 25], [25, 17]]],
+  ['Rixensart VB', 'tournament', 'home', [[25, 15], [25, 20]]],
+  ['VC Jodoigne', 'league', 'home', [[25, 19], [25, 23], [25, 22]]],
+];
+for (const [i, [opponent, competition, homeAway, sets]] of SEASON.entries()) {
+  await writeMatch(
+    `demo-season-${String(i + 1).padStart(2, '0')}`,
+    { date: daysAgo(7 * (SEASON.length - i)), opponent, competition, homeAway },
+    sets.map(([us, them]) => ({ us, them })),
+    true,
+    i / (SEASON.length - 1),
+  );
+}
+
 await writeMatch(
   'demo-match',
   { date: today, opponent: 'CV Demo Rivals', competition: 'league', homeAway: 'home' },

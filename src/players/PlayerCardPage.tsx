@@ -25,6 +25,7 @@ import { deletePlayer, getPlayer, recordPlayerConsent, setPlayerLeftClub, update
 import { deletionDueDate, todayIso } from './retention';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { PageSkeleton } from '../components/Skeleton';
+import { SectionTabs } from '../components/SectionTabs';
 
 function Tile({
   title,
@@ -39,16 +40,28 @@ function Tile({
 }) {
   return (
     <section
-      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-card ${className}`.trim()}
+      className={`flex flex-col rounded-lg border border-border bg-surface shadow-card ${className}`.trim()}
     >
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <h2 className="text-sm font-semibold tracking-[-0.01em] text-ink">{title}</h2>
         {action}
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+      <div className="flex-1 p-4">{children}</div>
     </section>
   );
 }
+
+type PlayerSection = 'skills' | 'matches' | 'physical' | 'plan' | 'contact' | 'privacy';
+const SECTION_ORDER: PlayerSection[] = ['skills', 'matches', 'physical', 'plan', 'contact', 'privacy'];
+const ADMIN_SECTIONS: PlayerSection[] = ['matches', 'privacy'];
+const SECTION_LABEL: Record<PlayerSection, string> = {
+  skills: 'Skills',
+  matches: 'Matches',
+  physical: 'Physical',
+  plan: 'Plan',
+  contact: 'Contact',
+  privacy: 'Privacy',
+};
 
 export function PlayerCardPage() {
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
@@ -103,6 +116,8 @@ export function PlayerCardPage() {
   }, [isAdmin, teamId, playerId]);
 
   const ratings = useMemo(() => (season ? matchRatings(season) : undefined), [season]);
+  const [section, setSection] = useState<PlayerSection>('skills');
+  const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
 
   if (error) {
     return (
@@ -167,34 +182,64 @@ export function PlayerCardPage() {
   return (
     <div className="w-full bg-bg p-4 lg:p-6">
       <div className="flex flex-col gap-4">
-        {/* Region A — identity, at-a-glance stats, skills */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12 lg:grid-rows-[auto_minmax(0,1fr)] lg:h-[30rem]">
-          <div className="md:col-span-2 lg:col-span-4 lg:row-span-2">
+        {/* Always in view: who this is and the numbers at a glance. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <div className="lg:col-span-4">
             <PlayerIdentityCard player={player} />
           </div>
-          <div className="md:col-span-2 lg:col-span-8 lg:row-start-1 lg:col-start-5">
+          <div className="lg:col-span-8">
             <PlayerKpiTiles player={player} latestByType={latestByType} />
           </div>
-          <Tile
-            title="Skills"
-            action={editAction('skills', 'Edit skills')}
-            className="md:col-span-2 lg:col-span-8 lg:col-start-5 lg:row-start-2"
-          >
-            <PlayerSkillsSection
-              teamId={teamId}
-              playerId={playerId}
-              player={player}
-              onPlayerUpdated={setPlayer}
-              isAdmin={isAdmin}
-              ratings={isAdmin ? ratings : undefined}
-              editing={editingSection === 'skills'}
-              onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
-            />
-          </Tile>
         </div>
 
-        {/* Region B — the two deep panels */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-[30rem]">
+        <SectionTabs label="Player sections" tabs={sections} active={section} onChange={setSection} />
+
+        {/* Every section stays mounted (hidden when inactive): switching never
+            refetches, and Physical keeps feeding the KPI tiles above. */}
+        <div role="tabpanel" aria-label={SECTION_LABEL.skills} hidden={section !== 'skills'}>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <Tile
+              title="Skills"
+              action={editAction('skills', 'Edit skills')}
+              className="lg:col-span-2"
+            >
+              <PlayerSkillsSection
+                teamId={teamId}
+                playerId={playerId}
+                player={player}
+                onPlayerUpdated={setPlayer}
+                isAdmin={isAdmin}
+                ratings={isAdmin ? ratings : undefined}
+                editing={editingSection === 'skills'}
+                onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
+              />
+            </Tile>
+            <Tile title="Next objective">
+              {next ? (
+                <div>
+                  <p className="font-medium text-ink">{next.objective}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <StatusChip status={next.status} />
+                    <span className="text-xs text-slate">
+                      {next.targetDate ? `Due ${next.targetDate}` : 'No target date'}
+                    </span>
+                  </div>
+                  {next.coachComment && <p className="mt-2 text-sm text-slate">{next.coachComment}</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-slate">No open short-term objectives.</p>
+              )}
+            </Tile>
+          </div>
+        </div>
+        {isAdmin && (
+          <div role="tabpanel" aria-label={SECTION_LABEL.matches} hidden={section !== 'matches'}>
+          <Tile title="Match stats">
+            <PlayerMatchStatsSection teamId={teamId} season={season} error={matchStatsError} />
+          </Tile>
+        </div>
+        )}
+        <div role="tabpanel" aria-label={SECTION_LABEL.physical} hidden={section !== 'physical'}>
           <Tile title="Physical testing">
             <PhysicalTestingSection
               teamId={teamId}
@@ -204,6 +249,8 @@ export function PlayerCardPage() {
               onLatestLoaded={handleLatestLoaded}
             />
           </Tile>
+        </div>
+        <div role="tabpanel" aria-label={SECTION_LABEL.plan} hidden={section !== 'plan'}>
           <Tile title="Development plan" action={editAction('plan', 'Edit plan')}>
             <DevelopmentPlanEditor
               plan={player.developmentPlan}
@@ -218,61 +265,35 @@ export function PlayerCardPage() {
             />
           </Tile>
         </div>
-
+        <div role="tabpanel" aria-label={SECTION_LABEL.contact} hidden={section !== 'contact'}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Tile title="Contact & registration" action={editAction('contact', 'Edit')}>
+              <PlayerContactSection
+                teamId={teamId}
+                playerId={playerId}
+                player={player}
+                onPlayerUpdated={setPlayer}
+                isAdmin={isAdmin}
+                editing={editingSection === 'contact'}
+                onEditingChange={(v) => setEditingSection(v ? 'contact' : null)}
+              />
+            </Tile>
+            <Tile title="Guardians" action={editAction('guardians', 'Edit')}>
+              <GuardiansSection
+                teamId={teamId}
+                playerId={playerId}
+                player={player}
+                onPlayerUpdated={setPlayer}
+                isAdmin={isAdmin}
+                editing={editingSection === 'guardians'}
+                onEditingChange={(v) => setEditingSection(v ? 'guardians' : null)}
+              />
+            </Tile>
+          </div>
+        </div>
         {isAdmin && (
-          <Tile title="Match stats">
-            <PlayerMatchStatsSection teamId={teamId} season={season} error={matchStatsError} />
-          </Tile>
-        )}
-
-        {/* Region C — next action, contacts, and (admin) data controls */}
-        <div
-          className={`grid grid-cols-1 gap-4 md:grid-cols-2 lg:h-[16rem] ${
-            isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
-          }`}
-        >
-          <Tile title="Next objective">
-            {next ? (
-              <div>
-                <p className="font-medium text-ink">{next.objective}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <StatusChip status={next.status} />
-                  <span className="text-xs text-slate">
-                    {next.targetDate ? `Due ${next.targetDate}` : 'No target date'}
-                  </span>
-                </div>
-                {next.coachComment && <p className="mt-2 text-sm text-slate">{next.coachComment}</p>}
-              </div>
-            ) : (
-              <p className="text-sm text-slate">No open short-term objectives.</p>
-            )}
-          </Tile>
-
-          <Tile title="Contact & registration" action={editAction('contact', 'Edit')}>
-            <PlayerContactSection
-              teamId={teamId}
-              playerId={playerId}
-              player={player}
-              onPlayerUpdated={setPlayer}
-              isAdmin={isAdmin}
-              editing={editingSection === 'contact'}
-              onEditingChange={(v) => setEditingSection(v ? 'contact' : null)}
-            />
-          </Tile>
-
-          <Tile title="Guardians" action={editAction('guardians', 'Edit')}>
-            <GuardiansSection
-              teamId={teamId}
-              playerId={playerId}
-              player={player}
-              onPlayerUpdated={setPlayer}
-              isAdmin={isAdmin}
-              editing={editingSection === 'guardians'}
-              onEditingChange={(v) => setEditingSection(v ? 'guardians' : null)}
-            />
-          </Tile>
-
-          {isAdmin && (
+          <div role="tabpanel" aria-label={SECTION_LABEL.privacy} hidden={section !== 'privacy'}>
+          <div className="max-w-xl">
             <Tile title="Data & privacy">
               <div className="flex h-full flex-col">
                 {player.consent?.given ? (
@@ -354,8 +375,9 @@ export function PlayerCardPage() {
                 )}
               </div>
             </Tile>
-          )}
+          </div>
         </div>
+        )}
       </div>
 
       {showDeleteConfirm && (

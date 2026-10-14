@@ -117,20 +117,25 @@ describe('MatchPage', () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Print / PDF' }));
+    const exportMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
+
+    await exportMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Print / PDF' }));
     expect(print).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await exportMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV · Excel (Belgium/EU)' }));
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number;Name'), 'text/csv;charset=utf-8');
 
-    fireEvent.change(screen.getByLabelText('CSV format'), { target: { value: 'en' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await exportMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV · Excel (English) / Sheets' }));
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number,Name'), 'text/csv;charset=utf-8');
-    expect(window.localStorage.getItem('vcb.report.csvFormat')).toBe('en');
 
     fireEvent.change(screen.getByLabelText('Set'), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await exportMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV · Excel (Belgium/EU)' }));
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-set1.csv', expect.any(String), 'text/csv;charset=utf-8');
+    expect(screen.getByRole('button', { name: 'Reopen for editing' })).toBeInTheDocument();
   });
 
   it('falls back to the event log for a finished match without a stored report', async () => {

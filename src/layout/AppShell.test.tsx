@@ -18,9 +18,13 @@ function renderShell() {
   );
 }
 
+const openAccountMenu = () => fireEvent.click(screen.getByRole('button', { name: /^Account/ }));
+
 describe('AppShell', () => {
   beforeEach(() => {
-    vi.mocked(useAuth).mockReturnValue(authValue({ access: superAdminAccess }));
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ access: superAdminAccess, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
+    );
   });
 
   it('shows every nav destination in both shells for a super-admin', () => {
@@ -31,11 +35,31 @@ describe('AppShell', () => {
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });
 
-  it('has a Settings link in the desktop sidebar as well as the bottom bar', () => {
+  it('keeps account actions in one account menu in the sidebar, showing who is signed in', () => {
     const { container } = renderShell();
-    expect(screen.getAllByRole('link', { name: 'Settings' })).toHaveLength(2);
     const aside = container.querySelector('aside') as HTMLElement;
-    expect(within(aside).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    // No loose Settings / theme / sign-out rows in the sidebar any more.
+    expect(within(aside).queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
+    expect(within(aside).queryByRole('button', { name: /mode$/ })).not.toBeInTheDocument();
+    const account = within(aside).getByRole('button', { name: 'Account: coach@example.com' });
+    expect(account).toHaveTextContent('coach@example.com');
+    fireEvent.click(account);
+    const menu = screen.getByRole('menu', { name: 'Account: coach@example.com' });
+    for (const item of ['Settings', 'Privacy policy', 'Sign out']) {
+      expect(within(menu).getByRole('menuitem', { name: item })).toBeInTheDocument();
+    }
+    expect(within(menu).getByRole('menuitemcheckbox', { name: 'Dark mode' })).toBeInTheDocument();
+    // Phones keep Settings in the bottom bar.
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+  });
+
+  it('groups the admin-only destinations under an Admin label for a super-admin', () => {
+    const { container } = renderShell();
+    const aside = container.querySelector('aside') as HTMLElement;
+    const admin = within(aside).getByRole('group', { name: 'Admin' });
+    expect(within(admin).getByRole('link', { name: 'Guides' })).toBeInTheDocument();
+    expect(within(admin).getByRole('link', { name: /Access/ })).toBeInTheDocument();
+    expect(within(admin).queryByRole('link', { name: 'Teams' })).not.toBeInTheDocument();
   });
 
   it('shows only granted sections for a member', () => {
@@ -53,7 +77,8 @@ describe('AppShell', () => {
   it('signs out and clears local data when a sign-out button is clicked', async () => {
     mockSignOut.mockResolvedValue('signedOut');
     renderShell();
-    fireEvent.click(screen.getAllByText('Sign out')[0]);
+    openAccountMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ force: false, beforeSignOut: expect.any(Function) }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
@@ -61,7 +86,8 @@ describe('AppShell', () => {
   it('asks before signing out when scouting actions have not synced', async () => {
     mockSignOut.mockResolvedValueOnce('unsynced').mockResolvedValueOnce('signedOut');
     renderShell();
-    fireEvent.click(screen.getAllByText('Sign out')[0]);
+    openAccountMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     const dialog = await screen.findByRole('alertdialog');
     expect(dialog).toHaveTextContent("Some scouting actions haven't synced yet. Sign out anyway? They will be lost.");
     fireEvent.click(screen.getByRole('button', { name: 'Sign out anyway' }));
@@ -74,5 +100,10 @@ describe('AppShell', () => {
     for (const label of ['Teams', 'Exercises', 'Trainings', 'Guides', 'Access', 'Settings']) {
       expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
     }
+  });
+
+  it('caps page content at one shared width so wide screens keep readable lines', () => {
+    renderShell();
+    expect(screen.getByText('Page content').parentElement).toHaveClass('mx-auto', 'max-w-screen-xl');
   });
 });

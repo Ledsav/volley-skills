@@ -3,13 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Download, Printer } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FIELD_CLASS } from '../components/Input';
 import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
 import { buildFinishPayload } from './finish';
 import { deleteMatch, finishMatch, getMatch, getUsageProfile, setMatchStatus, updateMatchSetup } from './matchesApi';
 import { MatchSetupForm } from './MatchSetupForm';
 import { MatchReport } from './report/MatchReport';
-import { reportCsv, reportCsvFileName } from './report/reportCsv';
+import { readCsvFormat, writeCsvFormat } from './report/csvFormat';
+import { reportCsv, reportCsvFileName, type CsvFormat } from './report/reportCsv';
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
 import { useMatchEvents } from './useMatchEvents';
@@ -24,6 +26,7 @@ export function MatchPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [reportSet, setReportSet] = useState<number | 'all'>('all');
+  const [csvFormat, setCsvFormat] = useState<CsvFormat>(readCsvFormat);
 
   useEffect(() => {
     getMatch(teamId, matchId)
@@ -84,7 +87,7 @@ export function MatchPage() {
   function exportCsv() {
     if (!match || !report) return;
     const stats = (reportSet === 'all' ? report.all : report.bySet[reportSet]) ?? report.all;
-    downloadText(reportCsvFileName(match, reportSet), reportCsv(match, stats), 'text/csv;charset=utf-8');
+    downloadText(reportCsvFileName(match, reportSet), reportCsv(match, stats, csvFormat), 'text/csv;charset=utf-8');
   }
 
   return (
@@ -144,6 +147,19 @@ export function MatchPage() {
               <Button variant="secondary" size="sm" onClick={() => window.print()}>
                 <Printer size={16} aria-hidden="true" /> Print / PDF
               </Button>
+              <select
+                aria-label="CSV format"
+                className={`${FIELD_CLASS} w-auto text-sm`}
+                value={csvFormat}
+                onChange={(e) => {
+                  const next: CsvFormat = e.target.value === 'en' ? 'en' : 'eu';
+                  setCsvFormat(next);
+                  writeCsvFormat(next);
+                }}
+              >
+                <option value="eu">Excel (Belgium/EU)</option>
+                <option value="en">Excel (English) / Sheets</option>
+              </select>
               <Button variant="secondary" size="sm" disabled={!report} onClick={exportCsv}>
                 <Download size={16} aria-hidden="true" /> Export CSV
               </Button>

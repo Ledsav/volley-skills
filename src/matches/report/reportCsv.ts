@@ -6,14 +6,21 @@ import { SKILL_LABELS } from '../skillGrades';
 
 type Cell = string | number | null;
 
+/** `eu`: `;` + decimal comma (French/Dutch/German Excel). `en`: `,` + decimal point (English Excel, Sheets). */
+export type CsvFormat = 'eu' | 'en';
+
+const SEPARATOR: Record<CsvFormat, string> = { eu: ';', en: ',' };
 const BOM = '﻿';
 
 /** One CSV cell: numbers rounded to 3 places, text quoted per RFC 4180 and guarded against formula injection. */
-export function csvCell(value: Cell): string {
+export function csvCell(value: Cell, format: CsvFormat = 'en'): string {
   if (value === null) return '';
-  if (typeof value === 'number') return String(Math.round(value * 1000) / 1000);
+  if (typeof value === 'number') {
+    const n = String(Math.round(value * 1000) / 1000);
+    return format === 'eu' ? n.replace('.', ',') : n;
+  }
   const text = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  return /[",;\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 const HEADER: Cell[] = [
@@ -35,7 +42,7 @@ function skillCells(line: SkillLine | undefined): Cell[] {
 }
 
 /** The report's player table (one set or the whole match) as an Excel-friendly CSV. */
-export function reportCsv(match: Match, stats: MatchStats): string {
+export function reportCsv(match: Match, stats: MatchStats, format: CsvFormat = 'en'): string {
   const roster = rosterMap(match.roster);
   const players = Object.values(stats.players).sort(
     (a, b) => (roster.get(a.playerId)?.number ?? 0) - (roster.get(b.playerId)?.number ?? 0),
@@ -73,7 +80,7 @@ export function reportCsv(match: Match, stats: MatchStats): string {
     ratio(t.sideOut.won, t.sideOut.total),
     ratio(t.breakPoint.won, t.breakPoint.total),
   ]);
-  return BOM + rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  return BOM + rows.map((row) => row.map((cell) => csvCell(cell, format)).join(SEPARATOR[format])).join('\r\n') + '\r\n';
 }
 
 export function reportCsvFileName(match: Match, set: number | 'all'): string {

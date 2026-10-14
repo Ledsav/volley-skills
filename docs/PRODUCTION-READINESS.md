@@ -81,7 +81,7 @@ Last reviewed: 2026-10-14
       `*.googleusercontent.com` (img avatars). Verified sign-in works
       2026-09-10.
 
-- [ ] **Set `VITE_SITE_URL` for the production build** (canonical links, `robots.txt`, `sitemap.xml`).
+- [x] **Set `VITE_SITE_URL` for the production build** (`.env.production` → `https://volley.albertovaldesrey.com`) (canonical links, `robots.txt`, `sitemap.xml`).
 
 ## B. At / right after the first deploy
 

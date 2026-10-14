@@ -139,7 +139,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     if (!ready || !a.winner) return null;
     return {
       key: a.key, awardTitle: a.title, name: styleName(a.winner, nameStyle), number: a.winner.number,
-      statLine: a.statLine, footer: heading, teamName: ready.team.name, note: a.note,
+      statLine: a.statLine, footer: heading, teamName: ready.team.name, clubName: ready.team.club ?? '', note: a.note,
     };
   }, [ready, nameStyle, heading]);
 

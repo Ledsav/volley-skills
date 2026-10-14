@@ -12,7 +12,7 @@ const TEXT_W = 920;
 
 export interface CardModel {
   key: string; awardTitle: string; name: string; number: number | null;
-  statLine: string | null; footer: string; teamName: string; note: string;
+  statLine: string | null; footer: string; teamName: string; clubName: string; note: string;
 }
 type Img = ImageBitmap | HTMLCanvasElement;
 export interface CardArt { photo: Img | null; background: Img | null }
@@ -48,8 +48,8 @@ function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string,
   ctx.restore();
 }
 
-function drawHeader(ctx: CanvasRenderingContext2D, card: Pick<CardModel, 'teamName'>, theme: CardTheme, alpha: number) {
-  text(ctx, 'VOLLEY CLUB BELAIR', 150, '700 34px Inter, system-ui, sans-serif', theme.muted, alpha);
+function drawHeader(ctx: CanvasRenderingContext2D, card: Pick<CardModel, 'teamName' | 'clubName'>, theme: CardTheme, alpha: number) {
+  if (card.clubName.trim()) text(ctx, card.clubName.trim().toUpperCase(), 150, '700 34px Inter, system-ui, sans-serif', theme.muted, alpha);
   text(ctx, card.teamName.toUpperCase(), 200, '600 30px Inter, system-ui, sans-serif', theme.muted, alpha);
 }
 

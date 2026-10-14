@@ -10,8 +10,8 @@ export interface PageMeta {
 }
 
 export const DEFAULT_DESCRIPTION =
-  'Volley Skills — team, player, training and match scouting tool for Volley Club Belair.';
-const DEFAULT_TITLE = 'Volley Skills · VCB';
+  'Volley Skills — team, player, training and match scouting tool for volleyball clubs.';
+const DEFAULT_TITLE = 'Volley Skills';
 
 export function pageTitle(title: string): string {
   return `${title} · ${DEFAULT_TITLE}`;

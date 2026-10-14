@@ -4,11 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A web app for **Volley Club Belair (VCB)** that replaces a per-player spreadsheet
-(`reference/VCB_U17_PlayerCards_2026-27.xlsx`) with a tool to manage teams, player
-profiles (skills + development plans + physical testing), a club-wide
-exercise/training library (with a court-diagram builder per exercise), and
-per-team training calendars. **Single club, not multi-tenant.** Players are
+A **club-agnostic** web app for volleyball clubs that replaces a per-player spreadsheet
+(the original was `reference/VCB_U17_PlayerCards_2026-27.xlsx`, used only for seeding)
+with a tool to manage teams, player profiles (skills + development plans + physical
+testing), a club-wide exercise/training library (with a court-diagram builder per
+exercise), and per-team training calendars. **One deployment serves one club, not
+multi-tenant** — but no club name is hardcoded: UI, metadata and award cards stay
+generic, and a club's name only appears where it comes from data (`team.club`).
+Internal localStorage keys keep their historical `vcb.` prefix (renaming would wipe
+users' saved settings). Players are
 minors, and guardian contact data is stored — this drives the consent/privacy
 requirements.
 

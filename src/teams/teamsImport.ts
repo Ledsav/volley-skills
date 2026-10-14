@@ -4,8 +4,8 @@ import type { NewTeamInput } from './teamsApi';
 
 export const TEAM_IMPORT_EXAMPLE = `[
   {
-    "name": "VCB U15 Girls",
-    "club": "Volley Club Belair",
+    "name": "U15 Girls",
+    "club": "Example Volley Club",
     "ageGroup": "U15",
     "season": "2026-27",
     "description": ""

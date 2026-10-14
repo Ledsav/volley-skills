@@ -104,7 +104,7 @@ describe.skipIf(!existsSync(WORKBOOK))('parseWorkbook (against the real gitignor
     const { team, skillGuide, players } = await parseWorkbook(WORKBOOK);
 
     expect(team).toMatchObject({ name: 'U17', ageGroup: 'U17', season: '2026-2027' });
-    expect(team.club).toMatch(/Belair/);
+    expect(team.club).toBe('Demo Volley Club');
 
     expect(skillGuide.map((s) => s.key)).toEqual(SKILL_KEYS);
     for (const entry of skillGuide) {

@@ -59,4 +59,7 @@
 @media print {
   header, nav, footer { display: none !important; }
   body { background: #fff; }
+  /* Report only: keep grade bars / rotation colors, don't split a player row. */
+  .match-report * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .match-report tr { break-inside: avoid; }
 }

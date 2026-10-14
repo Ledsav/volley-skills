@@ -35,6 +35,8 @@ import type { FinishPayload } from './finish';
 
 const MATCHES_PAGE_SIZE = 20;
 const MATCHES_MONTH_CAP = 50;
+/** One team is one season; a youth season has well under this many matches. */
+export const FINISHED_MATCHES_CAP = 60;
 export const MATCH_EVENTS_CAP = 2000;
 
 const matchesCol = (teamId: string) => collection(db, 'teams', teamId, 'matches');
@@ -65,6 +67,14 @@ export async function listMatches(teamId: string, afterDoc: QueryDocumentSnapsho
 export async function listMatchesInRange(teamId: string, start: string, end: string): Promise<Match[]> {
   const snapshot = await getDocs(
     query(matchesCol(teamId), where('date', '>=', start), where('date', '<=', end), orderBy('date'), limit(MATCHES_MONTH_CAP)),
+  );
+  return snapshot.docs.map((d) => toMatch(d.id, d.data()));
+}
+
+/** Newest finished matches; their saved `summary` feeds player season stats without reading events. */
+export async function listFinishedMatches(teamId: string): Promise<Match[]> {
+  const snapshot = await getDocs(
+    query(matchesCol(teamId), where('status', '==', 'finished'), orderBy('date', 'desc'), limit(FINISHED_MATCHES_CAP)),
   );
   return snapshot.docs.map((d) => toMatch(d.id, d.data()));
 }

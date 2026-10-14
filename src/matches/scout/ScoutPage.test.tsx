@@ -90,6 +90,34 @@ describe('ScoutPage', () => {
     vi.mocked(api.updateEvent).mockResolvedValue();
   });
 
+  it('quick score hides the court and still records points', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Quick score' }));
+    expect(screen.queryByRole('button', { name: '#7 Ana' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Auto-select next player' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Point us/ }));
+    expect(api.addEvent).toHaveBeenCalledWith('t1', 'm1', expect.objectContaining({ type: 'point', winner: 'us' }), 'u1');
+    expect(window.localStorage.getItem('vcb.scout.quickScore')).toBe('on');
+  });
+
+  it('turning quick score on closes an open action sheet', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+    expect(screen.getByRole('button', { name: 'Reception' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+    expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+    expect(screen.getByRole('button', { name: '#7 Ana' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reception' })).not.toBeInTheDocument();
+  });
+
+  it('starts in quick score when this device chose it before', async () => {
+    window.localStorage.setItem('vcb.scout.quickScore', 'on');
+    renderPage([setStart]);
+    expect(await screen.findByRole('button', { name: 'Quick score' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: '#7 Ana' })).not.toBeInTheDocument();
+  });
+
   it('asks for the lineup before the first set', async () => {
     renderPage([]);
     expect(await screen.findByRole('dialog', { name: 'Start set 1' })).toBeInTheDocument();
@@ -521,6 +549,17 @@ describe('ScoutPage', () => {
       // Side-out rotation: #7 Ana moves from P2 to P1.
       expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Serve' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('does not auto-select in quick score, so leaving it opens no sheet', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Quick score' }));
+      fireEvent.click(screen.getByRole('button', { name: /Point us/ }));
+      const point: MatchEvent = { id: 'new', order: 2, source: 'tap', chunkId: null, type: 'point', winner: 'us', reason: null };
+      act(() => pushEvents([setStart, point]));
+      fireEvent.click(screen.getByRole('button', { name: 'Quick score' }));
+      expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByRole('button', { name: 'Serve' })).not.toBeInTheDocument();
     });
 
     it('closing the sheet suppresses auto-select until the next recorded event', async () => {

@@ -9,7 +9,7 @@ describe('StatusChip', () => {
 
   it('renders Active with the green tint class', () => {
     render(<StatusChip status="Active" />);
-    expect(screen.getByText('Active')).toHaveClass('bg-green/10', 'text-green');
+    expect(screen.getByText('Active')).toHaveClass('bg-green/10', 'text-green-strong');
   });
 
   it('renders Completed with the solid, self-inverting fill', () => {

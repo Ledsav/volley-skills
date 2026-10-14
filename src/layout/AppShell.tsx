@@ -10,7 +10,7 @@ import { Logo } from '../components/Logo';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-    isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+    isActive ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'
   }`;
 }
 
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Icon size={20} strokeWidth={1.5} />
               {label}
               {!!badge && (
-                <span className="ml-auto rounded-full bg-orange px-1.5 py-0.5 text-xs font-semibold text-white">
+                <span className="ml-auto rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">
                   {badge}
                 </span>
               )}
@@ -69,15 +69,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Settings size={20} strokeWidth={1.5} />
           Settings
         </NavLink>
-        <ThemeToggle className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white" />
+        <ThemeToggle className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white" />
         <button
           onClick={signOut}
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white"
         >
           <LogOut size={20} strokeWidth={1.5} />
           Sign out
         </button>
-        <NavLink to="/privacy" className="px-3 py-2 text-xs font-medium text-white/50 hover:text-white/80">
+        <NavLink to="/privacy" className="px-3 py-2 text-xs font-medium text-white/80 hover:text-white">
           Privacy
         </NavLink>
       </aside>
@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="relative">
               <Icon size={22} strokeWidth={1.5} />
               {!!badge && (
-                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange px-1 text-[10px] font-semibold text-white">
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-white">
                   {badge}
                 </span>
               )}

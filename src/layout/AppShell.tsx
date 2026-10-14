@@ -86,7 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink focus:shadow-pop">
         Skip to content
       </a>
-      <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto bg-navy p-4 lg:sticky lg:top-0 lg:flex lg:h-screen">
+      <aside className="hidden print:hidden w-56 shrink-0 flex-col overflow-y-auto bg-navy p-4 lg:sticky lg:top-0 lg:flex lg:h-screen">
         <div className="mb-6 px-3">
           <NavLink to="/" aria-label="Volley Skills home">
             <Logo className="text-[28px]" />
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label="Main (phone)" className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden">
+      <nav aria-label="Main (phone)" className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden print:hidden">
         {phoneItems.map(({ to, label, Icon, badge, end }) => (
           <NavLink key={to} to={to} end={end} className={bottomTabClass}>
             <span className="relative">

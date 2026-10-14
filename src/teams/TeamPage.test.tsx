@@ -182,4 +182,21 @@ describe('TeamPage', () => {
     ).toBeInTheDocument();
     expect(playersApi.bulkCreatePlayers).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the Stats tab only to team admins', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['user@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByRole('tab', { name: 'Stats' })).toBeInTheDocument();
+  });
+
+  it('hides the Stats tab for viewers', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['someone@else.be'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('tab', { name: 'Overview' });
+    expect(screen.queryByRole('tab', { name: 'Stats' })).toBeNull();
+  });
 });

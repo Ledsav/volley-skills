@@ -1,6 +1,7 @@
 import { usePageMeta } from '../layout/usePageMeta';
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { isTeamAdmin } from './teamAccess';
 import { getTeam, updateTeamDevelopmentPlan } from './teamsApi';
 import { TeamSettingsTab } from './TeamSettingsTab';
 import { TeamRosterTable } from './TeamRosterTable';
@@ -22,14 +23,21 @@ import { TeamPhysicalSessionTab } from '../physicalSessions/TeamPhysicalSessionT
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
-type TeamTab = 'overview' | 'calendar' | 'matches' | 'plan' | 'settings' | 'physicalSession';
+const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
+
+type TeamTab = 'overview' | 'calendar' | 'matches' | 'stats' | 'plan' | 'settings' | 'physicalSession';
+const TEAM_TABS: TeamTab[] = ['overview', 'calendar', 'matches', 'stats', 'plan', 'settings', 'physicalSession'];
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const { firebaseUser, access } = useAuth();
   const canCalendar = !!access?.sections.trainings;
   const [team, setTeam] = useState<Team | null>(null);
-  const [tab, setTab] = useState<TeamTab>('overview');
+  const [params, setParams] = useSearchParams();
+  const [tab, setTab] = useState<TeamTab>(() => {
+    const t = params.get('tab');
+    return TEAM_TABS.includes(t as TeamTab) ? (t as TeamTab) : 'overview';
+  });
   const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -67,11 +75,19 @@ export function TeamPage() {
 
   if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;
 
-  const activeTab = tab === 'calendar' && !canCalendar ? 'overview' : tab;
+  const changeTab = (next: TeamTab) => {
+    setTab(next);
+    const p = new URLSearchParams(params);
+    p.set('tab', next);
+    setParams(p, { replace: true });
+  };
+  const admin = isTeamAdmin(team, firebaseUser?.email, access);
+  const activeTab = (tab === 'calendar' && !canCalendar) || (tab === 'stats' && !admin) ? 'overview' : tab;
   const tabs: { id: TeamTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     ...(canCalendar ? [{ id: 'calendar' as const, label: 'Calendar' }] : []),
     { id: 'matches', label: 'Matches' },
+    ...(admin ? [{ id: 'stats' as const, label: 'Stats' }] : []),
     { id: 'physicalSession', label: 'Physical Session' },
     { id: 'plan', label: 'Development Plan' },
     { id: 'settings', label: 'Settings' },
@@ -79,11 +95,11 @@ export function TeamPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
+      <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
         <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{team.name}</h1>
-        <p className="mt-1 text-slate">{team.description}</p>
+        <p className="mt-1 text-slate print:hidden">{team.description}</p>
 
-        <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={setTab} className="mt-4" />
+        <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={changeTab} className="mt-4 print:hidden" />
 
         <div className="mt-6">
           {activeTab === 'overview' && (
@@ -131,6 +147,11 @@ export function TeamPage() {
           )}
           {activeTab === 'matches' && (
             <TeamMatchesTab teamId={teamId} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+          )}
+          {activeTab === 'stats' && admin && (
+            <Suspense fallback={<p className="text-slate">Loading team stats…</p>}>
+              <TeamStatsTab team={team} />
+            </Suspense>
           )}
           {activeTab === 'physicalSession' && (
             <TeamPhysicalSessionTab

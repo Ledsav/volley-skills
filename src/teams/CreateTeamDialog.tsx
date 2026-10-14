@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
+import { useSave } from '../components/useSave';
 import { createTeam } from './teamsApi';
 
 interface CreateTeamDialogProps {
@@ -21,12 +22,15 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     if (!firebaseUser?.email) return;
     try {
-      await createTeam({ name, club, ageGroup, season, description }, firebaseUser.uid, firebaseUser.email);
+      const done = await save(() => createTeam({ name, club, ageGroup, season, description }, firebaseUser.uid, firebaseUser.email));
+      if (!done) return;
     } catch {
       setError('Could not create the team. Please try again.');
       return;
@@ -87,8 +91,8 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Create
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Create'}
           </Button>
         </div>
         {error && (

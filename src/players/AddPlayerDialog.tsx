@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Input, FIELD_CLASS } from '../components/Input';
+import { useSave } from '../components/useSave';
 import { createPlayer } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory, type ShirtSize } from '../types/player';
 import type { Team } from '../types/team';
@@ -46,12 +47,14 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
     setGuardians((current) => current.filter((_, i) => i !== index));
   }
 
+  const { saving, save } = useSave();
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     if (!firebaseUser?.email || !consentGiven) return;
     try {
-      await createPlayer(
+      const done = await save(() => createPlayer(
         teamId,
         team,
         {
@@ -67,7 +70,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
         },
         firebaseUser.uid,
         firebaseUser.email
-      );
+      ));
+      if (!done) return;
     } catch {
       setError('Could not create the player. Please try again.');
       return;
@@ -239,8 +243,8 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
-            Create
+          <Button variant="primary" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Create'}
           </Button>
         </div>
         {error && (

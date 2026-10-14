@@ -143,4 +143,25 @@ describe('AddPlayerDialog', () => {
     fireEvent.click(screen.getByText('+ Add guardian'));
     expect(screen.getAllByLabelText('Guardian name')).toHaveLength(2);
   });
+
+  it('creates the player once even when Create is clicked twice', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+    );
+    const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockReturnValue(new Promise(() => undefined));
+    render(<AddPlayerDialog teamId="team-1" team={team} onClose={vi.fn()} onCreated={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Number'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Player' } });
+    fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: '2012-01-01' } });
+    fireEvent.change(screen.getByLabelText('Nationality'), { target: { value: 'BEL' } });
+    fireEvent.change(screen.getByLabelText('License #'), { target: { value: 'J-000001' } });
+    fireEvent.change(screen.getByLabelText('Guardian name'), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText('Guardian phone'), { target: { value: '+352 000 000' } });
+    fireEvent.change(screen.getByLabelText('Guardian email'), { target: { value: 'jane@example.com' } });
+    fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
+    fireEvent.click(screen.getByText('Create'));
+    fireEvent.click(screen.getByRole('button', { name: 'Saving…' }));
+    expect(createPlayerSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+  });
 });

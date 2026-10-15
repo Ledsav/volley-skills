@@ -24,6 +24,7 @@ const PLAYER_TOP = 250;
 const PLAYER_MAX_W = 720;
 const CIRCLE_MAX_R = 280;
 const CUTOUT_FADE = 0.12;
+const FADE_STRIPS = 24;
 
 export interface CardModel {
   key: string; awardTitle: string; name: string; number: number | null;
@@ -100,17 +101,22 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
     const w = art.cutout.width * s, h = art.cutout.height * s;
     const x = Math.min(CARD_W - 20 - w, CARD_W * 0.66 - w / 2);
     const y = playerBottom - h;
+    // Solid player, then its last 12% in thin strips of falling opacity: the bottom edge
+    // melts into whatever is behind it (a band painted over it showed on textured slides).
+    const cw = art.cutout.width, ch = art.cutout.height;
+    const top = y + (1 - e) * 200;
+    const solid = 1 - CUTOUT_FADE;
     ctx.save();
     ctx.globalAlpha = e;
-    ctx.drawImage(art.cutout, x, y + (1 - e) * 200, w, h);
+    // Strip edges snap to whole pixels so neighbouring strips meet without seams.
+    const at = (f: number) => Math.round(top + h * f);
+    ctx.drawImage(art.cutout, 0, 0, cw, ch * solid, x, top, w, at(solid) - top);
+    for (let i = 0; i < FADE_STRIPS; i++) {
+      const f0 = solid + (CUTOUT_FADE * i) / FADE_STRIPS, f1 = solid + (CUTOUT_FADE * (i + 1)) / FADE_STRIPS;
+      ctx.globalAlpha = e * (1 - (i + 0.5) / FADE_STRIPS);
+      ctx.drawImage(art.cutout, 0, ch * f0, cw, ch * (f1 - f0), x, at(f0), w, at(f1) - at(f0));
+    }
     ctx.restore();
-    // Soften only the bottom edge of the player into the slide colour.
-    const fadeTop = playerBottom - h * CUTOUT_FADE;
-    const g = ctx.createLinearGradient(0, fadeTop, 0, playerBottom);
-    g.addColorStop(0, `${colors.bg}00`);
-    g.addColorStop(1, colors.bg);
-    ctx.fillStyle = g;
-    ctx.fillRect(x, fadeTop, w, playerBottom - fadeTop);
   } else if (b.photo > 0) {
     // Photo / number circle on the right, clear of the title.
     const top = titleBottom + 40;

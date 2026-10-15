@@ -28,7 +28,7 @@ import { storyStats } from './story/storyStats';
 import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
 import { fitSize, loadImageFile, loadLogoFile } from './photo';
-import { knockOutWhite, MAX_SPONSORS } from './card/branding';
+import { knockOutBackground, MAX_SPONSORS } from './card/branding';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
 import { ageFromDob } from '../players/age';
 
@@ -207,7 +207,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     (key: string): CardArt => ({ ...gatedArt(key, allowed, livePhotos, liveCutouts, background), branding }),
     [allowed, livePhotos, liveCutouts, background, branding],
   );
-  const loadLogos = (files: File[]) => Promise.all(files.map((f) => loadLogoFile(f, knockOutWhite))).then((cs) => {
+  const loadLogos = (files: File[]) => Promise.all(files.map((f) => loadLogoFile(f, knockOutBackground))).then((cs) => {
     logosRef.current = [...logosRef.current, ...cs];
     return cs;
   });

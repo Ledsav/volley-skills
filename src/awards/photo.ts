@@ -1,3 +1,5 @@
+import { opaqueBounds } from './card/branding';
+
 export interface Crop { cx: number; cy: number; zoom: number }
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
@@ -51,5 +53,12 @@ export async function loadLogoFile(file: File, knockOut: (px: Uint8ClampedArray,
   bmp.close();
   const data = ctx.getImageData(0, 0, w, h);
   if (knockOut(data.data, w, h)) ctx.putImageData(data, 0, 0);
-  return c;
+  // Crop transparent padding so every logo is sized by what is actually drawn.
+  const box = opaqueBounds(data.data, w, h);
+  if (!box || (box.w === w && box.h === h)) return c;
+  const out = document.createElement('canvas');
+  out.width = box.w;
+  out.height = box.h;
+  out.getContext('2d')?.drawImage(c, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+  return out;
 }

@@ -43,7 +43,7 @@ describe('drawAwardCard', () => {
       drawAwardCard(ctx, long, colors, art, 1);
       for (const c of calls.filter((c) => c.method === 'fillText')) expect(c.args[2] as number).toBeLessThan(SPONSOR_ROW.divider);
       const player = calls.find((c) => c.method === 'drawImage' && c.args[0] !== logo)!;
-      if (art.cutout) expect((player.args[2] as number) + (player.args[4] as number)).toBeLessThan(SPONSOR_ROW.divider);
+      if (art.cutout) expect((player.args[6] as number) + (player.args[8] as number)).toBeLessThan(SPONSOR_ROW.divider);
       expect(calls.filter((c) => c.method === 'drawImage' && c.args[0] === logo)).toHaveLength(3);
     }
   });
@@ -69,24 +69,32 @@ describe('drawAwardCard', () => {
     expect(calls.some((c) => c.method === 'set:globalAlpha' && c.args[0] === 0.35)).toBe(true);
   });
 
-  it('shows the whole cut-out player: nothing opaque covers it and the text sits below it', () => {
+  it('shows the whole cut-out player: nothing is painted over it and the text sits below it', () => {
     const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
     const { ctx, calls } = recordingCtx();
     drawAwardCard(ctx, card, colors, { photo: null, cutout: cut, background: null }, 1);
-    const di = calls.findIndex((c) => c.method === 'drawImage' && c.args[0] === cut);
-    const [, , y, , h] = calls[di].args as number[];
-    expect(h).toBeGreaterThan(CARD_H * 0.45); // still poster-sized
-    // fills painted after the player may only soften its last 15%
-    for (const c of calls.slice(di + 1).filter((c) => c.method === 'fillRect')) {
+    const draws = calls.filter((c) => c.method === 'drawImage' && c.args[0] === cut).map((c) => c.args as number[]);
+    const y = Math.min(...draws.map((d) => d[6]));
+    const bottom = Math.max(...draws.map((d) => d[6] + d[8]));
+    expect(bottom - y).toBeGreaterThan(CARD_H * 0.45); // still poster-sized
+    // the source is covered top to bottom, with no gaps between the pieces
+    const src = draws.map((d) => [d[2], d[2] + d[4]]).sort((p, q) => p[0] - q[0]);
+    expect(src[0][0]).toBe(0);
+    src.slice(1).forEach((p, i) => expect(p[0]).toBeCloseTo(src[i][1], 6));
+    expect(src[src.length - 1][1]).toBeCloseTo(900, 6);
+    // the bottom edge fades by drawing the player itself more transparent, not by painting
+    // a slide-coloured band over it (that showed as a rectangle on textured backgrounds)
+    const last = calls.map((c) => c.method === 'drawImage' && c.args[0] === cut).lastIndexOf(true);
+    for (const c of calls.slice(last + 1).filter((c) => c.method === 'fillRect')) {
       const [, fy, , fh] = c.args as number[];
-      const overlap = Math.max(0, Math.min(y + h, fy + fh) - Math.max(y, fy));
-      expect(overlap).toBeLessThanOrEqual(h * 0.15);
+      expect(Math.max(0, Math.min(bottom, fy + fh) - Math.max(y, fy))).toBe(0);
     }
     // the winner's name is drawn below the player, not on top of it
     const nameCall = calls.find((c) => c.method === 'fillText' && c.args[0] === 'Lena P.')!;
-    expect(nameCall.args[2] as number).toBeGreaterThan(y + h);
+    expect(nameCall.args[2] as number).toBeGreaterThan(bottom);
     expect(calls.some((c) => c.method === 'clip')).toBe(false); // no photo circle
   });
+
 
   it('is deterministic for the same t', () => {
     const a = recordingCtx(), b = recordingCtx();

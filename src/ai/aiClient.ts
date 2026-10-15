@@ -26,9 +26,16 @@ export class AiError extends Error {
   }
 }
 
+/** Hard caps per request so one prompt can't drain a provider quota. */
+export const AI_MAX_TOKENS = { scout: 2000, draft: 4000 } as const;
+/** Drafting wants variety; scouting stays deterministic (temperature 0). */
+export const DRAFT_TEMPERATURE = 0.7;
+
 interface ChatOptions {
   fetchImpl?: typeof fetch;
   signal?: AbortSignal;
+  temperature?: number;
+  maxTokens?: number;
 }
 
 /** Pulls the first JSON object out of a model reply (plain, fenced, or wrapped in prose). */
@@ -83,7 +90,8 @@ export async function chatJson(settings: AiSettings, messages: ChatMessage[], op
   const base = {
     model: settings.model.trim(),
     messages,
-    temperature: 0,
+    temperature: opts.temperature ?? 0,
+    max_tokens: opts.maxTokens ?? AI_MAX_TOKENS.scout,
     ...(settings.provider === 'openrouter' ? OPENROUTER_PRIVACY : {}),
   };
   let res = await post(settings, { ...base, response_format: { type: 'json_object' } }, opts);

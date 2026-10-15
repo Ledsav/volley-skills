@@ -3,16 +3,19 @@ import { Link } from 'react-router-dom';
 import { ArrowDown } from 'lucide-react';
 import { fmtEff, fmtPct } from '../../matches/format';
 import type { TeamPlayerRow } from './teamSeason';
+import { isWeakAttack, isWeakReception, WEAK_CLASS } from '../../matches/statFlags';
 
 type SortKey = 'number' | 'matchesPlayed' | 'points' | 'errors' | 'mvpAvg' | 'attackEff' | 'serveEff' | 'receptionPos';
-const COLS: { key: SortKey; label: string; fmt: (r: TeamPlayerRow) => string }[] = [
+// `weak` uses the same thresholds as the live panel and match report. Season error
+// totals aren't flagged: the per-match threshold doesn't apply to a sum.
+const COLS: { key: SortKey; label: string; fmt: (r: TeamPlayerRow) => string; weak?: (r: TeamPlayerRow) => boolean }[] = [
   { key: 'matchesPlayed', label: 'MP', fmt: (r) => String(r.matchesPlayed) },
   { key: 'points', label: 'Points', fmt: (r) => String(r.points) },
   { key: 'errors', label: 'Errors', fmt: (r) => String(r.errors) },
   { key: 'mvpAvg', label: 'MVP', fmt: (r) => (r.mvpAvg === null ? '—' : r.mvpAvg.toFixed(1)) },
-  { key: 'attackEff', label: 'Att. eff.', fmt: (r) => fmtEff(r.attackEff) },
+  { key: 'attackEff', label: 'Att. eff.', fmt: (r) => fmtEff(r.attackEff), weak: (r) => isWeakAttack(r.attackEff) },
   { key: 'serveEff', label: 'Serve eff.', fmt: (r) => fmtEff(r.serveEff) },
-  { key: 'receptionPos', label: 'Rec. +', fmt: (r) => fmtPct(r.receptionPos) },
+  { key: 'receptionPos', label: 'Rec. +', fmt: (r) => fmtPct(r.receptionPos), weak: (r) => isWeakReception(r.receptionPos) },
 ];
 const RATED = ['serve', 'reception', 'attack', 'block', 'set', 'defence'] as const;
 
@@ -48,7 +51,7 @@ export function PlayerStatsTable({ teamId, rows }: { teamId: string; rows: TeamP
               <th scope="row" className="py-2 pr-2 text-left font-normal">
                 {r.current ? <Link to={`/teams/${teamId}/players/${r.playerId}`} className="text-ink hover:underline">{r.name}</Link> : <span className="text-ink">{r.name}</span>}
               </th>
-              {COLS.map((c) => <td key={c.key} className="py-2 pr-2 text-right text-ink">{c.fmt(r)}</td>)}
+              {COLS.map((c) => <td key={c.key} className={`py-2 pr-2 text-right ${c.weak?.(r) ? WEAK_CLASS : 'text-ink'}`}>{c.fmt(r)}</td>)}
               {RATED.map((k) => <td key={k} className="py-2 pr-2 text-right text-ink">{r.ratings[k]?.rating?.toFixed(1) ?? '—'}</td>)}
             </tr>
           ))}

@@ -1,9 +1,13 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPage } from './SettingsPage';
 
 const mockSignOut = vi.fn();
+
+const mockAccess = vi.hoisted(() => ({ current: null as null | { isSuperAdmin: boolean; sections: { guides: boolean } } }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ access: mockAccess.current }) }));
+vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(3) }));
 
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 
@@ -16,7 +20,33 @@ function renderSettings() {
 }
 
 describe('SettingsPage', () => {
-  beforeEach(() => mockSignOut.mockReset());
+  beforeEach(() => {
+    mockSignOut.mockReset();
+    mockAccess.current = null;
+  });
+
+  it('hides the Admin section from members without admin access', () => {
+    renderSettings();
+    expect(screen.queryByRole('navigation', { name: 'Admin' })).not.toBeInTheDocument();
+  });
+
+  it('links superadmins to Guides and Access, with the pending-request count', async () => {
+    mockAccess.current = { isSuperAdmin: true, sections: { guides: true } };
+    renderSettings();
+    const nav = screen.getByRole('navigation', { name: 'Admin' });
+    expect(within(nav).getByRole('link', { name: /Guides/ })).toHaveAttribute('href', '/admin/guides');
+    const accessLink = within(nav).getByRole('link', { name: /Access/ });
+    expect(accessLink).toHaveAttribute('href', '/admin/access');
+    await waitFor(() => expect(accessLink).toHaveTextContent('3 pending requests'));
+  });
+
+  it('shows only Guides to a guides-section admin', () => {
+    mockAccess.current = { isSuperAdmin: false, sections: { guides: true } };
+    renderSettings();
+    const nav = screen.getByRole('navigation', { name: 'Admin' });
+    expect(within(nav).getByRole('link', { name: /Guides/ })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: /Access/ })).not.toBeInTheDocument();
+  });
 
   it('shows the theme toggle', () => {
     renderSettings();

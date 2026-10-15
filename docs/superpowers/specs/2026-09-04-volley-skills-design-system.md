@@ -1,7 +1,7 @@
 # Volley Skills — Design System
 
 Date: 2026-09-04
-Status: Draft — distilled from `reference/ChatGPT Image Sep 4, 2026, 03_34_44 PM (1).png`, pending review
+Status: Living — describes the shipped app (last reconciled with the code 2026-10-15). Originally distilled from `reference/ChatGPT Image Sep 4, 2026, 03_34_44 PM (1).png`.
 Companion to: `2026-09-04-volley-skills-app-design.md`
 
 ## 1. Purpose
@@ -34,9 +34,23 @@ A live, browsable version of this system (all tokens and components rendered, li
 | `bg` | `#F8FAFC` | App canvas behind cards |
 | `surface` | `#FFFFFF` | Cards, sheets, inputs |
 
-### 2.3 Dark mode
+### 2.3 Dark mode (shipped)
 
-Dark mode is documented (see Artifact) but not required for MVP — see Section 9. If shipped: background `#0B1220`, surface `#121B2E`, brand hues lightened (e.g. `blue` → `#7095FF`) to hold contrast on a dark ground; semantic roles stay identical, only the underlying hex changes. Do not invert navy/white — navy stays the darkest structural color in both themes.
+Every token is a CSS variable (`--color-*`, RGB triplets) defined per theme in `src/index.css`; `tailwind.config.js` maps each Tailwind color to `rgb(var(--color-x) / <alpha-value>)`, so the same class (`bg-navy`, `text-ink`, `bg-blue/10`) repaints when the `dark` class toggles on `<html>`. Components never use `dark:` variants — if a color needs to differ by theme, it becomes a token. The toggle lives in the account menu (desktop) and on the Settings page (both widths).
+
+| Token | Dark value |
+|---|---|
+| `navy` | `#1C4586` |
+| `blue` / `blue-strong` | `#7095FF` / `#93B0FF` |
+| `orange` / `orange-strong` | `#FB923C` / `#FDBA74` |
+| `green` / `green-strong` | `#34C98A` / `#6EDCAE` |
+| `red` / `red-strong` | `#F87171` / `#FCA5A5` |
+| `ink` | `#EAF0FB` |
+| `slate` | `#93A3BE` |
+| `border` | `#243252` |
+| `bg` / `surface` | `#0B1220` / `#121B2E` |
+
+In dark mode `-strong` means *lighter* (more contrast on a dark ground), so the "text in a brand hue uses `-strong`" rule holds in both themes. Do not invert navy/white — navy stays the darkest structural color in both themes.
 
 ### 2.4 Skill-level bands
 
@@ -64,6 +78,12 @@ Single family: **Inter**. One face carries both the marketing header and dense r
 | Stat number | 30 / 34 | ExtraBold (800), tabular |
 
 Large/page/section titles use a slight negative tracking (`-0.01em`) — the only typographic embellishment in the system.
+
+**Tokens (2026-10-15).** The display roles are Tailwind font sizes with their line height and tracking built in: `text-large-title` (28/36), `text-title` (22/28), `text-section` (18/24), `text-stat` (30/34, pair with `font-extrabold tabular-nums`). Body/small/caption use Tailwind's `text-base` / `text-sm` / `text-xs`. Never `text-2xl` or `text-[22px]` for a title.
+
+**Page titles** always come from `PageHeader` (`src/layout/PageHeader.tsx`): optional eyebrow line, the `h1`, optional description, and page actions (right of the title from `sm`, an equal-width row under it on phones). It renders a `<div>`, not `<header>` — the print stylesheet hides `<header>` elements as app chrome. Exceptions: centred titles (auth card, 404) and the navy player identity card use `text-title` directly; the awards presentation slide is deliberately oversized.
+
+**Minimum size: 11px**, including SVG chart labels. An SVG's text scales with its viewBox, so a chart whose viewBox is much wider than a phone must narrow it on small screens (see `TeamTrendChart`) or its labels shrink below the minimum.
 
 **Logo (2026-10-13, replaces the 2026-09-17 V badge).** The mark is the **Spin Ball**: a volleyball reduced to three swirling panels in deep navy `#12295A`, navy `#2356A8` and ball yellow `#F5C518`, with a halftone-dot crescent shadow inside the ball, centred on the point where the yellow and navy panels meet at the left edge (light from the right). The wordmark is "VOLLEY / SKILLS" in Barlow Condensed Black Italic, **converted to outlines**, with SKILLS tracked to the width of VOLLEY — no font is loaded at runtime, and Barlow is not used anywhere else in the UI. All artwork is fixed SVG in `src/assets/brand/` (so it never shifts with dark mode), rendered by `Logo` / `LogoMark` in `src/components/Logo.tsx`; below ~32 px use the dot-free `-small` mark (that is what `public/favicon.svg` is). Variants, clear space, minimum sizes and misuse: `docs/brand/README.md`.
 
@@ -114,39 +134,25 @@ Full specs and live states for each are in the Artifact; summarized here for imp
 - **Inputs** — text/select, 1.5px border, blue focus ring, error state shown as a red border *and* helper text below (never color alone).
 - **Skill meter** — the one purpose-built component. Ten equal segments (1–10 scale) filled left-to-right, colored by the level band the score falls into (Section 2.4), with band-boundary reference marks at 3|5|7. This is the app's core data surface, so it gets a dedicated component rather than a generic progress bar.
 - **Cards** — three distinct treatments, not one radius/shadow everywhere: stat tiles (flat, dense, big tabular number), content cards (full border+shadow, holds a screen region), list rows inside a card (hairline-separated, not nested cards).
-- **Tabs** — underline style; active tab takes `blue` (matches links/active-nav), keeping `navy` reserved for the sidebar and primary actions.
+- **Tabs** — underline style; active tab takes `blue` (matches links/active-nav), keeping `navy` reserved for the sidebar and primary actions. On phones `SectionTabs` collapses to a select. Page title and tabs sit on the canvas; each tab panel brings its own cards — never wrap a whole tabbed page in one card (that nests every card inside it).
 - **Navigation** — one vocabulary, two shells: navy sidebar (desktop, ≥1024px), white bottom tab bar (mobile). Same items, same order, same icon in both — this is the literal implementation of the app design spec's mobile-first requirement (§7 screens list, responsive across `/teams`, `/players`, etc.).
+  - **Deliberate differences (2026-10-15).** The bottom bar holds at most four primary destinations plus **Settings**. On desktop, Settings lives in the account menu at the foot of the sidebar instead (with dark mode, privacy and sign-out). The **Admin** group (Guides, Access) is in the sidebar on desktop and on the Settings page on phones, and the pending-access badge follows it — onto the Settings tab on phones. Anything reachable on one shell must be reachable on the other.
+- **Success notice** — `useNotify()` from `src/components/Notice.tsx` (provider mounted once in `App`) is the only way to confirm that something worked: a dark toast above the bottom bar, polite live region, auto-dismiss (4s default). Errors are never toasts: they stay inline beside what failed, with `role="alert"`.
+- **Focus** — `Button` draws a 2px `blue` ring on `:focus-visible`; a base rule in `src/index.css` gives every other focusable element the same outline, so custom controls (calendar cells, chips, toolbar icons) need no extra classes.
 - **Table** — used for team rosters. Header row: small, medium-weight, uppercase with slight letter-spacing (a functional data-table convention, not a decorative eyebrow). Numeric columns right-aligned with tabular figures. Row hover uses `bg` (the app-canvas neutral, since no `surface-2` token is defined), no border added on hover (avoids layout shift).
 
 ## 8. Tailwind implementation notes
 
-Suggested `tailwind.config.ts` token extension (values from Section 2–4):
+`tailwind.config.js` is the implementation of Sections 2–4 and is the reference — this section only explains its shape:
 
-```ts
-theme: {
-  extend: {
-    colors: {
-      navy: '#2356A8',
-      blue: { DEFAULT: '#2865F6', strong: '#1E4FDC' },
-      orange: { DEFAULT: '#F97316', strong: '#DC5F0A' },
-      green: { DEFAULT: '#109861', strong: '#0C7C4F' },
-      red: { DEFAULT: '#DC2626', strong: '#B91C1C' },
-      ink: '#0F172A',
-    },
-    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-    borderRadius: { sm: '6px', md: '9px', lg: '14px' },
-    boxShadow: {
-      card: '0 1px 2px rgba(15,23,42,.06), 0 1px 0 rgba(15,23,42,.03)',
-      pop:  '0 8px 24px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.08)',
-    },
-  },
-}
-```
+- **Colors** read CSS variables (`navy: 'rgb(var(--color-navy) / <alpha-value>)'`, `blue: { DEFAULT, strong }`, likewise `orange`, `green`, `red`; plus `ink`, `slate`, `border`, `bg`, `surface`). Values per theme live in `src/index.css` (light under `:root`, dark under `.dark`); light `orange-strong` is `#C2410C`. Contrast pairs are guarded by `src/theme/contrast.test.ts`.
+- **Font sizes** add the §3 roles: `large-title`, `title`, `section`, `stat`.
+- **Radius** `sm 6px / md 9px / lg 14px`; **shadow** `card` / `pop` exactly as §4.
 
-Load Inter via `@fontsource/inter` (self-hosted, no external request at runtime — preferable to a Google Fonts `<link>` for a Vite app) with weights 400/500/600/700/800. Apply `tabular-nums` via Tailwind's `tabular-nums` utility (built in) on every numeric column and stat tile.
+Inter is self-hosted via `@fontsource/inter` (weights 400/500/600/700/800). Use Tailwind's `tabular-nums` on every numeric column and stat tile.
 
 ## 9. Open items / deferred
 
-- **Dark mode** — fully specified (Artifact + Section 2.3) but not required for MVP; ship light-only first, add the `dark:` variant pass once the light UI is stable.
-- **Icon set** — Lucide recommended (Section 5) but not yet installed/verified against every icon the final screens need.
-- **Destructive button, error input state** — specified here to cover real app needs (player deletion, license-number validation per the app design spec's data model) that the source concept image didn't depict.
+- ~~Dark mode~~ — shipped via CSS-variable tokens (Section 2.3).
+- ~~Icon set~~ — `lucide-react` is installed and used throughout.
+- **Destructive button, error input state** — specified here to cover real app needs (player deletion, license-number validation per the app design spec's data model) that the source concept image didn't depict. Shipped as `Button` variants `destructive` / `dangerGhost`.

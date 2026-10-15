@@ -174,7 +174,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
                 const was = entry ? roles[entry.playerId] : null;
                 return (
                   <div key={zone} className="flex min-h-12 flex-col items-center justify-center rounded-sm bg-surface text-xs">
-                    <span className="text-[10px] text-slate">P{zone + 1}</span>
+                    <span className="text-[11px] text-slate">P{zone + 1}</span>
                     {entry ? (
                       <>
                         <span className="font-bold tabular-nums text-ink">#{entry.number}</span>

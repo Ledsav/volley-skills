@@ -23,13 +23,15 @@ import {
 } from './trainingsImport';
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import { TrainingViewSheet } from './TrainingViewSheet';
+import { useNotify } from '../components/Notice';
+import { PageHeader } from '../layout/PageHeader';
 
 export function TrainingsPage() {
   usePageMeta({ title: 'Trainings' });
   const [searchParams] = useSearchParams();
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const notify = useNotify();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -100,27 +102,30 @@ export function TrainingsPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Trainings</h1>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setShowImport(true)}
-          >
-            Import
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setDialog({ mode: 'new' })}
-          >
-            New training
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Trainings"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowImport(true)}
+            >
+              Import
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setDialog({ mode: 'new' })}
+            >
+              New training
+            </Button>
+          </>
+        }
+        className="mb-4"
+      />
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="w-full sm:w-auto">
@@ -154,7 +159,6 @@ export function TrainingsPage() {
         </p>
       )}
 
-      {notice && <p className="mb-4 text-sm text-green-strong">{notice}</p>}
 
       {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
           one bordered container with hairline dividers between rows. */}
@@ -259,8 +263,7 @@ export function TrainingsPage() {
           onClose={() => setShowImport(false)}
           onImported={(n) => {
             setShowImport(false);
-            setNotice(`Imported ${n} training${n === 1 ? '' : 's'}.`);
-            window.setTimeout(() => setNotice(null), 4000);
+            notify(`Imported ${n} training${n === 1 ? '' : 's'}.`);
             void load();
           }}
         />

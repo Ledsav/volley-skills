@@ -54,6 +54,12 @@
   body {
     @apply bg-bg font-sans text-ink;
   }
+  /* One keyboard-focus look everywhere, matching Button's ring, for the custom
+     controls (calendar cells, chips, toolbar icons) that don't set their own. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-blue));
+    outline-offset: 2px;
+  }
 }
 
 @media print {

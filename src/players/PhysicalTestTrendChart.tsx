@@ -73,22 +73,22 @@ export function PhysicalTestTrendChart({ series }: PhysicalTestTrendChartProps) 
           />
         ))}
         {showMaxLabel && (
-          <text x={xFor(maxIndex)} y={yFor(max) - 8} textAnchor={anchorForIndex(maxIndex)} className="fill-slate text-[9px]">
+          <text x={xFor(maxIndex)} y={yFor(max) - 8} textAnchor={anchorForIndex(maxIndex)} className="fill-slate text-[11px]">
             {max} {unit}
           </text>
         )}
         {showMinLabel && (
-          <text x={xFor(minIndex)} y={yFor(min) + 14} textAnchor={anchorForIndex(minIndex)} className="fill-slate text-[9px]">
+          <text x={xFor(minIndex)} y={yFor(min) + 14} textAnchor={anchorForIndex(minIndex)} className="fill-slate text-[11px]">
             {min} {unit}
           </text>
         )}
-        <text x={xFor(lastIndex)} y={yFor(latest.value) - 8} textAnchor="end" className="fill-ink text-[10px] font-medium">
+        <text x={xFor(lastIndex)} y={yFor(latest.value) - 8} textAnchor="end" className="fill-ink text-[11px] font-medium">
           {latest.value} {unit}
         </text>
-        <text x={PAD_X} y={HEIGHT - 6} textAnchor="start" className="fill-slate text-[9px]">
+        <text x={PAD_X} y={HEIGHT - 6} textAnchor="start" className="fill-slate text-[11px]">
           {points[0].date}
         </text>
-        <text x={WIDTH - PAD_X} y={HEIGHT - 6} textAnchor="end" className="fill-slate text-[9px]">
+        <text x={WIDTH - PAD_X} y={HEIGHT - 6} textAnchor="end" className="fill-slate text-[11px]">
           {latest.date}
         </text>
       </svg>

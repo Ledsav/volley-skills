@@ -52,6 +52,19 @@ export function gatedArt(
   return { photo: ok ? photos.get(key) ?? null : null, cutout: ok ? cutouts.get(key) ?? null : null, background };
 }
 
+/**
+ * Photos are added per award but belong to the player who won it at that moment: if the coach
+ * later picks someone else, the old face must not appear under the new name.
+ */
+export function photosForWinners<T>(awards: ResolvedAward[], images: Map<string, T>, owners: Map<string, string>): Map<string, T> {
+  const out = new Map<string, T>();
+  for (const a of awards) {
+    const img = images.get(a.key);
+    if (img && a.winner && owners.get(a.key) === a.winner.playerId) out.set(a.key, img);
+  }
+  return out;
+}
+
 const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function AwardsPage({ scope }: { scope: AwardScope }) {
@@ -72,6 +85,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const dirty = useRef(false);
   const configRef = useRef<AwardsInput>(EMPTY_AWARDS);
   const photosRef = useRef(photos);
+  const photoOwners = useRef(new Map<string, string>()); // award key → player the photo was added for
   const cutoutsRef = useRef(cutouts);
   const backgroundRef = useRef<HTMLCanvasElement | null>(null);
   const saveSeq = useRef(0);
@@ -169,7 +183,9 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   }, [ready, nameStyle, heading]);
 
   const allowed = useMemo(() => photoAllowedKeys(awards, ready?.consented ?? NO_CONSENT), [awards, ready]);
-  const artFor = useCallback((key: string) => gatedArt(key, allowed, photos, cutouts, background), [allowed, photos, cutouts, background]);
+  const livePhotos = useMemo(() => photosForWinners(awards, photos, photoOwners.current), [awards, photos]);
+  const liveCutouts = useMemo(() => photosForWinners(awards, cutouts, photoOwners.current), [awards, cutouts]);
+  const artFor = useCallback((key: string) => gatedArt(key, allowed, livePhotos, liveCutouts, background), [allowed, livePhotos, liveCutouts, background]);
 
   const cards = useMemo(
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
@@ -293,7 +309,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     <AwardsPrepare
       heading={heading}
       photoAllowed={(k) => allowed.has(k)}
-      cutouts={cutouts}
+      cutouts={liveCutouts}
       onCutout={onCutout}
       awards={awards}
       people={[...ready.people.values()].sort((a, b) => Number(b.current) - Number(a.current) || (a.number ?? 999) - (b.number ?? 999))}
@@ -328,8 +344,10 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
           swap(c);
         }).catch(() => setNotice('Could not load that background image.'));
       }}
-      photos={photos}
+      photos={livePhotos}
       onPhoto={(key, img) => {
+        const winner = awards.find((a) => a.key === key)?.winner;
+        if (img && winner) photoOwners.current.set(key, winner.playerId); else photoOwners.current.delete(key);
         const next = new Map(photosRef.current);
         const old = next.get(key);
         if (img) next.set(key, img); else next.delete(key);

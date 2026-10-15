@@ -8,7 +8,7 @@ import * as matchesApi from '../matches/matchesApi';
 import * as exportCards from './exportCards';
 import * as awardsApi from './awardsApi';
 import { finished, player } from './testMatches';
-import AwardsPage, { gatedArt, photoAllowedKeys } from './AwardsPage';
+import AwardsPage, { gatedArt, photoAllowedKeys, photosForWinners } from './AwardsPage';
 import type { ResolvedAward } from './resolveAwards';
 import type { Player } from '../types/player';
 
@@ -187,5 +187,17 @@ describe('gatedArt', () => {
     expect(gatedArt('mvp', new Set(['mvp']), photos, cutouts, null)).toEqual({ photo, cutout: cut, background: null });
     // the MVP winner was changed to a player without consent → mvp is no longer in the allowed set
     expect(gatedArt('mvp', new Set(), photos, cutouts, null)).toEqual({ photo: null, cutout: null, background: null });
+  });
+});
+
+describe('photosForWinners', () => {
+  const award = (key: string, playerId: string | null) => ({ key, winner: playerId ? { playerId, name: '', number: null, current: true } : null }) as unknown as ResolvedAward;
+  const photo = document.createElement('canvas');
+  it('keeps a photo only while its award is still won by the player it was added for', () => {
+    const owners = new Map([['mvp', 'a']]);
+    expect(photosForWinners([award('mvp', 'a')], new Map([['mvp', photo]]), owners).get('mvp')).toBe(photo);
+    // the coach switched the MVP to another player who also has consent
+    expect(photosForWinners([award('mvp', 'c')], new Map([['mvp', photo]]), owners).has('mvp')).toBe(false);
+    expect(photosForWinners([award('mvp', null)], new Map([['mvp', photo]]), owners).has('mvp')).toBe(false);
   });
 });

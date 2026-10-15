@@ -4,6 +4,7 @@ import { GRADES, SKILLS, type Match, type MatchReportData } from '../../types/ma
 import { fmtEff, fmtPct, playerLabel, rosterMap } from '../format';
 import { SKILL_LABELS } from '../skillGrades';
 import { GRADE_CLASS } from '../scout/gradeStyles';
+import { isManyErrors, isWeakAttack, isWeakReception, weakClass } from '../statFlags';
 
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
@@ -100,9 +101,11 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
                         </td>
                       );
                     })}
-                    <td className="px-2">{fmtEff(p.attackEff)}</td>
-                    <td className="px-2">{fmtPct(p.receptionPos)}</td>
-                    <td className="px-2">{p.points} / {p.errors}</td>
+                    <td className={`px-2 ${weakClass(isWeakAttack(p.attackEff))}`}>{fmtEff(p.attackEff)}</td>
+                    <td className={`px-2 ${weakClass(isWeakReception(p.receptionPos))}`}>{fmtPct(p.receptionPos)}</td>
+                    <td className="px-2">
+                      <span className="text-green-strong">{p.points}</span> / <span className={weakClass(isManyErrors(p.errors))}>{p.errors}</span>
+                    </td>
                   </tr>
                 );
               })}

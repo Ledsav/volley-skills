@@ -28,6 +28,8 @@ export interface AwardsPrepareProps {
   includeStory: boolean; onIncludeStory: (on: boolean) => void; storyLabel: string;
   colorsFor: (key: string) => SlideColors;
   photoAllowed: (key: string) => boolean;
+  cutouts: Map<string, HTMLCanvasElement>;
+  onCutout: (key: string, on: boolean) => Promise<void>;
   notice?: string | null;
   artFor: (key: string) => CardArt;
   hasBackground: boolean; onBackground: (file: File | null) => void;
@@ -51,6 +53,8 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
   const byId = new Map(people.map((p) => [p.playerId, p]));
   const who = (id: string) => byId.get(id) ?? unknown(id);
   const [editing, setEditing] = useState<Palette | 'new' | null>(null);
+  const [cutting, setCutting] = useState<string | null>(null);
+  const [cutError, setCutError] = useState<string | null>(null);
   const palette = selectedPalette(props.palettePrefs);
   const isCustom = props.palettePrefs.custom.some((p) => p.id === palette.id);
   const { cardFor } = props;
@@ -151,6 +155,19 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
                           <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFor({ key: a.key, file: f }); e.target.value = ''; }} />
                         </label>
                         {photo && <Button variant="ghost" size="sm" onClick={() => props.onPhoto(a.key, null)}>Remove photo</Button>}
+                        {photo && (props.cutouts.has(a.key) ? (
+                          <Button variant="ghost" size="sm" onClick={() => void props.onCutout(a.key, false)}>Use original</Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" disabled={cutting !== null} onClick={() => {
+                            setCutting(a.key);
+                            setCutError(null);
+                            props.onCutout(a.key, true)
+                              .catch(() => setCutError(a.key))
+                              .finally(() => setCutting(null));
+                          }}>Remove background</Button>
+                        ))}
+                        {cutting === a.key && <span role="status" className="text-sm text-slate">Preparing on this device…</span>}
+                        {cutError === a.key && <p role="alert" className="w-full text-sm text-red-strong">Could not remove the background. The original photo is kept.</p>}
                       </>
                     ) : (
                       a.winner && <p className="text-xs text-slate">No photo consent on file — the card shows the jersey number.</p>

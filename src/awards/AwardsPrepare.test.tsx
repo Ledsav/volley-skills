@@ -17,7 +17,7 @@ function setup(over: Partial<AwardsPrepareProps> = {}) {
   const props: AwardsPrepareProps = {
     heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
     nameStyle: 'firstInitial', onNameStyle: vi.fn(), palettePrefs: { selectedId: 'navy', custom: [] }, onPalettePrefs: vi.fn(),
-    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0), photoAllowed: () => true,
+    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0), photoAllowed: () => true, cutouts: new Map(), onCutout: vi.fn().mockResolvedValue(undefined),
     hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, cutout: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
     onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
   };
@@ -114,5 +114,14 @@ describe('AwardsPrepare', () => {
     setup({ photoAllowed: () => false });
     expect(screen.getAllByText('No photo consent on file — the card shows the jersey number.').length).toBeGreaterThan(0);
     expect(screen.queryByText('Add photo')).not.toBeInTheDocument();
+  });
+
+  it('offers background removal for a consented photo and shows progress, then an error on failure', async () => {
+    const onCutout = vi.fn().mockRejectedValue(new Error('x'));
+    setup({ photos: new Map([['attacker', document.createElement('canvas')]]), onCutout });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove background' }));
+    expect(screen.getByText('Preparing on this device…')).toBeInTheDocument();
+    expect(await screen.findByText('Could not remove the background. The original photo is kept.')).toBeInTheDocument();
+    expect(onCutout).toHaveBeenCalledWith('attacker', true);
   });
 });

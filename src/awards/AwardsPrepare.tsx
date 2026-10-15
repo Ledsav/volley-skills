@@ -27,6 +27,7 @@ export interface AwardsPrepareProps {
   palettePrefs: PalettePrefs; onPalettePrefs: (p: PalettePrefs) => void;
   includeStory: boolean; onIncludeStory: (on: boolean) => void; storyLabel: string;
   colorsFor: (key: string) => SlideColors;
+  photoAllowed: (key: string) => boolean;
   notice?: string | null;
   artFor: (key: string) => CardArt;
   hasBackground: boolean; onBackground: (file: File | null) => void;
@@ -143,11 +144,17 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
                     )}
                     <Button variant="ghost" size="sm" aria-label={`Move ${a.title} up`} disabled={i === 0} onClick={() => onAction({ type: 'move', key: a.key, dir: -1 })}><ArrowUp size={16} aria-hidden="true" /></Button>
                     <Button variant="ghost" size="sm" aria-label={`Move ${a.title} down`} disabled={i === awards.length - 1} onClick={() => onAction({ type: 'move', key: a.key, dir: 1 })}><ArrowDown size={16} aria-hidden="true" /></Button>
-                    <label className="inline-flex cursor-pointer items-center gap-1 text-sm text-blue">
-                      <ImagePlus size={16} aria-hidden="true" /> {photo ? 'Change photo' : 'Add photo'}
-                      <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFor({ key: a.key, file: f }); e.target.value = ''; }} />
-                    </label>
-                    {photo && <Button variant="ghost" size="sm" onClick={() => props.onPhoto(a.key, null)}>Remove photo</Button>}
+                    {props.photoAllowed(a.key) ? (
+                      <>
+                        <label className="inline-flex cursor-pointer items-center gap-1 text-sm text-blue">
+                          <ImagePlus size={16} aria-hidden="true" /> {photo ? 'Change photo' : 'Add photo'}
+                          <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFor({ key: a.key, file: f }); e.target.value = ''; }} />
+                        </label>
+                        {photo && <Button variant="ghost" size="sm" onClick={() => props.onPhoto(a.key, null)}>Remove photo</Button>}
+                      </>
+                    ) : (
+                      a.winner && <p className="text-xs text-slate">No photo consent on file — the card shows the jersey number.</p>
+                    )}
                     {card && <Button variant="ghost" size="sm" onClick={() => props.onExportOne(a.key)}><Download size={16} aria-hidden="true" /> PNG</Button>}
                     {a.kind === 'custom' && <Button variant="dangerGhost" size="sm" onClick={() => onAction({ type: 'removeCustom', key: a.key })}>Remove</Button>}
                   </div>

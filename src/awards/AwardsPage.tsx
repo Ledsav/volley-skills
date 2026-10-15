@@ -29,13 +29,14 @@ import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exp
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
 import { fitSize, loadImageFile } from './photo';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
+import { ageFromDob } from '../players/age';
 
 type Load =
   | { state: 'loading' }
   | { state: 'notFound' }
   | { state: 'notFinished' }
   | { state: 'error' }
-  | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person>; consented: Set<string> };
+  | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person>; consented: Set<string>; adults: Set<string> };
 
 const NO_CONSENT = new Set<string>();
 
@@ -63,6 +64,14 @@ export function photosForWinners<T>(awards: ResolvedAward[], images: Map<string,
     if (img && a.winner && owners.get(a.key) === a.winner.playerId) out.set(a.key, img);
   }
   return out;
+}
+
+/**
+ * Whether an export of these awards shows a minor: any winner who is not a known adult.
+ * A missing date of birth or a former player counts as a possible minor (warn rather than not).
+ */
+export function exportIncludesMinors(keys: string[], awards: ResolvedAward[], adults: Set<string>): boolean {
+  return awards.some((a) => keys.includes(a.key) && a.winner !== null && !adults.has(a.winner.playerId));
 }
 
 const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -120,7 +129,8 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         const initial = (scope === 'match' ? match!.awards : saved) ?? EMPTY_AWARDS;
         configRef.current = initial;
         setConfig(initial);
-        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster), consented: new Set(roster.filter((p) => p.consent?.given).map((p) => p.id)) });
+        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster), consented: new Set(roster.filter((p) => p.consent?.given).map((p) => p.id)),
+          adults: new Set(roster.filter((p) => (ageFromDob(p.dob ?? '') ?? 0) >= 18).map((p) => p.id)) });
       } catch (e) {
         if (!cancelled) setLoad({ state: isNotFoundError(e) ? 'notFound' : 'error' });
       }
@@ -226,13 +236,15 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     setCutouts(next);
   }, [dropCutout]);
 
-  // The first share in a browser session asks the coach to confirm (images of minors).
+  // The first share of minors' images in a browser session asks the coach to confirm.
+  // Exports that only show adults go straight through.
   const [pendingShare, setPendingShare] = useState<(() => void) | null>(null);
-  const guardShare = (run: () => Promise<void>) => {
+  const guardShare = (keys: string[], run: () => Promise<void>) => {
     const go = () => void run();
-    if (needsShareWarning()) setPendingShare(() => go);
+    if (ready && exportIncludesMinors(keys, awards, ready.adults) && needsShareWarning()) setPendingShare(() => go);
     else go();
   };
+  const allKeys = () => revealable(awards).map((a) => a.key);
 
   const fileCtx = (r: Extract<Load, { state: 'ready' }>) =>
     scope === 'match' ? { kind: 'match' as const, date: r.match!.date, opponent: r.match!.opponent } : { kind: 'season' as const, season: r.team.season };
@@ -371,10 +383,10 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         setConfig(next);
       }}
       onPresent={() => setMode('present')}
-      onExportAll={() => guardShare(() => exportKeys(revealable(awards).map((a) => a.key)))}
-      onExportOne={(key) => guardShare(() => exportKeys([key]))}
-      onExportSummary={() => guardShare(exportSummary)}
-      onRecordVideo={() => guardShare(recordVideo)}
+      onExportAll={() => guardShare(allKeys(), () => exportKeys(allKeys()))}
+      onExportOne={(key) => guardShare([key], () => exportKeys([key]))}
+      onExportSummary={() => guardShare(allKeys(), exportSummary)}
+      onRecordVideo={() => guardShare(allKeys(), recordVideo)}
       videoAvailable={videoSupported()}
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />

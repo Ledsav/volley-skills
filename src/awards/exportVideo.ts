@@ -53,12 +53,14 @@ export async function recordStory(slides: Slide[], deps: StoryDeps, opts: { sign
   return new Promise<Blob>((resolve, reject) => {
     let raf = 0;
     let aborted = false;
+    let failure: unknown = null;
     recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     recorder.onstop = () => {
       cancelAnimationFrame(raf);
       stream.getTracks().forEach((t) => t.stop());
       canvas.width = 0;
-      if (aborted) reject(new DOMException('Recording cancelled', 'AbortError'));
+      if (failure) reject(failure);
+      else if (aborted) reject(new DOMException('Recording cancelled', 'AbortError'));
       else resolve(new Blob(chunks, { type: mime.split(';')[0] }));
     };
     opts.signal.addEventListener('abort', () => { aborted = true; if (recorder.state !== 'inactive') recorder.stop(); }, { once: true });
@@ -66,6 +68,15 @@ export async function recordStory(slides: Slide[], deps: StoryDeps, opts: { sign
     const start = performance.now();
     let last = -1;
     const frame = (now: number) => {
+      try {
+        draw(now);
+      } catch (e) {
+        // e.g. an image released mid-recording: stop cleanly instead of leaving the recorder running
+        failure = e;
+        if (recorder.state !== 'inactive') recorder.stop();
+      }
+    };
+    const draw = (now: number) => {
       const ms = now - start;
       const { index, elapsed } = tl.at(ms);
       ctx.setTransform(1, 0, 0, 1, 0, 0);

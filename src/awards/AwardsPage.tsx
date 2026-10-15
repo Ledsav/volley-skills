@@ -248,20 +248,27 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     }
   }
 
-  const [recording, setRecording] = useState<{ progress: number; ctrl: AbortController } | null>(null);
+  // `video` is set once recording finishes: sharing then needs a fresh tap, because the browser's
+  // share sheet only opens right after a user gesture (a 30–90 s recording outlives the original one).
+  const [recording, setRecording] = useState<{ progress: number; ctrl: AbortController; video: File | null } | null>(null);
+  const recordingCtrl = useRef<AbortController | null>(null);
+  useEffect(() => () => recordingCtrl.current?.abort(), []); // leaving the page stops the recorder
+
   async function recordVideo() {
     if (!ready) return;
     setNotice(null);
     const ctrl = new AbortController();
-    setRecording({ progress: 0, ctrl });
+    recordingCtrl.current = ctrl;
+    setRecording({ progress: 0, ctrl, video: null });
     try {
       const blob = await recordStory(slides, deps, { signal: ctrl.signal, onProgress: (p) => setRecording((r) => (r ? { ...r, progress: p } : r)) });
       const name = cardFileName('story', fileCtx(ready)).replace(/\.png$/, `.${videoExtension(blob.type)}`);
-      await shareOrDownload([new File([blob], name, { type: blob.type })], heading);
+      setRecording((r) => (r ? { ...r, progress: 1, video: new File([blob], name, { type: blob.type }) } : r));
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setNotice('Could not record the video. Please try again.');
-    } finally {
       setRecording(null);
+    } finally {
+      recordingCtrl.current = null;
     }
   }
 
@@ -371,11 +378,26 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       videoAvailable={videoSupported()}
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />
-    {recording && (
+    {recording && !recording.video && (
       <Dialog title="Recording video" onClose={() => recording.ctrl.abort()}
         footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>Cancel</Button>}>
         <p className="text-sm text-slate">Playing the story once on this device. Keep this tab open.</p>
         <progress className="mt-3 w-full" max={1} value={recording.progress} aria-label="Recording progress" />
+      </Dialog>
+    )}
+    {recording?.video && (
+      <Dialog title="Video ready" onClose={() => setRecording(null)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRecording(null)}>Close</Button>
+            <Button variant="primary" onClick={() => {
+              const file = recording.video!;
+              setRecording(null);
+              void shareOrDownload([file], heading).catch(() => setNotice('Could not share the video. Please try again.'));
+            }}>Share video</Button>
+          </div>
+        }>
+        <p className="text-sm text-slate">The video is ready on this device. Share it with the team, or close to discard it.</p>
       </Dialog>
     )}
     {pendingShare && (

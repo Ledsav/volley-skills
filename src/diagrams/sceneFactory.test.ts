@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloneItemAt, createItem, emptyScene, newId } from './sceneFactory';
+import { cloneItemAt, createItem, emptyScene, newId, sceneAsDiagram } from './sceneFactory';
 import { parseScene } from './parseScene';
 import type { DiagramItemType } from '../types/diagram';
 
@@ -109,5 +109,12 @@ describe('cloneItemAt', () => {
       expect(arrow.from.x).not.toBe(999);
       expect(arrow.to.y).not.toBe(-999);
     }
+  });
+});
+
+describe('sceneAsDiagram', () => {
+  it('wraps an unsaved scene so diagram viewers can render it', () => {
+    const scene = emptyScene('half');
+    expect(sceneAsDiagram('d1', scene)).toEqual({ id: 'd1', title: 'AI draft', order: 0, scene, updatedBy: '', updatedAt: null });
   });
 });

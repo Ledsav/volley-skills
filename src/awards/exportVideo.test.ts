@@ -47,4 +47,22 @@ describe('exportVideo', () => {
     await expect(p).rejects.toMatchObject({ name: 'AbortError' });
     expect(stop).toHaveBeenCalled();
   });
+
+  it('a drawing error mid-recording stops the recorder and rejects', async () => {
+    const stop = vi.fn();
+    class FakeRecorder {
+      static isTypeSupported = () => true;
+      state = 'recording';
+      ondataavailable: ((e: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      start() {}
+      stop() { stop(); this.state = 'inactive'; this.onstop?.(); }
+    }
+    vi.stubGlobal('MediaRecorder', FakeRecorder);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ setTransform() { throw new Error('canvas gone'); } } as unknown as CanvasRenderingContext2D);
+    (HTMLCanvasElement.prototype as unknown as { captureStream: () => MediaStream }).captureStream = () => ({ getTracks: () => [] }) as unknown as MediaStream;
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { setTimeout(() => cb(performance.now()), 0); return 1; });
+    await expect(recordStory(slides, deps, { signal: new AbortController().signal, onProgress: () => {} })).rejects.toThrow('canvas gone');
+    expect(stop).toHaveBeenCalled();
+  });
 });

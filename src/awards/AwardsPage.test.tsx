@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue } from '../test/authValue';
@@ -23,6 +23,13 @@ vi.mock('./exportCards', async (orig) => ({
   ...(await orig<typeof import('./exportCards')>()),
   ensureCardFonts: vi.fn().mockResolvedValue(undefined),
   renderPng: vi.fn(),
+  shareOrDownload: vi.fn().mockResolvedValue('shared'),
+}));
+const recordStoryMock = vi.hoisted(() => vi.fn());
+vi.mock('./exportVideo', async (orig) => ({
+  ...(await orig<typeof import('./exportVideo')>()),
+  videoSupported: () => true,
+  recordStory: (...a: unknown[]) => recordStoryMock(...a),
 }));
 let nextCrop: HTMLCanvasElement[] = [];
 vi.mock('./PhotoCropDialog', () => ({
@@ -145,6 +152,34 @@ describe('AwardsPage', () => {
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('Share them only within the team');
     fireEvent.click(screen.getByRole('button', { name: 'Share' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not export');
+  });
+
+  async function startRecording() {
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Record video/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Share' })); // minors' images warning
+  }
+
+  it('leaving the page stops a running recording', async () => {
+    let signal: AbortSignal | null = null;
+    recordStoryMock.mockImplementation((_s: unknown, _d: unknown, o: { signal: AbortSignal }) => { signal = o.signal; return new Promise(() => {}); });
+    const { unmount } = { unmount: () => cleanup() };
+    await startRecording();
+    expect(await screen.findByText('Recording video')).toBeInTheDocument();
+    unmount();
+    expect(signal!.aborted).toBe(true);
+  });
+
+  it('shares the finished video only on a fresh tap', async () => {
+    recordStoryMock.mockResolvedValue(new Blob(['v'], { type: 'video/mp4' }));
+    await startRecording();
+    const share = await screen.findByRole('button', { name: 'Share video' });
+    expect(exportCards.shareOrDownload).not.toHaveBeenCalled();
+    fireEvent.click(share);
+    await flush();
+    expect(exportCards.shareOrDownload).toHaveBeenCalledWith([expect.any(File)], expect.any(String));
   });
 
   it('match: unfinished match shows a message', async () => {

@@ -58,12 +58,27 @@ describe('ExerciseDraftDialog', () => {
     expect(exercisesApi.createExercise).toHaveBeenCalledWith(expect.objectContaining({ name: 'Alpha' }), 'coach');
   });
 
+  it('locks proposals already added by a failed save, so later edits are never silently lost', async () => {
+    vi.mocked(exercisesApi.createExercise).mockResolvedValueOnce('id-1').mockRejectedValueOnce(new Error('net'));
+    const { onSaved } = renderDialog();
+    await generate();
+    fireEvent.click(screen.getByRole('button', { name: 'Save 2 kept' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Already added: Alpha.');
+    expect(screen.getByText('Added to library')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit Alpha' })).toBeDisabled();
+    expect(screen.getByLabelText('Keep Alpha')).toBeDisabled();
+    vi.mocked(exercisesApi.createExercise).mockResolvedValueOnce('id-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Save 1 kept' }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(2));
+    expect(exercisesApi.createExercise).toHaveBeenCalledTimes(3);
+  });
+
   it('lets the coach edit a proposal before saving', async () => {
     const { onSaved } = renderDialog();
     await generate();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alpha renamed' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done editing Alpha renamed' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save 2 kept' }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(2));
     expect(exercisesApi.createExercise).toHaveBeenCalledWith(expect.objectContaining({ name: 'Alpha renamed' }), 'coach');

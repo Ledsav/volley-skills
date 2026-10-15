@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ResolvedAward } from './resolveAwards';
 import { AwardsPrepare, type AwardsPrepareProps } from './AwardsPrepare';
+import { PRESET_PALETTES, slideColors } from './palette';
 
 const ana = { playerId: 'a', name: 'Ana Lopez', number: 7, current: true };
 const bea = { playerId: 'b', name: 'Bea Smit', number: 9, current: true };
@@ -15,7 +16,8 @@ const award = (over: Partial<ResolvedAward>): ResolvedAward => ({
 function setup(over: Partial<AwardsPrepareProps> = {}) {
   const props: AwardsPrepareProps = {
     heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
-    nameStyle: 'firstInitial', onNameStyle: vi.fn(), themePrefs: { presetId: 'navy', custom: null }, onThemePrefs: vi.fn(),
+    nameStyle: 'firstInitial', onNameStyle: vi.fn(), palettePrefs: { selectedId: 'navy', custom: [] }, onPalettePrefs: vi.fn(),
+    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0),
     hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, cutout: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
     onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
   };
@@ -87,5 +89,24 @@ describe('AwardsPrepare', () => {
     expect(screen.getByText('Offline — will sync')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Present/ }));
     expect(p.onPresent).toHaveBeenCalled();
+  });
+
+  it('switches palette and toggles the story', () => {
+    const p = setup();
+    fireEvent.change(screen.getByLabelText('Palette'), { target: { value: 'wrapped' } });
+    expect(p.onPalettePrefs).toHaveBeenCalledWith({ selectedId: 'wrapped', custom: [] });
+    fireEvent.click(screen.getByLabelText('Include season story'));
+    expect(p.onIncludeStory).toHaveBeenCalledWith(false);
+  });
+
+  it('saves a new custom palette and selects it', () => {
+    const p = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'New palette' }));
+    fireEvent.change(screen.getByLabelText('Palette name'), { target: { value: 'Mine' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save palette' }));
+    const calls = vi.mocked(p.onPalettePrefs).mock.calls;
+    const prefs = calls[calls.length - 1][0];
+    expect(prefs.custom).toHaveLength(1);
+    expect(prefs.selectedId).toBe(prefs.custom[0].id);
   });
 });

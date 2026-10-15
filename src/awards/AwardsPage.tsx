@@ -15,12 +15,11 @@ import { AwardsPrepare } from './AwardsPrepare';
 import { AwardsPresent } from './AwardsPresent';
 import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi';
 import { applyPrepareAction } from './awardsReducer';
-import { readThemePrefs, writeThemePrefs, type ThemePrefs } from './card/cardTheme';
 import { drawAwardCard, type CardArt, type CardModel } from './card/drawAwardCard';
-import { PRESET_PALETTES, slideColors } from './palette';
+import { readPalettePrefs, selectedPalette, slideColors, writePalettePrefs, type PalettePrefs } from './palette';
 import type { StoryDeps } from './card/drawSlide';
-import { buildStory } from './story/buildStory';
-import { readStoryPref } from './story/storyPref';
+import { buildStory, colorIndexForAward } from './story/buildStory';
+import { readStoryPref, writeStoryPref } from './story/storyPref';
 import { storyStats } from './story/storyStats';
 import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
@@ -45,7 +44,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'offline' | 'error'>('saved');
   const [mode, setMode] = useState<'prepare' | 'present'>('prepare');
   const [nameStyle, setNameStyle] = useState<NameStyle>(readNameStyle);
-  const [themePrefs, setThemePrefs] = useState<ThemePrefs>(readThemePrefs);
+  const [palettePrefs, setPalettePrefs] = useState<PalettePrefs>(readPalettePrefs);
   const [photos, setPhotos] = useState<Map<string, HTMLCanvasElement>>(new Map());
   const [background, setBackground] = useState<HTMLCanvasElement | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -153,13 +152,17 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
     [awards, cardFor],
   );
-  const [includeStory] = useState(readStoryPref); // setter added in Task 6
-  const palette = PRESET_PALETTES[0];              // replaced by the selected palette in Task 6
+  const [includeStory, setIncludeStory] = useState(readStoryPref);
+  const palette = useMemo(() => selectedPalette(palettePrefs), [palettePrefs]);
   const stats = useMemo(() => (ready ? storyStats(scope, ready.matches, ready.people) : []), [ready, scope]);
   const slides = useMemo(() => buildStory({
     introTitle: ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent}`) : '',
     teamName: ready?.team.name ?? '', stats, awardCount: cards.length, includeStory,
   }), [ready, scope, stats, cards.length, includeStory]);
+  const colorsFor = useCallback((key: string) => {
+    const i = cards.findIndex((c) => c.key === key);
+    return slideColors(palette, colorIndexForAward(slides, Math.max(0, i)));
+  }, [cards, palette, slides]);
   const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: ready?.team.club ?? '' }), [palette, cards, artFor, ready]);
 
   async function exportKeys(keys: string[]) {
@@ -177,7 +180,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     for (const a of awards.filter((x) => keys.includes(x.key))) {
       const card = cardFor(a);
       if (!card) continue;
-      const blob = await renderPng((ctx) => drawAwardCard(ctx, card, slideColors(PRESET_PALETTES[0], 0), artFor(a.key), 1));
+      const blob = await renderPng((ctx) => drawAwardCard(ctx, card, colorsFor(a.key), artFor(a.key), 1));
       const name = cardFileName(a.key, scope === 'match' ? { kind: 'match', date: ready.match!.date, opponent: ready.match!.opponent } : { kind: 'season', season: ready.team.season });
       files.push(new File([blob], name, { type: 'image/png' }));
     }
@@ -209,8 +212,12 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       saveState={saveState}
       nameStyle={nameStyle}
       onNameStyle={(s) => { setNameStyle(s); writeNameStyle(s); }}
-      themePrefs={themePrefs}
-      onThemePrefs={(p) => { setThemePrefs(p); writeThemePrefs(p); }}
+      palettePrefs={palettePrefs}
+      onPalettePrefs={(p) => { setPalettePrefs(p); writePalettePrefs(p); }}
+      includeStory={includeStory}
+      onIncludeStory={(on) => { setIncludeStory(on); writeStoryPref(on); }}
+      storyLabel={scope === 'season' ? 'Include season story' : 'Include match story'}
+      colorsFor={colorsFor}
       hasBackground={!!background}
       notice={notice}
       artFor={artFor}

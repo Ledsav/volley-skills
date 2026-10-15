@@ -185,3 +185,11 @@ The script prints the target project id (from the key file) before writing. Run 
 | `sectionAccess/guides` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/admin/guides` |
 | `skillGuide/config` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
 | `teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |
+
+## Men 1 (adult team)
+
+`npm run seed:men1` adds a "Men 1" senior team (fixed id `seed-men-1`) with 14 adult
+players to the running emulator. Adults give photo consent themselves, so consent is
+recorded as given — use it to try awards photos and background removal. Admin, club
+and season are copied from the team `seed.mjs` created (`--admin <email>` overrides).
+`npm run dev:emulator` runs it automatically.

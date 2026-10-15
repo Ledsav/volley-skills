@@ -190,6 +190,7 @@ The script prints the target project id (from the key file) before writing. Run 
 
 `npm run seed:men1` adds a "Men 1" senior team (fixed id `seed-men-1`) with 14 adult
 players to the running emulator. Adults give photo consent themselves, so consent is
-recorded as given — use it to try awards photos and background removal. Admin, club
+recorded as given — use it to try awards photos and background removal. It also
+seeds a season of matches for the team (`seedMatch.mjs --team seed-men-1`) and their summaries. Admin, club
 and season are copied from the team `seed.mjs` created (`--admin <email>` overrides).
 `npm run dev:emulator` runs it automatically.

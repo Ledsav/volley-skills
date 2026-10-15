@@ -5,6 +5,7 @@ import type { Person } from '../teams/stats/rosterIndex';
 import { CUSTOM_NOTE_MAX, CUSTOM_TITLE_MAX, MAX_CUSTOM_AWARDS } from '../types/awards';
 import { PRESETS, themeFromPrefs, type ThemePrefs } from './card/cardTheme';
 import type { CardArt, CardModel } from './card/drawAwardCard';
+import { PRESET_PALETTES, slideColors } from './palette';
 import { CardThumbnail } from './CardThumbnail';
 import { NAME_STYLE_LABELS, type NameStyle } from './nameStyle';
 import { PhotoCropDialog } from './PhotoCropDialog';
@@ -107,7 +108,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           return (
             <li key={a.key}>
               <section aria-labelledby={titleId} className={`flex flex-wrap gap-4 rounded-lg border border-border bg-surface p-4 shadow-card ${a.hidden ? 'opacity-60' : ''}`}>
-                {card && <CardThumbnail card={card} theme={theme} art={props.artFor(a.key)} />}
+                {card && <CardThumbnail card={card} colors={slideColors(PRESET_PALETTES[0], 0)} art={props.artFor(a.key)} />}
                 <div className="min-w-0 flex-1 space-y-2">
                   <h2 id={titleId} className="font-semibold text-ink">{a.title}</h2>
                   {a.kind === 'stats' ? (

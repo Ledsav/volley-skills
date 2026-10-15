@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Maximize, X } from 'lucide-react';
 import type { CardTheme } from './card/cardTheme';
 import { CARD_DURATION_MS } from './card/cardTimeline';
 import { CARD_H, CARD_W, drawAwardCard, drawTitleCard, type CardArt, type CardModel } from './card/drawAwardCard';
+import { PRESET_PALETTES, slideColors } from './palette';
 import { FIRST_STEP, nextStep, prevStep, type Step } from './presentSteps';
 
 interface PresentCard { key: string; title: string; model: CardModel }
@@ -98,11 +99,11 @@ export function AwardsPresent({ cards, theme, artFor, onExit }: { cards: Present
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (step.kind === 'reveal') {
         const t = reduced ? 1 : Math.min(1, elapsed / CARD_DURATION_MS);
-        drawAwardCard(ctx, card.model, theme, art, t, reduced);
+        drawAwardCard(ctx, card.model, slideColors(PRESET_PALETTES[0], step.index), art, t, reduced);
         if (t < 1) raf = requestAnimationFrame(frame);
       } else {
         const pulse = step.kind === 'suspense' && !reduced ? (elapsed % 1600) / 1600 : 0;
-        drawTitleCard(ctx, card.title, theme, art, pulse);
+        drawTitleCard(ctx, card.title, slideColors(PRESET_PALETTES[0], step.index), art, pulse);
         if (step.kind === 'suspense' && !reduced) raf = requestAnimationFrame(frame);
       }
     };

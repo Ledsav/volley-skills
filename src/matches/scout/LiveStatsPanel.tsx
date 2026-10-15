@@ -5,6 +5,7 @@ import { fmtEff, fmtPct, playerLabel } from '../format';
 import { SKILL_LABELS } from '../skillGrades';
 import type { MatchState } from '../scoutEngine';
 import { computeStats, liveAlerts } from '../scoutStats';
+import { isManyErrors, isWeakAttack, isWeakReception, weakClass } from '../statFlags';
 
 export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: Map<string, RosterEntry> }) {
   const [scope, setScope] = useState<'set' | 'match'>('set');
@@ -86,15 +87,15 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
                       </button>
                     </td>
                     <td className="px-2">{s ? `${s.attempts} · ${s.grades['#']}# ${s.grades['=']}=` : '—'}</td>
-                    <td className={`px-2 ${p.receptionPos !== null && p.receptionPos < 0.4 ? 'text-red' : ''}`}>
+                    <td className={`px-2 ${weakClass(isWeakReception(p.receptionPos))}`}>
                       {r ? `${r.attempts} · ${fmtPct(p.receptionPos)}` : '—'}
                     </td>
-                    <td className={`px-2 ${p.attackEff !== null && p.attackEff < 0 ? 'text-red' : ''}`}>
+                    <td className={`px-2 ${weakClass(isWeakAttack(p.attackEff))}`}>
                       {a ? `${a.grades['#']}/${a.attempts} ${fmtEff(p.attackEff)}` : '—'}
                     </td>
                     <td className="px-2">{p.skills.B ? `${p.skills.B.grades['#']}#` : '—'}</td>
                     <td className="px-2">
-                      <span className="text-green-strong">{p.points}</span> / <span className={p.errors >= 3 ? 'font-semibold text-red' : ''}>{p.errors}</span>
+                      <span className="text-green-strong">{p.points}</span> / <span className={weakClass(isManyErrors(p.errors))}>{p.errors}</span>
                       <div aria-hidden="true" data-testid={`trend-${p.playerId}`} className="mt-1 flex h-2 w-20 overflow-hidden rounded-full bg-border">
                         {total > 0 && (
                           <>

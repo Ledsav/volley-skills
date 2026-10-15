@@ -23,6 +23,7 @@ import { TeamMatchesTab } from '../matches/TeamMatchesTab';
 import { TeamPhysicalSessionTab } from '../physicalSessions/TeamPhysicalSessionTab';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
+import { useNotify } from '../components/Notice';
 
 const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
@@ -46,7 +47,7 @@ export function TeamPage() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
-  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const notify = useNotify();
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
   usePageMeta({ title: team?.name ?? 'Team' });
@@ -131,14 +132,12 @@ export function TeamPage() {
                 + Add player
               </Button>
             </div>
-            {importNotice && <p className="mb-4 text-sm text-green-strong">{importNotice}</p>}
             <TeamRosterTable
               key={rosterRefreshKey}
               teamId={teamId}
               onPlayersChange={setRosterPlayers}
               onRosterChanged={() => {
-                setImportNotice('Player removed.');
-                window.setTimeout(() => setImportNotice(null), 4000);
+                notify('Player removed.');
               }}
             />
           </>
@@ -199,10 +198,10 @@ export function TeamPage() {
           onClose={() => setShowImportPlayers(false)}
           onImported={(n) => {
             setShowImportPlayers(false);
-            setImportNotice(
-              `Imported ${n} player${n === 1 ? '' : 's'} with consent not given — confirm each one on their card.`
+            notify(
+              `Imported ${n} player${n === 1 ? '' : 's'} with consent not given — confirm each one on their card.`,
+              { durationMs: 6000 },
             );
-            window.setTimeout(() => setImportNotice(null), 6000);
             setRosterRefreshKey((k) => k + 1);
           }}
         />

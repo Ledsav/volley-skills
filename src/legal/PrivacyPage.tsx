@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 
 const OPERATOR_NAME = 'Alberto Valdes Rey';
 const DATA_REQUEST_CONTACT = 'alberto.valdes.rey.official@gmail.com';
-const LAST_UPDATED = '14 October 2026';
+const LAST_UPDATED = '15 October 2026';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -103,7 +103,7 @@ export function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="Text scouting (optional)">
+      <Section title="AI features (optional)">
         <p>
           If a coach enables text scouting, their typed match notes are sent to the AI provider they choose in
           Settings (Groq by default, OpenRouter, another compatible service, or a model running on their own computer
@@ -114,8 +114,19 @@ export function PrivacyPage() {
         <p>
           Player names are replaced by jersey numbers on the device before sending; only jersey numbers, playing
           roles, the set, score, serving side and rotation, and the notes are sent. Coaches are asked not to type
-          names (including opponents&apos;) or health details in the notes. The provider key and drafts are stored only
-          on that device and removed on sign-out.
+          names (including opponents&apos;) or health details in the notes. Drafts are stored only on that device
+          and removed on sign-out.
+        </p>
+        <p>
+          When a coach uses &quot;Draft with AI&quot; for exercises or trainings, their request text and the names,
+          categories and short descriptions of exercises in the club library are sent to the same provider. No
+          player, team, guardian or match data is sent. Coaches are asked not to type personal data in requests.
+        </p>
+        <p>
+          The provider key belongs to the coach&apos;s own account with that provider, and requests are made under
+          the coach&apos;s own agreement with it. The key is stored only on the coach&apos;s device — for the
+          browser session by default, or on that device if they choose to remember it — can be removed in Settings
+          at any time, and is removed on sign-out.
         </p>
       </Section>
 

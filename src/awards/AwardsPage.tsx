@@ -12,12 +12,20 @@ import { EMPTY_AWARDS, type AwardScope, type AwardsInput } from '../types/awards
 import type { Match } from '../types/match';
 import type { Team } from '../types/team';
 import { AwardsPrepare } from './AwardsPrepare';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Dialog } from '../components/Dialog';
+import { recordStory, videoExtension, videoSupported } from './exportVideo';
+import { markShareWarned, needsShareWarning } from './shareWarning';
 import { AwardsPresent } from './AwardsPresent';
 import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi';
 import { applyPrepareAction } from './awardsReducer';
-import { readThemePrefs, themeFromPrefs, writeThemePrefs, type ThemePrefs } from './card/cardTheme';
-import type { CardModel } from './card/drawAwardCard';
-import { cardFileName, ensureCardFonts, renderCardPng, shareOrDownload } from './exportCards';
+import { drawAwardCard, type CardArt, type CardModel } from './card/drawAwardCard';
+import { readPalettePrefs, selectedPalette, slideColors, writePalettePrefs, type PalettePrefs } from './palette';
+import { renderStoryFrame, type StoryDeps } from './card/drawSlide';
+import { buildStory, colorIndexForAward } from './story/buildStory';
+import { readStoryPref, writeStoryPref } from './story/storyPref';
+import { storyStats } from './story/storyStats';
+import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
 import { fitSize, loadImageFile } from './photo';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
@@ -27,7 +35,35 @@ type Load =
   | { state: 'notFound' }
   | { state: 'notFinished' }
   | { state: 'error' }
-  | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person> };
+  | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person>; consented: Set<string> };
+
+const NO_CONSENT = new Set<string>();
+
+/** Awards whose winner is a current player with photo consent; only these may carry a photo or cut-out. */
+export function photoAllowedKeys(awards: ResolvedAward[], consented: Set<string>): Set<string> {
+  return new Set(awards.filter((a) => a.winner && consented.has(a.winner.playerId)).map((a) => a.key));
+}
+
+/** Card art for one award: photo and cut-out only while the winner has photo consent. */
+export function gatedArt(
+  key: string, allowed: Set<string>, photos: Map<string, HTMLCanvasElement>, cutouts: Map<string, HTMLCanvasElement>, background: HTMLCanvasElement | null,
+): CardArt {
+  const ok = allowed.has(key);
+  return { photo: ok ? photos.get(key) ?? null : null, cutout: ok ? cutouts.get(key) ?? null : null, background };
+}
+
+/**
+ * Photos are added per award but belong to the player who won it at that moment: if the coach
+ * later picks someone else, the old face must not appear under the new name.
+ */
+export function photosForWinners<T>(awards: ResolvedAward[], images: Map<string, T>, owners: Map<string, string>): Map<string, T> {
+  const out = new Map<string, T>();
+  for (const a of awards) {
+    const img = images.get(a.key);
+    if (img && a.winner && owners.get(a.key) === a.winner.playerId) out.set(a.key, img);
+  }
+  return out;
+}
 
 const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -40,14 +76,17 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'offline' | 'error'>('saved');
   const [mode, setMode] = useState<'prepare' | 'present'>('prepare');
   const [nameStyle, setNameStyle] = useState<NameStyle>(readNameStyle);
-  const [themePrefs, setThemePrefs] = useState<ThemePrefs>(readThemePrefs);
+  const [palettePrefs, setPalettePrefs] = useState<PalettePrefs>(readPalettePrefs);
   const [photos, setPhotos] = useState<Map<string, HTMLCanvasElement>>(new Map());
+  const [cutouts, setCutouts] = useState<Map<string, HTMLCanvasElement>>(new Map());
   const [background, setBackground] = useState<HTMLCanvasElement | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const dirty = useRef(false);
   const configRef = useRef<AwardsInput>(EMPTY_AWARDS);
   const photosRef = useRef(photos);
+  const photoOwners = useRef(new Map<string, string>()); // award key → player the photo was added for
+  const cutoutsRef = useRef(cutouts);
   const backgroundRef = useRef<HTMLCanvasElement | null>(null);
   const saveSeq = useRef(0);
   const target = useRef({ scope, teamId, matchId, uid: firebaseUser?.uid ?? '' });
@@ -81,7 +120,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         const initial = (scope === 'match' ? match!.awards : saved) ?? EMPTY_AWARDS;
         configRef.current = initial;
         setConfig(initial);
-        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster) });
+        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster), consented: new Set(roster.filter((p) => p.consent?.given).map((p) => p.id)) });
       } catch (e) {
         if (!cancelled) setLoad({ state: isNotFoundError(e) ? 'notFound' : 'error' });
       }
@@ -124,6 +163,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   // Release in-memory images on leave only.
   useEffect(() => () => {
     photosRef.current.forEach((c) => { c.width = 0; });
+    cutoutsRef.current.forEach((c) => { c.width = 0; });
     if (backgroundRef.current) backgroundRef.current.width = 0;
   }, []);
 
@@ -132,7 +172,6 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     () => (ready ? resolveAwards(scope, ready.matches, config, ready.people) : []),
     [ready, scope, config],
   );
-  const theme = useMemo(() => themeFromPrefs(themePrefs), [themePrefs]);
   const heading = ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent} · ${fmtDate(ready.match!.date)}`) : '';
 
   const cardFor = useCallback((a: ResolvedAward): CardModel | null => {
@@ -143,12 +182,95 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     };
   }, [ready, nameStyle, heading]);
 
-  const artFor = useCallback((key: string) => ({ photo: photos.get(key) ?? null, background }), [photos, background]);
+  const allowed = useMemo(() => photoAllowedKeys(awards, ready?.consented ?? NO_CONSENT), [awards, ready]);
+  const livePhotos = useMemo(() => photosForWinners(awards, photos, photoOwners.current), [awards, photos]);
+  const liveCutouts = useMemo(() => photosForWinners(awards, cutouts, photoOwners.current), [awards, cutouts]);
+  const artFor = useCallback((key: string) => gatedArt(key, allowed, livePhotos, liveCutouts, background), [allowed, livePhotos, liveCutouts, background]);
 
   const cards = useMemo(
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
     [awards, cardFor],
   );
+  const [includeStory, setIncludeStory] = useState(readStoryPref);
+  const palette = useMemo(() => selectedPalette(palettePrefs), [palettePrefs]);
+  const stats = useMemo(() => (ready ? storyStats(scope, ready.matches, ready.people) : []), [ready, scope]);
+  const slides = useMemo(() => buildStory({
+    introTitle: ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent}`) : '',
+    teamName: ready?.team.name ?? '', stats, awardCount: cards.length, includeStory,
+  }), [ready, scope, stats, cards.length, includeStory]);
+  const colorsFor = useCallback((key: string) => {
+    const i = cards.findIndex((c) => c.key === key);
+    return slideColors(palette, colorIndexForAward(slides, Math.max(0, i)));
+  }, [cards, palette, slides]);
+  const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: ready?.team.club ?? '' }), [palette, cards, artFor, ready]);
+
+  const dropCutout = useCallback((key: string) => {
+    const next = new Map(cutoutsRef.current);
+    const old = next.get(key);
+    if (!old) return;
+    next.delete(key);
+    cutoutsRef.current = next;
+    setCutouts(next);
+    old.width = 0;
+  }, []);
+
+  const onCutout = useCallback(async (key: string, on: boolean) => {
+    if (!on) return dropCutout(key);
+    const photo = photosRef.current.get(key);
+    if (!photo) return;
+    const { removeBackground } = await import('./cutout/segment');
+    const cut = await removeBackground(photo); // rejects → the prepare screen shows the error, original kept
+    dropCutout(key);
+    const next = new Map(cutoutsRef.current).set(key, cut);
+    cutoutsRef.current = next;
+    setCutouts(next);
+  }, [dropCutout]);
+
+  // The first share in a browser session asks the coach to confirm (images of minors).
+  const [pendingShare, setPendingShare] = useState<(() => void) | null>(null);
+  const guardShare = (run: () => Promise<void>) => {
+    const go = () => void run();
+    if (needsShareWarning()) setPendingShare(() => go);
+    else go();
+  };
+
+  const fileCtx = (r: Extract<Load, { state: 'ready' }>) =>
+    scope === 'match' ? { kind: 'match' as const, date: r.match!.date, opponent: r.match!.opponent } : { kind: 'season' as const, season: r.team.season };
+
+  async function exportSummary() {
+    if (!ready) return;
+    setNotice(null);
+    try {
+      const blob = await renderPng((ctx) => { renderStoryFrame(ctx, slides, slides.length - 1, 1e9, deps, true, null); });
+      await shareOrDownload([new File([blob], cardFileName('summary', fileCtx(ready)), { type: 'image/png' })], heading);
+    } catch {
+      setNotice('Could not export the summary card. Please try again.');
+    }
+  }
+
+  // `video` is set once recording finishes: sharing then needs a fresh tap, because the browser's
+  // share sheet only opens right after a user gesture (a 30–90 s recording outlives the original one).
+  const [recording, setRecording] = useState<{ progress: number; ctrl: AbortController; video: File | null } | null>(null);
+  const recordingCtrl = useRef<AbortController | null>(null);
+  useEffect(() => () => recordingCtrl.current?.abort(), []); // leaving the page stops the recorder
+
+  async function recordVideo() {
+    if (!ready) return;
+    setNotice(null);
+    const ctrl = new AbortController();
+    recordingCtrl.current = ctrl;
+    setRecording({ progress: 0, ctrl, video: null });
+    try {
+      const blob = await recordStory(slides, deps, { signal: ctrl.signal, onProgress: (p) => setRecording((r) => (r ? { ...r, progress: p } : r)) });
+      const name = cardFileName('story', fileCtx(ready)).replace(/\.png$/, `.${videoExtension(blob.type)}`);
+      setRecording((r) => (r ? { ...r, progress: 1, video: new File([blob], name, { type: blob.type }) } : r));
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') setNotice('Could not record the video. Please try again.');
+      setRecording(null);
+    } finally {
+      recordingCtrl.current = null;
+    }
+  }
 
   async function exportKeys(keys: string[]) {
     if (!ready) return;
@@ -165,8 +287,8 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     for (const a of awards.filter((x) => keys.includes(x.key))) {
       const card = cardFor(a);
       if (!card) continue;
-      const blob = await renderCardPng(card, theme, artFor(a.key));
-      const name = cardFileName(a.key, scope === 'match' ? { kind: 'match', date: ready.match!.date, opponent: ready.match!.opponent } : { kind: 'season', season: ready.team.season });
+      const blob = await renderPng((ctx) => drawAwardCard(ctx, card, colorsFor(a.key), artFor(a.key), 1));
+      const name = cardFileName(a.key, fileCtx(ready));
       files.push(new File([blob], name, { type: 'image/png' }));
     }
     if (files.length) await shareOrDownload(files, heading);
@@ -186,19 +308,27 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   if (!ready) return null;
 
   if (mode === 'present') {
-    return <AwardsPresent cards={cards} theme={theme} artFor={artFor} onExit={() => setMode('prepare')} />;
+    return <AwardsPresent slides={slides} deps={deps} onExit={() => setMode('prepare')} />;
   }
 
   return (
+    <>
     <AwardsPrepare
       heading={heading}
+      photoAllowed={(k) => allowed.has(k)}
+      cutouts={liveCutouts}
+      onCutout={onCutout}
       awards={awards}
       people={[...ready.people.values()].sort((a, b) => Number(b.current) - Number(a.current) || (a.number ?? 999) - (b.number ?? 999))}
       saveState={saveState}
       nameStyle={nameStyle}
       onNameStyle={(s) => { setNameStyle(s); writeNameStyle(s); }}
-      themePrefs={themePrefs}
-      onThemePrefs={(p) => { setThemePrefs(p); writeThemePrefs(p); }}
+      palettePrefs={palettePrefs}
+      onPalettePrefs={(p) => { setPalettePrefs(p); writePalettePrefs(p); }}
+      includeStory={includeStory}
+      onIncludeStory={(on) => { setIncludeStory(on); writeStoryPref(on); }}
+      storyLabel={scope === 'season' ? 'Include season story' : 'Include match story'}
+      colorsFor={colorsFor}
       hasBackground={!!background}
       notice={notice}
       artFor={artFor}
@@ -221,14 +351,17 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
           swap(c);
         }).catch(() => setNotice('Could not load that background image.'));
       }}
-      photos={photos}
+      photos={livePhotos}
       onPhoto={(key, img) => {
+        const winner = awards.find((a) => a.key === key)?.winner;
+        if (img && winner) photoOwners.current.set(key, winner.playerId); else photoOwners.current.delete(key);
         const next = new Map(photosRef.current);
         const old = next.get(key);
         if (img) next.set(key, img); else next.delete(key);
         photosRef.current = next;
         setPhotos(next);
         if (old && old !== img) old.width = 0;
+        dropCutout(key); // a new or removed photo invalidates its cut-out
       }}
       cardFor={cardFor}
       onAction={(a) => {
@@ -238,9 +371,44 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         setConfig(next);
       }}
       onPresent={() => setMode('present')}
-      onExportAll={() => void exportKeys(revealable(awards).map((a) => a.key))}
-      onExportOne={(key) => void exportKeys([key])}
+      onExportAll={() => guardShare(() => exportKeys(revealable(awards).map((a) => a.key)))}
+      onExportOne={(key) => guardShare(() => exportKeys([key]))}
+      onExportSummary={() => guardShare(exportSummary)}
+      onRecordVideo={() => guardShare(recordVideo)}
+      videoAvailable={videoSupported()}
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />
+    {recording && !recording.video && (
+      <Dialog title="Recording video" onClose={() => recording.ctrl.abort()}
+        footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>Cancel</Button>}>
+        <p className="text-sm text-slate">Playing the story once on this device. Keep this tab open.</p>
+        <progress className="mt-3 w-full" max={1} value={recording.progress} aria-label="Recording progress" />
+      </Dialog>
+    )}
+    {recording?.video && (
+      <Dialog title="Video ready" onClose={() => setRecording(null)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRecording(null)}>Close</Button>
+            <Button variant="primary" onClick={() => {
+              const file = recording.video!;
+              setRecording(null);
+              void shareOrDownload([file], heading).catch(() => setNotice('Could not share the video. Please try again.'));
+            }}>Share video</Button>
+          </div>
+        }>
+        <p className="text-sm text-slate">The video is ready on this device. Share it with the team, or close to discard it.</p>
+      </Dialog>
+    )}
+    {pendingShare && (
+      <ConfirmDialog
+        title="Share award cards"
+        message="You're about to share images of minors. Share them only within the team."
+        confirmLabel="Share"
+        onCancel={() => setPendingShare(null)}
+        onConfirm={() => { markShareWarned(); const run = pendingShare; setPendingShare(null); run(); }}
+      />
+    )}
+    </>
   );
 }

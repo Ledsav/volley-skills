@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, ImagePlus, Play, Share2, X } from 'lucide-react';
 import { Button } from '../components/Button';
+import { Menu } from '../components/Menu';
 import type { Person } from '../teams/stats/rosterIndex';
 import { CUSTOM_NOTE_MAX, CUSTOM_TITLE_MAX, MAX_CUSTOM_AWARDS } from '../types/awards';
-import { PRESETS, themeFromPrefs, type ThemePrefs } from './card/cardTheme';
 import type { CardArt, CardModel } from './card/drawAwardCard';
+import { PRESET_PALETTES, selectedPalette, type Palette, type PalettePrefs, type SlideColors } from './palette';
+import { PaletteEditor } from './PaletteEditor';
 import { CardThumbnail } from './CardThumbnail';
 import { NAME_STYLE_LABELS, type NameStyle } from './nameStyle';
 import { PhotoCropDialog } from './PhotoCropDialog';
@@ -23,7 +25,12 @@ export interface AwardsPrepareProps {
   people: Person[];
   saveState: 'saved' | 'saving' | 'offline' | 'error';
   nameStyle: NameStyle; onNameStyle: (s: NameStyle) => void;
-  themePrefs: ThemePrefs; onThemePrefs: (p: ThemePrefs) => void;
+  palettePrefs: PalettePrefs; onPalettePrefs: (p: PalettePrefs) => void;
+  includeStory: boolean; onIncludeStory: (on: boolean) => void; storyLabel: string;
+  colorsFor: (key: string) => SlideColors;
+  photoAllowed: (key: string) => boolean;
+  cutouts: Map<string, HTMLCanvasElement>;
+  onCutout: (key: string, on: boolean) => Promise<void>;
   notice?: string | null;
   artFor: (key: string) => CardArt;
   hasBackground: boolean; onBackground: (file: File | null) => void;
@@ -31,7 +38,7 @@ export interface AwardsPrepareProps {
   onPhoto: (key: string, img: HTMLCanvasElement | null) => void;
   cardFor: (a: ResolvedAward) => CardModel | null;
   onAction: (a: PrepareAction) => void;
-  onPresent: () => void; onExportAll: () => void; onExportOne: (key: string) => void; onClose: () => void;
+  onPresent: () => void; onExportAll: () => void; onExportSummary: () => void; onRecordVideo: () => void; videoAvailable: boolean; onExportOne: (key: string) => void; onClose: () => void;
 }
 
 const SAVE_LABEL = { saved: 'Saved', saving: 'Saving…', offline: 'Offline — will sync', error: 'Could not save' } as const;
@@ -46,11 +53,14 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
   const customCount = awards.filter((a) => a.kind === 'custom').length;
   const byId = new Map(people.map((p) => [p.playerId, p]));
   const who = (id: string) => byId.get(id) ?? unknown(id);
-  const theme = useMemo(() => themeFromPrefs(props.themePrefs), [props.themePrefs]);
+  const [editing, setEditing] = useState<Palette | 'new' | null>(null);
+  const [cutting, setCutting] = useState<string | null>(null);
+  const [cutError, setCutError] = useState<string | null>(null);
+  const palette = selectedPalette(props.palettePrefs);
+  const isCustom = props.palettePrefs.custom.some((p) => p.id === palette.id);
   const { cardFor } = props;
   const cards = useMemo(() => new Map(awards.map((a) => [a.key, cardFor(a)])), [awards, cardFor]);
   const noWinners = revealable(awards).length === 0;
-  const custom = props.themePrefs.custom;
 
   return (
     <div className="min-h-screen bg-bg p-4 sm:p-6">
@@ -60,7 +70,20 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           <p className="text-slate">{props.heading}</p>
         </div>
         <span role="status" className={`text-sm ${props.saveState === 'error' ? 'text-red' : 'text-slate'}`}>{SAVE_LABEL[props.saveState]}</span>
-        <Button variant="secondary" disabled={noWinners} onClick={props.onExportAll}><Share2 size={16} aria-hidden="true" /> Export cards</Button>
+        {!noWinners && (
+          <Menu
+            label="Export"
+            triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-4 font-medium text-blue hover:bg-blue/10"
+            trigger={<><Share2 size={16} aria-hidden="true" /> Export</>}
+            items={[
+              { kind: 'action', label: 'Winner cards (PNG)', onSelect: props.onExportAll },
+              { kind: 'action', label: 'Summary card (PNG)', onSelect: props.onExportSummary },
+              props.videoAvailable
+                ? { kind: 'action', label: 'Record video', onSelect: props.onRecordVideo }
+                : { kind: 'action', label: 'Record video', hint: "Video export isn't supported in this browser", onSelect: () => {} },
+            ]}
+          />
+        )}
         <Button variant="primary" disabled={noWinners} onClick={props.onPresent}><Play size={16} aria-hidden="true" /> Present</Button>
         <Button variant="ghost" onClick={props.onClose} aria-label="Close awards"><X size={16} aria-hidden="true" /></Button>
       </header>
@@ -69,24 +92,28 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
       {props.notice && <p role="alert" className="mb-3 text-sm text-red">{props.notice}</p>}
 
       <section aria-label="Card settings" className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-surface p-4">
-        <label className="text-sm text-slate">Theme
-          <select className="ml-2 rounded-md border border-border px-2 py-1 text-ink" value={props.themePrefs.presetId}
-            onChange={(e) => props.onThemePrefs({ ...props.themePrefs, presetId: e.target.value })}>
-            {PRESETS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        <label className="text-sm text-slate">Palette
+          <select className="ml-2 rounded-md border border-border px-2 py-1 text-ink" value={props.palettePrefs.selectedId}
+            onChange={(e) => props.onPalettePrefs({ ...props.palettePrefs, selectedId: e.target.value })}>
+            <optgroup label="Presets">
+              {PRESET_PALETTES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </optgroup>
+            {props.palettePrefs.custom.length > 0 && (
+              <optgroup label="Yours">
+                {props.palettePrefs.custom.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </optgroup>
+            )}
           </select>
         </label>
-        <label className="text-sm text-slate">Custom colours
-          <input type="checkbox" className="ml-2" checked={!!custom}
-            onChange={(e) => props.onThemePrefs({ ...props.themePrefs, custom: e.target.checked ? { from: theme.bgFrom, to: theme.bgTo } : null })} />
+        <span className="flex gap-1" aria-hidden="true">
+          {palette.colors.map((c, i) => <span key={i} className="h-6 w-6 rounded-sm border border-border" style={{ background: c }} />)}
+        </span>
+        <Button variant="secondary" size="sm" onClick={() => setEditing('new')}>New palette</Button>
+        {isCustom && <Button variant="ghost" size="sm" onClick={() => setEditing(palette)}>Edit palette</Button>}
+        <label className="inline-flex items-center gap-2 text-sm text-slate">
+          <input type="checkbox" checked={props.includeStory} onChange={(e) => props.onIncludeStory(e.target.checked)} />
+          {props.storyLabel}
         </label>
-        {custom && (
-          <>
-            <label className="text-sm text-slate">Top <input type="color" value={custom.from}
-              onChange={(e) => props.onThemePrefs({ ...props.themePrefs, custom: { ...custom, from: e.target.value } })} /></label>
-            <label className="text-sm text-slate">Bottom <input type="color" value={custom.to}
-              onChange={(e) => props.onThemePrefs({ ...props.themePrefs, custom: { ...custom, to: e.target.value } })} /></label>
-          </>
-        )}
         <label className="text-sm text-slate">Background image
           <input type="file" accept="image/*" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
         </label>
@@ -107,7 +134,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           return (
             <li key={a.key}>
               <section aria-labelledby={titleId} className={`flex flex-wrap gap-4 rounded-lg border border-border bg-surface p-4 shadow-card ${a.hidden ? 'opacity-60' : ''}`}>
-                {card && <CardThumbnail card={card} theme={theme} art={props.artFor(a.key)} />}
+                {card && <CardThumbnail card={card} colors={props.colorsFor(a.key)} art={props.artFor(a.key)} />}
                 <div className="min-w-0 flex-1 space-y-2">
                   <h2 id={titleId} className="font-semibold text-ink">{a.title}</h2>
                   {a.kind === 'stats' ? (
@@ -135,11 +162,30 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
                     )}
                     <Button variant="ghost" size="sm" aria-label={`Move ${a.title} up`} disabled={i === 0} onClick={() => onAction({ type: 'move', key: a.key, dir: -1 })}><ArrowUp size={16} aria-hidden="true" /></Button>
                     <Button variant="ghost" size="sm" aria-label={`Move ${a.title} down`} disabled={i === awards.length - 1} onClick={() => onAction({ type: 'move', key: a.key, dir: 1 })}><ArrowDown size={16} aria-hidden="true" /></Button>
-                    <label className="inline-flex cursor-pointer items-center gap-1 text-sm text-blue">
-                      <ImagePlus size={16} aria-hidden="true" /> {photo ? 'Change photo' : 'Add photo'}
-                      <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFor({ key: a.key, file: f }); e.target.value = ''; }} />
-                    </label>
-                    {photo && <Button variant="ghost" size="sm" onClick={() => props.onPhoto(a.key, null)}>Remove photo</Button>}
+                    {props.photoAllowed(a.key) ? (
+                      <>
+                        <label className="inline-flex cursor-pointer items-center gap-1 text-sm text-blue">
+                          <ImagePlus size={16} aria-hidden="true" /> {photo ? 'Change photo' : 'Add photo'}
+                          <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFor({ key: a.key, file: f }); e.target.value = ''; }} />
+                        </label>
+                        {photo && <Button variant="ghost" size="sm" onClick={() => props.onPhoto(a.key, null)}>Remove photo</Button>}
+                        {photo && (props.cutouts.has(a.key) ? (
+                          <Button variant="ghost" size="sm" onClick={() => void props.onCutout(a.key, false)}>Use original</Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" disabled={cutting !== null} onClick={() => {
+                            setCutting(a.key);
+                            setCutError(null);
+                            props.onCutout(a.key, true)
+                              .catch(() => setCutError(a.key))
+                              .finally(() => setCutting(null));
+                          }}>Remove background</Button>
+                        ))}
+                        {cutting === a.key && <span role="status" className="text-sm text-slate">Preparing on this device…</span>}
+                        {cutError === a.key && <p role="alert" className="w-full text-sm text-red-strong">Could not remove the background. The original photo is kept.</p>}
+                      </>
+                    ) : (
+                      a.winner && <p className="text-xs text-slate">No photo consent on file — the card shows the jersey number.</p>
+                    )}
                     {card && <Button variant="ghost" size="sm" onClick={() => props.onExportOne(a.key)}><Download size={16} aria-hidden="true" /> PNG</Button>}
                     {a.kind === 'custom' && <Button variant="dangerGhost" size="sm" onClick={() => onAction({ type: 'removeCustom', key: a.key })}>Remove</Button>}
                   </div>
@@ -179,6 +225,24 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           </form>
         )}
       </div>
+
+      {editing && (
+        <PaletteEditor
+          initial={editing === 'new' ? null : editing}
+          onCancel={() => setEditing(null)}
+          onSave={(p) => {
+            const custom = props.palettePrefs.custom.some((x) => x.id === p.id)
+              ? props.palettePrefs.custom.map((x) => (x.id === p.id ? p : x))
+              : [...props.palettePrefs.custom, p];
+            props.onPalettePrefs({ selectedId: p.id, custom });
+            setEditing(null);
+          }}
+          onDelete={editing === 'new' ? undefined : () => {
+            props.onPalettePrefs({ selectedId: PRESET_PALETTES[0].id, custom: props.palettePrefs.custom.filter((x) => x.id !== editing.id) });
+            setEditing(null);
+          }}
+        />
+      )}
 
       <PhotoCropDialog open={!!cropFor} file={cropFor?.file ?? null} onCancel={() => setCropFor(null)}
         onDone={(img) => { if (cropFor) props.onPhoto(cropFor.key, img); setCropFor(null); }} />

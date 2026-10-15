@@ -1,7 +1,8 @@
-import type { CardTheme } from './cardTheme';
+import type { SlideColors } from '../palette';
 import { cardBeats, easeOutBack, easeOutCubic } from './cardTimeline';
 import { confettiAt, seedFrom } from './confetti';
 import { fitName } from './fitName';
+import { fitBlock } from './wrapText';
 
 export const CARD_W = 1080;
 export const CARD_H = 1920;
@@ -9,34 +10,37 @@ const CX = CARD_W / 2;
 const CIRCLE_Y = 860;
 const CIRCLE_R = 300;
 const TEXT_W = 920;
+/** Cut-out height as a share of the card: big enough to read as a poster. */
+const CUTOUT_H = CARD_H * 0.7;
 
 export interface CardModel {
   key: string; awardTitle: string; name: string; number: number | null;
   statLine: string | null; footer: string; teamName: string; clubName: string; note: string;
 }
 type Img = ImageBitmap | HTMLCanvasElement;
-export interface CardArt { photo: Img | null; background: Img | null }
+export interface CardArt { photo: Img | null; cutout: Img | null; background: Img | null }
 
-function drawBackground(ctx: CanvasRenderingContext2D, theme: CardTheme, art: CardArt, alpha: number) {
+/** Flat slide colour, one soft accent disc, and the optional photo texture on top. */
+export function drawBackground(ctx: CanvasRenderingContext2D, colors: SlideColors, art: Pick<CardArt, 'background'>, alpha: number, seed = 0) {
   ctx.save();
   ctx.globalAlpha = 1;
-  const g = ctx.createLinearGradient(0, 0, 0, CARD_H);
-  g.addColorStop(0, theme.bgFrom);
-  g.addColorStop(1, theme.bgTo);
-  ctx.fillStyle = g;
+  ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = colors.accent;
+  ctx.beginPath();
+  ctx.arc(seed % 2 ? CARD_W * 0.85 : CARD_W * 0.15, CARD_H * (0.2 + (seed % 3) * 0.25), 520, 0, Math.PI * 2);
+  ctx.fill();
   if (art.background) {
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = 0.35 * alpha;
     const s = Math.max(CARD_W / art.background.width, CARD_H / art.background.height);
     const w = art.background.width * s, h = art.background.height * s;
     ctx.drawImage(art.background, (CARD_W - w) / 2, (CARD_H - h) / 2, w, h);
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, 0, CARD_W, CARD_H);
   }
   ctx.restore();
 }
 
-function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string, color: string, alpha: number) {
+export function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string, color: string, alpha: number) {
   if (alpha <= 0) return;
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -48,27 +52,44 @@ function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string,
   ctx.restore();
 }
 
-function drawHeader(ctx: CanvasRenderingContext2D, card: Pick<CardModel, 'teamName' | 'clubName'>, theme: CardTheme, alpha: number) {
-  if (card.clubName.trim()) text(ctx, card.clubName.trim().toUpperCase(), 150, '700 34px Inter, system-ui, sans-serif', theme.muted, alpha);
-  text(ctx, card.teamName.toUpperCase(), 200, '600 30px Inter, system-ui, sans-serif', theme.muted, alpha);
+export function drawHeader(ctx: CanvasRenderingContext2D, card: Pick<CardModel, 'teamName' | 'clubName'>, colors: SlideColors, alpha: number) {
+  if (card.clubName.trim()) text(ctx, card.clubName.trim().toUpperCase(), 150, '700 34px Inter, system-ui, sans-serif', colors.muted, alpha);
+  if (card.teamName.trim()) text(ctx, card.teamName.toUpperCase(), 200, '600 30px Inter, system-ui, sans-serif', colors.muted, alpha);
 }
 
-export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, theme: CardTheme, art: CardArt, t: number, reducedMotion = false): void {
+export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, colors: SlideColors, art: CardArt, t: number, reducedMotion = false): void {
   const b = cardBeats(t, reducedMotion);
-  drawBackground(ctx, theme, art, easeOutCubic(b.bg));
-  drawHeader(ctx, card, theme, easeOutCubic(b.bg));
+  drawBackground(ctx, colors, art, easeOutCubic(b.bg), seedFrom(card.key));
+  drawHeader(ctx, card, colors, easeOutCubic(b.bg));
 
   // Award title: slides up 60px while fading in
   const tt = easeOutCubic(b.title);
   if (tt > 0) {
+    const { size, lines } = fitBlock(ctx, card.awardTitle, 900, 110, TEXT_W, 2);
     ctx.save();
     ctx.translate(0, (1 - tt) * 60);
-    text(ctx, card.awardTitle, 420, '900 110px Inter, system-ui, sans-serif', theme.accent, tt);
+    // a two-line title grows upwards so the photo below keeps its place
+    lines.forEach((l, i) => text(ctx, l, 420 - (lines.length - 1 - i) * size * 1.05, `900 ${size}px Inter, system-ui, sans-serif`, colors.accent, tt));
     ctx.restore();
   }
 
-  // Photo / number circle: spring scale
-  if (b.photo > 0) {
+  if (b.photo > 0 && art.cutout) {
+    // Poster layout: the player stands in front of the title, anchored to the bottom edge.
+    const e = easeOutCubic(b.photo);
+    const s = CUTOUT_H / art.cutout.height;
+    const w = art.cutout.width * s;
+    ctx.save();
+    ctx.globalAlpha = e;
+    ctx.drawImage(art.cutout, CX - w / 2, CARD_H - CUTOUT_H + (1 - e) * 200, w, CUTOUT_H);
+    ctx.restore();
+    // Fade the lower card back to the slide colour so name and stat stay legible.
+    const g = ctx.createLinearGradient(0, 1150, 0, 1420);
+    g.addColorStop(0, `${colors.bg}00`);
+    g.addColorStop(1, colors.bg);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 1150, CARD_W, CARD_H - 1150);
+  } else if (b.photo > 0) {
+    // Photo / number circle: spring scale
     const s = Math.max(0, easeOutBack(b.photo));
     ctx.save();
     ctx.translate(CX, CIRCLE_Y);
@@ -76,10 +97,10 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, th
     ctx.beginPath();
     ctx.arc(0, 0, CIRCLE_R, 0, Math.PI * 2);
     ctx.closePath();
-    ctx.fillStyle = theme.accent;
+    ctx.fillStyle = colors.accent;
     ctx.fill();
     ctx.lineWidth = 16;
-    ctx.strokeStyle = theme.text;
+    ctx.strokeStyle = colors.text;
     ctx.stroke();
     ctx.clip();
     if (art.photo) {
@@ -88,7 +109,7 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, th
       ctx.drawImage(art.photo, -w / 2, -h / 2, w, h);
     } else if (card.number !== null) {
       ctx.font = '900 300px Inter, system-ui, sans-serif';
-      ctx.fillStyle = theme.bgTo;
+      ctx.fillStyle = colors.bg;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(card.number), 0, 10);
@@ -114,19 +135,23 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, th
     lines.forEach((line, i) => {
       const visible = line.slice(0, Math.max(0, shown));
       shown -= line.length;
-      if (visible) text(ctx, visible, 1330 + i * (size * 1.1), `800 ${size}px Inter, system-ui, sans-serif`, theme.text, 1);
+      if (visible) text(ctx, visible, 1330 + i * (size * 1.1), `800 ${size}px Inter, system-ui, sans-serif`, colors.text, 1);
     });
   }
 
   // Stat line or note
   const st = easeOutCubic(b.stat);
   const sub = card.statLine ?? (card.note || null);
-  if (sub) text(ctx, sub, 1560, '600 52px Inter, system-ui, sans-serif', theme.muted, st);
-  text(ctx, card.footer, 1780, '500 36px Inter, system-ui, sans-serif', theme.muted, st);
+  if (sub) {
+    const block = fitBlock(ctx, sub, 600, 52, TEXT_W, 2);
+    block.lines.forEach((l, i) => text(ctx, l, 1560 + i * block.size * 1.2, `600 ${block.size}px Inter, system-ui, sans-serif`, colors.muted, st));
+  }
+  const footer = fitBlock(ctx, card.footer, 500, 36, TEXT_W, 1);
+  text(ctx, footer.lines[0] ?? '', 1780, `500 ${footer.size}px Inter, system-ui, sans-serif`, colors.muted, st);
 
   // Confetti
   if (b.confetti > 0) {
-    for (const p of confettiAt(seedFrom(card.key), b.confetti, [theme.accent, theme.text, '#F5C542'])) {
+    for (const p of confettiAt(seedFrom(card.key), b.confetti, [colors.accent, colors.text, '#F5C542'])) {
       ctx.save();
       ctx.globalAlpha = p.alpha;
       ctx.translate(p.x, p.y);
@@ -139,15 +164,17 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, th
 }
 
 /** The pre-reveal card: award title only, with a pulsing glow (pulse 0..1). */
-export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, theme: CardTheme, art: CardArt, pulse: number): void {
-  drawBackground(ctx, theme, art, 1);
+export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, colors: SlideColors, art: CardArt, pulse: number): void {
+  drawBackground(ctx, colors, art, 1);
   ctx.save();
   const r = 340 + 40 * Math.sin(pulse * Math.PI * 2);
   const g = ctx.createRadialGradient(CX, CARD_H / 2, 0, CX, CARD_H / 2, r);
-  g.addColorStop(0, `${theme.accent}66`);
-  g.addColorStop(1, `${theme.accent}00`);
+  g.addColorStop(0, `${colors.accent}66`);
+  g.addColorStop(1, `${colors.accent}00`);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
   ctx.restore();
-  text(ctx, title, CARD_H / 2 + 40, '900 120px Inter, system-ui, sans-serif', theme.text, 1);
+  const { size, lines } = fitBlock(ctx, title, 900, 120, TEXT_W, 3);
+  const lineH = size * 1.08;
+  lines.forEach((l, i) => text(ctx, l, CARD_H / 2 + 40 + (i - (lines.length - 1) / 2) * lineH, `900 ${size}px Inter, system-ui, sans-serif`, colors.text, 1));
 }

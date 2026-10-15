@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Maximize, X } from 'lucide-react';
-import type { CardTheme } from './card/cardTheme';
-import { CARD_DURATION_MS } from './card/cardTimeline';
-import { CARD_H, CARD_W, drawAwardCard, drawTitleCard, type CardArt, type CardModel } from './card/drawAwardCard';
-import { FIRST_STEP, nextStep, prevStep, type Step } from './presentSteps';
-
-interface PresentCard { key: string; title: string; model: CardModel }
+import { CARD_H, CARD_W } from './card/drawAwardCard';
+import { renderStoryFrame, type PresentCard, type StoryDeps } from './card/drawSlide';
+import { slideColors } from './palette';
+import { sceneProgress, type Slide } from './story/buildStory';
 
 function useReducedMotion(): boolean {
   const [reduced] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -29,42 +27,40 @@ function useWakeLock() {
   }, []);
 }
 
-/** Winner photo (if any) or jersey number, in a circle. */
-function Avatar({ photo, number, color }: { photo: CardArt['photo']; number: number | null; color: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const ctx = photo ? ref.current?.getContext('2d') : null;
-    if (!photo || !ctx) return;
-    ctx.clearRect(0, 0, 160, 160);
-    ctx.drawImage(photo, 0, 0, 160, 160);
-  }, [photo]);
-  if (photo) return <canvas ref={ref} width={160} height={160} className="h-20 w-20 rounded-full object-cover" aria-hidden="true" />;
-  return (
-    <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 text-3xl font-black tabular-nums" style={{ borderColor: color, color }} aria-hidden="true">
-      {number ?? '–'}
-    </span>
-  );
+
+export function slideAnnouncement(slide: Slide, cards: PresentCard[]): string {
+  switch (slide.kind) {
+    case 'intro': return `${slide.title} — ${slide.subtitle}`;
+    case 'stat': return `${slide.stat.kicker}: ${slide.stat.big}${slide.stat.bigSuffix} ${slide.stat.caption}`;
+    case 'awardTitle':
+    case 'awardSuspense': return cards[slide.awardIndex].title;
+    case 'awardReveal': return `${cards[slide.awardIndex].title}: ${cards[slide.awardIndex].model.name}`;
+    case 'summary': return `Winners: ${cards.map((c) => `${c.title} — ${c.model.name}`).join(', ')}`;
+  }
 }
 
-export function AwardsPresent({ cards, theme, artFor, onExit }: { cards: PresentCard[]; theme: CardTheme; artFor: (key: string) => CardArt; onExit: () => void }) {
-  const [step, setStep] = useState<Step>(cards.length ? FIRST_STEP : { kind: 'final' });
+export function AwardsPresent({ slides, deps, onExit }: { slides: Slide[]; deps: StoryDeps; onExit: () => void }) {
+  const [index, setIndex] = useState(0);
+  const prevIndex = useRef<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const stepStart = useRef(performance.now());
   const reduced = useReducedMotion();
   useWakeLock();
 
-  const next = useCallback(() => setStep((s) => nextStep(s, cards.length)), [cards.length]);
-  const back = useCallback(() => setStep((s) => prevStep(s, cards.length)), [cards.length]);
+  const go = useCallback((delta: number) => {
+    setIndex((i) => {
+      const next = Math.max(0, Math.min(slides.length - 1, i + delta));
+      if (next !== i) prevIndex.current = i;
+      return next;
+    });
+  }, [slides.length]);
+  const next = useCallback(() => go(1), [go]);
+  const back = useCallback(() => go(-1), [go]);
   const fullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen?.();
     else void rootRef.current?.requestFullscreen?.()?.catch(() => undefined);
   }, []);
-
-  useEffect(() => {
-    stepStart.current = performance.now();
-  }, [step]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -77,74 +73,57 @@ export function AwardsPresent({ cards, theme, artFor, onExit }: { cards: Present
     return () => window.removeEventListener('keydown', onKey);
   }, [next, back, fullscreen, onExit]);
 
-  // Auto-hide controls after 2 s without pointer movement.
   useEffect(() => {
     if (!controlsVisible) return;
     const id = window.setTimeout(() => setControlsVisible(false), 2000);
     return () => window.clearTimeout(id);
   }, [controlsVisible]);
 
-  // One rAF loop; draws to the canvas, never sets React state per frame.
+  // One rAF loop per slide; draws to the canvas, never sets React state per frame.
   useEffect(() => {
-    if (step.kind === 'final') return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-    const card = cards[step.index];
-    const art = artFor(card.key);
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx || slides.length === 0) return;
+    const start = performance.now();
+    const from = prevIndex.current;
     let raf = 0;
     const frame = (now: number) => {
-      const elapsed = now - stepStart.current;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      if (step.kind === 'reveal') {
-        const t = reduced ? 1 : Math.min(1, elapsed / CARD_DURATION_MS);
-        drawAwardCard(ctx, card.model, theme, art, t, reduced);
-        if (t < 1) raf = requestAnimationFrame(frame);
-      } else {
-        const pulse = step.kind === 'suspense' && !reduced ? (elapsed % 1600) / 1600 : 0;
-        drawTitleCard(ctx, card.title, theme, art, pulse);
-        if (step.kind === 'suspense' && !reduced) raf = requestAnimationFrame(frame);
-      }
+      const done = renderStoryFrame(ctx, slides, index, now - start, deps, reduced, from);
+      if (!done) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [step, cards, theme, artFor, reduced]);
+  }, [index, slides, deps, reduced]);
 
-  const announce =
-    step.kind === 'final' ? 'All winners'
-    : step.kind === 'reveal' ? `${cards[step.index].title}: ${cards[step.index].model.name}`
-    : cards[step.index].title;
+  if (slides.length === 0) return null;
+  const slide = slides[index];
+  const progress = sceneProgress(slides, index);
+  const colors = slideColors(deps.palette, slide.colorIndex);
 
   return (
-    <div ref={rootRef} className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: theme.bgTo }}
+    <div ref={rootRef} className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: colors.bg }}
       onPointerMove={() => setControlsVisible(true)}>
-      <p role="status" aria-live="polite" className="sr-only">{announce}</p>
+      <p role="status" aria-live="polite" className="sr-only">{slideAnnouncement(slide, deps.cards)}</p>
 
-      {step.kind === 'final' ? (
-        <div className="max-h-full w-full max-w-4xl overflow-auto p-8" style={{ color: theme.text }}>
-          <h1 className="mb-8 text-center text-5xl font-black" style={{ color: theme.accent }}>Winners</h1>
-          <ul className="grid grid-cols-2 gap-6 sm:grid-cols-3">
-            {cards.map((c) => (
-              <li key={c.key} className="flex flex-col items-center text-center">
-                <Avatar photo={artFor(c.key).photo} number={c.model.number} color={theme.accent} />
-                <p className="mt-2 text-sm uppercase tracking-wide opacity-75">{c.title}</p>
-                <p className="text-2xl font-extrabold">{c.model.name}</p>
-              </li>
-            ))}
-          </ul>
+      {/* Letterboxed 9:16; tap halves = back / next. */}
+      <div className="relative aspect-[9/16] h-full max-w-full">
+        <canvas ref={canvasRef} width={CARD_W} height={CARD_H} className="h-full w-full object-contain" aria-hidden="true" />
+        <div role="progressbar" aria-label="Presentation progress" aria-valuemin={1} aria-valuemax={progress.scenes} aria-valuenow={progress.current + 1}
+          className="pointer-events-none absolute inset-x-3 top-3 flex gap-1">
+          {Array.from({ length: progress.scenes }, (_, i) => (
+            <span key={i} className="h-1 flex-1 overflow-hidden rounded-full" style={{ background: `${colors.text}40` }}>
+              <span className="block h-full rounded-full transition-[width] duration-300"
+                style={{ background: colors.text, width: `${i < progress.current ? 100 : i === progress.current ? progress.fraction * 100 : 0}%` }} />
+            </span>
+          ))}
         </div>
-      ) : (
-        // Letterboxed 9:16; tap halves = back / next.
-        <div className="relative aspect-[9/16] h-full max-w-full">
-          <canvas ref={canvasRef} width={CARD_W} height={CARD_H} className="h-full w-full object-contain" aria-hidden="true" />
-          <button type="button" aria-label="Previous" className="absolute inset-y-0 left-0 w-1/2 cursor-w-resize" onClick={back} />
-          <button type="button" aria-label="Next" className="absolute inset-y-0 right-0 w-1/2 cursor-e-resize" onClick={next} />
-        </div>
-      )}
+        <button type="button" aria-label="Previous" className="absolute inset-y-0 left-0 w-1/2 cursor-w-resize" onClick={back} />
+        <button type="button" aria-label="Next" className="absolute inset-y-0 right-0 w-1/2 cursor-e-resize" onClick={next} />
+      </div>
 
       <div className={`absolute right-4 top-4 flex gap-2 transition-opacity ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <button type="button" onClick={back} aria-label="Previous award" className="rounded-full bg-black/40 p-3 text-white"><ChevronLeft size={20} /></button>
-        <button type="button" onClick={next} aria-label="Next award" className="rounded-full bg-black/40 p-3 text-white"><ChevronRight size={20} /></button>
+        <button type="button" onClick={back} aria-label="Previous slide" className="rounded-full bg-black/40 p-3 text-white"><ChevronLeft size={20} /></button>
+        <button type="button" onClick={next} aria-label="Next slide" className="rounded-full bg-black/40 p-3 text-white"><ChevronRight size={20} /></button>
         <button type="button" onClick={fullscreen} aria-label="Fullscreen" className="rounded-full bg-black/40 p-3 text-white"><Maximize size={20} /></button>
         <button type="button" onClick={onExit} aria-label="Exit presentation" className="rounded-full bg-black/40 p-3 text-white"><X size={20} /></button>
       </div>

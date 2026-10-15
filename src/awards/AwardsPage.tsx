@@ -15,9 +15,13 @@ import { AwardsPrepare } from './AwardsPrepare';
 import { AwardsPresent } from './AwardsPresent';
 import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi';
 import { applyPrepareAction } from './awardsReducer';
-import { readThemePrefs, themeFromPrefs, writeThemePrefs, type ThemePrefs } from './card/cardTheme';
+import { readThemePrefs, writeThemePrefs, type ThemePrefs } from './card/cardTheme';
 import { drawAwardCard, type CardArt, type CardModel } from './card/drawAwardCard';
 import { PRESET_PALETTES, slideColors } from './palette';
+import type { StoryDeps } from './card/drawSlide';
+import { buildStory } from './story/buildStory';
+import { readStoryPref } from './story/storyPref';
+import { storyStats } from './story/storyStats';
 import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
 import { fitSize, loadImageFile } from './photo';
@@ -133,7 +137,6 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     () => (ready ? resolveAwards(scope, ready.matches, config, ready.people) : []),
     [ready, scope, config],
   );
-  const theme = useMemo(() => themeFromPrefs(themePrefs), [themePrefs]);
   const heading = ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent} · ${fmtDate(ready.match!.date)}`) : '';
 
   const cardFor = useCallback((a: ResolvedAward): CardModel | null => {
@@ -150,6 +153,14 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
     [awards, cardFor],
   );
+  const [includeStory] = useState(readStoryPref); // setter added in Task 6
+  const palette = PRESET_PALETTES[0];              // replaced by the selected palette in Task 6
+  const stats = useMemo(() => (ready ? storyStats(scope, ready.matches, ready.people) : []), [ready, scope]);
+  const slides = useMemo(() => buildStory({
+    introTitle: ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent}`) : '',
+    teamName: ready?.team.name ?? '', stats, awardCount: cards.length, includeStory,
+  }), [ready, scope, stats, cards.length, includeStory]);
+  const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: ready?.team.club ?? '' }), [palette, cards, artFor, ready]);
 
   async function exportKeys(keys: string[]) {
     if (!ready) return;
@@ -187,7 +198,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   if (!ready) return null;
 
   if (mode === 'present') {
-    return <AwardsPresent cards={cards} theme={theme} artFor={artFor} onExit={() => setMode('prepare')} />;
+    return <AwardsPresent slides={slides} deps={deps} onExit={() => setMode('prepare')} />;
   }
 
   return (

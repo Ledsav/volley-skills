@@ -10,8 +10,14 @@ const CX = CARD_W / 2;
 const CIRCLE_Y = 860;
 const CIRCLE_R = 300;
 const TEXT_W = 920;
-/** Cut-out height as a share of the card: big enough to read as a poster. */
-const CUTOUT_H = CARD_H * 0.7;
+/**
+ * Cut-out area: the player stands in y 500–1450 (about half the card, poster-sized) and the
+ * name, stat and footer go below — nothing is painted over the player except a short fade
+ * at its bottom edge.
+ */
+const CUTOUT_TOP = 500;
+const CUTOUT_H = 950;
+const CUTOUT_FADE = 0.14;
 
 export interface CardModel {
   key: string; awardTitle: string; name: string; number: number | null;
@@ -76,18 +82,20 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
   if (b.photo > 0 && art.cutout) {
     // Poster layout: the player stands in front of the title, anchored to the bottom edge.
     const e = easeOutCubic(b.photo);
-    const s = CUTOUT_H / art.cutout.height;
-    const w = art.cutout.width * s;
+    const s = Math.min(CUTOUT_H / art.cutout.height, CARD_W / art.cutout.width);
+    const w = art.cutout.width * s, h = art.cutout.height * s;
+    const bottom = CUTOUT_TOP + CUTOUT_H;
     ctx.save();
     ctx.globalAlpha = e;
-    ctx.drawImage(art.cutout, CX - w / 2, CARD_H - CUTOUT_H + (1 - e) * 200, w, CUTOUT_H);
+    ctx.drawImage(art.cutout, CX - w / 2, bottom - h + (1 - e) * 200, w, h);
     ctx.restore();
-    // Fade the lower card back to the slide colour so name and stat stay legible.
-    const g = ctx.createLinearGradient(0, 1150, 0, 1420);
+    // Soften only the bottom edge of the player into the slide colour.
+    const fadeTop = bottom - h * CUTOUT_FADE;
+    const g = ctx.createLinearGradient(0, fadeTop, 0, bottom);
     g.addColorStop(0, `${colors.bg}00`);
     g.addColorStop(1, colors.bg);
     ctx.fillStyle = g;
-    ctx.fillRect(0, 1150, CARD_W, CARD_H - 1150);
+    ctx.fillRect(0, fadeTop, CARD_W, bottom - fadeTop);
   } else if (b.photo > 0) {
     // Photo / number circle: spring scale
     const s = Math.max(0, easeOutBack(b.photo));
@@ -127,15 +135,22 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
     ctx.restore();
   }
 
+  // Text positions: below the player with a cut-out, the classic spots with the circle.
+  const posterLayout = !!art.cutout;
+  const nameY = posterLayout ? CUTOUT_TOP + CUTOUT_H + 120 : 1330;
+  const nameFit = fitName(ctx, card.name, TEXT_W);
+  const subY = posterLayout ? nameY + (nameFit.lines.length - 1) * nameFit.size * 1.1 + 90 : 1560;
+  const footerY = posterLayout ? 1860 : 1780;
+
   // Name: letter-by-letter reveal
   if (b.name > 0) {
-    const { size, lines } = fitName(ctx, card.name, TEXT_W);
+    const { size, lines } = nameFit;
     const totalChars = lines.join('').length;
     let shown = Math.ceil(totalChars * b.name);
     lines.forEach((line, i) => {
       const visible = line.slice(0, Math.max(0, shown));
       shown -= line.length;
-      if (visible) text(ctx, visible, 1330 + i * (size * 1.1), `800 ${size}px Inter, system-ui, sans-serif`, colors.text, 1);
+      if (visible) text(ctx, visible, nameY + i * (size * 1.1), `800 ${size}px Inter, system-ui, sans-serif`, colors.text, 1);
     });
   }
 
@@ -144,10 +159,10 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
   const sub = card.statLine ?? (card.note || null);
   if (sub) {
     const block = fitBlock(ctx, sub, 600, 52, TEXT_W, 2);
-    block.lines.forEach((l, i) => text(ctx, l, 1560 + i * block.size * 1.2, `600 ${block.size}px Inter, system-ui, sans-serif`, colors.muted, st));
+    block.lines.forEach((l, i) => text(ctx, l, subY + i * block.size * 1.2, `600 ${block.size}px Inter, system-ui, sans-serif`, colors.muted, st));
   }
   const footer = fitBlock(ctx, card.footer, 500, 36, TEXT_W, 1);
-  text(ctx, footer.lines[0] ?? '', 1780, `500 ${footer.size}px Inter, system-ui, sans-serif`, colors.muted, st);
+  text(ctx, footer.lines[0] ?? '', footerY, `500 ${footer.size}px Inter, system-ui, sans-serif`, colors.muted, st);
 
   // Confetti
   if (b.confetti > 0) {

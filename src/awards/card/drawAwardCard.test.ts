@@ -46,14 +46,22 @@ describe('drawAwardCard', () => {
     expect(calls.some((c) => c.method === 'set:globalAlpha' && c.args[0] === 0.35)).toBe(true);
   });
 
-  it('draws a cut-out large, bottom-anchored, instead of the circle', () => {
+  it('shows the whole cut-out player: nothing opaque covers it and the text sits below it', () => {
     const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
     const { ctx, calls } = recordingCtx();
     drawAwardCard(ctx, card, colors, { photo: null, cutout: cut, background: null }, 1);
-    const draw = calls.find((c) => c.method === 'drawImage' && c.args[0] === cut)!;
-    const [, , y, , h] = draw.args as number[];
-    expect(h).toBeGreaterThan(CARD_H * 0.6);
-    expect(y + h).toBeCloseTo(CARD_H, 0);
+    const di = calls.findIndex((c) => c.method === 'drawImage' && c.args[0] === cut);
+    const [, , y, , h] = calls[di].args as number[];
+    expect(h).toBeGreaterThan(CARD_H * 0.45); // still poster-sized
+    // fills painted after the player may only soften its last 15%
+    for (const c of calls.slice(di + 1).filter((c) => c.method === 'fillRect')) {
+      const [, fy, , fh] = c.args as number[];
+      const overlap = Math.max(0, Math.min(y + h, fy + fh) - Math.max(y, fy));
+      expect(overlap).toBeLessThanOrEqual(h * 0.15);
+    }
+    // the winner's name is drawn below the player, not on top of it
+    const nameCall = calls.find((c) => c.method === 'fillText' && c.args[0] === 'Lena P.')!;
+    expect(nameCall.args[2] as number).toBeGreaterThan(y + h);
     expect(calls.some((c) => c.method === 'clip')).toBe(false); // no photo circle
   });
 

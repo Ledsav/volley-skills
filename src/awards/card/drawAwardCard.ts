@@ -2,7 +2,7 @@ import type { SlideColors } from '../palette';
 import { cardBeats, easeOutBack, easeOutCubic } from './cardTimeline';
 import { confettiAt, seedFrom } from './confetti';
 import { fitName } from './fitName';
-import { fitFontSize } from './wrapText';
+import { fitBlock } from './wrapText';
 
 export const CARD_W = 1080;
 export const CARD_H = 1920;
@@ -65,10 +65,11 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
   // Award title: slides up 60px while fading in
   const tt = easeOutCubic(b.title);
   if (tt > 0) {
-    const size = fitFontSize(ctx, card.awardTitle, 900, 110, TEXT_W);
+    const { size, lines } = fitBlock(ctx, card.awardTitle, 900, 110, TEXT_W, 2);
     ctx.save();
     ctx.translate(0, (1 - tt) * 60);
-    text(ctx, card.awardTitle, 420, `900 ${size}px Inter, system-ui, sans-serif`, colors.accent, tt);
+    // a two-line title grows upwards so the photo below keeps its place
+    lines.forEach((l, i) => text(ctx, l, 420 - (lines.length - 1 - i) * size * 1.05, `900 ${size}px Inter, system-ui, sans-serif`, colors.accent, tt));
     ctx.restore();
   }
 
@@ -141,8 +142,12 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
   // Stat line or note
   const st = easeOutCubic(b.stat);
   const sub = card.statLine ?? (card.note || null);
-  if (sub) text(ctx, sub, 1560, '600 52px Inter, system-ui, sans-serif', colors.muted, st);
-  text(ctx, card.footer, 1780, '500 36px Inter, system-ui, sans-serif', colors.muted, st);
+  if (sub) {
+    const block = fitBlock(ctx, sub, 600, 52, TEXT_W, 2);
+    block.lines.forEach((l, i) => text(ctx, l, 1560 + i * block.size * 1.2, `600 ${block.size}px Inter, system-ui, sans-serif`, colors.muted, st));
+  }
+  const footer = fitBlock(ctx, card.footer, 500, 36, TEXT_W, 1);
+  text(ctx, footer.lines[0] ?? '', 1780, `500 ${footer.size}px Inter, system-ui, sans-serif`, colors.muted, st);
 
   // Confetti
   if (b.confetti > 0) {
@@ -169,6 +174,7 @@ export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, colo
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
   ctx.restore();
-  const size = fitFontSize(ctx, title, 900, 120, TEXT_W);
-  text(ctx, title, CARD_H / 2 + 40, `900 ${size}px Inter, system-ui, sans-serif`, colors.text, 1);
+  const { size, lines } = fitBlock(ctx, title, 900, 120, TEXT_W, 3);
+  const lineH = size * 1.08;
+  lines.forEach((l, i) => text(ctx, l, CARD_H / 2 + 40 + (i - (lines.length - 1) / 2) * lineH, `900 ${size}px Inter, system-ui, sans-serif`, colors.text, 1));
 }

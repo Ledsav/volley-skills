@@ -29,3 +29,35 @@ export function fitFontSize(ctx: CanvasRenderingContext2D, s: string, weight: nu
     size = Math.max(min, Math.floor(size * 0.9));
   }
 }
+
+/** Cuts `s` with an ellipsis until it fits `maxWidth` at the context's current font. */
+function ellipsize(ctx: CanvasRenderingContext2D, s: string, maxWidth: number): string {
+  if (ctx.measureText(s).width <= maxWidth) return s;
+  let cut = s;
+  while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxWidth) cut = cut.slice(0, -1).trimEnd();
+  return `${cut}…`;
+}
+
+/**
+ * Fits text into at most `maxLines` lines of `maxWidth`: the largest size (down to 40%) where the
+ * wrapped text fits; at the smallest size the last line (and any overlong word) gets an ellipsis.
+ * Every returned line fits. Leaves ctx.font set to the returned size.
+ */
+export function fitBlock(
+  ctx: CanvasRenderingContext2D, s: string, weight: number, maxSize: number, maxWidth: number, maxLines: number,
+): { size: number; lines: string[] } {
+  const min = Math.ceil(maxSize * 0.4);
+  let size = maxSize;
+  for (;;) {
+    ctx.font = `${weight} ${size}px ${FAMILY}`;
+    const lines = wrapLines(ctx, s, maxWidth);
+    const fits = lines.length <= maxLines && lines.every((l) => ctx.measureText(l).width <= maxWidth);
+    if (fits) return { size, lines };
+    if (size <= min) {
+      const kept = lines.slice(0, maxLines);
+      if (lines.length > maxLines) kept[maxLines - 1] = `${kept[maxLines - 1]}…`;
+      return { size, lines: kept.map((l) => ellipsize(ctx, l, maxWidth)) };
+    }
+    size = Math.max(min, Math.floor(size * 0.9));
+  }
+}

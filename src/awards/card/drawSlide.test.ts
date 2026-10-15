@@ -5,6 +5,7 @@ import { buildStory } from '../story/buildStory';
 import type { StoryStat } from '../story/storyStats';
 import type { CardModel } from './drawAwardCard';
 import { renderStoryFrame, slideDurationMs, type StoryDeps } from './drawSlide';
+import { CARD_H } from './drawAwardCard';
 import { recordingCtx } from './testCtx';
 
 const model = (key: string, name: string): CardModel => ({ key, awardTitle: key, name, number: 7, statLine: null, footer: 'Season 2026-27', teamName: 'U17', clubName: 'Demo VC', note: '' });
@@ -73,5 +74,39 @@ describe('renderStoryFrame', () => {
   it('durations: suspense is open-ended, summary grows with the number of winners', () => {
     expect(slideDurationMs(slides[1], 2)).toBeGreaterThan(0);
     expect(slideDurationMs({ kind: 'summary', colorIndex: 0 }, 10)).toBeGreaterThan(slideDurationMs({ kind: 'summary', colorIndex: 0 }, 2));
+  });
+});
+
+/** Text lines wider than the 920px text area, or drawn below the card (recordingCtx measures 0.55 em/char). */
+function overflows(calls: { method: string; args: unknown[] }[]): string[] {
+  let size = 10;
+  const bad: string[] = [];
+  for (const c of calls) {
+    if (c.method === 'set:font') size = Number(/(\d+(?:\.\d+)?)px/.exec(String(c.args[0]))?.[1] ?? size);
+    if (c.method === 'fillText') {
+      const s = String(c.args[0]);
+      const y = c.args[2] as number;
+      if (s.length * size * 0.55 > 921 || y > CARD_H) bad.push(`${s} @${size}px y=${y}`);
+    }
+  }
+  return bad;
+}
+
+describe('long text never leaves the card', () => {
+  const long = (key: string): CardModel => ({
+    key, awardTitle: 'Most improved player of the whole season', name: 'Maximiliana Alexandrovna-Kowalczyk', number: 12,
+    statLine: null, note: 'Always first in the gym and last to leave, cheering on every single teammate all year',
+    footer: 'vs Volleyball Club Grand-Duché Esch-sur-Alzette Ladies · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC',
+  });
+  const longDeps: StoryDeps = { ...deps, cards: [{ key: 'x', title: 'Most improved player of the whole season', model: long('x') }] };
+  const longStat: StoryStat = { id: 'record', kicker: 'Final score — a long day at the office', big: 3, bigSuffix: '–2', caption: 'vs Volleyball Club Grand-Duché Esch-sur-Alzette Ladies', detail: '25–23 · 23–25 · 25–27 · 25–21 · 15–13 · after a very long fight' };
+  const longSlides = buildStory({ introTitle: 'vs Volleyball Club Grand-Duché Esch sur Alzette Ladies Team', teamName: 'Seniors Dames Nationale 1 — Promotion League Squad', stats: [longStat], awardCount: 1, includeStory: true });
+
+  it('every slide, fully drawn, keeps each text line inside the text area and on the card', () => {
+    longSlides.forEach((_, i) => {
+      const { ctx, calls } = recordingCtx();
+      renderStoryFrame(ctx, longSlides, i, 1e9, longDeps, true, null);
+      expect(overflows(calls), `slide ${i} (${longSlides[i].kind})`).toEqual([]);
+    });
   });
 });

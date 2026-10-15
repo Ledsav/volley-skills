@@ -35,7 +35,6 @@ type Load =
   | { state: 'error' }
   | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person>; consented: Set<string> };
 
-const EMPTY_CUTOUTS = new Map<string, HTMLCanvasElement>();
 const NO_CONSENT = new Set<string>();
 
 /** Awards whose winner is a current player with photo consent; only these may carry a photo or cut-out. */
@@ -64,12 +63,14 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const [nameStyle, setNameStyle] = useState<NameStyle>(readNameStyle);
   const [palettePrefs, setPalettePrefs] = useState<PalettePrefs>(readPalettePrefs);
   const [photos, setPhotos] = useState<Map<string, HTMLCanvasElement>>(new Map());
+  const [cutouts, setCutouts] = useState<Map<string, HTMLCanvasElement>>(new Map());
   const [background, setBackground] = useState<HTMLCanvasElement | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const dirty = useRef(false);
   const configRef = useRef<AwardsInput>(EMPTY_AWARDS);
   const photosRef = useRef(photos);
+  const cutoutsRef = useRef(cutouts);
   const backgroundRef = useRef<HTMLCanvasElement | null>(null);
   const saveSeq = useRef(0);
   const target = useRef({ scope, teamId, matchId, uid: firebaseUser?.uid ?? '' });
@@ -146,6 +147,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   // Release in-memory images on leave only.
   useEffect(() => () => {
     photosRef.current.forEach((c) => { c.width = 0; });
+    cutoutsRef.current.forEach((c) => { c.width = 0; });
     if (backgroundRef.current) backgroundRef.current.width = 0;
   }, []);
 
@@ -165,7 +167,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   }, [ready, nameStyle, heading]);
 
   const allowed = useMemo(() => photoAllowedKeys(awards, ready?.consented ?? NO_CONSENT), [awards, ready]);
-  const artFor = useCallback((key: string) => gatedArt(key, allowed, photos, EMPTY_CUTOUTS, background), [allowed, photos, background]);
+  const artFor = useCallback((key: string) => gatedArt(key, allowed, photos, cutouts, background), [allowed, photos, cutouts, background]);
 
   const cards = useMemo(
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
@@ -183,6 +185,28 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     return slideColors(palette, colorIndexForAward(slides, Math.max(0, i)));
   }, [cards, palette, slides]);
   const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: ready?.team.club ?? '' }), [palette, cards, artFor, ready]);
+
+  const dropCutout = useCallback((key: string) => {
+    const next = new Map(cutoutsRef.current);
+    const old = next.get(key);
+    if (!old) return;
+    next.delete(key);
+    cutoutsRef.current = next;
+    setCutouts(next);
+    old.width = 0;
+  }, []);
+
+  const onCutout = useCallback(async (key: string, on: boolean) => {
+    if (!on) return dropCutout(key);
+    const photo = photosRef.current.get(key);
+    if (!photo) return;
+    const { removeBackground } = await import('./cutout/segment');
+    const cut = await removeBackground(photo); // rejects → the prepare screen shows the error, original kept
+    dropCutout(key);
+    const next = new Map(cutoutsRef.current).set(key, cut);
+    cutoutsRef.current = next;
+    setCutouts(next);
+  }, [dropCutout]);
 
   // The first share in a browser session asks the coach to confirm (images of minors).
   const [pendingShare, setPendingShare] = useState<(() => void) | null>(null);
@@ -236,6 +260,8 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     <AwardsPrepare
       heading={heading}
       photoAllowed={(k) => allowed.has(k)}
+      cutouts={cutouts}
+      onCutout={onCutout}
       awards={awards}
       people={[...ready.people.values()].sort((a, b) => Number(b.current) - Number(a.current) || (a.number ?? 999) - (b.number ?? 999))}
       saveState={saveState}
@@ -277,6 +303,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         photosRef.current = next;
         setPhotos(next);
         if (old && old !== img) old.width = 0;
+        dropCutout(key); // a new or removed photo invalidates its cut-out
       }}
       cardFor={cardFor}
       onAction={(a) => {

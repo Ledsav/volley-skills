@@ -11,3 +11,6 @@ ui-debug*.log
 .tsbuild/
 *.tsbuildinfo
 reference/
+
+# Copied from node_modules/@mediapipe/tasks-vision/wasm by vite.config.ts
+public/mediapipe/

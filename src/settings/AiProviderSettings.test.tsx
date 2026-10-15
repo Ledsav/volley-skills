@@ -89,9 +89,7 @@ describe('AiProviderSettings', () => {
 
   it('keeps the key out of localStorage when Remember is unchecked', () => {
     renderAi();
-    const box = screen.getByLabelText('Remember on this device');
-    expect(box).toBeChecked();
-    fireEvent.click(box);
+    expect(screen.getByLabelText('Remember on this device')).not.toBeChecked();
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'gsk_sess' } });
     expect(localStorage.getItem('vcb.ai.settings')).not.toContain('gsk_sess');
     expect(sessionStorage.getItem('vcb.ai.sessionKey')).toBe('gsk_sess');
@@ -106,5 +104,21 @@ describe('AiProviderSettings', () => {
     await waitFor(() => expect(screen.getByRole('status').className).toContain('text-red'));
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     await waitFor(() => expect(screen.getByRole('status').className).toContain('text-green-strong'));
+  });
+
+  it('Forget key removes the key from this device', () => {
+    renderAi();
+    const forget = screen.getByRole('button', { name: 'Forget key' });
+    expect(forget).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'gsk_test' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Forget key' }));
+    expect(screen.getByLabelText('API key')).toHaveValue('');
+    expect(readAiSettings().apiKey).toBe('');
+    expect(sessionStorage.getItem('vcb.ai.sessionKey')).toBeNull();
+  });
+
+  it('leaves "Remember on this device" off for a fresh setup', () => {
+    renderAi();
+    expect(screen.getByLabelText('Remember on this device')).not.toBeChecked();
   });
 });

@@ -22,7 +22,7 @@ describe('PrivacyPage', () => {
     expect(screen.getByText(/parent or legal guardian is the party who gives consent/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Security' })).toBeInTheDocument();
     expect(screen.getByText(/cached on the device until you sign out/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Text scouting (optional)' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'AI features (optional)' })).toBeInTheDocument();
     expect(screen.getByText(/sent to the AI provider they choose/i)).toBeInTheDocument();
     for (const heading of ['Who is responsible', 'Service providers', 'Changes']) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
@@ -34,5 +34,15 @@ describe('PrivacyPage', () => {
     const contacts = screen.getAllByRole('link', { name: 'alberto.valdes.rey.official@gmail.com' });
     expect(contacts.length).toBeGreaterThan(0);
     contacts.forEach((a) => expect(a).toHaveAttribute('href', 'mailto:alberto.valdes.rey.official@gmail.com'));
+  });
+
+  it('describes AI drafting and where the provider key lives', () => {
+    render(
+      <MemoryRouter>
+        <PrivacyPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/Draft with AI/)).toHaveTextContent(/No player, team, guardian or match data/);
+    expect(screen.getByText(/for the browser session by default/)).toHaveTextContent(/removed on sign-out\.$/);
   });
 });

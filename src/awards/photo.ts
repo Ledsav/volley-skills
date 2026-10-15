@@ -34,3 +34,22 @@ export function fitSize(w: number, h: number, max: number): { w: number; h: numb
   const k = Math.min(1, max / Math.max(w, h));
   return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) };
 }
+
+/**
+ * A club or sponsor logo for the cards: at most 512px, kept in memory only. A white
+ * background (typical of JPG logos) is made transparent so the logo can sit on any slide.
+ */
+export async function loadLogoFile(file: File, knockOut: (px: Uint8ClampedArray, w: number, h: number) => boolean): Promise<HTMLCanvasElement> {
+  const bmp = await loadImageFile(file);
+  const { w, h } = fitSize(bmp.width, bmp.height, 512);
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('This image could not be opened.');
+  ctx.drawImage(bmp, 0, 0, w, h);
+  bmp.close();
+  const data = ctx.getImageData(0, 0, w, h);
+  if (knockOut(data.data, w, h)) ctx.putImageData(data, 0, 0);
+  return c;
+}

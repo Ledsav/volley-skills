@@ -11,6 +11,8 @@ import { CardThumbnail } from './CardThumbnail';
 import { NAME_STYLE_LABELS, type NameStyle } from './nameStyle';
 import { PhotoCropDialog } from './PhotoCropDialog';
 import { revealable, type ResolvedAward } from './resolveAwards';
+import { LogoThumb } from './LogoThumb';
+import { MAX_SPONSORS } from './card/branding';
 
 export type PrepareAction =
   | { type: 'pick'; key: string; playerId: string | null }
@@ -30,6 +32,11 @@ export interface AwardsPrepareProps {
   colorsFor: (key: string) => SlideColors;
   photoAllowed: (key: string) => boolean;
   cutouts: Map<string, HTMLCanvasElement>;
+  branding: { clubLogo: HTMLCanvasElement | null; sponsors: HTMLCanvasElement[]; mono: boolean };
+  onClubLogo: (file: File | null) => void;
+  onAddSponsors: (files: File[]) => void;
+  onRemoveSponsor: (index: number) => void;
+  onLogosMono: (mono: boolean) => void;
   onCutout: (key: string, on: boolean) => Promise<void>;
   notice?: string | null;
   artFor: (key: string) => CardArt;
@@ -123,7 +130,35 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
             {(Object.keys(NAME_STYLE_LABELS) as NameStyle[]).map((s) => <option key={s} value={s}>{NAME_STYLE_LABELS[s]}</option>)}
           </select>
         </label>
-        <p className="w-full text-xs text-slate">Photos stay on this device and are forgotten when you leave.</p>
+        <div role="group" aria-label="Branding" className="flex w-full flex-wrap items-center gap-3 border-t border-border pt-3">
+          <span className="text-sm font-medium text-ink">Branding</span>
+          {props.branding.clubLogo ? (
+            <span className="inline-flex items-center gap-1">
+              <LogoThumb img={props.branding.clubLogo} />
+              <Button variant="ghost" size="icon" aria-label="Remove club logo" onClick={() => props.onClubLogo(null)}><X size={14} aria-hidden="true" /></Button>
+            </span>
+          ) : (
+            <label className="text-sm text-slate">Club logo
+              <input type="file" accept="image/*" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; if (f) props.onClubLogo(f); }} />
+            </label>
+          )}
+          {props.branding.sponsors.map((img, i) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              <LogoThumb img={img} />
+              <Button variant="ghost" size="icon" aria-label={`Remove sponsor ${i + 1}`} onClick={() => props.onRemoveSponsor(i)}><X size={14} aria-hidden="true" /></Button>
+            </span>
+          ))}
+          <label className="text-sm text-slate">Add sponsor logos
+            <input type="file" accept="image/*" multiple disabled={props.branding.sponsors.length >= MAX_SPONSORS} className="ml-2 text-sm"
+              onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ''; if (fs.length) props.onAddSponsors(fs); }} />
+          </label>
+          {props.branding.sponsors.length >= MAX_SPONSORS && <span className="text-xs text-slate">Up to {MAX_SPONSORS} sponsors</span>}
+          <label className="inline-flex items-center gap-2 text-sm text-slate">
+            <input type="checkbox" checked={!props.branding.mono} onChange={(e) => props.onLogosMono(!e.target.checked)} />
+            Logos in original colours
+          </label>
+        </div>
+        <p className="w-full text-xs text-slate">Photos and logos stay on this device and are forgotten when you leave.</p>
       </section>
 
       <ol className="space-y-3">

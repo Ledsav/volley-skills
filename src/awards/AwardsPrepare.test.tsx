@@ -17,7 +17,7 @@ function setup(over: Partial<AwardsPrepareProps> = {}) {
   const props: AwardsPrepareProps = {
     heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
     nameStyle: 'firstInitial', onNameStyle: vi.fn(), palettePrefs: { selectedId: 'navy', custom: [] }, onPalettePrefs: vi.fn(),
-    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0), photoAllowed: () => true, cutouts: new Map(), onCutout: vi.fn().mockResolvedValue(undefined),
+    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0), photoAllowed: () => true, branding: { clubLogo: null, sponsors: [], mono: true }, onClubLogo: vi.fn(), onAddSponsors: vi.fn(), onRemoveSponsor: vi.fn(), onLogosMono: vi.fn(), cutouts: new Map(), onCutout: vi.fn().mockResolvedValue(undefined),
     hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, cutout: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
     onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onExportSummary: vi.fn(), onRecordVideo: vi.fn(), videoAvailable: true, onClose: vi.fn(), ...over,
   };
@@ -132,5 +132,27 @@ describe('AwardsPrepare', () => {
     expect(p.onExportSummary).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(screen.getByRole('menuitem', { name: /Video export isn't supported in this browser/ })).toBeInTheDocument();
+  });
+
+  it('branding: uploads a club logo and sponsor logos, removes one, and toggles original colours', () => {
+    const logo = document.createElement('canvas');
+    const p = setup({ branding: { clubLogo: null, sponsors: [logo, logo], mono: true } });
+    const file = new File(['x'], 'l.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('Club logo'), { target: { files: [file] } });
+    expect(p.onClubLogo).toHaveBeenCalledWith(file);
+    fireEvent.change(screen.getByLabelText('Add sponsor logos'), { target: { files: [file, file] } });
+    expect(p.onAddSponsors).toHaveBeenCalledWith([file, file]);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove sponsor 2' }));
+    expect(p.onRemoveSponsor).toHaveBeenCalledWith(1);
+    fireEvent.click(screen.getByLabelText('Logos in original colours'));
+    expect(p.onLogosMono).toHaveBeenCalledWith(false);
+  });
+
+  it('branding: stops adding sponsors at six', () => {
+    const logo = document.createElement('canvas');
+    setup({ branding: { clubLogo: logo, sponsors: Array(6).fill(logo), mono: true } });
+    expect(screen.getByLabelText('Add sponsor logos')).toBeDisabled();
+    expect(screen.getByText('Up to 6 sponsors')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove club logo' })).toBeInTheDocument();
   });
 });

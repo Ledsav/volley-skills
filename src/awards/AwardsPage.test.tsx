@@ -174,6 +174,7 @@ describe('AwardsPage', () => {
 
   it('shares the finished video only on a fresh tap', async () => {
     recordStoryMock.mockResolvedValue(new Blob(['v'], { type: 'video/mp4' }));
+    vi.mocked(exportCards.shareOrDownload).mockResolvedValue('shared'); // restoreAllMocks clears the module default
     await startRecording();
     const share = await screen.findByRole('button', { name: 'Share video' });
     expect(exportCards.shareOrDownload).not.toHaveBeenCalled();
@@ -193,6 +194,14 @@ describe('AwardsPage', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Winner cards/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not export');
     expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('a logo the browser cannot read shows a message and adds nothing', async () => {
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.change(screen.getByLabelText('Club logo'), { target: { files: [new File(['x'], 'logo.txt', { type: 'text/plain' })] } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load that logo.');
+    expect(screen.queryByRole('button', { name: 'Remove club logo' })).toBeNull();
   });
 
   it('match: unfinished match shows a message', async () => {

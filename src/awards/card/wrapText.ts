@@ -61,3 +61,18 @@ export function fitBlock(
     size = Math.max(min, Math.floor(size * 0.9));
   }
 }
+
+/** One line of text at (x, y) with the given alignment; nothing when alpha ≤ 0. */
+export function textAt(
+  ctx: CanvasRenderingContext2D, s: string, x: number, y: number, font: string, color: string, alpha: number, align: CanvasTextAlign = 'left',
+) {
+  if (alpha <= 0 || !s) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}

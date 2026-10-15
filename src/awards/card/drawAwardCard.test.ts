@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PRESET_PALETTES, slideColors } from '../palette';
 import { CARD_H, CARD_W, drawAwardCard, drawTitleCard, type CardModel } from './drawAwardCard';
 import { recordingCtx } from './testCtx';
+import { SPONSOR_ROW } from './branding';
 
 const card: CardModel = {
   key: 'mvp', awardTitle: 'MVP', name: 'Lena P.', number: 12, statLine: '6.2 MVP pts', footer: 'vs Rivals · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC', note: '',
@@ -11,18 +12,40 @@ const colors2 = slideColors(PRESET_PALETTES[1], 0);
 const fakeImage = { width: 800, height: 600 } as unknown as ImageBitmap;
 
 describe('drawAwardCard', () => {
-  it('at t=1 draws title, name, stat line, footer, team name', () => {
+  it('at t=1 draws one header row (club · team | match), title, name and stat', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 1);
     const all = texts();
-    for (const s of ['MVP', 'Lena P.', '6.2 MVP pts', 'vs Rivals · 12 Oct 2026', 'DEMO VC', 'U17 GIRLS']) expect(all).toContain(s);
+    for (const s of ['DEMO VC · U17 GIRLS', 'VS RIVALS · 12 OCT 2026', 'MVP', 'Lena P.', '6.2 MVP pts']) expect(all).toContain(s);
   });
 
-  it('omits the club line when the team has no club', () => {
+  it('header shows only the team when the team has no club', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, { ...card, clubName: '  ' }, colors, { photo: null, cutout: null, background: null }, 1);
     expect(texts()).toContain('U17 GIRLS');
-    expect(texts()).not.toContain('');
+    expect(texts().some((t) => t.includes('·') && t.includes('U17'))).toBe(false);
+  });
+
+  it('name and stat share one row (less vertical stacking)', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 1);
+    const y = (s: string) => calls.find((c) => c.method === 'fillText' && c.args[0] === s)!.args[2];
+    expect(y('Lena P.')).toBe(y('6.2 MVP pts'));
+  });
+
+  it('with sponsors, neither text nor the player enters the sponsor row, and every sponsor is drawn there', () => {
+    const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
+    const logo = { width: 400, height: 120 } as unknown as ImageBitmap;
+    const branding = { clubLogo: null, sponsors: [logo, logo, logo], mono: false };
+    const long = { ...card, name: 'Maximiliana Alexandrovna-Kowalczyk', statLine: 'Always first in the gym and last to leave, every day' };
+    for (const art of [{ photo: null, cutout: cut, background: null, branding }, { photo: fakeImage, cutout: null, background: null, branding }]) {
+      const { ctx, calls } = recordingCtx();
+      drawAwardCard(ctx, long, colors, art, 1);
+      for (const c of calls.filter((c) => c.method === 'fillText')) expect(c.args[2] as number).toBeLessThan(SPONSOR_ROW.divider);
+      const player = calls.find((c) => c.method === 'drawImage' && c.args[0] !== logo)!;
+      if (art.cutout) expect((player.args[2] as number) + (player.args[4] as number)).toBeLessThan(SPONSOR_ROW.divider);
+      expect(calls.filter((c) => c.method === 'drawImage' && c.args[0] === logo)).toHaveLength(3);
+    }
   });
 
   it('draws the jersey number when there is no photo, the photo otherwise', () => {

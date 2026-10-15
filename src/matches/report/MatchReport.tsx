@@ -39,7 +39,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
     <div className="match-report flex flex-col gap-6 print:gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-3xl font-bold tabular-nums text-ink">{report.setsWon.us}–{report.setsWon.them}</p>
+          <p className="text-stat font-extrabold tabular-nums text-ink">{report.setsWon.us}–{report.setsWon.them}</p>
           <p className="text-sm tabular-nums text-slate">{report.setScores.map((s) => `${s.us}–${s.them}`).join(' · ')}</p>
           {set !== 'all' && <p className="hidden text-sm font-semibold text-ink print:block">Set {set} only</p>}
         </div>

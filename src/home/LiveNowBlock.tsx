@@ -14,7 +14,7 @@ export function LiveNowBlock({ items }: { items: FeedMatch[] }) {
           <div key={match.id} className="rounded-lg border-2 border-red bg-surface p-4 shadow-card">
             <p className="text-xs text-slate">{team.name}</p>
             <p className="mt-1 text-lg font-semibold text-ink">vs {match.opponent}</p>
-            <p className="mt-1 text-3xl font-extrabold tabular-nums text-ink">
+            <p className="mt-1 text-stat font-extrabold tabular-nums text-ink">
               {match.result.setsUs}–{match.result.setsThem}
             </p>
             <Link

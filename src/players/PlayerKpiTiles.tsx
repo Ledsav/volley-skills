@@ -1,6 +1,7 @@
 import { focusAreaKeys, latestTestDate, openObjectiveCount, ratedSkillCount } from './playerDashboard';
 import { SKILL_KEYS, type Player } from '../types/player';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
+import { StatTile } from '../components/StatTile';
 
 interface PlayerKpiTilesProps {
   player: Player;
@@ -14,16 +15,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 function splitIsoDate(iso: string): { day: string; year: string } {
   const [year, month, day] = iso.split('-');
   return { day: `${Number(day)} ${MONTHS[Number(month) - 1]}`, year };
-}
-
-function StatTile({ label, value, hint, title }: { label: string; value: string; hint?: string; title?: string }) {
-  return (
-    <div className="flex min-w-0 flex-col justify-between rounded-lg border border-border bg-surface p-4" title={title}>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate">{label}</p>
-      <p className="mt-2 truncate whitespace-nowrap text-3xl font-extrabold leading-none tabular-nums text-ink">{value}</p>
-      {hint && <p className="mt-1 truncate text-xs text-slate">{hint}</p>}
-    </div>
-  );
 }
 
 export function PlayerKpiTiles({ player, latestByType }: PlayerKpiTilesProps) {

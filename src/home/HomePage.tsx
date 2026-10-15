@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PageSkeleton } from '../components/Skeleton';
 import { matchMvpLabel } from '../awards/matchMvp';
 import { usePageMeta } from '../layout/usePageMeta';
-import { liveMatches, nextUp, recentResults } from './homeFeed';
+import { clubName, liveMatches, nextUp, recentResults } from './homeFeed';
 import { LiveNowBlock } from './LiveNowBlock';
 import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
@@ -15,6 +15,25 @@ function greeting(now = new Date()): string {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
+/** Half a volleyball court in faint white lines, bleeding off the band's right edge. */
+function CourtLines() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 180 90"
+      className="pointer-events-none absolute -right-6 top-1/2 h-[140%] -translate-y-1/2 text-white/10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <rect x="1" y="1" width="178" height="88" />
+      <line x1="90" y1="1" x2="90" y2="89" strokeWidth="4" />
+      <line x1="60" y1="1" x2="60" y2="89" />
+      <line x1="120" y1="1" x2="120" y2="89" />
+    </svg>
+  );
+}
+
 export function HomePage() {
   usePageMeta({ title: 'Home' });
   const { appUser, access } = useAuth();
@@ -23,15 +42,23 @@ export function HomePage() {
   const state = useHomeFeed(email);
   const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isSuperAdmin);
   const today = state.today;
+  const club = clubName(state.teams);
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">
-        {greeting()}{name ? `, ${name.charAt(0).toUpperCase()}${name.slice(1)}` : ''}
-      </h1>
-      <p className="mb-6 mt-1 text-slate">
-        {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-      </p>
+      {/* The one branded surface inside the app: navy band, club name from data. */}
+      <section aria-label="Welcome" className="relative mb-6 overflow-hidden rounded-lg bg-navy p-5 text-white sm:p-6">
+        <CourtLines />
+        <div className="relative">
+          {club && <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{club}</p>}
+          <h1 className="mt-1 text-title font-semibold text-white">
+            {greeting()}{name ? `, ${name.charAt(0).toUpperCase()}${name.slice(1)}` : ''}
+          </h1>
+          <p className="mt-1 text-sm text-white/80">
+            {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+      </section>
 
       {state.loading ? (
         <PageSkeleton layout="team" label="Loading your dashboard..." />

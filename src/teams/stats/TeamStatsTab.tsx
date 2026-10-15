@@ -18,15 +18,7 @@ import { parseStatsFilter, statsFilterToParams } from './statsFilterParams';
 import { TeamTrendChart } from './TeamTrendChart';
 import { filterMatches, seasonCoverage, teamSeason, type StatsFilter } from './teamSeason';
 import { teamStatsCsv, teamStatsCsvFileName } from './teamStatsCsv';
-
-function Kpi({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="break-inside-avoid rounded-lg border border-border bg-surface p-3 shadow-card">
-      <div className="text-2xl font-extrabold tabular-nums text-ink">{value}</div>
-      <div className="text-xs text-slate">{label}</div>
-    </div>
-  );
-}
+import { StatTile } from '../../components/StatTile';
 
 function dateBounds(all: Match[]): { from: string; to: string } {
   const dates = all.map((m) => m.date).sort();
@@ -164,13 +156,13 @@ export function TeamStatsTab({ team }: { team: Team }) {
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi value={`${season.record.won}–${season.record.lost}`} label={`Record · sets ${season.record.setsWon}–${season.record.setsLost}`} />
-        <Kpi value={fmtPct(season.sideOut)} label="Side-out" />
-        <Kpi value={fmtPct(season.breakPoint)} label="Break point" />
-        <Kpi value={fmtEff(season.attackEff)} label="Attack eff." />
-        <Kpi value={fmtPct(season.receptionPos)} label="Reception +" />
-        <Kpi value={`${season.aces} / ${season.serveErrors}`} label="Aces / serve errors" />
-        <Kpi value={String(season.oppErrorPoints)} label="Points from opp. errors" />
+        <StatTile value={`${season.record.won}–${season.record.lost}`} label="Record" hint={`Sets ${season.record.setsWon}–${season.record.setsLost}`} />
+        <StatTile value={fmtPct(season.sideOut)} label="Side-out" />
+        <StatTile value={fmtPct(season.breakPoint)} label="Break point" />
+        <StatTile value={fmtEff(season.attackEff)} label="Attack eff." />
+        <StatTile value={fmtPct(season.receptionPos)} label="Reception +" />
+        <StatTile value={`${season.aces} / ${season.serveErrors}`} label="Aces / serve errors" />
+        <StatTile value={String(season.oppErrorPoints)} label="Points from opp. errors" />
       </div>
 
       <section aria-labelledby="trend-h" className="break-inside-avoid">

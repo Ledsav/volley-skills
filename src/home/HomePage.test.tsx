@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue } from '../test/authValue';
@@ -50,6 +50,13 @@ describe('HomePage', () => {
     expect(screen.getByRole('heading', { level: 1, name: /Good evening/ })).toBeInTheDocument();
     const resume = await screen.findByRole('link', { name: /Resume scouting/ });
     expect(resume).toHaveAttribute('href', '/teams/t1/matches/m1/scout');
+  });
+
+  it('names the club from team data in the welcome band', async () => {
+    renderHome();
+    const band = screen.getByRole('region', { name: 'Welcome' });
+    expect(await within(band).findByText('Demo VC')).toBeInTheDocument();
+    expect(band.className).toContain('bg-navy');
   });
 
   it('shows the no-access card when the user has no teams or sections', async () => {

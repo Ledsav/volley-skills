@@ -24,6 +24,7 @@ import {
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import { TrainingViewSheet } from './TrainingViewSheet';
 import { useNotify } from '../components/Notice';
+import { PageHeader } from '../layout/PageHeader';
 
 export function TrainingsPage() {
   usePageMeta({ title: 'Trainings' });
@@ -101,27 +102,30 @@ export function TrainingsPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Trainings</h1>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setShowImport(true)}
-          >
-            Import
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setDialog({ mode: 'new' })}
-          >
-            New training
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Trainings"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowImport(true)}
+            >
+              Import
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setDialog({ mode: 'new' })}
+            >
+              New training
+            </Button>
+          </>
+        }
+        className="mb-4"
+      />
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="w-full sm:w-auto">

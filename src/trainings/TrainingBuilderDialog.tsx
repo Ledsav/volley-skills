@@ -304,7 +304,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                 <button
                   type="button"
                   onClick={() => setPickerOpen(false)}
-                  className="text-xs font-medium text-slate hover:text-ink"
+                  className="rounded-sm text-xs font-medium text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
                 >
                   Done
                 </button>
@@ -345,7 +345,7 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
                           aria-expanded={expanded}
                           aria-label={expanded ? `Collapse ${ex.name}` : `Expand ${ex.name}`}
                           onClick={() => setExpandedId(expanded ? null : ex.id)}
-                          className="mt-0.5 shrink-0 text-slate hover:text-ink"
+                          className="mt-0.5 shrink-0 rounded-sm text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
                         >
                           {expanded ? (
                             <ChevronDown className="h-4 w-4" aria-hidden="true" />

@@ -21,7 +21,7 @@ export function NotFoundPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
       <OutOfBounds />
-      <h1 tabIndex={-1} className="mt-4 text-2xl font-semibold tracking-[-0.01em] text-ink">This page is out of bounds</h1>
+      <h1 tabIndex={-1} className="mt-4 text-title font-semibold text-ink">This page is out of bounds</h1>
       <p className="mt-2 text-slate">
         Nothing lives at <code className="rounded-sm bg-bg px-1 text-ink">{pathname}</code>
       </p>

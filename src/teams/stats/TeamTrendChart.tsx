@@ -1,7 +1,11 @@
 import { fmtEff, fmtPct } from '../../matches/format';
 import type { TrendPoint } from './teamSeason';
+import { useMediaQuery } from '../../components/useMediaQuery';
 
-const W = 640, H = 200, PAD_L = 36, PAD_R = 8, PAD_T = 12, PAD_B = 28;
+// The viewBox width follows the screen so SVG text renders near its nominal
+// size: a 640-wide box squeezed onto a phone would shrink 11px labels to ~6px.
+const W_WIDE = 640, W_NARROW = 320;
+const H = 200, PAD_L = 36, PAD_R = 8, PAD_T = 12, PAD_B = 28;
 const Y_MIN = -0.5, Y_MAX = 1;
 const SERIES = [
   { key: 'sideOut', label: 'Side-out %', className: 'stroke-blue' },
@@ -10,6 +14,7 @@ const SERIES = [
 ] as const;
 
 export function TeamTrendChart({ points }: { points: TrendPoint[] }) {
+  const W = useMediaQuery('(min-width: 640px)') ? W_WIDE : W_NARROW;
   if (points.length < 2) return <p className="text-sm text-slate">Scout at least two matches to see a trend.</p>;
   const x = (i: number) => PAD_L + (i / (points.length - 1)) * (W - PAD_L - PAD_R);
   const y = (v: number) => PAD_T + ((Y_MAX - Math.max(Y_MIN, Math.min(Y_MAX, v))) / (Y_MAX - Y_MIN)) * (H - PAD_T - PAD_B);
@@ -25,12 +30,12 @@ export function TeamTrendChart({ points }: { points: TrendPoint[] }) {
         {[0, 0.5, 1].map((g) => (
           <g key={g}>
             <line x1={PAD_L} x2={W - PAD_R} y1={y(g)} y2={y(g)} className="stroke-border" strokeDasharray={g === 0 ? undefined : '3 3'} />
-            <text x={PAD_L - 4} y={y(g) + 4} textAnchor="end" className="fill-slate text-[10px]">{g * 100}%</text>
+            <text x={PAD_L - 4} y={y(g) + 4} textAnchor="end" className="fill-slate text-[11px]">{g * 100}%</text>
           </g>
         ))}
         {SERIES.map((s) => <path key={s.key} d={path(s.key)} fill="none" strokeWidth={2} className={s.className} />)}
         {points.map((p, i) => (
-          <text key={p.matchId} x={x(i)} y={H - 8} textAnchor="middle" className={`text-[10px] font-bold ${p.won ? 'fill-green-strong' : 'fill-red-strong'}`}>
+          <text key={p.matchId} x={x(i)} y={H - 8} textAnchor="middle" className={`text-[11px] font-bold ${p.won ? 'fill-green-strong' : 'fill-red-strong'}`}>
             {p.won ? 'W' : 'L'}
           </text>
         ))}

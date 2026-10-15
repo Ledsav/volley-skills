@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { SECTION_KEYS, type SectionKey } from '../auth/access';
 import { AccessRequestsPanel } from '../interest/AccessRequestsPanel';
+import { PageHeader } from '../layout/PageHeader';
 import {
   emptyGrantSet, listAllTeams, listGrantHolders, removeAllGrants, saveGrants,
   type GrantHolder, type GrantSet, type TeamRow,
@@ -116,7 +117,7 @@ export function AccessManagerPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <h1 className="mb-6 text-2xl font-semibold tracking-[-0.01em] text-ink">Access</h1>
+      <PageHeader title="Access" />
       {error && <p role="alert" className="mb-4 text-red">{error}</p>}
 
       <AccessRequestsPanel onGrant={grantRequest} />

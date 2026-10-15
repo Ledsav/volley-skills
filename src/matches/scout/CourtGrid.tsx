@@ -80,14 +80,14 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
               <span className={`max-w-full truncate px-1 text-xs ${isSelected ? 'text-white' : 'text-slate'}`}>
                 {isLibero ? LIBERO_TILE_LABEL[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}
               </span>
-              <span className={`absolute left-1 top-1 text-[10px] ${isSelected ? 'text-white/80' : 'text-slate'}`}>P{zone + 1}</span>
+              <span className={`absolute left-1 top-1 text-[11px] ${isSelected ? 'text-white/80' : 'text-slate'}`}>P{zone + 1}</span>
               {!isLibero && (
-                <span aria-hidden="true" className={`absolute bottom-1 left-1 text-[10px] font-medium ${isSelected ? 'text-white/80' : 'text-slate'}`}>
+                <span aria-hidden="true" className={`absolute bottom-1 left-1 text-[11px] font-medium ${isSelected ? 'text-white/80' : 'text-slate'}`}>
                   {roles?.[id] ?? entry.positionCategory}
                 </span>
               )}
               {isSelected && autoSelected && (
-                <span aria-hidden="true" className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1 text-[10px] font-medium leading-tight text-white">
+                <span aria-hidden="true" className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1 text-[11px] font-medium leading-tight text-white">
                   auto
                 </span>
               )}

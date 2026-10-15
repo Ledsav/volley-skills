@@ -17,7 +17,7 @@ function setup(over: Partial<AwardsPrepareProps> = {}) {
   const props: AwardsPrepareProps = {
     heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
     nameStyle: 'firstInitial', onNameStyle: vi.fn(), palettePrefs: { selectedId: 'navy', custom: [] }, onPalettePrefs: vi.fn(),
-    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0),
+    includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0), photoAllowed: () => true,
     hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, cutout: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
     onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
   };
@@ -108,5 +108,11 @@ describe('AwardsPrepare', () => {
     const prefs = calls[calls.length - 1][0];
     expect(prefs.custom).toHaveLength(1);
     expect(prefs.selectedId).toBe(prefs.custom[0].id);
+  });
+
+  it('disables photo controls for a winner without consent and says why', () => {
+    setup({ photoAllowed: () => false });
+    expect(screen.getAllByText('No photo consent on file — the card shows the jersey number.').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Add photo')).not.toBeInTheDocument();
   });
 });

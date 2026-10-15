@@ -12,6 +12,8 @@ import { EMPTY_AWARDS, type AwardScope, type AwardsInput } from '../types/awards
 import type { Match } from '../types/match';
 import type { Team } from '../types/team';
 import { AwardsPrepare } from './AwardsPrepare';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { markShareWarned, needsShareWarning } from './shareWarning';
 import { AwardsPresent } from './AwardsPresent';
 import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi';
 import { applyPrepareAction } from './awardsReducer';
@@ -31,7 +33,23 @@ type Load =
   | { state: 'notFound' }
   | { state: 'notFinished' }
   | { state: 'error' }
-  | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person> };
+  | { state: 'ready'; team: Team; matches: Match[]; match: Match | null; people: Map<string, Person>; consented: Set<string> };
+
+const EMPTY_CUTOUTS = new Map<string, HTMLCanvasElement>();
+const NO_CONSENT = new Set<string>();
+
+/** Awards whose winner is a current player with photo consent; only these may carry a photo or cut-out. */
+export function photoAllowedKeys(awards: ResolvedAward[], consented: Set<string>): Set<string> {
+  return new Set(awards.filter((a) => a.winner && consented.has(a.winner.playerId)).map((a) => a.key));
+}
+
+/** Card art for one award: photo and cut-out only while the winner has photo consent. */
+export function gatedArt(
+  key: string, allowed: Set<string>, photos: Map<string, HTMLCanvasElement>, cutouts: Map<string, HTMLCanvasElement>, background: HTMLCanvasElement | null,
+): CardArt {
+  const ok = allowed.has(key);
+  return { photo: ok ? photos.get(key) ?? null : null, cutout: ok ? cutouts.get(key) ?? null : null, background };
+}
 
 const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -85,7 +103,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         const initial = (scope === 'match' ? match!.awards : saved) ?? EMPTY_AWARDS;
         configRef.current = initial;
         setConfig(initial);
-        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster) });
+        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster), consented: new Set(roster.filter((p) => p.consent?.given).map((p) => p.id)) });
       } catch (e) {
         if (!cancelled) setLoad({ state: isNotFoundError(e) ? 'notFound' : 'error' });
       }
@@ -146,7 +164,8 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     };
   }, [ready, nameStyle, heading]);
 
-  const artFor = useCallback((key: string): CardArt => ({ photo: photos.get(key) ?? null, cutout: null, background }), [photos, background]);
+  const allowed = useMemo(() => photoAllowedKeys(awards, ready?.consented ?? NO_CONSENT), [awards, ready]);
+  const artFor = useCallback((key: string) => gatedArt(key, allowed, photos, EMPTY_CUTOUTS, background), [allowed, photos, background]);
 
   const cards = useMemo(
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
@@ -164,6 +183,14 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     return slideColors(palette, colorIndexForAward(slides, Math.max(0, i)));
   }, [cards, palette, slides]);
   const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: ready?.team.club ?? '' }), [palette, cards, artFor, ready]);
+
+  // The first share in a browser session asks the coach to confirm (images of minors).
+  const [pendingShare, setPendingShare] = useState<(() => void) | null>(null);
+  const guardShare = (run: () => Promise<void>) => {
+    const go = () => void run();
+    if (needsShareWarning()) setPendingShare(() => go);
+    else go();
+  };
 
   async function exportKeys(keys: string[]) {
     if (!ready) return;
@@ -205,8 +232,10 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   }
 
   return (
+    <>
     <AwardsPrepare
       heading={heading}
+      photoAllowed={(k) => allowed.has(k)}
       awards={awards}
       people={[...ready.people.values()].sort((a, b) => Number(b.current) - Number(a.current) || (a.number ?? 999) - (b.number ?? 999))}
       saveState={saveState}
@@ -257,9 +286,19 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         setConfig(next);
       }}
       onPresent={() => setMode('present')}
-      onExportAll={() => void exportKeys(revealable(awards).map((a) => a.key))}
-      onExportOne={(key) => void exportKeys([key])}
+      onExportAll={() => guardShare(() => exportKeys(revealable(awards).map((a) => a.key)))}
+      onExportOne={(key) => guardShare(() => exportKeys([key]))}
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />
+    {pendingShare && (
+      <ConfirmDialog
+        title="Share award cards"
+        message="You're about to share images of minors. Share them only within the team."
+        confirmLabel="Share"
+        onCancel={() => setPendingShare(null)}
+        onConfirm={() => { markShareWarned(); const run = pendingShare; setPendingShare(null); run(); }}
+      />
+    )}
+    </>
   );
 }

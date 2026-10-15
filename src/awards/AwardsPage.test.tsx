@@ -8,7 +8,9 @@ import * as matchesApi from '../matches/matchesApi';
 import * as exportCards from './exportCards';
 import * as awardsApi from './awardsApi';
 import { finished, player } from './testMatches';
-import AwardsPage from './AwardsPage';
+import AwardsPage, { gatedArt, photoAllowedKeys } from './AwardsPage';
+import type { ResolvedAward } from './resolveAwards';
+import type { Player } from '../types/player';
 
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../teams/teamsApi');
@@ -61,7 +63,11 @@ describe('AwardsPage', () => {
     vi.mocked(teamsApi.getTeam).mockResolvedValue(team);
     vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([m]);
     vi.mocked(matchesApi.getMatch).mockResolvedValue(m);
-    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([]);
+    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([
+      { id: 'a', fullName: 'Player a', number: 1, consent: { given: true, date: null, confirmedBy: null } },
+      { id: 'b', fullName: 'Player b', number: 2, consent: { given: false, date: null, confirmedBy: null } },
+    ] as unknown as Player[]);
+    sessionStorage.clear();
     vi.mocked(awardsApi.getSeasonAwards).mockResolvedValue(null);
     vi.mocked(awardsApi.saveSeasonAwards).mockResolvedValue();
     vi.mocked(awardsApi.saveMatchAwards).mockResolvedValue();
@@ -115,13 +121,15 @@ describe('AwardsPage', () => {
     const b = document.createElement('canvas'); b.width = 300;
     nextCrop = [a, b];
     renderAt('/teams/t1/awards', 'season');
-    const attacker = await screen.findByRole('region', { name: 'Best attacker' });
+    await screen.findByRole('region', { name: 'Best attacker' });
+    // photos need a winner with consent: player a wins Top scorer and MVP in this fixture
+    const scorer = screen.getByRole('region', { name: /scorer/i });
     const pick = async (row: HTMLElement) => {
       fireEvent.change(row.querySelector('input[type=file]')!, { target: { files: [new File(['x'], 'p.png', { type: 'image/png' })] } });
       fireEvent.click(await screen.findByRole('button', { name: 'Done crop' }));
       await flush();
     };
-    await pick(attacker);
+    await pick(scorer);
     await pick(screen.getByRole('region', { name: 'MVP' }));
     expect(a.width).toBe(300);
     expect(b.width).toBe(300);
@@ -132,6 +140,9 @@ describe('AwardsPage', () => {
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
     fireEvent.click(screen.getByRole('button', { name: /Export cards/ }));
+    // first share in a session asks about minors' images
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('Share them only within the team');
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not export');
   });
 
@@ -155,5 +166,25 @@ describe('AwardsPage', () => {
     expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(await screen.findByRole('region', { name: 'Best attacker' })).toBeInTheDocument();
+  });
+});
+
+describe('photoAllowedKeys', () => {
+  const award = (key: string, playerId: string | null) => ({ key, winner: playerId ? { playerId, name: '', number: null, current: true } : null }) as unknown as ResolvedAward;
+  it('allows photos only for winners with consent; former players and empty awards are excluded', () => {
+    const keys = photoAllowedKeys([award('mvp', 'a'), award('server', 'b'), award('x', 'gone'), award('none', null)], new Set(['a']));
+    expect([...keys]).toEqual(['mvp']);
+  });
+});
+
+describe('gatedArt', () => {
+  const photo = document.createElement('canvas');
+  const cut = document.createElement('canvas');
+  const photos = new Map([['mvp', photo]]);
+  const cutouts = new Map([['mvp', cut]]);
+  it('photo dropped when winner loses consent', () => {
+    expect(gatedArt('mvp', new Set(['mvp']), photos, cutouts, null)).toEqual({ photo, cutout: cut, background: null });
+    // the MVP winner was changed to a player without consent → mvp is no longer in the allowed set
+    expect(gatedArt('mvp', new Set(), photos, cutouts, null)).toEqual({ photo: null, cutout: null, background: null });
   });
 });

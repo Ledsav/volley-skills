@@ -144,7 +144,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
           type="button"
           aria-label="Previous month"
           onClick={() => goToMonth(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
         >
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
@@ -153,7 +153,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
           type="button"
           aria-label="Next month"
           onClick={() => goToMonth(1)}
-          className="flex h-10 w-10 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
         >
           <ChevronRight size={20} aria-hidden="true" />
         </button>

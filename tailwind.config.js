@@ -35,6 +35,14 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      // Type scale roles from the design-system spec §3. Use these instead of
+      // text-2xl / text-[22px] so every page title and stat reads the same.
+      fontSize: {
+        'large-title': ['28px', { lineHeight: '36px', letterSpacing: '-0.01em' }],
+        title: ['22px', { lineHeight: '28px', letterSpacing: '-0.01em' }],
+        section: ['18px', { lineHeight: '24px', letterSpacing: '-0.01em' }],
+        stat: ['30px', { lineHeight: '34px', letterSpacing: '-0.02em' }],
+      },
       borderRadius: { sm: '6px', md: '9px', lg: '14px' },
       boxShadow: {
         card: '0 1px 2px rgba(15,23,42,.06), 0 1px 0 rgba(15,23,42,.03)',

@@ -4,6 +4,7 @@ import { GRADES, SKILLS, type Match, type MatchReportData } from '../../types/ma
 import { fmtEff, fmtPct, playerLabel, rosterMap } from '../format';
 import { SKILL_LABELS } from '../skillGrades';
 import { GRADE_CLASS } from '../scout/gradeStyles';
+import { isManyErrors, isWeakAttack, isWeakReception, weakClass } from '../statFlags';
 
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
@@ -39,7 +40,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
     <div className="match-report flex flex-col gap-6 print:gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-3xl font-bold tabular-nums text-ink">{report.setsWon.us}–{report.setsWon.them}</p>
+          <p className="text-stat font-extrabold tabular-nums text-ink">{report.setsWon.us}–{report.setsWon.them}</p>
           <p className="text-sm tabular-nums text-slate">{report.setScores.map((s) => `${s.us}–${s.them}`).join(' · ')}</p>
           {set !== 'all' && <p className="hidden text-sm font-semibold text-ink print:block">Set {set} only</p>}
         </div>
@@ -100,9 +101,11 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
                         </td>
                       );
                     })}
-                    <td className="px-2">{fmtEff(p.attackEff)}</td>
-                    <td className="px-2">{fmtPct(p.receptionPos)}</td>
-                    <td className="px-2">{p.points} / {p.errors}</td>
+                    <td className={`px-2 ${weakClass(isWeakAttack(p.attackEff))}`}>{fmtEff(p.attackEff)}</td>
+                    <td className={`px-2 ${weakClass(isWeakReception(p.receptionPos))}`}>{fmtPct(p.receptionPos)}</td>
+                    <td className="px-2">
+                      <span className="text-green-strong">{p.points}</span> / <span className={weakClass(isManyErrors(p.errors))}>{p.errors}</span>
+                    </td>
                   </tr>
                 );
               })}

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { NoticeProvider } from './components/Notice';
 import { RequireAuth } from './auth/RequireAuth';
 import { RequireSuperAdmin } from './auth/RequireSuperAdmin';
 import { RequireSection } from './auth/RequireSection';
@@ -42,95 +43,97 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/finish-sign-in" element={<FinishSignInPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/request-access" element={<RequestAccessPage />} />
-          <Route element={<AuthenticatedLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/teams" element={<TeamsListPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/teams/:teamId" element={<TeamPage />} />
-            <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
-            <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
+        <NoticeProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/finish-sign-in" element={<FinishSignInPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/request-access" element={<RequestAccessPage />} />
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/teams" element={<TeamsListPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/teams/:teamId" element={<TeamPage />} />
+              <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
+              <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
+              <Route
+                path="/admin/guides"
+                element={
+                  <RequireSection section="guides">
+                    <GuidesPage />
+                  </RequireSection>
+                }
+              />
+              <Route
+                path="/exercises"
+                element={
+                  <RequireSection section="exercises">
+                    <ExercisesPage />
+                  </RequireSection>
+                }
+              />
+              <Route
+                path="/trainings"
+                element={
+                  <RequireSection section="trainings">
+                    <TrainingsPage />
+                  </RequireSection>
+                }
+              />
+              <Route
+                path="/exercises/:exerciseId/diagram"
+                element={
+                  <RequireSection section="exercises">
+                    <Suspense fallback={<div className="p-6 text-slate">Loading editor…</div>}>
+                      <DiagramEditorPage />
+                    </Suspense>
+                  </RequireSection>
+                }
+              />
+              <Route
+                path="/admin/access"
+                element={
+                  <RequireSuperAdmin>
+                    <AccessManagerPage />
+                  </RequireSuperAdmin>
+                }
+              />
+              {/* Old link target: requests now live on the Access page. */}
+              <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
             <Route
-              path="/admin/guides"
+              path="/teams/:teamId/matches/:matchId/scout"
               element={
-                <RequireSection section="guides">
-                  <GuidesPage />
-                </RequireSection>
-              }
-            />
-            <Route
-              path="/exercises"
-              element={
-                <RequireSection section="exercises">
-                  <ExercisesPage />
-                </RequireSection>
-              }
-            />
-            <Route
-              path="/trainings"
-              element={
-                <RequireSection section="trainings">
-                  <TrainingsPage />
-                </RequireSection>
-              }
-            />
-            <Route
-              path="/exercises/:exerciseId/diagram"
-              element={
-                <RequireSection section="exercises">
-                  <Suspense fallback={<div className="p-6 text-slate">Loading editor…</div>}>
-                    <DiagramEditorPage />
+                <RequireAuth>
+                  <Suspense fallback={<div className="p-6 text-slate">Loading scouting…</div>}>
+                    <ScoutPage />
                   </Suspense>
-                </RequireSection>
+                </RequireAuth>
               }
             />
             <Route
-              path="/admin/access"
+              path="/teams/:teamId/awards"
               element={
-                <RequireSuperAdmin>
-                  <AccessManagerPage />
-                </RequireSuperAdmin>
+                <RequireAuth>
+                  <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                    <AwardsPage scope="season" />
+                  </Suspense>
+                </RequireAuth>
               }
             />
-            {/* Old link target: requests now live on the Access page. */}
-            <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-          <Route
-            path="/teams/:teamId/matches/:matchId/scout"
-            element={
-              <RequireAuth>
-                <Suspense fallback={<div className="p-6 text-slate">Loading scouting…</div>}>
-                  <ScoutPage />
-                </Suspense>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/teams/:teamId/awards"
-            element={
-              <RequireAuth>
-                <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
-                  <AwardsPage scope="season" />
-                </Suspense>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/teams/:teamId/matches/:matchId/awards"
-            element={
-              <RequireAuth>
-                <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
-                  <AwardsPage scope="match" />
-                </Suspense>
-              </RequireAuth>
-            }
-          />
-        </Routes>
+            <Route
+              path="/teams/:teamId/matches/:matchId/awards"
+              element={
+                <RequireAuth>
+                  <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                    <AwardsPage scope="match" />
+                  </Suspense>
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </NoticeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

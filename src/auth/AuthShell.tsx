@@ -104,7 +104,7 @@ export function AuthShell({
         <div className="relative z-10 flex items-center justify-center px-6 py-10 lg:w-[38%] lg:px-12">
           <div className="w-full max-w-sm rounded-lg bg-surface p-7 text-ink shadow-pop">
             {title && (
-              <h1 className="mb-4 text-center text-[22px] font-semibold leading-7 tracking-[-0.01em] text-ink">
+              <h1 className="mb-4 text-center text-title font-semibold text-ink">
                 {title}
               </h1>
             )}

@@ -25,6 +25,7 @@ The authoritative specs live in `docs/superpowers/`:
 | `specs/2026-09-07-volley-skills-plan-2-design.md`, `plan-3-design.md` | Design detail for later plan increments. |
 | `specs/2026-10-13-volley-skills-scouting-design.md` | Match scouting: event-sourced live scouting, match/event data model, post-match report, offline behavior. |
 | `specs/2026-10-14-volley-skills-home-stats-awards-design.md` | Home dashboard (`/`), team stats tab, season/match awards cards, 404 + SEO (`noindex` everywhere except `/login`, `/privacy`, `/request-access`). |
+| `specs/2026-10-15-volley-skills-multi-club.md` | **Deferred** multi-club design (one project, `clubs/{clubId}` root). Read before adding any new top-level collection. |
 | `plans/*.md` | The phased implementation plans (foundation, plan 2, plan 3 calendar + library). |
 
 ## Commands
@@ -156,7 +157,7 @@ reused everywhere a level appears. Tailwind tokens (`navy`, `blue`, `orange`,
 `green`, `ink`, radius `sm/md/lg`, shadow `card/pop`) come from the design-system
 spec §8 and live in `tailwind.config.js`. Inter is self-hosted via
 `@fontsource/inter`; numeric columns/stats use `tabular-nums`. Icons: `lucide-react`.
-Dark mode is specified but MVP ships light-first.
+Dark mode ships: tokens are CSS variables per theme in `src/index.css`, so components never use `dark:` variants. Page titles come from `PageHeader` (`text-title`); success feedback goes through `useNotify()` (`src/components/Notice.tsx`), errors stay inline with `role="alert"`.
 
 ## Conventions
 

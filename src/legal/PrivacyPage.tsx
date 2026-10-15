@@ -32,7 +32,7 @@ export function PrivacyPage() {
   usePageMeta({ title: 'Privacy', description: 'How Volley Skills handles player and guardian data.', robots: 'index', canonicalPath: '/privacy' });
   return (
     <div className="mx-auto max-w-2xl p-6 text-ink">
-      <h1 className="text-2xl font-semibold tracking-[-0.01em]">Privacy Policy</h1>
+      <h1 className="text-title font-semibold">Privacy Policy</h1>
       <p className="mt-1 text-sm text-slate">Last updated {LAST_UPDATED}</p>
 
       <p role="note" className="mt-3 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink">

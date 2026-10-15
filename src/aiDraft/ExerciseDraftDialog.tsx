@@ -37,6 +37,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
   const [count, setCount] = useState(3);
   const [drafts, setDrafts] = useState<ExerciseDraft[] | null>(null);
   const [kept, setKept] = useState<Set<string>>(new Set());
+  const [added, setAdded] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<DraftError | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
@@ -108,7 +109,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
     );
   }
 
-  const toSave = drafts?.filter((d) => kept.has(d.key)) ?? [];
+  const toSave = drafts?.filter((d) => kept.has(d.key) && !added.has(d.key)) ?? [];
   const canSave = toSave.length > 0 && toSave.every((d) => d.category && d.name.trim()) && !saving && !generating;
 
   async function handleSave() {
@@ -116,8 +117,10 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
     setError(null);
     try {
       const done = await save(() => saveExerciseDrafts(toSave, firebaseUser.uid, createdRef.current), { offline: 'block' });
-      if (done) onSaved(toSave.length);
+      // Every exercise this dialog created, including ones from an earlier, partly failed save.
+      if (done) onSaved(createdRef.current.size);
     } catch (e) {
+      setAdded(new Set(createdRef.current.keys()));
       setError({
         text:
           e instanceof OfflineError
@@ -233,7 +236,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
           </p>
         )}
 
-        {drafts && <ExerciseProposalReview drafts={drafts} kept={kept} onToggleKeep={toggleKeep} onEdit={edit} />}
+        {drafts && <ExerciseProposalReview drafts={drafts} kept={kept} added={added} onToggleKeep={toggleKeep} onEdit={edit} />}
       </div>
     </Dialog>
   );

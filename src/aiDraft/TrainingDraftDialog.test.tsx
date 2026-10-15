@@ -125,6 +125,41 @@ describe('TrainingDraftDialog', () => {
     expect(steps()).toHaveLength(2);
   });
 
+  it('lets the coach type the total minutes digit by digit', async () => {
+    const { ask } = renderDialog();
+    const total = screen.getByLabelText('Total minutes');
+    fireEvent.change(total, { target: { value: '1' } });
+    expect(total).toHaveValue(1);
+    fireEvent.change(total, { target: { value: '12' } });
+    fireEvent.change(total, { target: { value: '120' } });
+    fireEvent.blur(total);
+    expect(total).toHaveValue(120);
+    await generate();
+    expect(ask.mock.calls[0][0][1].content).toContain('Total minutes: 120');
+  });
+
+  it('lets the coach clear and retype a step’s minutes', async () => {
+    const { onSaved } = renderDialog();
+    await generate();
+    const pepper = screen.getByLabelText('Minutes for Pepper');
+    fireEvent.change(pepper, { target: { value: '' } });
+    expect(pepper).toHaveValue(null);
+    fireEvent.change(pepper, { target: { value: '5' } });
+    expect(pepper).toHaveValue(5);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(vi.mocked(trainingsApi.createTraining).mock.calls[0][0].exercises[0].durationMinutes).toBe(5);
+  });
+
+  it('restores the last valid value when the coach leaves a minutes field empty', async () => {
+    renderDialog();
+    await generate();
+    const pepper = screen.getByLabelText('Minutes for Pepper');
+    fireEvent.change(pepper, { target: { value: '' } });
+    fireEvent.blur(pepper);
+    expect(pepper).toHaveValue(15);
+  });
+
   it('opens a step in the detail sheet, showing the draft diagram', async () => {
     renderDialog();
     await generate();

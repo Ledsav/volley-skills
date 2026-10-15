@@ -17,12 +17,14 @@ export type ExerciseDraftPatch = Partial<Pick<ExerciseDraft, 'name' | 'category'
 interface Props {
   drafts: ExerciseDraft[];
   kept: Set<string>;
+  /** Drafts already written by an earlier (partly failed) save: locked, since edits could no longer reach them. */
+  added: Set<string>;
   onToggleKeep: (key: string) => void;
   onEdit: (key: string, patch: ExerciseDraftPatch) => void;
 }
 
 /** One card per AI proposal: diagram preview (tap to zoom), text, issues, Keep and inline Edit. */
-export function ExerciseProposalReview({ drafts, kept, onToggleKeep, onEdit }: Props) {
+export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEdit }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState<ExerciseDraft | null>(null);
 
@@ -80,6 +82,11 @@ export function ExerciseProposalReview({ drafts, kept, onToggleKeep, onEdit }: P
                         {CATEGORY_LABEL[d.category]}
                       </span>
                     )}
+                    {added.has(d.key) && (
+                      <span className="rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
+                        Added to library
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 whitespace-pre-line text-sm text-slate">{d.description}</p>
                 </>
@@ -98,11 +105,18 @@ export function ExerciseProposalReview({ drafts, kept, onToggleKeep, onEdit }: P
                     className="h-4 w-4"
                     aria-label={`Keep ${d.name}`}
                     checked={kept.has(d.key)}
+                    disabled={added.has(d.key)}
                     onChange={() => onToggleKeep(d.key)}
                   />
                   Keep
                 </label>
-                <Button variant="ghost" size="sm" onClick={() => setEditing(editing === d.key ? null : d.key)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={editing === d.key ? `Done editing ${d.name}` : `Edit ${d.name}`}
+                  disabled={added.has(d.key)}
+                  onClick={() => setEditing(editing === d.key ? null : d.key)}
+                >
                   {editing === d.key ? 'Done' : 'Edit'}
                 </Button>
               </div>

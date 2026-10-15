@@ -3,6 +3,7 @@ import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import { DraftDiagramPreview } from './DraftDiagramPreview';
+import { NumberField } from './NumberField';
 import { moveStep, removeStep, setStepMinutes, stepName, totalMinutes } from './trainingDraftOps';
 import { DRAFT_LIMITS, type TrainingDraft } from './types';
 
@@ -103,14 +104,13 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
                   )}
                 </div>
               </div>
-              <Input
+              <NumberField
                 aria-label={`Minutes for ${name}`}
-                type="number"
                 min={DRAFT_LIMITS.minutesMin}
                 max={DRAFT_LIMITS.minutesMax}
                 className="w-16 tabular-nums"
                 value={s.minutes}
-                onChange={(e) => onChange(setStepMinutes(draft, i, Number(e.target.value)))}
+                onChange={(m) => onChange(setStepMinutes(draft, i, m))}
               />
               <div className="flex shrink-0">
                 <button

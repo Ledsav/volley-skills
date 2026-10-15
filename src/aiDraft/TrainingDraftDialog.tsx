@@ -11,6 +11,7 @@ import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/Exer
 import type { NewTrainingInput } from '../types/training';
 import { draftErrorText, needsSettings, runDraft, type AskFn } from './draftRunner';
 import { loadLibraryIndex } from './libraryIndex';
+import { NumberField } from './NumberField';
 import { DraftSaveError, newExercisesOf, saveExerciseDrafts, saveTrainingDraft, trainingDraftToInput } from './saveDrafts';
 import { buildTrainingMessages } from './trainingPrompt';
 import { TrainingProposalReview } from './TrainingProposalReview';
@@ -204,14 +205,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                 <label htmlFor="tdraft-min" className="mb-1 block text-sm font-medium text-ink">
                   Total minutes
                 </label>
-                <Input
-                  id="tdraft-min"
-                  type="number"
-                  min={30}
-                  max={180}
-                  value={minutes}
-                  onChange={(e) => setMinutes(Math.max(30, Math.min(180, Number(e.target.value) || 90)))}
-                />
+                <NumberField id="tdraft-min" min={30} max={180} value={minutes} onChange={setMinutes} />
               </div>
             </div>
             {canWriteExercises && (

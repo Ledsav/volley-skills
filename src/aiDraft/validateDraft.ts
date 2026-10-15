@@ -4,7 +4,7 @@ import { parseScene } from '../diagrams/parseScene';
 import { newId } from '../diagrams/sceneFactory';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '../types/diagram';
-import { DRAFT_ITEM_TYPES, DRAFT_LIMITS, type ExerciseDraft } from './types';
+import { DRAFT_ITEM_TYPES, DRAFT_LIMITS, type ExerciseDraft, type LibraryIndexEntry, type TrainingDraft, type TrainingStepDraft } from './types';
 
 const CATEGORY_KEYS = new Set<string>(EXERCISE_CATEGORIES.map((c) => c.key));
 const COURTS: CourtPreset[] = ['full', 'half', 'blank'];
@@ -62,4 +62,60 @@ export function validateExerciseProposals(raw: unknown, count: number): Exercise
     .slice(0, count);
   if (drafts.length === 0) throw new AiError('badResponse', 'The model returned no usable exercises.');
   return drafts;
+}
+
+function minutes(v: unknown): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 10;
+  return Math.max(DRAFT_LIMITS.minutesMin, Math.min(DRAFT_LIMITS.minutesMax, n));
+}
+
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+export function validateTrainingProposal(
+  raw: unknown,
+  opts: { index: LibraryIndexEntry[]; allowNew: boolean; ageGroupTarget: string },
+): TrainingDraft {
+  const obj = isPlainObject(raw) ? raw : {};
+  const byId = new Map(opts.index.map((e) => [e.id, e]));
+  const rawSteps = Array.isArray(obj.steps) ? obj.steps : [];
+  const steps: TrainingStepDraft[] = [];
+  let unknownIds = 0;
+  let newOff = 0;
+  let newNoCategory = 0;
+  for (const s of rawSteps) {
+    if (steps.length >= DRAFT_LIMITS.maxSteps || !isPlainObject(s)) continue;
+    if (typeof s.exerciseId === 'string') {
+      const hit = byId.get(s.exerciseId);
+      if (!hit) {
+        unknownIds++;
+        continue;
+      }
+      steps.push({ kind: 'library', exerciseId: hit.id, name: hit.name, category: hit.category, description: hit.description, minutes: minutes(s.minutes) });
+    } else if (isPlainObject(s.new)) {
+      if (!opts.allowNew) {
+        newOff++;
+        continue;
+      }
+      const exercise = validateExerciseDraft(s.new);
+      if (!exercise) continue;
+      if (!exercise.category) {
+        newNoCategory++;
+        continue;
+      }
+      steps.push({ kind: 'new', exercise, minutes: minutes(s.minutes) });
+    }
+  }
+  if (steps.length === 0) throw new AiError('badResponse', 'The model returned no usable steps.');
+  const issues: string[] = [];
+  if (unknownIds) issues.push(`${unknownIds} ${plural(unknownIds, 'step used an exercise that is', 'steps used exercises that are')} not in the library and ${plural(unknownIds, 'was', 'were')} dropped.`);
+  if (newOff) issues.push(`${newOff} new ${plural(newOff, 'exercise was', 'exercises were')} dropped because new exercises are off.`);
+  if (newNoCategory) issues.push(`${newNoCategory} new ${plural(newNoCategory, 'exercise had', 'exercises had')} no valid category and ${plural(newNoCategory, 'was', 'were')} dropped.`);
+  return {
+    name: text(obj.name, DRAFT_LIMITS.nameMax) || 'AI training',
+    description: text(obj.description, DRAFT_LIMITS.descriptionMax),
+    // The coach's own age group wins over the model's guess.
+    ageGroupTarget: opts.ageGroupTarget || text(obj.ageGroupTarget, 40),
+    steps,
+    issues,
+  };
 }

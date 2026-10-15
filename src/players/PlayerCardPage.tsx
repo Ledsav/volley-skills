@@ -29,6 +29,8 @@ import { deletionDueDate, todayIso } from './retention';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { PageSkeleton } from '../components/Skeleton';
 import { SectionTabs } from '../components/SectionTabs';
+import { SuggestionToggle } from './SuggestionToggle';
+import { readSuggestionPref, writeSuggestionPref } from './suggestionPref';
 
 function Tile({
   title,
@@ -126,6 +128,8 @@ export function PlayerCardPage() {
   }, [isAdmin, teamId, playerId]);
 
   const ratings = useMemo(() => (season ? matchRatings(season) : undefined), [season]);
+  const [showSuggestions, setShowSuggestions] = useState(readSuggestionPref);
+  const hasSuggestions = isAdmin && !!ratings && Object.values(ratings).some((r) => r?.rating != null);
   const [section, setSection] = useState<PlayerSection>('skills');
   const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
 
@@ -214,7 +218,14 @@ export function PlayerCardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Tile
               title="Skills"
-              action={editAction('skills', 'Edit skills')}
+              action={
+                <div className="flex items-center gap-1">
+                  {hasSuggestions && (
+                    <SuggestionToggle on={showSuggestions} onChange={(on) => { setShowSuggestions(on); writeSuggestionPref(on); }} />
+                  )}
+                  {editAction('skills', 'Edit skills')}
+                </div>
+              }
               className="lg:col-span-2"
             >
               <PlayerSkillsSection
@@ -224,6 +235,7 @@ export function PlayerCardPage() {
                 onPlayerUpdated={setPlayer}
                 isAdmin={isAdmin}
                 ratings={isAdmin ? ratings : undefined}
+                showSuggestions={showSuggestions}
                 editing={editingSection === 'skills'}
                 onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
               />

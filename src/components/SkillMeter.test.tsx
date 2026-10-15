@@ -52,4 +52,22 @@ describe('SkillMeter', () => {
       expect(el.className).toMatch(/border-border\b/);
     });
   });
+
+  it('shows the gap up to a higher suggestion as pulsing ghost segments', () => {
+    render(<SkillMeter score={5} suggested={8} />);
+    const segs = screen.getAllByTestId('skill-segment');
+    expect(segs.map((s) => s.dataset.ghost ?? '')).toEqual(['', '', '', '', '', 'up', 'up', 'up', '', '']);
+    expect(segs[5].className).toContain('motion-safe:animate-pulse');
+  });
+
+  it('marks the segments a lower suggestion would remove', () => {
+    render(<SkillMeter score={6} suggested={4} />);
+    const segs = screen.getAllByTestId('skill-segment');
+    expect(segs.map((s) => s.dataset.ghost ?? '')).toEqual(['', '', '', '', 'down', 'down', '', '', '', '']);
+  });
+
+  it('no ghost when the suggestion matches or is absent', () => {
+    render(<SkillMeter score={6} suggested={6} />);
+    expect(screen.getAllByTestId('skill-segment').some((s) => s.dataset.ghost)).toBe(false);
+  });
 });

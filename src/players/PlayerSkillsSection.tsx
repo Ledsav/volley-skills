@@ -12,6 +12,7 @@ import { updatePlayerSkills } from './playersApi';
 import { suggestedScore, type MatchRatings } from './matchRating';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SkillRadarChart } from './SkillRadarChart';
+import { useNotify } from '../components/Notice';
 
 const SKILL_LABELS: Record<SkillKey, string> = {
   serve: 'Serve',
@@ -63,6 +64,8 @@ interface PlayerSkillsSectionProps {
   onEditingChange: (editing: boolean) => void;
   /** Team admins only: season match ratings per skill. Absent → no match lines. */
   ratings?: MatchRatings;
+  /** Header toggle state: show match suggestions (ghost segments + Adapt). Defaults to on. */
+  showSuggestions?: boolean;
 }
 
 export function PlayerSkillsSection({
@@ -74,7 +77,9 @@ export function PlayerSkillsSection({
   editing,
   onEditingChange,
   ratings,
+  showSuggestions = true,
 }: PlayerSkillsSectionProps) {
+  const notify = useNotify();
   const [skills, setSkills] = useState<Skills>(player.skills);
   const [error, setError] = useState<string | null>(null);
   const [guide, setGuide] = useState<Record<string, SkillGuideEntry>>({});
@@ -123,6 +128,28 @@ export function PlayerSkillsSection({
     onEditingChange(false);
   }
 
+  /** The score match data suggests, when suggestions are on and it would change `score`. */
+  const suggestionFor = (rating: MatchRatings[SkillKey] | undefined, score: number | null): number | null => {
+    if (!rating || !showSuggestions || rating.rating == null) return null;
+    const suggested = suggestedScore(rating.rating);
+    return suggested === score ? null : suggested;
+  };
+
+  async function adapt(key: SkillKey, score: number) {
+    setError(null);
+    const next = { ...player.skills, [key]: { ...player.skills[key], score } };
+    const avgScore = computeAvgScore(next);
+    const level = computeLevel(avgScore);
+    try {
+      await updatePlayerSkills(teamId, playerId, next, avgScore, level);
+    } catch {
+      setError('Could not save skills. Please try again.');
+      return;
+    }
+    onPlayerUpdated({ ...player, skills: next, avgScore, level });
+    notify(`${SKILL_LABELS[key]} set to ${score}`);
+  }
+
   const previewAvg = computeAvgScore(skills);
   const previewLevel = computeLevel(previewAvg);
 
@@ -144,9 +171,9 @@ export function PlayerSkillsSection({
           {SKILL_ORDER.map((key) => {
             const { score, priority } = player.skills[key] ?? { score: null, priority: false };
             const rating = ratings?.[key];
-            const diff = rating?.rating != null && score !== null ? rating.rating - score : 0;
+            const suggested = suggestionFor(rating, score);
             return (
-              <li key={key} className="grid grid-cols-[6.5rem_2rem_1fr] items-center gap-x-2">
+              <li key={key} className="grid grid-cols-[6.5rem_2rem_1fr_3.5rem] items-center gap-x-2">
                 <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange-strong' : 'text-ink'}`}>
                   {SKILL_LABELS[key]}
                   {guide[key] && (
@@ -163,13 +190,22 @@ export function PlayerSkillsSection({
                   )}
                 </span>
                 <span className="text-right text-sm tabular-nums text-ink">{score ?? '—'}</span>
-                <SkillMeter score={score} />
-                {rating && (
-                  <p className="col-span-2 col-start-2 flex items-center gap-1 text-xs tabular-nums text-slate">
-                    {matchLine(rating)}
-                    {diff >= 1 && <ArrowUp role="img" aria-label="Match data suggests higher" className="h-3 w-3 text-green-strong" />}
-                    {diff <= -1 && <ArrowDown role="img" aria-label="Match data suggests lower" className="h-3 w-3 text-orange-strong" />}
-                  </p>
+                <div title={suggested !== null && rating ? `${matchLine(rating)} — suggests ${suggested}` : undefined}>
+                  <SkillMeter score={score} suggested={suggested} />
+                </div>
+                {suggested !== null && isAdmin ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Adapt ${SKILL_LABELS[key]} to ${suggested}`}
+                    onClick={() => void adapt(key, suggested)}
+                    className={`!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs tabular-nums ${suggested > (score ?? 0) ? 'text-green-strong hover:bg-green/10' : 'text-orange-strong hover:bg-orange/10'}`}
+                  >
+                    {suggested > (score ?? 0) ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : <ArrowDown className="h-3 w-3" aria-hidden="true" />}
+                    {suggested}
+                  </Button>
+                ) : (
+                  <span />
                 )}
               </li>
             );
@@ -224,16 +260,20 @@ export function PlayerSkillsSection({
                       />
                       Focus area
                     </label>
-                    {rating && value !== null && (
+                    {suggestionFor(rating, skills[key].score) !== null && rating && value !== null && (
                       <div className="col-span-2 flex items-center gap-2 text-xs tabular-nums text-slate sm:col-span-4">
-                        <span>{matchLine(rating)}</span>
+                        <div className="w-40" title={matchLine(rating)}>
+                          <SkillMeter score={skills[key].score} suggested={suggestedScore(value)} />
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
                           aria-label={`Use ${suggestedScore(value)} for ${SKILL_LABELS[key]}`}
                           onClick={() => updateScore(key, String(suggestedScore(value)))}
+                          className="!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs"
                         >
-                          Use {suggestedScore(value)}
+                          {suggestedScore(value) > (skills[key].score ?? 0) ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : <ArrowDown className="h-3 w-3" aria-hidden="true" />}
+                          {suggestedScore(value)}
                         </Button>
                       </div>
                     )}

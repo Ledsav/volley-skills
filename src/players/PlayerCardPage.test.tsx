@@ -125,7 +125,15 @@ describe('PlayerCardPage', () => {
 
     renderPlayerCard();
 
-    expect(await screen.findByText('Match 10.0 · 15 att.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Adapt Serve to 10' })).toBeInTheDocument();
+    // the header toggle hides suggestions and is remembered on this device
+    const toggle = screen.getByRole('button', { name: 'Match suggestions' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(toggle);
+    expect(screen.queryByRole('button', { name: 'Adapt Serve to 10' })).not.toBeInTheDocument();
+    expect(localStorage.getItem('vcb.skills.suggestions')).toBe('0');
+    fireEvent.click(toggle);
+    localStorage.clear();
     await openSection('Matches');
     expect(screen.getByRole('heading', { name: 'Match stats' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Rivals' })).toBeInTheDocument();

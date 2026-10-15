@@ -3,7 +3,8 @@ import { slideColors, type Palette, type SlideColors } from '../palette';
 import type { Slide } from '../story/buildStory';
 import type { StoryStat } from '../story/storyStats';
 import { CARD_DURATION_MS, easeOutBack, easeOutCubic } from './cardTimeline';
-import { CARD_H, CARD_W, drawAwardCard, drawBackground, drawHeader, drawTitleCard, text, type CardArt, type CardModel } from './drawAwardCard';
+import { CARD_H, CARD_W, cardHeader, drawAwardCard, drawBackground, drawTitleCard, text, type CardArt, type CardModel } from './drawAwardCard';
+import { contentBottom, drawHeaderRow, drawSponsorRow, type HeaderInfo } from './branding';
 import { fitBlock, fitFontSize } from './wrapText';
 
 export interface PresentCard { key: string; title: string; model: CardModel }
@@ -16,6 +17,12 @@ const SUSPENSE_PULSE_MS = 1600;
 const TEXT_W = 920;
 const CX = CARD_W / 2;
 const FONT = 'Inter, system-ui, sans-serif';
+
+/** Header row for story slides: club logo / name and the season or match on the right. */
+function storyHeader(deps: StoryDeps, clubName: string): HeaderInfo {
+  const first = deps.cards[0]?.model;
+  return { clubLogo: deps.artFor('').branding?.clubLogo ?? null, clubName, teamName: '', right: first?.footer ?? '' };
+}
 
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a));
@@ -35,7 +42,7 @@ export function slideDurationMs(slide: Slide, cardCount: number): number {
 function drawIntro(ctx: CanvasRenderingContext2D, slide: Extract<Slide, { kind: 'intro' }>, colors: SlideColors, deps: StoryDeps, t: number) {
   const clubName = deps.clubName;
   drawBackground(ctx, colors, deps.artFor(''), 1, 1); // artFor('') carries only the shared background image
-  drawHeader(ctx, { teamName: '', clubName }, colors, 1);
+  drawHeaderRow(ctx, storyHeader(deps, clubName), colors, 1);
   // Short titles punch in a word per line; long ones wrap and shrink (max 4 lines).
   const { size, lines } = fitBlock(ctx, slide.title, 900, 170, TEXT_W, 4);
   const words = slide.title.split(/\s+/).filter(Boolean);
@@ -62,7 +69,7 @@ function drawIntro(ctx: CanvasRenderingContext2D, slide: Extract<Slide, { kind: 
 function drawStat(ctx: CanvasRenderingContext2D, stat: StoryStat, colors: SlideColors, deps: StoryDeps, t: number) {
   const clubName = deps.clubName;
   drawBackground(ctx, colors, deps.artFor(''), 1, 2);
-  drawHeader(ctx, { teamName: '', clubName }, colors, 1);
+  drawHeaderRow(ctx, storyHeader(deps, clubName), colors, 1);
   const kicker = fitBlock(ctx, stat.kicker.toUpperCase(), 800, 64, TEXT_W, 1);
   text(ctx, kicker.lines[0] ?? '', 640, `800 ${kicker.size}px ${FONT}`, colors.accent, seg(t, 0, 0.2));
   const shown = Math.round(stat.big * easeOutCubic(seg(t, 0, 0.7)));
@@ -82,11 +89,11 @@ function drawStat(ctx: CanvasRenderingContext2D, stat: StoryStat, colors: SlideC
 function drawSummary(ctx: CanvasRenderingContext2D, deps: StoryDeps, colors: SlideColors, t: number, reduced: boolean) {
   drawBackground(ctx, colors, deps.artFor(''), 1, 3);
   const first = deps.cards[0]?.model;
-  if (first) drawHeader(ctx, first, colors, 1);
+  if (first) drawHeaderRow(ctx, cardHeader(first, deps.artFor('')), colors, 1);
   text(ctx, 'Winners', 330, `900 120px ${FONT}`, colors.accent, 1);
   const n = deps.cards.length;
   const rows = Math.ceil(n / 2);
-  const top = 420, bottom = CARD_H - 180;
+  const top = 420, bottom = contentBottom(deps.artFor('').branding) - 20;
   const rowH = Math.min(300, (bottom - top) / Math.max(1, rows));
   const r = Math.min(90, rowH * 0.28);
   deps.cards.forEach((c, i) => {
@@ -147,16 +154,16 @@ export function renderStoryFrame(
   const t = reduced || duration === 0 ? 1 : clamp(elapsedMs / duration);
   let done = t >= 1;
   switch (slide.kind) {
-    case 'intro': drawIntro(ctx, slide, colors, deps, t); break;
-    case 'stat': drawStat(ctx, slide.stat, colors, deps, t); break;
+    case 'intro': drawIntro(ctx, slide, colors, deps, t); drawSponsorRow(ctx, deps.artFor('').branding, colors, 1); break;
+    case 'stat': drawStat(ctx, slide.stat, colors, deps, t); drawSponsorRow(ctx, deps.artFor('').branding, colors, 1); break;
     case 'awardTitle': {
       const c = deps.cards[slide.awardIndex];
-      drawTitleCard(ctx, c.title, colors, deps.artFor(c.key), 0);
+      drawTitleCard(ctx, c.title, colors, deps.artFor(c.key), 0, cardHeader(c.model, deps.artFor(c.key)));
       break;
     }
     case 'awardSuspense': {
       const c = deps.cards[slide.awardIndex];
-      drawTitleCard(ctx, c.title, colors, deps.artFor(c.key), reduced ? 0 : (elapsedMs % SUSPENSE_PULSE_MS) / SUSPENSE_PULSE_MS);
+      drawTitleCard(ctx, c.title, colors, deps.artFor(c.key), reduced ? 0 : (elapsedMs % SUSPENSE_PULSE_MS) / SUSPENSE_PULSE_MS, cardHeader(c.model, deps.artFor(c.key)));
       done = reduced;
       break;
     }
@@ -165,7 +172,7 @@ export function renderStoryFrame(
       drawAwardCard(ctx, c.model, colors, deps.artFor(c.key), t, reduced);
       break;
     }
-    case 'summary': drawSummary(ctx, deps, colors, t, reduced); break;
+    case 'summary': drawSummary(ctx, deps, colors, t, reduced); drawSponsorRow(ctx, deps.artFor('').branding, colors, 1); break;
   }
   const prev = prevIndex === null ? null : slides[prevIndex];
   if (!reduced && prev && prev.colorIndex !== slide.colorIndex && elapsedMs < WIPE_MS) {

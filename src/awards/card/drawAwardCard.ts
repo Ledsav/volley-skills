@@ -1,30 +1,41 @@
 import type { SlideColors } from '../palette';
+import { contentBottom, drawHeaderRow, drawSponsorRow, type Branding, type HeaderInfo } from './branding';
 import { cardBeats, easeOutBack, easeOutCubic } from './cardTimeline';
 import { confettiAt, seedFrom } from './confetti';
-import { fitName } from './fitName';
-import { fitBlock } from './wrapText';
+import { CARD_H, CARD_W, MARGIN } from './geometry';
+import { fitBlock, textAt } from './wrapText';
 
-export const CARD_W = 1080;
-export const CARD_H = 1920;
+export { CARD_H, CARD_W } from './geometry';
 const CX = CARD_W / 2;
-const CIRCLE_Y = 860;
-const CIRCLE_R = 300;
-const TEXT_W = 920;
-/**
- * Cut-out area: the player stands in y 500–1450 (about half the card, poster-sized) and the
- * name, stat and footer go below — nothing is painted over the player except a short fade
- * at its bottom edge.
+const FONT = 'Inter, system-ui, sans-serif';
+
+/*
+ * Card layout (horizontal bands, little vertical stacking):
+ *   header row   [club logo] TEAM ··········· SEASON / MATCH
+ *   title        big, left-aligned, up to 3 lines            player on the right
+ *   lower third  NAME (left) ······················· stat (right), one row
+ *   sponsor row  logos (only when there are sponsors)
  */
-const CUTOUT_TOP = 500;
-const CUTOUT_H = 950;
-const CUTOUT_FADE = 0.14;
+const TITLE_TOP = 250;
+const TITLE_W = 600;
+const NAME_W = 580;
+const STAT_W = 380;
+const PLAYER_TOP = 250;
+const PLAYER_MAX_W = 720;
+const CIRCLE_MAX_R = 280;
+const CUTOUT_FADE = 0.12;
 
 export interface CardModel {
   key: string; awardTitle: string; name: string; number: number | null;
   statLine: string | null; footer: string; teamName: string; clubName: string; note: string;
 }
 type Img = ImageBitmap | HTMLCanvasElement;
-export interface CardArt { photo: Img | null; cutout: Img | null; background: Img | null }
+export interface CardArt { photo: Img | null; cutout: Img | null; background: Img | null; branding?: Branding }
+
+/** Header row content for a card: the club logo stands in for the club name. */
+export function cardHeader(card: Pick<CardModel, 'teamName' | 'clubName' | 'footer'>, art: Pick<CardArt, 'branding'>): HeaderInfo {
+  return { clubLogo: art.branding?.clubLogo ?? null, clubName: card.clubName, teamName: card.teamName, right: card.footer };
+}
 
 /** Flat slide colour, one soft accent disc, and the optional photo texture on top. */
 export function drawBackground(ctx: CanvasRenderingContext2D, colors: SlideColors, art: Pick<CardArt, 'background'>, alpha: number, seed = 0) {
@@ -46,123 +57,122 @@ export function drawBackground(ctx: CanvasRenderingContext2D, colors: SlideColor
   ctx.restore();
 }
 
+/** Centred line of text (story slides). */
 export function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string, color: string, alpha: number) {
-  if (alpha <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.font = font;
-  ctx.fillStyle = color;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText(s, CX, y);
-  ctx.restore();
-}
-
-export function drawHeader(ctx: CanvasRenderingContext2D, card: Pick<CardModel, 'teamName' | 'clubName'>, colors: SlideColors, alpha: number) {
-  if (card.clubName.trim()) text(ctx, card.clubName.trim().toUpperCase(), 150, '700 34px Inter, system-ui, sans-serif', colors.muted, alpha);
-  if (card.teamName.trim()) text(ctx, card.teamName.toUpperCase(), 200, '600 30px Inter, system-ui, sans-serif', colors.muted, alpha);
+  textAt(ctx, s, CX, y, font, color, alpha, 'center');
 }
 
 export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, colors: SlideColors, art: CardArt, t: number, reducedMotion = false): void {
   const b = cardBeats(t, reducedMotion);
-  drawBackground(ctx, colors, art, easeOutCubic(b.bg), seedFrom(card.key));
-  drawHeader(ctx, card, colors, easeOutCubic(b.bg));
+  const bgAlpha = easeOutCubic(b.bg);
+  drawBackground(ctx, colors, art, bgAlpha, seedFrom(card.key));
+  drawHeaderRow(ctx, cardHeader(card, art), colors, bgAlpha);
 
-  // Award title: slides up 60px while fading in
+  // Measure the lower third first: the player fills the space between the title and it.
+  const bottom = contentBottom(art.branding);
+  const rowBase = bottom - 30;
+  const name = fitBlock(ctx, card.name, 800, 110, NAME_W, 2);
+  const nameTop = rowBase - (name.lines.length - 1) * name.size * 1.05 - name.size * 0.8;
+  const sub = card.statLine ?? (card.note || null);
+  // Prefer one slightly smaller line; wrap to two only when one line would get small.
+  const oneLine = sub ? fitBlock(ctx, sub, 700, 50, STAT_W, 1) : null;
+  const stat = !sub || !oneLine ? null
+    : oneLine.size >= 36 && !oneLine.lines[0].endsWith('…') ? oneLine : fitBlock(ctx, sub, 700, 50, STAT_W, 2);
+  const statTop = stat ? rowBase - (stat.lines.length - 1) * stat.size * 1.15 - stat.size * 0.8 : rowBase;
+  const playerBottom = Math.min(nameTop, statTop) - 40;
+
+  // Award title: big, left-aligned, slides up while fading in
+  const title = fitBlock(ctx, card.awardTitle, 900, 120, TITLE_W, 3);
+  const titleLineH = title.size * 1.02;
+  const titleBottom = TITLE_TOP + title.lines.length * titleLineH;
   const tt = easeOutCubic(b.title);
   if (tt > 0) {
-    const { size, lines } = fitBlock(ctx, card.awardTitle, 900, 110, TEXT_W, 2);
     ctx.save();
     ctx.translate(0, (1 - tt) * 60);
-    // a two-line title grows upwards so the photo below keeps its place
-    lines.forEach((l, i) => text(ctx, l, 420 - (lines.length - 1 - i) * size * 1.05, `900 ${size}px Inter, system-ui, sans-serif`, colors.accent, tt));
+    title.lines.forEach((l, i) => textAt(ctx, l, MARGIN, TITLE_TOP + title.size * 0.85 + i * titleLineH, `900 ${title.size}px ${FONT}`, colors.accent, tt));
     ctx.restore();
   }
 
   if (b.photo > 0 && art.cutout) {
-    // Poster layout: the player stands in front of the title, anchored to the bottom edge.
+    // Poster style: the player stands on the right, in front of the title's edge.
     const e = easeOutCubic(b.photo);
-    const s = Math.min(CUTOUT_H / art.cutout.height, CARD_W / art.cutout.width);
+    const s = Math.min((playerBottom - PLAYER_TOP) / art.cutout.height, PLAYER_MAX_W / art.cutout.width);
     const w = art.cutout.width * s, h = art.cutout.height * s;
-    const bottom = CUTOUT_TOP + CUTOUT_H;
+    const x = Math.min(CARD_W - 20 - w, CARD_W * 0.66 - w / 2);
+    const y = playerBottom - h;
     ctx.save();
     ctx.globalAlpha = e;
-    ctx.drawImage(art.cutout, CX - w / 2, bottom - h + (1 - e) * 200, w, h);
+    ctx.drawImage(art.cutout, x, y + (1 - e) * 200, w, h);
     ctx.restore();
     // Soften only the bottom edge of the player into the slide colour.
-    const fadeTop = bottom - h * CUTOUT_FADE;
-    const g = ctx.createLinearGradient(0, fadeTop, 0, bottom);
+    const fadeTop = playerBottom - h * CUTOUT_FADE;
+    const g = ctx.createLinearGradient(0, fadeTop, 0, playerBottom);
     g.addColorStop(0, `${colors.bg}00`);
     g.addColorStop(1, colors.bg);
     ctx.fillStyle = g;
-    ctx.fillRect(0, fadeTop, CARD_W, bottom - fadeTop);
+    ctx.fillRect(x, fadeTop, w, playerBottom - fadeTop);
   } else if (b.photo > 0) {
-    // Photo / number circle: spring scale
+    // Photo / number circle on the right, clear of the title.
+    const top = titleBottom + 40;
+    const r = Math.max(80, Math.min(CIRCLE_MAX_R, (playerBottom - top) / 2));
+    const cx = CARD_W - MARGIN - r;
+    const cy = (top + playerBottom) / 2;
     const s = Math.max(0, easeOutBack(b.photo));
     ctx.save();
-    ctx.translate(CX, CIRCLE_Y);
+    ctx.translate(cx, cy);
     ctx.scale(s, s);
     ctx.beginPath();
-    ctx.arc(0, 0, CIRCLE_R, 0, Math.PI * 2);
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.closePath();
     ctx.fillStyle = colors.accent;
     ctx.fill();
-    ctx.lineWidth = 16;
+    ctx.lineWidth = 14;
     ctx.strokeStyle = colors.text;
     ctx.stroke();
     ctx.clip();
     if (art.photo) {
-      const ps = Math.max((CIRCLE_R * 2) / art.photo.width, (CIRCLE_R * 2) / art.photo.height);
+      const ps = Math.max((r * 2) / art.photo.width, (r * 2) / art.photo.height);
       const w = art.photo.width * ps, h = art.photo.height * ps;
       ctx.drawImage(art.photo, -w / 2, -h / 2, w, h);
     } else if (card.number !== null) {
-      ctx.font = '900 300px Inter, system-ui, sans-serif';
+      ctx.font = `900 ${Math.round(r)}px ${FONT}`;
       ctx.fillStyle = colors.bg;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(String(card.number), 0, 10);
+      ctx.fillText(String(card.number), 0, r * 0.03);
     }
     // light sweep while the circle settles
     if (!reducedMotion && b.photo < 1) {
-      const sweepX = -CIRCLE_R + b.photo * CIRCLE_R * 2;
+      const sweepX = -r + b.photo * r * 2;
       const g = ctx.createLinearGradient(sweepX - 80, 0, sweepX + 80, 0);
       g.addColorStop(0, 'rgba(255,255,255,0)');
       g.addColorStop(0.5, 'rgba(255,255,255,0.35)');
       g.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = g;
-      ctx.fillRect(-CIRCLE_R, -CIRCLE_R, CIRCLE_R * 2, CIRCLE_R * 2);
+      ctx.fillRect(-r, -r, r * 2, r * 2);
     }
     ctx.restore();
   }
 
-  // Text positions: below the player with a cut-out, the classic spots with the circle.
-  const posterLayout = !!art.cutout;
-  const nameY = posterLayout ? CUTOUT_TOP + CUTOUT_H + 120 : 1330;
-  const nameFit = fitName(ctx, card.name, TEXT_W);
-  const subY = posterLayout ? nameY + (nameFit.lines.length - 1) * nameFit.size * 1.1 + 90 : 1560;
-  const footerY = posterLayout ? 1860 : 1780;
-
-  // Name: letter-by-letter reveal
+  // Lower third: name (left, letter-by-letter) and stat (right) on one row.
   if (b.name > 0) {
-    const { size, lines } = nameFit;
-    const totalChars = lines.join('').length;
-    let shown = Math.ceil(totalChars * b.name);
-    lines.forEach((line, i) => {
+    let shown = Math.ceil(name.lines.join('').length * b.name);
+    name.lines.forEach((line, i) => {
       const visible = line.slice(0, Math.max(0, shown));
       shown -= line.length;
-      if (visible) text(ctx, visible, nameY + i * (size * 1.1), `800 ${size}px Inter, system-ui, sans-serif`, colors.text, 1);
+      const y = rowBase - (name.lines.length - 1 - i) * name.size * 1.05;
+      if (visible) textAt(ctx, visible, MARGIN, y, `800 ${name.size}px ${FONT}`, colors.text, 1);
+    });
+  }
+  const st = easeOutCubic(b.stat);
+  if (stat) {
+    stat.lines.forEach((l, i) => {
+      const y = rowBase - (stat.lines.length - 1 - i) * stat.size * 1.15;
+      textAt(ctx, l, CARD_W - MARGIN, y, `700 ${stat.size}px ${FONT}`, colors.muted, st, 'right');
     });
   }
 
-  // Stat line or note
-  const st = easeOutCubic(b.stat);
-  const sub = card.statLine ?? (card.note || null);
-  if (sub) {
-    const block = fitBlock(ctx, sub, 600, 52, TEXT_W, 2);
-    block.lines.forEach((l, i) => text(ctx, l, subY + i * block.size * 1.2, `600 ${block.size}px Inter, system-ui, sans-serif`, colors.muted, st));
-  }
-  const footer = fitBlock(ctx, card.footer, 500, 36, TEXT_W, 1);
-  text(ctx, footer.lines[0] ?? '', footerY, `500 ${footer.size}px Inter, system-ui, sans-serif`, colors.muted, st);
+  drawSponsorRow(ctx, art.branding, colors, bgAlpha);
 
   // Confetti
   if (b.confetti > 0) {
@@ -178,9 +188,10 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
   }
 }
 
-/** The pre-reveal card: award title only, with a pulsing glow (pulse 0..1). */
-export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, colors: SlideColors, art: CardArt, pulse: number): void {
+/** The pre-reveal card: header row, the award title with a pulsing glow (pulse 0..1), sponsors. */
+export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, colors: SlideColors, art: CardArt, pulse: number, header?: HeaderInfo): void {
   drawBackground(ctx, colors, art, 1);
+  if (header) drawHeaderRow(ctx, header, colors, 1);
   ctx.save();
   const r = 340 + 40 * Math.sin(pulse * Math.PI * 2);
   const g = ctx.createRadialGradient(CX, CARD_H / 2, 0, CX, CARD_H / 2, r);
@@ -189,7 +200,8 @@ export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, colo
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
   ctx.restore();
-  const { size, lines } = fitBlock(ctx, title, 900, 120, TEXT_W, 3);
+  const { size, lines } = fitBlock(ctx, title, 900, 120, CARD_W - 2 * MARGIN - 40, 3);
   const lineH = size * 1.08;
-  lines.forEach((l, i) => text(ctx, l, CARD_H / 2 + 40 + (i - (lines.length - 1) / 2) * lineH, `900 ${size}px Inter, system-ui, sans-serif`, colors.text, 1));
+  lines.forEach((l, i) => text(ctx, l, CARD_H / 2 + 40 + (i - (lines.length - 1) / 2) * lineH, `900 ${size}px ${FONT}`, colors.text, 1));
+  drawSponsorRow(ctx, art.branding, colors, 1);
 }

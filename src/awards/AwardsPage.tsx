@@ -27,7 +27,8 @@ import { readStoryPref, writeStoryPref } from './story/storyPref';
 import { storyStats } from './story/storyStats';
 import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
-import { fitSize, loadImageFile } from './photo';
+import { fitSize, loadImageFile, loadLogoFile } from './photo';
+import { knockOutWhite, MAX_SPONSORS } from './card/branding';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
 import { ageFromDob } from '../players/age';
 
@@ -89,6 +90,11 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const [photos, setPhotos] = useState<Map<string, HTMLCanvasElement>>(new Map());
   const [cutouts, setCutouts] = useState<Map<string, HTMLCanvasElement>>(new Map());
   const [background, setBackground] = useState<HTMLCanvasElement | null>(null);
+  // Club and sponsor logos: session-only, like photos (never stored).
+  const [clubLogo, setClubLogo] = useState<HTMLCanvasElement | null>(null);
+  const [sponsors, setSponsors] = useState<HTMLCanvasElement[]>([]);
+  const [logosMono, setLogosMono] = useState(true);
+  const logosRef = useRef<HTMLCanvasElement[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const dirty = useRef(false);
@@ -175,6 +181,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     photosRef.current.forEach((c) => { c.width = 0; });
     cutoutsRef.current.forEach((c) => { c.width = 0; });
     if (backgroundRef.current) backgroundRef.current.width = 0;
+    logosRef.current.forEach((c) => { c.width = 0; });
   }, []);
 
   const ready = load.state === 'ready' ? load : null;
@@ -195,7 +202,15 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const allowed = useMemo(() => photoAllowedKeys(awards, ready?.consented ?? NO_CONSENT), [awards, ready]);
   const livePhotos = useMemo(() => photosForWinners(awards, photos, photoOwners.current), [awards, photos]);
   const liveCutouts = useMemo(() => photosForWinners(awards, cutouts, photoOwners.current), [awards, cutouts]);
-  const artFor = useCallback((key: string) => gatedArt(key, allowed, livePhotos, liveCutouts, background), [allowed, livePhotos, liveCutouts, background]);
+  const branding = useMemo(() => ({ clubLogo, sponsors, mono: logosMono }), [clubLogo, sponsors, logosMono]);
+  const artFor = useCallback(
+    (key: string): CardArt => ({ ...gatedArt(key, allowed, livePhotos, liveCutouts, background), branding }),
+    [allowed, livePhotos, liveCutouts, background, branding],
+  );
+  const loadLogos = (files: File[]) => Promise.all(files.map((f) => loadLogoFile(f, knockOutWhite))).then((cs) => {
+    logosRef.current = [...logosRef.current, ...cs];
+    return cs;
+  });
 
   const cards = useMemo(
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
@@ -364,6 +379,19 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         }).catch(() => setNotice('Could not load that background image.'));
       }}
       photos={livePhotos}
+      branding={branding}
+      onClubLogo={(file) => {
+        setNotice(null);
+        if (!file) { if (clubLogo) clubLogo.width = 0; setClubLogo(null); return; }
+        void loadLogos([file]).then(([c]) => setClubLogo(c)).catch(() => setNotice('Could not load that logo.'));
+      }}
+      onAddSponsors={(files) => {
+        setNotice(null);
+        void loadLogos(files.slice(0, MAX_SPONSORS)).then((cs) => setSponsors((cur) => [...cur, ...cs].slice(0, MAX_SPONSORS)))
+          .catch(() => setNotice('Could not load that logo.'));
+      }}
+      onRemoveSponsor={(i) => setSponsors((cur) => { cur[i].width = 0; return cur.filter((_, j) => j !== i); })}
+      onLogosMono={setLogosMono}
       onPhoto={(key, img) => {
         const winner = awards.find((a) => a.key === key)?.winner;
         if (img && winner) photoOwners.current.set(key, winner.playerId); else photoOwners.current.delete(key);

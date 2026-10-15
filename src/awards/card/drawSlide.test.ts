@@ -6,6 +6,7 @@ import type { StoryStat } from '../story/storyStats';
 import type { CardModel } from './drawAwardCard';
 import { renderStoryFrame, slideDurationMs, type StoryDeps } from './drawSlide';
 import { CARD_H } from './drawAwardCard';
+import { SPONSOR_ROW } from './branding';
 import { recordingCtx } from './testCtx';
 
 const model = (key: string, name: string): CardModel => ({ key, awardTitle: key, name, number: 7, statLine: null, footer: 'Season 2026-27', teamName: 'U17', clubName: 'Demo VC', note: '' });
@@ -107,6 +108,19 @@ describe('long text never leaves the card', () => {
       const { ctx, calls } = recordingCtx();
       renderStoryFrame(ctx, longSlides, i, 1e9, longDeps, true, null);
       expect(overflows(calls), `slide ${i} (${longSlides[i].kind})`).toEqual([]);
+    });
+  });
+
+  it('with sponsors, no slide draws text into the sponsor row', () => {
+    const logo = { width: 300, height: 100 } as unknown as ImageBitmap;
+    const branding = { clubLogo: logo, sponsors: [logo, logo, logo, logo, logo, logo], mono: true };
+    const branded: StoryDeps = { ...longDeps, artFor: () => ({ photo: null, cutout: null, background: null, branding }) };
+    longSlides.forEach((_, i) => {
+      const { ctx, calls } = recordingCtx();
+      renderStoryFrame(ctx, longSlides, i, 1e9, branded, true, null);
+      const ys = calls.filter((c) => c.method === 'fillText').map((c) => c.args[2] as number);
+      expect(ys.filter((y) => y >= SPONSOR_ROW.divider), `slide ${i} (${longSlides[i].kind})`).toEqual([]);
+      expect(overflows(calls), `slide ${i}`).toEqual([]);
     });
   });
 });

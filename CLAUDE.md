@@ -156,7 +156,7 @@ reused everywhere a level appears. Tailwind tokens (`navy`, `blue`, `orange`,
 `green`, `ink`, radius `sm/md/lg`, shadow `card/pop`) come from the design-system
 spec §8 and live in `tailwind.config.js`. Inter is self-hosted via
 `@fontsource/inter`; numeric columns/stats use `tabular-nums`. Icons: `lucide-react`.
-Dark mode is specified but MVP ships light-first.
+Dark mode ships: tokens are CSS variables per theme in `src/index.css`, so components never use `dark:` variants. Page titles come from `PageHeader` (`text-title`); success feedback goes through `useNotify()` (`src/components/Notice.tsx`), errors stay inline with `role="alert"`.
 
 ## Conventions
 

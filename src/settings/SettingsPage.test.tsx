@@ -91,7 +91,7 @@ describe('SettingsPage', () => {
 
   it('renders each section as a settings row that becomes a 3-column grid on desktop', () => {
     renderSettings();
-    for (const title of ['Appearance', 'Text scouting (AI)', 'Account']) {
+    for (const title of ['Appearance', 'AI provider', 'Account']) {
       const section = screen.getByRole('heading', { name: title }).closest('section') as HTMLElement;
       expect(section.className).toContain('lg:grid-cols-3');
     }

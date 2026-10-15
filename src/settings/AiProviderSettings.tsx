@@ -4,10 +4,12 @@ import { AlertTriangle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/Button';
 import { SettingsSection } from './SettingsSection';
 import { FIELD_CLASS, Input } from '../components/Input';
+import { useNotify } from '../components/Notice';
 import { AiError, testConnection } from '../ai/aiClient';
 import {
   AI_PROVIDERS,
   LOCAL_UNREACHABLE_HINT,
+  forgetAiKey,
   providerName,
   readAiSettings,
   writeAiSettings,
@@ -50,6 +52,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
   const [saved, setSaved] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const keyId = useId();
+  const notify = useNotify();
   const preset = AI_PROVIDERS[s.provider];
 
   function update(next: AiSettings) {
@@ -64,7 +67,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
     setStatus({ kind: 'testing', text: 'Testing…' });
     try {
       await testFn(s);
-      setStatus({ kind: 'ok', text: 'Connected — text scouting is ready.' });
+      setStatus({ kind: 'ok', text: 'Connected — AI features are ready.' });
     } catch (e) {
       setStatus({ kind: 'error', text: e instanceof AiError ? errorText(e, s.provider) : 'Connection failed.' });
     } finally {
@@ -76,7 +79,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
     status?.kind === 'ok' ? 'text-green-strong' : status?.kind === 'error' ? 'text-red' : 'text-slate';
 
   return (
-    <SettingsSection title="Text scouting (AI)" description="Turn typed match notes into scouting actions.">
+    <SettingsSection title="AI provider" description="Used for text scouting and for drafting exercises and trainings.">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
           Provider
@@ -170,6 +173,18 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
               />
               Remember on this device
             </label>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!s.apiKey}
+              onClick={() => {
+                setS(forgetAiKey(s));
+                setStatus(null);
+                notify('API key removed from this device.');
+              }}
+            >
+              Forget key
+            </Button>
           </div>
         )}
       </div>

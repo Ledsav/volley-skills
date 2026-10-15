@@ -52,7 +52,7 @@ const seed = ['node', 'scripts/seed/seed.mjs', '--emulator', '--reset', ...passt
 // runs this, then tears the emulators down on exit. `--ui` also brings up the
 // Emulator UI (exec is headless without it). Resolve vite's JS entrypoint so it
 // works regardless of whether node_modules/.bin is on PATH.
-const inner = `${seed} && node scripts/seed/applyNumbers.mjs && node scripts/seed/seedLibrary.mjs && node scripts/seed/seedMatch.mjs && node scripts/seed/seedMen1.mjs && node ${JSON.stringify(binOf('vite-node'))} scripts/seed/backfillSummaries.ts && node ${JSON.stringify(binOf('vite'))}`;
+const inner = `${seed} && node scripts/seed/applyNumbers.mjs && node scripts/seed/seedLibrary.mjs && node scripts/seed/seedMatch.mjs && node scripts/seed/seedMen1.mjs && node scripts/seed/seedMatch.mjs --team seed-men-1 && node ${JSON.stringify(binOf('vite-node'))} scripts/seed/backfillSummaries.ts && node ${JSON.stringify(binOf('vite'))}`;
 const args = [firebaseBin(), 'emulators:exec', '--ui', '--only', 'auth,firestore', inner];
 
 const child = spawn(process.execPath, args, {

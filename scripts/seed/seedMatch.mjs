@@ -25,8 +25,10 @@ if (!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(process.env.FIRESTORE_EMUL
 admin.initializeApp({ projectId: 'volley-skills' });
 const db = admin.firestore();
 
-// Deterministic pseudo-random so every seed looks the same.
-let seed = 42;
+// Deterministic pseudo-random so every seed looks the same. An explicit --team gets
+// its own sequence (from its id) so two seeded teams don't share identical results.
+const teamArg = process.argv.indexOf('--team') > -1 ? process.argv[process.argv.indexOf('--team') + 1] : null;
+let seed = teamArg ? [...teamArg].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 2 ** 31, 7) : 42;
 const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
 const pick = (list) => list[Math.floor(rand() * list.length)];
 

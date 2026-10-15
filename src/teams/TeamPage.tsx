@@ -14,6 +14,7 @@ import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImp
 import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { SectionTabs } from '../components/SectionTabs';
+import { PageHeader } from '../layout/PageHeader';
 import { PageSkeleton } from '../components/Skeleton';
 import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
@@ -25,8 +26,10 @@ import type { Team } from '../types/team';
 
 const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
-type TeamTab = 'overview' | 'calendar' | 'matches' | 'stats' | 'plan' | 'settings' | 'physicalSession';
-const TEAM_TABS: TeamTab[] = ['overview', 'calendar', 'matches', 'stats', 'plan', 'settings', 'physicalSession'];
+type TeamTab = 'roster' | 'calendar' | 'matches' | 'stats' | 'plan' | 'physical' | 'settings';
+const TEAM_TABS: TeamTab[] = ['roster', 'calendar', 'matches', 'stats', 'plan', 'physical', 'settings'];
+// Earlier tab ids, so old links and bookmarks still land on the right tab.
+const LEGACY_TAB: Record<string, TeamTab> = { overview: 'roster', physicalSession: 'physical' };
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -35,7 +38,8 @@ export function TeamPage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
-  const tab: TeamTab = TEAM_TABS.includes(tabParam as TeamTab) ? (tabParam as TeamTab) : 'overview';
+  const requestedTab = (tabParam && LEGACY_TAB[tabParam]) || tabParam;
+  const tab: TeamTab = TEAM_TABS.includes(requestedTab as TeamTab) ? (requestedTab as TeamTab) : 'roster';
   const [newMatchDate, setNewMatchDate] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -81,93 +85,98 @@ export function TeamPage() {
     setParams(p, { replace: true });
   };
   const admin = isTeamAdmin(team, firebaseUser?.email, access);
-  const activeTab = (tab === 'calendar' && !canCalendar) || (tab === 'stats' && !admin) ? 'overview' : tab;
+  const activeTab = (tab === 'calendar' && !canCalendar) || (tab === 'stats' && !admin) ? 'roster' : tab;
+  // Ordered by how often a coach reaches for them; Settings stays last.
   const tabs: { id: TeamTab; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
+    { id: 'roster', label: 'Roster' },
     ...(canCalendar ? [{ id: 'calendar' as const, label: 'Calendar' }] : []),
     { id: 'matches', label: 'Matches' },
     ...(admin ? [{ id: 'stats' as const, label: 'Stats' }] : []),
-    { id: 'physicalSession', label: 'Physical Session' },
-    { id: 'plan', label: 'Development Plan' },
+    { id: 'plan', label: 'Development plan' },
+    { id: 'physical', label: 'Physical testing' },
     { id: 'settings', label: 'Settings' },
   ];
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
-        <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">{team.name}</h1>
-        <p className="mt-1 text-slate print:hidden">{team.description}</p>
+      {/* Title and tabs sit on the canvas; each tab brings its own cards (no card-in-card). */}
+      <PageHeader
+        title={team.name}
+        description={team.description ? <span className="print:hidden">{team.description}</span> : undefined}
+        className="mb-4"
+      />
 
-        <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={changeTab} className="mt-4 print:hidden" />
+      <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={changeTab} className="print:hidden" />
 
-        <div className="mt-6">
-          {activeTab === 'overview' && (
-            <>
-              <RetentionNotice teamId={teamId} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />
-              <TeamStatsRow players={rosterPlayers} />
-              <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  onClick={() => setShowImportPlayers(true)}
-                >
-                  Import players
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  onClick={() => setShowAddPlayer(true)}
-                >
-                  + Add player
-                </Button>
-              </div>
-              {importNotice && <p className="mb-4 text-sm text-green-strong">{importNotice}</p>}
-              <TeamRosterTable
-                key={rosterRefreshKey}
-                teamId={teamId}
-                onPlayersChange={setRosterPlayers}
-                onRosterChanged={() => {
-                  setImportNotice('Player removed.');
-                  window.setTimeout(() => setImportNotice(null), 4000);
-                }}
-              />
-            </>
-          )}
-          {activeTab === 'calendar' && canCalendar && (
-            <TeamCalendarTab
+      <div className="mt-6">
+        {activeTab === 'roster' && (
+          <>
+            <RetentionNotice teamId={teamId} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />
+            <TeamStatsRow players={rosterPlayers} />
+            <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => setShowImportPlayers(true)}
+              >
+                Import players
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => setShowAddPlayer(true)}
+              >
+                + Add player
+              </Button>
+            </div>
+            {importNotice && <p className="mb-4 text-sm text-green-strong">{importNotice}</p>}
+            <TeamRosterTable
+              key={rosterRefreshKey}
               teamId={teamId}
-              onNewMatch={(date) => {
-                setNewMatchDate(date);
-                changeTab('matches');
+              onPlayersChange={setRosterPlayers}
+              onRosterChanged={() => {
+                setImportNotice('Player removed.');
+                window.setTimeout(() => setImportNotice(null), 4000);
               }}
             />
-          )}
-          {activeTab === 'matches' && (
-            <TeamMatchesTab teamId={teamId} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
-          )}
-          {activeTab === 'stats' && admin && (
-            <Suspense fallback={<p className="text-slate">Loading team stats…</p>}>
-              <TeamStatsTab team={team} />
-            </Suspense>
-          )}
-          {activeTab === 'physicalSession' && (
-            <TeamPhysicalSessionTab
-              teamId={teamId}
-              team={team}
-              onTeamChanged={setTeam}
-            />
-          )}
-          {activeTab === 'plan' && (
+          </>
+        )}
+        {activeTab === 'calendar' && canCalendar && (
+          <TeamCalendarTab
+            teamId={teamId}
+            onNewMatch={(date) => {
+              setNewMatchDate(date);
+              changeTab('matches');
+            }}
+          />
+        )}
+        {activeTab === 'matches' && (
+          <TeamMatchesTab teamId={teamId} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+        )}
+        {activeTab === 'stats' && admin && (
+          <Suspense fallback={<p className="text-slate">Loading team stats…</p>}>
+            <TeamStatsTab team={team} />
+          </Suspense>
+        )}
+        {activeTab === 'physical' && (
+          <TeamPhysicalSessionTab
+            teamId={teamId}
+            team={team}
+            onTeamChanged={setTeam}
+          />
+        )}
+        {activeTab === 'plan' && (
+          <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
             <DevelopmentPlanEditor
               plan={team.developmentPlan}
               onSave={(plan) => updateTeamDevelopmentPlan(teamId, plan).then(() => setTeam({ ...team, developmentPlan: plan }))}
               isAdmin={true}
             />
-          )}
-          {activeTab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
-        </div>
+          </div>
+        )}
+        {activeTab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
       </div>
       {showAddPlayer && (
         <AddPlayerDialog

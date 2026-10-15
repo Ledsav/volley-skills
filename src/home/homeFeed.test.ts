@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import type { CalendarSession } from '../types/calendarSession';
 import type { Team } from '../types/team';
-import { addDays, liveMatches, nextUp, recentResults, todayIso } from './homeFeed';
+import { addDays, clubName, liveMatches, nextUp, recentResults, todayIso } from './homeFeed';
 
 const team = (id: string): Team => ({
   id, name: id.toUpperCase(), club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
@@ -47,5 +47,11 @@ describe('homeFeed', () => {
     const matches = ['01', '02', '03', '04', '05', '06'].map((d, i) => match(`m${i}`, `2026-10-${d}`, 'finished', 3, 1));
     const out = recentResults([{ team: team('a'), sessions: [], matches: [...matches, match('live', '2026-10-07', 'live')] }]);
     expect(out.map((x) => x.match.id)).toEqual(['m5', 'm4', 'm3', 'm2', 'm1']);
+  });
+
+  it("names the most common club across the user's teams, ignoring blanks", () => {
+    expect(clubName([{ club: 'A VC' }, { club: ' ' }, { club: 'B VC' }, { club: 'B VC' }])).toBe('B VC');
+    expect(clubName([{ club: '' }])).toBeNull();
+    expect(clubName([])).toBeNull();
   });
 });

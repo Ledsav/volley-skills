@@ -139,7 +139,8 @@ describe('AwardsPage', () => {
     vi.mocked(exportCards.renderPng).mockRejectedValue(new Error('boom'));
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
-    fireEvent.click(screen.getByRole('button', { name: /Export cards/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Winner cards/ }));
     // first share in a session asks about minors' images
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('Share them only within the team');
     fireEvent.click(screen.getByRole('button', { name: 'Share' }));

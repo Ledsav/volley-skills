@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, ImagePlus, Play, Share2, X } from 'lucide-react';
 import { Button } from '../components/Button';
+import { Menu } from '../components/Menu';
 import type { Person } from '../teams/stats/rosterIndex';
 import { CUSTOM_NOTE_MAX, CUSTOM_TITLE_MAX, MAX_CUSTOM_AWARDS } from '../types/awards';
 import type { CardArt, CardModel } from './card/drawAwardCard';
@@ -37,7 +38,7 @@ export interface AwardsPrepareProps {
   onPhoto: (key: string, img: HTMLCanvasElement | null) => void;
   cardFor: (a: ResolvedAward) => CardModel | null;
   onAction: (a: PrepareAction) => void;
-  onPresent: () => void; onExportAll: () => void; onExportOne: (key: string) => void; onClose: () => void;
+  onPresent: () => void; onExportAll: () => void; onExportSummary: () => void; onRecordVideo: () => void; videoAvailable: boolean; onExportOne: (key: string) => void; onClose: () => void;
 }
 
 const SAVE_LABEL = { saved: 'Saved', saving: 'Saving…', offline: 'Offline — will sync', error: 'Could not save' } as const;
@@ -69,7 +70,20 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           <p className="text-slate">{props.heading}</p>
         </div>
         <span role="status" className={`text-sm ${props.saveState === 'error' ? 'text-red' : 'text-slate'}`}>{SAVE_LABEL[props.saveState]}</span>
-        <Button variant="secondary" disabled={noWinners} onClick={props.onExportAll}><Share2 size={16} aria-hidden="true" /> Export cards</Button>
+        {!noWinners && (
+          <Menu
+            label="Export"
+            triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-4 font-medium text-blue hover:bg-blue/10"
+            trigger={<><Share2 size={16} aria-hidden="true" /> Export</>}
+            items={[
+              { kind: 'action', label: 'Winner cards (PNG)', onSelect: props.onExportAll },
+              { kind: 'action', label: 'Summary card (PNG)', onSelect: props.onExportSummary },
+              props.videoAvailable
+                ? { kind: 'action', label: 'Record video', onSelect: props.onRecordVideo }
+                : { kind: 'action', label: 'Record video', hint: "Video export isn't supported in this browser", onSelect: () => {} },
+            ]}
+          />
+        )}
         <Button variant="primary" disabled={noWinners} onClick={props.onPresent}><Play size={16} aria-hidden="true" /> Present</Button>
         <Button variant="ghost" onClick={props.onClose} aria-label="Close awards"><X size={16} aria-hidden="true" /></Button>
       </header>

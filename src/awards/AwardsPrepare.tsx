@@ -56,7 +56,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
     <div className="min-h-screen bg-bg p-4 sm:p-6">
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
-          <h1 className="text-2xl font-semibold text-ink">Awards</h1>
+          <h1 className="text-title font-semibold text-ink">Awards</h1>
           <p className="text-slate">{props.heading}</p>
         </div>
         <span role="status" className={`text-sm ${props.saveState === 'error' ? 'text-red' : 'text-slate'}`}>{SAVE_LABEL[props.saveState]}</span>

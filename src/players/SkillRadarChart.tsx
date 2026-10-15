@@ -45,7 +45,7 @@ export function SkillRadarChart({ scores, labels, level }: SkillRadarChartProps)
         <circle key={i} cx={point.x} cy={point.y} r={3} className={strokeClass} fill="currentColor" />
       ))}
       {geometry.axisLabels.map((axis, i) => (
-        <text key={i} x={axis.x} y={axis.y} textAnchor={axis.textAnchor} dominantBaseline="middle" className="fill-slate text-[10px] font-medium">
+        <text key={i} x={axis.x} y={axis.y} textAnchor={axis.textAnchor} dominantBaseline="middle" className="fill-slate text-[11px] font-medium">
           {axis.label}
         </text>
       ))}

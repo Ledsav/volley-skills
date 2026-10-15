@@ -10,6 +10,7 @@ import { TEAM_IMPORT_EXAMPLE, validateTeamRows } from './teamsImport';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
+import { PageHeader } from '../layout/PageHeader';
 
 /** Up to two letters from a team name, for the card monogram. */
 function teamMonogram(name: string): string {
@@ -52,35 +53,21 @@ export function TeamsListPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">Teams</h1>
-        <div
-          className={`grid gap-2 sm:flex ${
-            access?.isSuperAdmin ? 'grid-cols-2' : 'grid-cols-1'
-          }`}
-        >
-          {access?.isSuperAdmin && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => setShowImport(true)}
-            >
-              Import
-            </Button>
-          )}
-          {access?.isSuperAdmin && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => setShowCreate(true)}
-            >
-              Create team
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Teams"
+        actions={
+          access?.isSuperAdmin ? (
+            <>
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowImport(true)}>
+                Import
+              </Button>
+              <Button variant="primary" size="sm" className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>
+                Create team
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
 
       {teams.length === 0 ? (

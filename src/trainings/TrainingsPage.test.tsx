@@ -67,12 +67,12 @@ describe('TrainingsPage', () => {
     expect(page.className).toContain('p-4');
     expect(page.className).toContain('sm:p-6');
 
-    const header = heading.parentElement as HTMLElement;
+    const header = heading.closest('[data-page-header]') as HTMLElement;
     expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);
     expect(header.className).toContain('sm:flex-row');
 
     const actions = screen.getByRole('button', { name: 'Import' }).parentElement as HTMLElement;
-    expect(actions.className).toContain('grid-cols-2');
+    expect(actions.className).toContain('grid-flow-col');
     expect(actions.className).toContain('sm:flex');
 
     // filters wrap instead of overflowing a phone screen; fields are full-width there

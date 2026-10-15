@@ -105,9 +105,9 @@ export function MatchPage() {
       </Link>
       <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm tabular-nums text-slate">{match.date} · {match.homeAway === 'home' ? 'Home' : 'Away'} · <span className="capitalize">{match.competition}</span></p>
-            <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">vs {match.opponent}</h1>
+            <h1 className="break-words text-title font-semibold text-ink">vs {match.opponent}</h1>
           </div>
           <Button variant="dangerGhost" size="sm" className="print:hidden" onClick={() => setConfirmDelete(true)}>Delete match</Button>
         </div>

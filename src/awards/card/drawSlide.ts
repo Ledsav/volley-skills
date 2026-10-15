@@ -4,7 +4,7 @@ import type { Slide } from '../story/buildStory';
 import type { StoryStat } from '../story/storyStats';
 import { CARD_DURATION_MS, easeOutBack, easeOutCubic } from './cardTimeline';
 import { CARD_H, CARD_W, drawAwardCard, drawBackground, drawHeader, drawTitleCard, text, type CardArt, type CardModel } from './drawAwardCard';
-import { fitFontSize, wrapLines } from './wrapText';
+import { fitBlock, fitFontSize } from './wrapText';
 
 export interface PresentCard { key: string; title: string; model: CardModel }
 export interface StoryDeps { palette: Palette; cards: PresentCard[]; artFor: (key: string) => CardArt; clubName: string }
@@ -36,37 +36,47 @@ function drawIntro(ctx: CanvasRenderingContext2D, slide: Extract<Slide, { kind: 
   const clubName = deps.clubName;
   drawBackground(ctx, colors, deps.artFor(''), 1, 1); // artFor('') carries only the shared background image
   drawHeader(ctx, { teamName: '', clubName }, colors, 1);
+  // Short titles punch in a word per line; long ones wrap and shrink (max 4 lines).
+  const { size, lines } = fitBlock(ctx, slide.title, 900, 170, TEXT_W, 4);
   const words = slide.title.split(/\s+/).filter(Boolean);
-  const n = words.length;
-  words.forEach((w, i) => {
+  const rows = words.length <= 4 && words.every((w) => fitFontSize(ctx, w, 900, 170, TEXT_W) === 170) ? words : lines;
+  const rowSize = rows === words ? 170 : size;
+  const lineH = rowSize * 1.12;
+  const n = rows.length;
+  rows.forEach((w, i) => {
     const p = seg(t, i / (n + 1), (i + 1) / (n + 1));
     if (p <= 0) return;
     const s = Math.max(0, easeOutBack(p));
-    const size = fitFontSize(ctx, w, 900, 170, TEXT_W);
+    const y = 760 + i * lineH;
     ctx.save();
-    ctx.translate(CX, 760 + i * 190);
+    ctx.translate(CX, y);
     ctx.scale(1.15 - 0.15 * s, 1.15 - 0.15 * s);
-    ctx.translate(-CX, -(760 + i * 190));
-    text(ctx, w, 760 + i * 190, `900 ${size}px ${FONT}`, i === n - 1 ? colors.accent : colors.text, clamp(p * 2));
+    ctx.translate(-CX, -y);
+    text(ctx, w, y, `900 ${rowSize}px ${FONT}`, i === n - 1 ? colors.accent : colors.text, clamp(p * 2));
     ctx.restore();
   });
-  text(ctx, slide.subtitle, 760 + n * 190 + 60, `700 56px ${FONT}`, colors.muted, seg(t, n / (n + 1), 1));
+  const sub = fitBlock(ctx, slide.subtitle, 700, 56, TEXT_W, 1);
+  text(ctx, sub.lines[0] ?? '', 760 + (n - 1) * lineH + 110, `700 ${sub.size}px ${FONT}`, colors.muted, seg(t, n / (n + 1), 1));
 }
 
 function drawStat(ctx: CanvasRenderingContext2D, stat: StoryStat, colors: SlideColors, deps: StoryDeps, t: number) {
   const clubName = deps.clubName;
   drawBackground(ctx, colors, deps.artFor(''), 1, 2);
   drawHeader(ctx, { teamName: '', clubName }, colors, 1);
-  text(ctx, stat.kicker.toUpperCase(), 640, `800 64px ${FONT}`, colors.accent, seg(t, 0, 0.2));
+  const kicker = fitBlock(ctx, stat.kicker.toUpperCase(), 800, 64, TEXT_W, 1);
+  text(ctx, kicker.lines[0] ?? '', 640, `800 ${kicker.size}px ${FONT}`, colors.accent, seg(t, 0, 0.2));
   const shown = Math.round(stat.big * easeOutCubic(seg(t, 0, 0.7)));
   const big = `${shown}${stat.bigSuffix}`;
   const finalSize = fitFontSize(ctx, `${stat.big}${stat.bigSuffix}`, 900, 320, TEXT_W);
   text(ctx, big, 1000, `900 ${finalSize}px ${FONT}`, colors.text, 1);
   const ct = easeOutCubic(seg(t, 0.6, 1));
-  ctx.font = `700 60px ${FONT}`;
-  const lines = wrapLines(ctx, stat.caption, TEXT_W);
-  lines.forEach((l, i) => text(ctx, l, 1160 + i * 76 + (1 - ct) * 40, `700 60px ${FONT}`, colors.text, ct));
-  if (stat.detail) text(ctx, stat.detail, 1160 + lines.length * 76 + 60, `600 44px ${FONT}`, colors.muted, ct);
+  const caption = fitBlock(ctx, stat.caption, 700, 60, TEXT_W, 3);
+  const capH = caption.size * 1.27;
+  caption.lines.forEach((l, i) => text(ctx, l, 1160 + i * capH + (1 - ct) * 40, `700 ${caption.size}px ${FONT}`, colors.text, ct));
+  if (stat.detail) {
+    const detail = fitBlock(ctx, stat.detail, 600, 44, TEXT_W, 2);
+    detail.lines.forEach((l, i) => text(ctx, l, 1160 + caption.lines.length * capH + 50 + i * detail.size * 1.25, `600 ${detail.size}px ${FONT}`, colors.muted, ct));
+  }
 }
 
 function drawSummary(ctx: CanvasRenderingContext2D, deps: StoryDeps, colors: SlideColors, t: number, reduced: boolean) {
@@ -106,17 +116,19 @@ function drawSummary(ctx: CanvasRenderingContext2D, deps: StoryDeps, colors: Sli
     }
     ctx.restore();
     const alpha = clamp(appear);
-    const titleSize = Math.min(34, fitFontSize(ctx, c.title, 600, 34, CARD_W * 0.42));
-    const nameSize = Math.min(46, fitFontSize(ctx, c.model.name, 800, 46, CARD_W * 0.42));
+    const title = fitBlock(ctx, c.title, 600, 34, CARD_W * 0.42, 1);
+    const name = fitBlock(ctx, c.model.name, 800, 46, CARD_W * 0.42, 1);
+    const titleSize = title.size;
+    const nameSize = name.size;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.textAlign = 'center';
     ctx.fillStyle = colors.muted;
     ctx.font = `600 ${titleSize}px ${FONT}`;
-    ctx.fillText(c.title, cx, cy + r + 44);
+    ctx.fillText(title.lines[0] ?? '', cx, cy + r + 44);
     ctx.fillStyle = colors.text;
     ctx.font = `800 ${nameSize}px ${FONT}`;
-    ctx.fillText(c.model.name, cx, cy + r + 44 + nameSize + 8);
+    ctx.fillText(name.lines[0] ?? '', cx, cy + r + 44 + nameSize + 8);
     ctx.restore();
   });
 }

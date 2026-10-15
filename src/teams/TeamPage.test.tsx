@@ -92,13 +92,30 @@ describe('TeamPage', () => {
     expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=matches');
   });
 
-  it('falls back to Overview for ?tab=stats when not a team admin', async () => {
+  it('falls back to Roster for ?tab=stats when not a team admin', async () => {
     vi.mocked(useAuth).mockReturnValue(authValue());
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage('/teams/team-1?tab=stats');
-    expect(await screen.findByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Roster', selected: true })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument();
+  });
+
+  it('maps the old ?tab= ids onto the renamed tabs', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=overview');
+    expect(await screen.findByRole('tab', { name: 'Roster', selected: true })).toBeInTheDocument();
+  });
+
+  it('orders the tabs by how often a coach uses them, Settings last', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('tab', { name: 'Roster' });
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual([
+      'Roster', 'Calendar', 'Matches', 'Stats', 'Development plan', 'Physical testing', 'Settings',
+    ]);
   });
 
   it('shows the team calendar when the Calendar tab is selected', async () => {
@@ -119,7 +136,7 @@ describe('TeamPage', () => {
     renderTeamPage();
 
     const picker = await screen.findByRole('combobox', { name: 'Team section' });
-    expect(picker).toHaveValue('overview');
+    expect(picker).toHaveValue('roster');
     expect(picker.parentElement?.className).toContain('sm:hidden');
 
     fireEvent.change(picker, { target: { value: 'calendar' } });
@@ -139,9 +156,9 @@ describe('TeamPage', () => {
     expect(page.className).toContain('p-4');
     expect(page.className).toContain('sm:p-6');
 
-    const innerCard = screen.getByRole('heading', { name: 'U17 Boys' }).parentElement as HTMLElement;
-    expect(innerCard.className).toContain('p-4');
-    expect(innerCard.className).toContain('sm:p-6');
+    // The title sits on the canvas, not inside a card that would nest the tabs' own cards.
+    const heading = screen.getByRole('heading', { name: 'U17 Boys' });
+    expect(heading.closest('.shadow-card')).toBeNull();
 
     const actions = addBtn.parentElement as HTMLElement;
     expect(actions.className).toMatch(/(^|\s)grid-cols-2(\s|$)/);
@@ -169,7 +186,7 @@ describe('TeamPage', () => {
     expect(screen.getByRole('option', { name: 'Calendar' })).toBeInTheDocument();
   });
 
-  it('opens the player bulk-import dialog from the overview tab', async () => {
+  it('opens the player bulk-import dialog from the roster tab', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
 
@@ -219,7 +236,7 @@ describe('TeamPage', () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['someone@else.be'] });
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
-    await screen.findByRole('tab', { name: 'Overview' });
+    await screen.findByRole('tab', { name: 'Roster' });
     expect(screen.queryByRole('tab', { name: 'Stats' })).toBeNull();
   });
 });

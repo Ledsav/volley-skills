@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import * as playersApi from './playersApi';
 import * as skillGuideApi from '../skillGuide/skillGuideApi';
@@ -239,5 +239,44 @@ describe('PlayerSkillsSection', () => {
     expect(screen.queryAllByLabelText('Focus area')).toHaveLength(0);
     expect(screen.queryByText('Save skills')).not.toBeInTheDocument();
     expect(screen.getByText('6')).toBeInTheDocument();
+  });
+});
+
+describe('match suggestion visibility', () => {
+  afterEach(() => localStorage.clear());
+  const withServe = (score: number) => ({ ...basePlayer, skills: { ...basePlayer.skills, serve: { score, notes: '', priority: false } } });
+  const serveRating: MatchRatings = { serve: { rating: 7.75, attempts: 20 } };
+
+  it('hides a suggestion that already matches the score, on the card and in the editor', () => {
+    render(<SkillsHarness player={withServe(8)} ratings={serveRating} />);
+    expect(screen.queryByText('Match 7.8 · 20 att.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Edit skills'));
+    expect(screen.queryByRole('button', { name: 'Use 8 for Serve' })).not.toBeInTheDocument();
+  });
+
+  it('a suggestion disappears in the editor once it has been applied', () => {
+    render(<SkillsHarness player={withServe(5)} ratings={serveRating} />);
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Use 8 for Serve' }));
+    expect(screen.queryByRole('button', { name: 'Use 8 for Serve' })).not.toBeInTheDocument();
+  });
+
+  it('the switch hides all suggestions and is remembered on this device', () => {
+    const { unmount } = render(<SkillsHarness player={withServe(5)} ratings={serveRating} />);
+    expect(screen.getByText('Match 7.8 · 20 att.')).toBeInTheDocument();
+    const toggle = screen.getByRole('switch', { name: 'Match suggestions' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(screen.queryByText('Match 7.8 · 20 att.')).not.toBeInTheDocument();
+    unmount();
+    render(<SkillsHarness player={withServe(5)} ratings={serveRating} />);
+    expect(screen.queryByText('Match 7.8 · 20 att.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Edit skills'));
+    expect(screen.queryByRole('button', { name: 'Use 8 for Serve' })).not.toBeInTheDocument();
+  });
+
+  it('shows no switch when there are no match ratings', () => {
+    render(<SkillsHarness player={basePlayer} />);
+    expect(screen.queryByRole('switch', { name: 'Match suggestions' })).not.toBeInTheDocument();
   });
 });

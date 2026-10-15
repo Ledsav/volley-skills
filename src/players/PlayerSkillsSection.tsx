@@ -12,6 +12,7 @@ import { updatePlayerSkills } from './playersApi';
 import { suggestedScore, type MatchRatings } from './matchRating';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SkillRadarChart } from './SkillRadarChart';
+import { readSuggestionPref, writeSuggestionPref } from './suggestionPref';
 
 const SKILL_LABELS: Record<SkillKey, string> = {
   serve: 'Serve',
@@ -123,6 +124,27 @@ export function PlayerSkillsSection({
     onEditingChange(false);
   }
 
+  const [showSuggestions, setShowSuggestions] = useState(readSuggestionPref);
+  const hasRatings = !!ratings && Object.keys(ratings).length > 0;
+  /** A suggestion shows only when switched on and it would change the score. */
+  const suggests = (rating: MatchRatings[SkillKey] | undefined, score: number | null) =>
+    !!rating && showSuggestions && !(rating.rating != null && score !== null && suggestedScore(rating.rating) === score);
+  const suggestionSwitch = hasRatings && (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={showSuggestions}
+      aria-label="Match suggestions"
+      onClick={() => { setShowSuggestions(!showSuggestions); writeSuggestionPref(!showSuggestions); }}
+      className="inline-flex min-h-11 items-center gap-2 self-start text-xs font-medium text-slate"
+    >
+      <span className={`relative h-5 w-9 rounded-full transition-colors ${showSuggestions ? 'bg-blue' : 'bg-border'}`}>
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow-card transition-transform ${showSuggestions ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      </span>
+      Match suggestions
+    </button>
+  );
+
   const previewAvg = computeAvgScore(skills);
   const previewLevel = computeLevel(previewAvg);
 
@@ -141,6 +163,7 @@ export function PlayerSkillsSection({
           </p>
         </div>
         <ul className="flex flex-col gap-3">
+          {suggestionSwitch && <li>{suggestionSwitch}</li>}
           {SKILL_ORDER.map((key) => {
             const { score, priority } = player.skills[key] ?? { score: null, priority: false };
             const rating = ratings?.[key];
@@ -164,7 +187,7 @@ export function PlayerSkillsSection({
                 </span>
                 <span className="text-right text-sm tabular-nums text-ink">{score ?? '—'}</span>
                 <SkillMeter score={score} />
-                {rating && (
+                {rating && suggests(rating, score) && (
                   <p className="col-span-2 col-start-2 flex items-center gap-1 text-xs tabular-nums text-slate">
                     {matchLine(rating)}
                     {diff >= 1 && <ArrowUp role="img" aria-label="Match data suggests higher" className="h-3 w-3 text-green-strong" />}
@@ -184,6 +207,7 @@ export function PlayerSkillsSection({
               Average: <span className="font-semibold tabular-nums text-ink">{previewAvg?.toFixed(1) ?? '—'}</span>{' '}
               ({previewLevel ?? 'No scores yet'})
             </p>
+            {suggestionSwitch && <div className="-mt-2 mb-2">{suggestionSwitch}</div>}
             <div className="flex flex-col gap-4">
               {SKILL_ORDER.map((key) => {
                 const rating = ratings?.[key];
@@ -224,7 +248,7 @@ export function PlayerSkillsSection({
                       />
                       Focus area
                     </label>
-                    {rating && value !== null && (
+                    {rating && value !== null && suggests(rating, skills[key].score) && (
                       <div className="col-span-2 flex items-center gap-2 text-xs tabular-nums text-slate sm:col-span-4">
                         <span>{matchLine(rating)}</span>
                         <Button

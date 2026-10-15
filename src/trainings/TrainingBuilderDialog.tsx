@@ -10,7 +10,7 @@ import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds, listExercises } from '../exercises/exercisesApi';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
-import type { Training, TrainingExercise } from '../types/training';
+import type { NewTrainingInput, Training, TrainingExercise } from '../types/training';
 import { createTraining, updateTraining } from './trainingsApi';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
@@ -36,15 +36,17 @@ interface Row extends TrainingExercise {
 
 interface TrainingBuilderDialogProps {
   training?: Training;
+  /** Prefill a NEW training (e.g. from an AI draft). Ignored when `training` is set. */
+  initial?: NewTrainingInput;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBuilderDialogProps) {
+export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: TrainingBuilderDialogProps) {
   const { firebaseUser } = useAuth();
-  const [name, setName] = useState(training?.name ?? '');
-  const [description, setDescription] = useState(training?.description ?? '');
-  const [ageGroupTarget, setAgeGroupTarget] = useState(training?.ageGroupTarget ?? '');
+  const [name, setName] = useState(training?.name ?? initial?.name ?? '');
+  const [description, setDescription] = useState(training?.description ?? initial?.description ?? '');
+  const [ageGroupTarget, setAgeGroupTarget] = useState(training?.ageGroupTarget ?? initial?.ageGroupTarget ?? '');
   const [rows, setRows] = useState<Row[]>([]);
   const [picker, setPicker] = useState<Exercise[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -56,12 +58,13 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!training) return;
-    void getExercisesByIds(training.exercises.map((e) => e.exerciseId))
+    const source = training?.exercises ?? initial?.exercises;
+    if (!source || source.length === 0) return;
+    void getExercisesByIds(source.map((e) => e.exerciseId))
       .then((found) => {
         const byId = new Map(found.map((ex) => [ex.id, ex]));
         setRows(
-          training.exercises
+          source
             .slice()
             .sort((a, b) => a.order - b.order)
             .map((e) => ({
@@ -73,6 +76,8 @@ export function TrainingBuilderDialog({ training, onClose, onSaved }: TrainingBu
         );
       })
       .catch(() => setError('Could not load the exercises for this training. Please reopen the dialog.'));
+    // `initial` is a one-shot prefill; re-running on its identity would wipe the coach's edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [training]);
 
   async function loadPicker(category: ExerciseCategory | '', afterDoc: QueryDocumentSnapshot | null) {

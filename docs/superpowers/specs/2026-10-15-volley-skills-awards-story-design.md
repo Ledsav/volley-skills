@@ -1,7 +1,7 @@
 # Volley Skills — Awards "story" presentation (Wrapped-style)
 
 Date: 2026-10-15
-Status: Approved design, pending spec review
+Status: Implemented (2026-10-15) — see `plans/2026-10-15-awards-story.md`
 Companion to: `2026-10-14-volley-skills-home-stats-awards-design.md` (awards §), `2026-09-04-volley-skills-design-system.md`
 
 ## 1. Intent

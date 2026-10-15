@@ -79,6 +79,14 @@ drafts live in localStorage only (`aiSettings.ts`). Player names are stripped
 to jersey numbers before sending (`textScout.ts`). Merges are `source: 'text'`
 events sharing a `chunkId`.
 
+**Awards story** (`src/awards/`) is a canvas-rendered, Wrapped-style presentation:
+`story/buildStory.ts` decides the slides, `card/drawSlide.ts` (`renderStoryFrame`)
+draws any slide at any time for the live show, PNGs and the recorded video.
+Background removal (`cutout/segment.ts`) runs MediaPipe on the device; its WASM
+is copied to `public/mediapipe/` by a Vite plugin and the model lives in
+`public/models/` — both same-origin, which is why CSP `script-src` has
+`'wasm-unsafe-eval'`. Photos and cut-outs are memory-only and consent-gated.
+
 ### Feature-folder layout
 
 `src/<feature>/` groups everything for a feature: components, dialogs, and a

@@ -8,7 +8,7 @@ import * as matchesApi from '../matches/matchesApi';
 import * as exportCards from './exportCards';
 import * as awardsApi from './awardsApi';
 import { finished, player } from './testMatches';
-import AwardsPage, { gatedArt, photoAllowedKeys, photosForWinners } from './AwardsPage';
+import AwardsPage, { exportIncludesMinors, gatedArt, photoAllowedKeys, photosForWinners } from './AwardsPage';
 import type { ResolvedAward } from './resolveAwards';
 import type { Player } from '../types/player';
 
@@ -182,6 +182,19 @@ describe('AwardsPage', () => {
     expect(exportCards.shareOrDownload).toHaveBeenCalledWith([expect.any(File)], expect.any(String));
   });
 
+  it('exports straight away, without the minors warning, when every winner is an adult', async () => {
+    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([
+      { id: 'a', fullName: 'Player a', number: 1, dob: '1990-05-05', consent: { given: true, date: null, confirmedBy: null } },
+    ] as unknown as Player[]);
+    vi.mocked(exportCards.renderPng).mockRejectedValue(new Error('boom'));
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Winner cards/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not export');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
   it('match: unfinished match shows a message', async () => {
     vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...m, status: 'live' });
     renderAt('/teams/t1/matches/m1/awards', 'match');
@@ -234,5 +247,15 @@ describe('photosForWinners', () => {
     // the coach switched the MVP to another player who also has consent
     expect(photosForWinners([award('mvp', 'c')], new Map([['mvp', photo]]), owners).has('mvp')).toBe(false);
     expect(photosForWinners([award('mvp', null)], new Map([['mvp', photo]]), owners).has('mvp')).toBe(false);
+  });
+});
+
+describe('exportIncludesMinors', () => {
+  const award = (key: string, playerId: string | null) => ({ key, winner: playerId ? { playerId, name: '', number: null, current: true } : null }) as unknown as ResolvedAward;
+  const awards = [award('mvp', 'adult'), award('server', 'kid'), award('none', null)];
+  it('is true only when an exported winner is not a known adult', () => {
+    expect(exportIncludesMinors(['mvp'], awards, new Set(['adult']))).toBe(false);
+    expect(exportIncludesMinors(['mvp', 'server'], awards, new Set(['adult']))).toBe(true);
+    expect(exportIncludesMinors(['none'], awards, new Set())).toBe(false);
   });
 });

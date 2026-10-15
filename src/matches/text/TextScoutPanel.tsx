@@ -5,8 +5,8 @@ import { Input, Textarea } from '../../components/Input';
 import type { Match, MatchEvent, MatchEventPayload } from '../../types/match';
 import { batchOrders } from '../eventOrder';
 import { replay, sortEvents } from '../scoutEngine';
-import { AiError, chatJson, type ChatMessage } from './aiClient';
-import { LOCAL_UNREACHABLE_HINT, isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from './aiSettings';
+import { AiError, chatJson, type ChatMessage } from '../../ai/aiClient';
+import { LOCAL_UNREACHABLE_HINT, isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from '../../ai/aiSettings';
 import { PreviewRallyCard } from './PreviewRallyCard';
 import {
   anonymizeNames,

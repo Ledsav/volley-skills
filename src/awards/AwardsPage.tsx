@@ -16,8 +16,9 @@ import { AwardsPresent } from './AwardsPresent';
 import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi';
 import { applyPrepareAction } from './awardsReducer';
 import { readThemePrefs, themeFromPrefs, writeThemePrefs, type ThemePrefs } from './card/cardTheme';
-import type { CardModel } from './card/drawAwardCard';
-import { cardFileName, ensureCardFonts, renderCardPng, shareOrDownload } from './exportCards';
+import { drawAwardCard, type CardArt, type CardModel } from './card/drawAwardCard';
+import { PRESET_PALETTES, slideColors } from './palette';
+import { cardFileName, ensureCardFonts, renderPng, shareOrDownload } from './exportCards';
 import { readNameStyle, styleName, writeNameStyle, type NameStyle } from './nameStyle';
 import { fitSize, loadImageFile } from './photo';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
@@ -143,7 +144,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     };
   }, [ready, nameStyle, heading]);
 
-  const artFor = useCallback((key: string) => ({ photo: photos.get(key) ?? null, background }), [photos, background]);
+  const artFor = useCallback((key: string): CardArt => ({ photo: photos.get(key) ?? null, cutout: null, background }), [photos, background]);
 
   const cards = useMemo(
     () => revealable(awards).map((a) => ({ key: a.key, title: a.title, model: cardFor(a)! })),
@@ -165,7 +166,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     for (const a of awards.filter((x) => keys.includes(x.key))) {
       const card = cardFor(a);
       if (!card) continue;
-      const blob = await renderCardPng(card, theme, artFor(a.key));
+      const blob = await renderPng((ctx) => drawAwardCard(ctx, card, slideColors(PRESET_PALETTES[0], 0), artFor(a.key), 1));
       const name = cardFileName(a.key, scope === 'match' ? { kind: 'match', date: ready.match!.date, opponent: ready.match!.opponent } : { kind: 'season', season: ready.team.season });
       files.push(new File([blob], name, { type: 'image/png' }));
     }

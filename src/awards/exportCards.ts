@@ -1,6 +1,5 @@
 import { fileSlug } from '../export/exportJson';
-import type { CardTheme } from './card/cardTheme';
-import { CARD_H, CARD_W, drawAwardCard, type CardArt, type CardModel } from './card/drawAwardCard';
+import { CARD_H, CARD_W } from './card/drawAwardCard';
 
 export function cardFileName(
   awardKey: string,
@@ -15,16 +14,17 @@ export function cardFileName(
 export async function ensureCardFonts(): Promise<void> {
   if (!('fonts' in document)) return;
   await Promise.all(
-    ['900 120px Inter', '800 120px Inter', '700 34px Inter', '600 52px Inter', '500 36px Inter'].map((f) => document.fonts.load(f).catch(() => [])),
+    ['900 120px Inter', '800 120px Inter', '700 34px Inter', '600 52px Inter', '500 36px Inter', '900 320px Inter', '800 64px Inter', '700 60px Inter'].map((f) => document.fonts.load(f).catch(() => [])),
   );
 }
 
-export async function renderCardPng(card: CardModel, theme: CardTheme, art: CardArt): Promise<Blob> {
+/** Draws one 1080×1920 frame off-screen and returns it as PNG. */
+export async function renderPng(draw: (ctx: CanvasRenderingContext2D) => void): Promise<Blob> {
   await ensureCardFonts();
   const canvas = document.createElement('canvas');
   canvas.width = CARD_W;
   canvas.height = CARD_H;
-  drawAwardCard(canvas.getContext('2d')!, card, theme, art, 1);
+  draw(canvas.getContext('2d')!);
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png'));
 }
 

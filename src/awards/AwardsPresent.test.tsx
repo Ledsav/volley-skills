@@ -19,7 +19,7 @@ describe('AwardsPresent', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('announces the current step for screen readers and advances with keys', () => {
-    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
+    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, cutout: null, background: null })} onExit={vi.fn()} />);
     const live = screen.getByRole('status');
     expect(live).toHaveTextContent('Best server');
     fireEvent.keyDown(window, { key: ' ' });
@@ -31,7 +31,7 @@ describe('AwardsPresent', () => {
 
   it('final slide lists all winners; Escape exits', () => {
     const onExit = vi.fn();
-    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={onExit} />);
+    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, cutout: null, background: null })} onExit={onExit} />);
     for (let i = 0; i < 6; i++) fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByRole('heading', { name: 'Winners' })).toBeInTheDocument();
     expect(screen.getByText('Ana L.')).toBeInTheDocument();
@@ -42,14 +42,14 @@ describe('AwardsPresent', () => {
 
   it('final grid shows the jersey number or the photo for each winner', () => {
     const photo = document.createElement('canvas');
-    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={(k) => ({ photo: k === 'mvp' ? photo : null, background: null })} onExit={vi.fn()} />);
+    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={(k) => ({ photo: k === 'mvp' ? photo : null, cutout: null, background: null })} onExit={vi.fn()} />);
     for (let i = 0; i < 6; i++) fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(document.querySelectorAll('li canvas')).toHaveLength(1);
   });
 
   it('keeps the canvas 9:16 inside the letterbox box', () => {
-    const { container } = render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
+    const { container } = render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, cutout: null, background: null })} onExit={vi.fn()} />);
     expect(container.querySelector('canvas')!.className).toContain('object-contain');
   });
 
@@ -58,7 +58,7 @@ describe('AwardsPresent', () => {
     let resolve!: (l: { release: () => Promise<void> }) => void;
     const request = vi.fn(() => new Promise<{ release: () => Promise<void> }>((r) => { resolve = r; }));
     Object.defineProperty(navigator, 'wakeLock', { value: { request }, configurable: true });
-    const { unmount } = render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
+    const { unmount } = render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, cutout: null, background: null })} onExit={vi.fn()} />);
     unmount();
     resolve({ release });
     await Promise.resolve();
@@ -69,7 +69,7 @@ describe('AwardsPresent', () => {
   });
 
   it('never shows runners-up (only winners are in cards)', () => {
-    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, background: null })} onExit={vi.fn()} />);
+    render(<AwardsPresent cards={cards} theme={PRESETS[0]} artFor={() => ({ photo: null, cutout: null, background: null })} onExit={vi.fn()} />);
     expect(screen.queryByText(/Runners-up/)).toBeNull();
   });
 });

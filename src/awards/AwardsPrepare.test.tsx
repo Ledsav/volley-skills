@@ -16,7 +16,7 @@ function setup(over: Partial<AwardsPrepareProps> = {}) {
   const props: AwardsPrepareProps = {
     heading: 'Season 2026–27', awards: [award({}), award({ key: 'mvp', title: 'MVP' })], people: [ana, bea], saveState: 'saved',
     nameStyle: 'firstInitial', onNameStyle: vi.fn(), themePrefs: { presetId: 'navy', custom: null }, onThemePrefs: vi.fn(),
-    hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
+    hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, cutout: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
     onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
   };
   render(<AwardsPrepare {...props} />);

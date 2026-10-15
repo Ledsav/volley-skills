@@ -20,7 +20,7 @@ vi.mock('../matches/matchesApi', async (orig) => ({
 vi.mock('./exportCards', async (orig) => ({
   ...(await orig<typeof import('./exportCards')>()),
   ensureCardFonts: vi.fn().mockResolvedValue(undefined),
-  renderCardPng: vi.fn(),
+  renderPng: vi.fn(),
 }));
 let nextCrop: HTMLCanvasElement[] = [];
 vi.mock('./PhotoCropDialog', () => ({
@@ -128,7 +128,7 @@ describe('AwardsPage', () => {
   });
 
   it('shows an inline alert when exporting fails', async () => {
-    vi.mocked(exportCards.renderCardPng).mockRejectedValue(new Error('boom'));
+    vi.mocked(exportCards.renderPng).mockRejectedValue(new Error('boom'));
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
     fireEvent.click(screen.getByRole('button', { name: /Export cards/ }));

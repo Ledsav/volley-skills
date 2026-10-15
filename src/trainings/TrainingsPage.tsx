@@ -23,13 +23,14 @@ import {
 } from './trainingsImport';
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import { TrainingViewSheet } from './TrainingViewSheet';
+import { useNotify } from '../components/Notice';
 
 export function TrainingsPage() {
   usePageMeta({ title: 'Trainings' });
   const [searchParams] = useSearchParams();
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const notify = useNotify();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -154,7 +155,6 @@ export function TrainingsPage() {
         </p>
       )}
 
-      {notice && <p className="mb-4 text-sm text-green-strong">{notice}</p>}
 
       {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
           one bordered container with hairline dividers between rows. */}
@@ -259,8 +259,7 @@ export function TrainingsPage() {
           onClose={() => setShowImport(false)}
           onImported={(n) => {
             setShowImport(false);
-            setNotice(`Imported ${n} training${n === 1 ? '' : 's'}.`);
-            window.setTimeout(() => setNotice(null), 4000);
+            notify(`Imported ${n} training${n === 1 ? '' : 's'}.`);
             void load();
           }}
         />

@@ -10,6 +10,7 @@ import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../ty
 import { ExerciseFormDialog } from './ExerciseFormDialog';
 import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
+import { useNotify } from '../components/Notice';
 
 const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
   EXERCISE_CATEGORIES.map((c) => [c.key, c.label])
@@ -23,7 +24,7 @@ export function ExercisesPage() {
   usePageMeta({ title: 'Exercises' });
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const notify = useNotify();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -136,7 +137,6 @@ export function ExercisesPage() {
         </p>
       )}
 
-      {notice && <p className="mb-4 text-sm text-green-strong">{notice}</p>}
 
       {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
           one bordered container with hairline dividers between rows. */}
@@ -225,8 +225,7 @@ export function ExercisesPage() {
           onClose={() => setShowImport(false)}
           onImported={(n) => {
             setShowImport(false);
-            setNotice(`Imported ${n} exercise${n === 1 ? '' : 's'}.`);
-            window.setTimeout(() => setNotice(null), 4000);
+            notify(`Imported ${n} exercise${n === 1 ? '' : 's'}.`);
             void loadFirstPage();
           }}
         />

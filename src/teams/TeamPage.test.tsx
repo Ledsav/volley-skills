@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPage } from './TeamPage';
@@ -7,6 +7,7 @@ import * as playersApi from '../players/playersApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, superAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
+import { NoticeProvider } from '../components/Notice';
 
 vi.mock('./teamsApi');
 vi.mock('../players/playersApi');
@@ -45,9 +46,11 @@ function LocationProbe() {
 function renderTeamPage(url = '/teams/team-1') {
   return render(
     <MemoryRouter initialEntries={[url]}>
-      <Routes>
-        <Route path="/teams/:teamId" element={<><TeamPage /><LocationProbe /></>} />
-      </Routes>
+      <NoticeProvider>
+        <Routes>
+          <Route path="/teams/:teamId" element={<><TeamPage /><LocationProbe /></>} />
+        </Routes>
+      </NoticeProvider>
     </MemoryRouter>
   );
 }
@@ -217,9 +220,9 @@ describe('TeamPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
 
-    expect(
-      await screen.findByText(/imported 2 players with consent not given/i)
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/imported 2 players with consent not given/i)
+    );
     expect(playersApi.bulkCreatePlayers).toHaveBeenCalledTimes(1);
   });
 

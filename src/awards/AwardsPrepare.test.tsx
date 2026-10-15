@@ -19,7 +19,7 @@ function setup(over: Partial<AwardsPrepareProps> = {}) {
     nameStyle: 'firstInitial', onNameStyle: vi.fn(), palettePrefs: { selectedId: 'navy', custom: [] }, onPalettePrefs: vi.fn(),
     includeStory: true, onIncludeStory: vi.fn(), storyLabel: 'Include season story', colorsFor: () => slideColors(PRESET_PALETTES[0], 0), photoAllowed: () => true, cutouts: new Map(), onCutout: vi.fn().mockResolvedValue(undefined),
     hasBackground: false, onBackground: vi.fn(), artFor: () => ({ photo: null, cutout: null, background: null }), photos: new Map(), onPhoto: vi.fn(), cardFor: () => null,
-    onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onClose: vi.fn(), ...over,
+    onAction: vi.fn(), onPresent: vi.fn(), onExportAll: vi.fn(), onExportOne: vi.fn(), onExportSummary: vi.fn(), onRecordVideo: vi.fn(), videoAvailable: true, onClose: vi.fn(), ...over,
   };
   render(<AwardsPrepare {...props} />);
   return props;
@@ -75,7 +75,7 @@ describe('AwardsPrepare', () => {
   it('disables present and export with a hint when no winners', () => {
     setup({ awards: [award({ winner: null, suggested: null, runnersUp: [] })] });
     expect(screen.getByRole('button', { name: /Present/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Export cards/ })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Export' })).toBeNull();
     expect(screen.getByText(/Pick at least one winner/)).toBeInTheDocument();
   });
 
@@ -123,5 +123,14 @@ describe('AwardsPrepare', () => {
     expect(screen.getByText('Preparing on this device…')).toBeInTheDocument();
     expect(await screen.findByText('Could not remove the background. The original photo is kept.')).toBeInTheDocument();
     expect(onCutout).toHaveBeenCalledWith('attacker', true);
+  });
+
+  it('export menu offers cards, summary and video (video disabled when unsupported)', () => {
+    const p = setup({ videoAvailable: false });
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Summary card/ }));
+    expect(p.onExportSummary).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    expect(screen.getByRole('menuitem', { name: /Video export isn't supported in this browser/ })).toBeInTheDocument();
   });
 });

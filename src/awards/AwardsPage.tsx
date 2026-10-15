@@ -13,13 +13,15 @@ import type { Match } from '../types/match';
 import type { Team } from '../types/team';
 import { AwardsPrepare } from './AwardsPrepare';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Dialog } from '../components/Dialog';
+import { recordStory, videoExtension, videoSupported } from './exportVideo';
 import { markShareWarned, needsShareWarning } from './shareWarning';
 import { AwardsPresent } from './AwardsPresent';
 import { getSeasonAwards, saveMatchAwards, saveSeasonAwards } from './awardsApi';
 import { applyPrepareAction } from './awardsReducer';
 import { drawAwardCard, type CardArt, type CardModel } from './card/drawAwardCard';
 import { readPalettePrefs, selectedPalette, slideColors, writePalettePrefs, type PalettePrefs } from './palette';
-import type { StoryDeps } from './card/drawSlide';
+import { renderStoryFrame, type StoryDeps } from './card/drawSlide';
 import { buildStory, colorIndexForAward } from './story/buildStory';
 import { readStoryPref, writeStoryPref } from './story/storyPref';
 import { storyStats } from './story/storyStats';
@@ -216,6 +218,37 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     else go();
   };
 
+  const fileCtx = (r: Extract<Load, { state: 'ready' }>) =>
+    scope === 'match' ? { kind: 'match' as const, date: r.match!.date, opponent: r.match!.opponent } : { kind: 'season' as const, season: r.team.season };
+
+  async function exportSummary() {
+    if (!ready) return;
+    setNotice(null);
+    try {
+      const blob = await renderPng((ctx) => { renderStoryFrame(ctx, slides, slides.length - 1, 1e9, deps, true, null); });
+      await shareOrDownload([new File([blob], cardFileName('summary', fileCtx(ready)), { type: 'image/png' })], heading);
+    } catch {
+      setNotice('Could not export the summary card. Please try again.');
+    }
+  }
+
+  const [recording, setRecording] = useState<{ progress: number; ctrl: AbortController } | null>(null);
+  async function recordVideo() {
+    if (!ready) return;
+    setNotice(null);
+    const ctrl = new AbortController();
+    setRecording({ progress: 0, ctrl });
+    try {
+      const blob = await recordStory(slides, deps, { signal: ctrl.signal, onProgress: (p) => setRecording((r) => (r ? { ...r, progress: p } : r)) });
+      const name = cardFileName('story', fileCtx(ready)).replace(/\.png$/, `.${videoExtension(blob.type)}`);
+      await shareOrDownload([new File([blob], name, { type: blob.type })], heading);
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') setNotice('Could not record the video. Please try again.');
+    } finally {
+      setRecording(null);
+    }
+  }
+
   async function exportKeys(keys: string[]) {
     if (!ready) return;
     setNotice(null);
@@ -232,7 +265,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       const card = cardFor(a);
       if (!card) continue;
       const blob = await renderPng((ctx) => drawAwardCard(ctx, card, colorsFor(a.key), artFor(a.key), 1));
-      const name = cardFileName(a.key, scope === 'match' ? { kind: 'match', date: ready.match!.date, opponent: ready.match!.opponent } : { kind: 'season', season: ready.team.season });
+      const name = cardFileName(a.key, fileCtx(ready));
       files.push(new File([blob], name, { type: 'image/png' }));
     }
     if (files.length) await shareOrDownload(files, heading);
@@ -315,8 +348,18 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       onPresent={() => setMode('present')}
       onExportAll={() => guardShare(() => exportKeys(revealable(awards).map((a) => a.key)))}
       onExportOne={(key) => guardShare(() => exportKeys([key]))}
+      onExportSummary={() => guardShare(exportSummary)}
+      onRecordVideo={() => guardShare(recordVideo)}
+      videoAvailable={videoSupported()}
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />
+    {recording && (
+      <Dialog title="Recording video" onClose={() => recording.ctrl.abort()}
+        footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>Cancel</Button>}>
+        <p className="text-sm text-slate">Playing the story once on this device. Keep this tab open.</p>
+        <progress className="mt-3 w-full" max={1} value={recording.progress} aria-label="Recording progress" />
+      </Dialog>
+    )}
     {pendingShare && (
       <ConfirmDialog
         title="Share award cards"

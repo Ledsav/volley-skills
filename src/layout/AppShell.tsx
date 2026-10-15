@@ -1,12 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, House, KeyRound, LogOut, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Menu } from '../components/Menu';
 import { useTheme } from '../theme/useTheme';
-import { countUnreviewedInterestSignups } from '../interest/interestApi';
-import { SIGNUPS_CHANGED_EVENT } from '../interest/signupEvents';
+import { usePendingSignups } from '../interest/usePendingSignups';
 import { Logo } from '../components/Logo';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
@@ -31,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const email = firebaseUser?.email ?? '';
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const { signOut, unsyncedDialog } = useSignOut();
-  const [pendingSignups, setPendingSignups] = useState(0);
+  const pendingSignups = usePendingSignups(!!access?.isSuperAdmin);
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const prevPathname = useRef(pathname);
@@ -48,14 +47,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       mainRef.current?.focus({ preventScroll: true });
     }
   }, [pathname]);
-
-  useEffect(() => {
-    if (!access?.isSuperAdmin) return;
-    const recount = () => { void countUnreviewedInterestSignups().then(setPendingSignups); };
-    recount();
-    window.addEventListener(SIGNUPS_CHANGED_EVENT, recount);
-    return () => window.removeEventListener(SIGNUPS_CHANGED_EVENT, recount);
-  }, [access?.isSuperAdmin]);
 
   const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number; admin?: boolean; end?: boolean }[] = [
     { to: '/', label: 'Home', Icon: House, show: true, end: true },
@@ -156,8 +147,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
+        {/* Phones reach the admin pages (Guides, Access) from Settings, so its tab carries their badge. */}
         <NavLink to="/settings" className={bottomTabClass}>
-          <Settings size={22} strokeWidth={1.5} />
+          <span className="relative">
+            <Settings size={22} strokeWidth={1.5} />
+            {pendingSignups > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-white">
+                {pendingSignups}
+              </span>
+            )}
+          </span>
           <span className="max-w-full truncate">Settings</span>
         </NavLink>
       </nav>

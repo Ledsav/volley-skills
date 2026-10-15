@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { AiError } from '../matches/text/aiClient';
-import { readAiSettings } from '../matches/text/aiSettings';
+import { AiError } from '../ai/aiClient';
+import { readAiSettings } from '../ai/aiSettings';
 import { AiProviderSettings } from './AiProviderSettings';
 
 function renderAi(testFn?: Parameters<typeof AiProviderSettings>[0]['testFn']) {

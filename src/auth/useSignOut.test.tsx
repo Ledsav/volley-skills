@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearAiLocalData } from '../matches/text/aiSettings';
+import { clearAiLocalData } from '../ai/aiSettings';
 import { signOutAndClearLocalData } from '../firebase/signOut';
 import { useSignOut } from './useSignOut';
 

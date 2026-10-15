@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/Button';
 import { SettingsSection } from './SettingsSection';
 import { FIELD_CLASS, Input } from '../components/Input';
-import { AiError, testConnection } from '../matches/text/aiClient';
+import { AiError, testConnection } from '../ai/aiClient';
 import {
   AI_PROVIDERS,
   LOCAL_UNREACHABLE_HINT,
@@ -13,7 +13,7 @@ import {
   writeAiSettings,
   type AiProvider,
   type AiSettings,
-} from '../matches/text/aiSettings';
+} from '../ai/aiSettings';
 
 const ERROR_TEXT: Record<AiError['kind'], string> = {
   notConfigured: 'Fill in the fields above first.',

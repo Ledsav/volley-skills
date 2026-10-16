@@ -4,6 +4,7 @@ import {
   DEFAULT_AI_SETTINGS,
   clearAiLocalData,
   draftKey,
+  forgetAiKey,
   isAiConfigured,
   readAiSettings,
   readDraft,
@@ -70,5 +71,29 @@ describe('aiSettings', () => {
     expect(readDraft('m1')).toBe('');
     expect(readAiSettings().apiKey).toBe('');
     expect(localStorage.getItem('unrelated')).toBe('keep');
+  });
+
+  it('keeps the key for this browser session only by default', () => {
+    expect(DEFAULT_AI_SETTINGS.rememberKey).toBe(false);
+    writeAiSettings({ ...DEFAULT_AI_SETTINGS, apiKey: 'gsk_x' });
+    expect(localStorage.getItem('vcb.ai.settings')).not.toContain('gsk_x');
+    expect(sessionStorage.getItem('vcb.ai.sessionKey')).toBe('gsk_x');
+  });
+
+  it('keeps remembering a key for settings saved before the default changed', () => {
+    localStorage.setItem('vcb.ai.settings', JSON.stringify({ provider: 'groq', baseUrl: AI_PROVIDERS.groq.baseUrl, apiKey: 'old', model: 'm' }));
+    expect(readAiSettings()).toMatchObject({ apiKey: 'old', rememberKey: true });
+  });
+
+  it('forgetAiKey clears the key from both storages and keeps the provider', () => {
+    const remembered = { ...DEFAULT_AI_SETTINGS, apiKey: 'a', rememberKey: true };
+    writeAiSettings(remembered);
+    expect(forgetAiKey(remembered)).toEqual({ ...remembered, apiKey: '' });
+    expect(localStorage.getItem('vcb.ai.settings')).not.toContain('"a"');
+    const session = { ...DEFAULT_AI_SETTINGS, apiKey: 'b', rememberKey: false };
+    writeAiSettings(session);
+    forgetAiKey(session);
+    expect(sessionStorage.getItem('vcb.ai.sessionKey')).toBeNull();
+    expect(readAiSettings().apiKey).toBe('');
   });
 });

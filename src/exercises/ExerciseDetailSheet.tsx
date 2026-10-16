@@ -5,7 +5,8 @@ import { Dialog } from '../components/Dialog';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import { listDiagrams } from '../diagrams/diagramsApi';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
-import type { Diagram } from '../types/diagram';
+import { sceneAsDiagram } from '../diagrams/sceneFactory';
+import type { Diagram, Scene } from '../types/diagram';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
   ExerciseCategory,
@@ -22,6 +23,8 @@ export interface ExerciseDetailEntry {
   category?: ExerciseCategory;
   /** Set when the exercise is shown as a step of a training. */
   durationMinutes?: number;
+  /** An unsaved (AI draft) diagram: rendered as is, nothing is fetched. `null` => draft without a diagram. */
+  scene?: Scene | null;
 }
 
 interface ExerciseDetailSheetProps {
@@ -45,7 +48,14 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
 
   const entry = entries[index];
   const total = entries.length;
-  const diagrams = entry ? diagramsById[entry.exerciseId] : undefined;
+  const diagrams: Diagram[] | 'error' | undefined =
+    entry && entry.scene !== undefined
+      ? entry.scene
+        ? [sceneAsDiagram(entry.exerciseId, entry.scene)]
+        : []
+      : entry
+        ? diagramsById[entry.exerciseId]
+        : undefined;
   const diagramList = Array.isArray(diagrams) ? diagrams : [];
   const currentDiagram = diagramList[diagramIndex] ?? null;
 
@@ -53,7 +63,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
   const isTrainingStep = entry?.durationMinutes !== undefined;
 
   useEffect(() => {
-    if (!entry || !entry.name || entry.exerciseId in diagramsById) return;
+    if (!entry || !entry.name || entry.scene !== undefined || entry.exerciseId in diagramsById) return;
     const id = entry.exerciseId;
     let cancelled = false;
     listDiagrams(id)

@@ -1,6 +1,6 @@
 import { GRADES, SKILLS, type Grade, type MatchEventPayload, type PointReason, type RosterEntry, type Side, type Skill } from '../../types/match';
 import { GRADE_LABELS, POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
-import type { ChatMessage } from './aiClient';
+import type { ChatMessage } from '../../ai/aiClient';
 
 export interface ParsedAction {
   number: number;

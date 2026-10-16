@@ -1,4 +1,5 @@
 import type {
+  Diagram,
   ArrowItem,
   CourtPreset,
   DiagramItem,
@@ -60,4 +61,9 @@ export function cloneItemAt(item: DiagramItem, dx: number, dy: number): DiagramI
     };
   }
   return base;
+}
+
+/** An unsaved scene shaped as a `Diagram`, for viewers (lightbox, detail sheet) that render diagrams. */
+export function sceneAsDiagram(id: string, scene: Scene, title = 'AI draft'): Diagram {
+  return { id, title, order: 0, scene, updatedBy: '', updatedAt: null };
 }

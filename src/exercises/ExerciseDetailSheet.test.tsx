@@ -65,4 +65,22 @@ describe('ExerciseDetailSheet', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders an unsaved draft scene without fetching diagrams', () => {
+    const scene = { v: 1 as const, court: 'full' as const, showZones: false, items: [] };
+    render(
+      <ExerciseDetailSheet
+        entries={[
+          { exerciseId: 'draft-1', name: 'Draft', description: 'D', category: 'game', scene },
+          { exerciseId: 'draft-2', name: 'No diagram', description: '', scene: null },
+        ]}
+        startIndex={0}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('AI draft')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next exercise' }));
+    expect(screen.getByText('No diagrams for this exercise.')).toBeInTheDocument();
+    expect(diagramsApi.listDiagrams).not.toHaveBeenCalled();
+  });
 });

@@ -8,7 +8,9 @@ import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Input } from '../components/Input';
 import { useDebouncedValue } from '../components/useDebouncedValue';
-import type { Training } from '../types/training';
+import { Sparkles } from 'lucide-react';
+import { TrainingDraftDialog } from '../aiDraft/TrainingDraftDialog';
+import type { NewTrainingInput, Training } from '../types/training';
 import {
   bulkCreateTrainings,
   deleteTraining,
@@ -31,6 +33,7 @@ export function TrainingsPage() {
   const [searchParams] = useSearchParams();
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);
+  const [showDraft, setShowDraft] = useState(false);
   const notify = useNotify();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -44,7 +47,8 @@ export function TrainingsPage() {
   // Opening a training shows the read-only plan ('view'); editing from there
   // returns to the plan on cancel.
   const [dialog, setDialog] = useState<
-    { mode: 'new' } | { mode: 'view'; training: Training } | { mode: 'edit'; training: Training; fromView: boolean } | null
+    | { mode: 'new'; initial?: NewTrainingInput }
+    | { mode: 'view'; training: Training } | { mode: 'edit'; training: Training; fromView: boolean } | null
   >(null);
   const [pendingDelete, setPendingDelete] = useState<Training | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -113,6 +117,10 @@ export function TrainingsPage() {
               onClick={() => setShowImport(true)}
             >
               Import
+            </Button>
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
+              <Sparkles size={16} aria-hidden="true" />
+              Draft with AI
             </Button>
             <Button
               variant="primary"
@@ -231,12 +239,28 @@ export function TrainingsPage() {
       {dialog && dialog.mode !== 'view' && (
         <TrainingBuilderDialog
           training={dialog.mode === 'edit' ? dialog.training : undefined}
+          initial={dialog.mode === 'new' ? dialog.initial : undefined}
           onClose={() =>
             setDialog(dialog.mode === 'edit' && dialog.fromView ? { mode: 'view', training: dialog.training } : null)
           }
           onSaved={() => {
             setDialog(null);
             void load();
+          }}
+        />
+      )}
+
+      {showDraft && (
+        <TrainingDraftDialog
+          onClose={() => setShowDraft(false)}
+          onSaved={(businessId) => {
+            setShowDraft(false);
+            notify(`Saved training ${businessId}.`);
+            void load();
+          }}
+          onOpenInBuilder={(initial) => {
+            setShowDraft(false);
+            setDialog({ mode: 'new', initial });
           }}
         />
       )}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AiError, chatJson, extractJson, testConnection } from './aiClient';
+import { AI_MAX_TOKENS, AiError, chatJson, extractJson, testConnection } from './aiClient';
 import type { AiSettings } from './aiSettings';
 
 const settings: AiSettings = { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: 'k', model: 'm', rememberKey: true };
@@ -103,6 +103,26 @@ describe('chatJson', () => {
     const fetchImpl = vi.fn();
     await expect(chatJson({ ...settings, apiKey: '' }, messages, { fetchImpl })).rejects.toMatchObject({ kind: 'notConfigured' });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('caps every request with max_tokens (scout cap by default)', async () => {
+    const fetchImpl = vi.fn(async () => reply('{}'));
+    await chatJson(settings, messages, { fetchImpl });
+    const body = JSON.parse((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(body.max_tokens).toBe(AI_MAX_TOKENS.scout);
+    expect(body.temperature).toBe(0);
+  });
+
+  it('passes temperature and maxTokens through, also on the no-JSON-mode retry', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{"error":{"message":"response_format is not supported"}}', { status: 400 }))
+      .mockResolvedValueOnce(reply('{}'));
+    await chatJson(settings, messages, { fetchImpl, temperature: 0.7, maxTokens: AI_MAX_TOKENS.draft });
+    for (const call of fetchImpl.mock.calls) {
+      const body = JSON.parse(call[1].body);
+      expect(body).toMatchObject({ temperature: 0.7, max_tokens: 4000 });
+    }
   });
 });
 

@@ -73,11 +73,14 @@ because all files share one emulator project.
 Firebase's free Spark plan, so *all* authorization is enforced in Firestore
 Security Rules (`firestore.rules`).
 
-**Text scouting** (`src/matches/text/`) talks to any OpenAI-compatible
-endpoint through a provider-agnostic client (`aiClient.ts`). Settings and
-drafts live in localStorage only (`aiSettings.ts`). Player names are stripped
-to jersey numbers before sending (`textScout.ts`). Merges are `source: 'text'`
-events sharing a `chunkId`.
+**AI features** talk to any OpenAI-compatible endpoint through a provider-agnostic
+client (`src/ai/aiClient.ts`, every request capped by `AI_MAX_TOKENS`). Settings
+live in localStorage, the key in sessionStorage unless the coach opts to remember
+it (`src/ai/aiSettings.ts`). Text scouting (`src/matches/text/`) strips player
+names to jersey numbers before sending (`textScout.ts`); merges are `source: 'text'`
+events sharing a `chunkId`. AI drafting (`src/aiDraft/`) sends only the request and
+club-library exercise text, runs model output through the same validators as JSON
+import (`parseScene`), and saves through the normal `*Api.ts` writes.
 
 **Awards story** (`src/awards/`) is a canvas-rendered, Wrapped-style presentation:
 `story/buildStory.ts` decides the slides, `card/drawSlide.ts` (`renderStoryFrame`)

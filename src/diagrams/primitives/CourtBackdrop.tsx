@@ -1,3 +1,4 @@
+import { courtGeometry } from '../courtGeometry';
 import { tokenColorAlpha } from '../tokenColor';
 import type { CourtPreset } from '../../types/diagram';
 
@@ -8,9 +9,7 @@ const LINE = 'rgb(var(--color-ink))';
 export function CourtBackdrop({ court, showZones }: { court: CourtPreset; showZones: boolean }) {
   if (court === 'blank') return <g data-court="blank" style={{ pointerEvents: 'none' }} />;
 
-  const top = 6;
-  const bottom = court === 'full' ? 94 : 72;
-  const netY = court === 'full' ? (top + bottom) / 2 : top;
+  const { top, bottom, netY } = courtGeometry(court);
   const attackOffset = (bottom - top) * (court === 'full' ? 0.17 : 0.34);
 
   const zones =

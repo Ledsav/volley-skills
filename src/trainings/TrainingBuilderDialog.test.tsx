@@ -274,4 +274,20 @@ describe('TrainingBuilderDialog', () => {
     expect(createSpy).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });
+
+  it('opens a new training prefilled from a draft', async () => {
+    vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([exOne]);
+    render(
+      <TrainingBuilderDialog
+        initial={{ name: 'AI plan', description: 'D', ageGroupTarget: 'U15', exercises: [{ exerciseId: 'ex-1', order: 1, durationMinutes: 15 }] }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('dialog', { name: 'New training' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toHaveValue('AI plan');
+    expect(screen.getByLabelText('Age group target')).toHaveValue('U15');
+    expect(await screen.findByText('Pepper')).toBeInTheDocument();
+    expect(screen.getByText('1 exercise · 15 min')).toBeInTheDocument();
+  });
 });

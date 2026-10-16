@@ -6,7 +6,16 @@ import * as trainingsApi from './trainingsApi';
 
 vi.mock('./trainingsApi');
 vi.mock('./TrainingBuilderDialog', () => ({
-  TrainingBuilderDialog: ({ onSaved }: { onSaved: () => void }) => <button onClick={onSaved}>builder-stub</button>,
+  TrainingBuilderDialog: ({ onSaved, initial }: { onSaved: () => void; initial?: { name: string } }) => (
+    <button onClick={onSaved}>builder-stub{initial ? `:${initial.name}` : ''}</button>
+  ),
+}));
+vi.mock('../aiDraft/TrainingDraftDialog', () => ({
+  TrainingDraftDialog: ({ onOpenInBuilder }: { onOpenInBuilder: (i: unknown) => void }) => (
+    <button onClick={() => onOpenInBuilder({ name: 'From AI', description: '', ageGroupTarget: '', exercises: [] })}>
+      draft-dialog-stub
+    </button>
+  ),
 }));
 vi.mock('./TrainingViewSheet', () => ({
   TrainingViewSheet: ({ onEdit }: { onEdit: () => void }) => <button onClick={onEdit}>view-stub</button>,
@@ -165,5 +174,12 @@ describe('TrainingsPage', () => {
 
     await waitFor(() => expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1));
     expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' });
+  });
+
+  it('opens the builder prefilled from an AI draft', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Draft with AI' }));
+    fireEvent.click(screen.getByText('draft-dialog-stub'));
+    expect(await screen.findByText('builder-stub:From AI')).toBeInTheDocument();
   });
 });

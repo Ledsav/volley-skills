@@ -61,7 +61,9 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   baseUrl: AI_PROVIDERS.groq.baseUrl,
   apiKey: '',
   model: AI_PROVIDERS.groq.defaultModel,
-  rememberKey: true,
+  // Session-only unless the coach opts in. Settings saved before this default
+  // changed keep remembering (see readAiSettings).
+  rememberKey: false,
 };
 
 const SETTINGS_KEY = 'vcb.ai.settings';
@@ -117,6 +119,13 @@ export function writeAiSettings(s: AiSettings): void {
   } catch {
     // Session storage blocked: the key lasts for this page only.
   }
+}
+
+/** Drops the key from localStorage and sessionStorage; provider and model stay. */
+export function forgetAiKey(s: AiSettings): AiSettings {
+  const next = { ...s, apiKey: '' };
+  writeAiSettings(next);
+  return next;
 }
 
 export function isAiConfigured(s: AiSettings): boolean {

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { signOutAndClearLocalData } from '../firebase/signOut';
-import { clearAiLocalData } from '../matches/text/aiSettings';
+import { clearAiLocalData } from '../ai/aiSettings';
 
 /**
  * Sign-out that wipes this device's offline cache. When scouting writes have

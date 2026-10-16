@@ -99,6 +99,11 @@ for the detailed steps.
       `firestore.googleapis.com/document/{read,write,delete}_count` at ~60% of
       the daily Spark cap. Notification channel = your email.
 - [ ] **Confirm Firebase quota-warning emails** reach the project owners.
+- [ ] **Trusted Types: report-only → enforce** — `firebase.json` sends
+      `Content-Security-Policy-Report-Only: require-trusted-types-for 'script'`.
+      After deploy, sign in (email link), open a player card, scout a match and
+      draft with AI with DevTools open; if no Trusted Types violations appear,
+      move the directive into the enforced `Content-Security-Policy`.
 - [~] **Privacy policy content review** — `src/legal/PrivacyPage.tsx` at
       `/privacy` now has a real data-request contact
       (`alberto.valdes.rey.official@gmail.com`) and an "internal use, parent

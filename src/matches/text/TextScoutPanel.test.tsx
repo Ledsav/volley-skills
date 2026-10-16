@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
-import { writeAiSettings, DEFAULT_AI_SETTINGS } from './aiSettings';
-import { AiError } from './aiClient';
+import { writeAiSettings, DEFAULT_AI_SETTINGS } from '../../ai/aiSettings';
+import { AiError } from '../../ai/aiClient';
 import { PROCESS_TIMEOUT_MS, TextScoutPanel } from './TextScoutPanel';
 
 const roster = [
@@ -116,7 +116,7 @@ describe('TextScoutPanel', () => {
   });
 
   it('shows provider errors and keeps the draft', async () => {
-    const { AiError } = await import('./aiClient');
+    const { AiError } = await import('../../ai/aiClient');
     renderPanel({ ask: vi.fn(async () => { throw new AiError('rateLimited', 'x', 429, 20); }) });
     fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: '7 ace' } });
     fireEvent.click(screen.getByRole('button', { name: 'Process' }));

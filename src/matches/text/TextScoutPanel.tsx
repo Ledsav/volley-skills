@@ -5,8 +5,8 @@ import { Input, Textarea } from '../../components/Input';
 import type { Match, MatchEvent, MatchEventPayload } from '../../types/match';
 import { batchOrders } from '../eventOrder';
 import { replay, sortEvents } from '../scoutEngine';
-import { AiError, chatJson, type ChatMessage } from './aiClient';
-import { LOCAL_UNREACHABLE_HINT, isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from './aiSettings';
+import { AI_MAX_TOKENS, AiError, chatJson, type ChatMessage } from '../../ai/aiClient';
+import { LOCAL_UNREACHABLE_HINT, isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from '../../ai/aiSettings';
 import { PreviewRallyCard } from './PreviewRallyCard';
 import {
   anonymizeNames,
@@ -74,7 +74,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
   const [processedText, setProcessedText] = useState<string | null>(null);
   const [settings] = useState(readAiSettings);
   const configured = !!ask || isAiConfigured(settings);
-  const askModel = ask ?? ((messages: ChatMessage[], signal: AbortSignal) => chatJson(settings, messages, { signal }));
+  const askModel = ask ?? ((messages: ChatMessage[], signal: AbortSignal) => chatJson(settings, messages, { signal, maxTokens: AI_MAX_TOKENS.scout }));
   const runRef = useRef<{ controller: AbortController; reason: AbortReason | null } | null>(null);
 
   useEffect(

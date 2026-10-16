@@ -1,7 +1,9 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { ExerciseDraftDialog } from '../aiDraft/ExerciseDraftDialog';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -25,6 +27,7 @@ export function ExercisesPage() {
   usePageMeta({ title: 'Exercises' });
   const { firebaseUser } = useAuth();
   const [showImport, setShowImport] = useState(false);
+  const [showDraft, setShowDraft] = useState(false);
   const notify = useNotify();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -95,6 +98,10 @@ export function ExercisesPage() {
               onClick={() => setShowImport(true)}
             >
               Import
+            </Button>
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
+              <Sparkles size={16} aria-hidden="true" />
+              Draft with AI
             </Button>
             <Button
               variant="primary"
@@ -215,6 +222,17 @@ export function ExercisesPage() {
           onClose={() => setDialog(null)}
           onSaved={() => {
             setDialog(null);
+            void loadFirstPage();
+          }}
+        />
+      )}
+
+      {showDraft && (
+        <ExerciseDraftDialog
+          onClose={() => setShowDraft(false)}
+          onSaved={(n) => {
+            setShowDraft(false);
+            notify(`Added ${n} exercise${n === 1 ? '' : 's'}.`);
             void loadFirstPage();
           }}
         />

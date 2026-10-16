@@ -9,6 +9,11 @@ vi.mock('./ExerciseFormDialog', () => ({
     <button onClick={onSaved}>form-dialog-stub</button>
   ),
 }));
+vi.mock('../aiDraft/ExerciseDraftDialog', () => ({
+  ExerciseDraftDialog: ({ onSaved }: { onSaved: (n: number) => void }) => (
+    <button onClick={() => onSaved(2)}>draft-dialog-stub</button>
+  ),
+}));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', async () => {
   const { authValue, superAdminAccess } = await import('../test/authValue');
@@ -159,5 +164,13 @@ describe('ExercisesPage', () => {
     render(<ExercisesPage />);
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
     expect(screen.getByRole('dialog', { name: /Import exercises/ })).toBeInTheDocument();
+  });
+
+  it('opens AI drafting and reloads the list after saving', async () => {
+    render(<ExercisesPage />);
+    await screen.findByText('Pepper');
+    fireEvent.click(screen.getByRole('button', { name: 'Draft with AI' }));
+    fireEvent.click(screen.getByText('draft-dialog-stub'));
+    await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenCalledTimes(2));
   });
 });

@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest';
+import { buildTrainingMessages, libraryIndexLine } from './trainingPrompt';
+
+const entry = { id: 'ex-1', name: 'Pepper', category: 'warmup' as const, description: `Line one\nline two ${'x'.repeat(200)}` };
+
+describe('libraryIndexLine', () => {
+  it('is id | name | category | first 80 chars of a one-line description', () => {
+    const line = libraryIndexLine(entry);
+    expect(line.startsWith('ex-1 | Pepper | warmup | Line one line two ')).toBe(true);
+    expect(line.split(' | ')[3]).toHaveLength(80);
+  });
+});
+
+describe('buildTrainingMessages', () => {
+  it('sends only the documented payload', () => {
+    const [system, user] = buildTrainingMessages({ goal: 'serve receive', ageGroupTarget: 'U15', totalMinutes: 90, allowNew: true, index: [entry] });
+    expect(system.content).toContain('ex-1 | Pepper | warmup');
+    expect(system.content).toContain('"new"');
+    expect(system.content).toContain('Diagram format');
+    expect(system.content).not.toContain('createdBy');
+    expect(user.content).toBe('Goal: serve receive\nAge group: U15\nTotal minutes: 90');
+  });
+  it('omits new-exercise instructions when not allowed and handles an empty library', () => {
+    const [system] = buildTrainingMessages({ goal: 'g', ageGroupTarget: '', totalMinutes: 60, allowNew: false, index: [] });
+    expect(system.content).not.toContain('"new"');
+    expect(system.content).not.toContain('Diagram format');
+    expect(system.content).toContain('(the library is empty)');
+  });
+});

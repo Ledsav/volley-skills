@@ -83,4 +83,13 @@ describe('ExerciseDetailSheet', () => {
     expect(screen.getByText('No diagrams for this exercise.')).toBeInTheDocument();
     expect(diagramsApi.listDiagrams).not.toHaveBeenCalled();
   });
+  it('shows the minimum players only when the exercise has one', () => {
+    const { unmount } = render(
+      <ExerciseDetailSheet entries={[{ ...entries[0], minPlayers: 8 }]} startIndex={0} onClose={vi.fn()} />,
+    );
+    expect(screen.getByText('Min 8 players')).toBeInTheDocument();
+    unmount();
+    render(<ExerciseDetailSheet entries={[entries[0]]} startIndex={0} onClose={vi.fn()} />);
+    expect(screen.queryByText(/Min \d+ players/)).not.toBeInTheDocument();
+  });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, Pencil, Play, TriangleAlert } from 'lucide-react';
+import { ChevronRight, Clock, Pencil, Play, TriangleAlert, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
@@ -45,6 +45,7 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
               description: ex?.description ?? '',
               category: ex?.category,
               durationMinutes: e.durationMinutes,
+              minPlayers: ex?.minPlayers,
             };
           })
         );
@@ -98,7 +99,23 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
             <Clock className="h-4 w-4" aria-hidden="true" />
             {exerciseCount} exercise{exerciseCount === 1 ? '' : 's'} · {totalMinutes} min
           </span>
+          {training.suggestedPlayers !== undefined && (
+            <span className="inline-flex items-center gap-1 tabular-nums text-slate">
+              <Users className="h-4 w-4" aria-hidden="true" />
+              {training.suggestedPlayers} players
+            </span>
+          )}
         </div>
+
+        {training.targets && training.targets.length > 0 && (
+          <ul aria-label="Targets" className="-mt-2 flex flex-wrap gap-1.5">
+            {training.targets.map((t) => (
+              <li key={t} className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-ink">
+                {CATEGORY_LABEL[t]}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {training.description && (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{training.description}</p>

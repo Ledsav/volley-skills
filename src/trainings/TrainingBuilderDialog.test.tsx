@@ -428,5 +428,13 @@ describe('TrainingBuilderDialog', () => {
       expect(within(targets).getByRole('button', { name: 'Service (covered)' })).toBeInTheDocument();
       expect(within(targets).getByRole('button', { name: 'Defense' })).toBeInTheDocument();
     });
-  });
+      it('offers more suggestions only when the query says there are more', async () => {
+      const cursor = { id: 'ex-4' } as never;
+      vi.mocked(exercisesApi.listExercisesInCategories).mockResolvedValue({ exercises: [small], lastDoc: cursor, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await within(await screen.findByRole('list', { name: 'Suggested for your targets' })).findByText('Small serve');
+      expect(screen.queryByRole('button', { name: 'Load more suggestions' })).not.toBeInTheDocument();
+    });
+});
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Trash2, TriangleAlert, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Trash2, TriangleAlert } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
@@ -12,8 +12,10 @@ import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds, listExercises, listExercisesInCategories } from '../exercises/exercisesApi';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput, Training, TrainingExercise } from '../types/training';
+import { PlayersNote } from './PlayersNote';
 import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
+import { TRAINING_NAME_EXAMPLE, TRAINING_NAME_HINT } from './naming';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
   ExerciseCategory,
@@ -26,25 +28,6 @@ const chipClass = (active: boolean) =>
   }`;
 
 const FORM_ID = 'training-form';
-
-/** "Min N players", or the warning when the drill needs more than the training suggests. */
-function PlayersNote({ minPlayers, suggested }: { minPlayers?: number; suggested: number | null }) {
-  if (minPlayers === undefined) return null;
-  if (needsMorePlayers(minPlayers, suggested)) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-sm bg-orange/10 px-1.5 py-0.5 text-xs font-medium tabular-nums text-orange-strong">
-        <TriangleAlert aria-hidden="true" className="h-3 w-3 shrink-0" />
-        {`Needs ${minPlayers} · suggested ${suggested}`}
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-xs tabular-nums text-slate">
-      <Users aria-hidden="true" className="h-3 w-3 shrink-0" />
-      {`Min ${minPlayers} players`}
-    </span>
-  );
-}
 
 const rowIconBtn =
   'inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink disabled:opacity-30 sm:h-9 sm:w-9';
@@ -347,7 +330,16 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         <label htmlFor="training-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
-        <Input id="training-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          id="training-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={TRAINING_NAME_EXAMPLE}
+          aria-describedby="training-name-hint"
+        />
+        <p id="training-name-hint" className="mt-1 text-xs text-slate">
+          {TRAINING_NAME_HINT}
+        </p>
 
         <label htmlFor="training-age" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Age group target

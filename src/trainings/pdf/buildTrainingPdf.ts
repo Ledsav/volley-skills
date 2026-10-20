@@ -2,6 +2,7 @@ import type { Content, TableCell, TDocumentDefinitions } from 'pdfmake/interface
 import { fileSlug } from '../../export/exportJson';
 import type { Diagram } from '../../types/diagram';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../../types/exercise';
+import type { Level } from '../../types/player';
 import type { Training } from '../../types/training';
 import { needsMorePlayers } from '../suggestions';
 
@@ -18,13 +19,52 @@ const BORDER = '#E2E8F0';
 const BG = '#F8FAFC';
 const WARN = '#C2410C';
 
+// Level band colours (design system: red/orange/blue/green), in their light-theme text shades.
+const LEVEL_COLOR: Record<Level, string> = {
+  Beginner: '#DC2626',
+  Developing: '#C2410C',
+  Advanced: '#2865F6',
+  Elite: '#0C7C4F',
+};
+
+// The embedded font (Roboto) has no arrow glyphs; coaches type them in names and descriptions.
+const MISSING_GLYPHS: [RegExp, string][] = [
+  [/↔/g, '‹›'],
+  [/[→⇒➔]/g, '›'],
+  [/[←⇐]/g, '‹'],
+];
+
+export function fontSafe(text: string): string {
+  return MISSING_GLYPHS.reduce((t, [re, to]) => t.replace(re, to), text);
+}
+
+/** Applies fontSafe to every printed string (`text` values) in a pdfmake node tree; SVG markup is left alone. */
+function fontSafeTree<T>(node: T): T {
+  if (Array.isArray(node)) return node.map(fontSafeTree) as T;
+  if (node && typeof node === 'object') {
+    return Object.fromEntries(
+      Object.entries(node).map(([k, v]) => [k, k === 'text' && typeof v === 'string' ? fontSafe(v) : k === 'svg' ? v : fontSafeTree(v)]),
+    ) as T;
+  }
+  return node;
+}
+
 const PAGE_MARGINS: [number, number, number, number] = [40, 56, 40, 48];
 const SINGLE_DIAGRAM_WIDTH = 340;
 const GRID_DIAGRAM_WIDTH = 250;
 const GRID_GAP = 15;
 
+/** Optional page for a session with a known team: who is expected and what to look at for each player. */
+export interface TeamNotes {
+  teamName: string;
+  date?: string;
+  general: string;
+  players: { name: string; position: string; level: Level | null; note: string }[];
+}
+
 export interface TrainingPdfInput {
   training: Training;
+  teamNotes?: TeamNotes;
   exercisesById: Map<string, Exercise>;
   diagramsById: Map<string, Diagram[]>;
   /** Turns a saved diagram into an SVG string (injected so this module stays pure). */
@@ -77,8 +117,8 @@ export function exercisePages(lineup: LineupEntry[]): { exerciseId: string; slot
   return [...pages].map(([exerciseId, slots]) => ({ exerciseId, slots }));
 }
 
-export function trainingPdfFileName(training: Training): string {
-  return `${training.businessId}-${fileSlug(training.name)}.pdf`;
+export function trainingPdfFileName(training: Training, date?: string): string {
+  return `${training.businessId}-${fileSlug(training.name)}${date ? `-${date}` : ''}.pdf`;
 }
 
 const dot = '  ·  ';
@@ -146,6 +186,39 @@ function coverPage(training: Training, lineup: LineupEntry[]): Content[] {
   return content;
 }
 
+function teamNotesPage(notes: TeamNotes): Content {
+  const count = notes.players.length;
+  const facts = [notes.teamName, notes.date ?? '', `${count} expected player${count === 1 ? '' : 's'}`].filter(Boolean);
+  const stack: Content[] = [
+    { text: 'Team notes', style: 'h1' },
+    { text: facts.join(dot), style: 'facts' },
+  ];
+  if (notes.general.trim()) stack.push({ text: notes.general, style: 'body', margin: [0, 10, 0, 0] });
+  if (count > 0) {
+    const head = ['Player', 'Position', 'Level', 'What to look at'].map((text): TableCell => ({ text, style: 'th' }));
+    const rows = notes.players.map((p): TableCell[] => [
+      { text: p.name, bold: true },
+      { text: p.position, color: SLATE },
+      p.level ? { text: p.level, color: LEVEL_COLOR[p.level], bold: true } : { text: 'Not rated', color: SLATE, italics: true },
+      { text: p.note },
+    ]);
+    stack.push({
+      table: { headerRows: 1, dontBreakRows: true, widths: [110, 70, 60, '*'], body: [head, ...rows] },
+      layout: {
+        hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
+        vLineWidth: () => 0,
+        hLineColor: () => BORDER,
+        fillColor: (row: number) => (row === 0 ? BG : null),
+        paddingTop: () => 6,
+        paddingBottom: () => 6,
+      },
+      style: 'table',
+      margin: [0, 14, 0, 0],
+    });
+  }
+  return { stack, pageBreak: 'before' };
+}
+
 function diagramBlock(d: Diagram, width: number, svgFor: TrainingPdfInput['svgFor']): Content {
   return {
     stack: [
@@ -204,7 +277,7 @@ function exercisePage(
 
 /** The whole PDF: a cover with the session plan, then one page per exercise with its court diagrams. */
 export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDefinitions {
-  const { training, exercisesById } = input;
+  const { training, exercisesById, teamNotes } = input;
   const lineup = buildLineup(training, exercisesById);
   const pages = exercisePages(lineup).map(({ exerciseId, slots }) =>
     exercisePage(exercisesById.get(exerciseId) as Exercise, slots, input),
@@ -214,9 +287,9 @@ export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDe
     pageSize: 'A4',
     pageOrientation: 'portrait',
     pageMargins: PAGE_MARGINS,
-    info: { title: `${training.businessId} · ${training.name}` },
+    info: { title: fontSafe(`${training.businessId} · ${training.name}`) },
     header: () => ({
-      text: `${training.businessId} · ${training.name}`,
+      text: fontSafe(`${training.businessId} · ${training.name}`),
       fontSize: 8,
       color: SLATE,
       margin: [PAGE_MARGINS[0], 24, PAGE_MARGINS[2], 0],
@@ -228,7 +301,7 @@ export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDe
       alignment: 'right',
       margin: [PAGE_MARGINS[0], 16, PAGE_MARGINS[2], 0],
     }),
-    content: [...coverPage(training, lineup), ...pages],
+    content: fontSafeTree([...coverPage(training, lineup), ...(teamNotes ? [teamNotesPage(teamNotes)] : []), ...pages]),
     defaultStyle: { fontSize: 10, color: INK, lineHeight: 1.25 },
     styles: {
       label: { fontSize: 9, bold: true, color: BLUE, characterSpacing: 0.5 },

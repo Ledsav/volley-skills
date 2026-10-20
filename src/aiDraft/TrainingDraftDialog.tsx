@@ -8,6 +8,8 @@ import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
 import { OfflineError, useSave } from '../components/useSave';
 import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/ExerciseDetailSheet';
+import { parseOptionalInt } from '../components/parseOptionalInt';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput } from '../types/training';
 import { draftErrorText, needsSettings, runDraft, type AskFn } from './draftRunner';
 import { loadLibraryIndex } from './libraryIndex';
@@ -63,6 +65,8 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
   const [ageGroup, setAgeGroup] = useState('');
   const [minutes, setMinutes] = useState(90);
   const [allowNew, setAllowNew] = useState(true);
+  const [playersText, setPlayersText] = useState('');
+  const [targets, setTargets] = useState<ExerciseCategory[]>([]);
   const [draft, setDraft] = useState<TrainingDraft | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -81,18 +85,23 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
     setGenerating(true);
     setError(null);
     const newAllowed = allowNew && canWriteExercises;
+    const players = parseOptionalInt(playersText, PLAYER_LIMITS.suggestedPlayers.min, PLAYER_LIMITS.suggestedPlayers.max);
+    const suggestedPlayers = players.ok ? players.value : null;
     try {
-      const index = await loadLibraryIndex(goal);
+      const index = await loadLibraryIndex(goal, targets);
       const messages = buildTrainingMessages({
         goal: goal.trim(),
         ageGroupTarget: ageGroup.trim(),
         totalMinutes: minutes,
         allowNew: newAllowed,
         index,
+        targets,
+        suggestedPlayers,
       });
       const next = await runDraft(
         () => askModel(messages, controller.signal),
-        (raw) => validateTrainingProposal(raw, { index, allowNew: newAllowed, ageGroupTarget: ageGroup.trim() }),
+        (raw) =>
+          validateTrainingProposal(raw, { index, allowNew: newAllowed, ageGroupTarget: ageGroup.trim(), targets, suggestedPlayers }),
       );
       if (!controller.signal.aborted) setDraft(next);
     } catch (e) {
@@ -206,6 +215,47 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                   Total minutes
                 </label>
                 <NumberField id="tdraft-min" min={30} max={180} value={minutes} onChange={setMinutes} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="tdraft-players" className="mb-1 block text-sm font-medium text-ink">
+                Suggested players
+              </label>
+              <Input
+                id="tdraft-players"
+                type="text"
+                inputMode="numeric"
+                value={playersText}
+                onChange={(e) => setPlayersText(e.target.value)}
+                className="w-24"
+              />
+              <p className="mt-1 text-xs text-slate">Optional. The draft only uses drills this many players (±3) can run.</p>
+            </div>
+            <div>
+              <span className="mb-1 block text-sm font-medium text-ink">Targets</span>
+              <div role="group" aria-label="Targets" className="flex flex-wrap gap-1.5">
+                {EXERCISE_CATEGORIES.map((c) => {
+                  const active = targets.includes(c.key);
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setTargets((current) =>
+                          current.includes(c.key)
+                            ? current.filter((t) => t !== c.key)
+                            : EXERCISE_CATEGORIES.map((x) => x.key).filter((k) => k === c.key || current.includes(k))
+                        )
+                      }
+                      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
+                        active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             {canWriteExercises && (

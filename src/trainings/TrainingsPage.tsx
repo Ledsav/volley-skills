@@ -1,5 +1,5 @@
 import { usePageMeta } from '../layout/usePageMeta';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
@@ -25,8 +25,11 @@ import {
 } from './trainingsImport';
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import { TrainingViewSheet } from './TrainingViewSheet';
+import { getCalendarSession } from '../calendar/calendarApi';
 import { useNotify } from '../components/Notice';
 import { PageHeader } from '../layout/PageHeader';
+
+type TeamContext = { teamId: string; date: string; notes: string };
 
 export function TrainingsPage() {
   usePageMeta({ title: 'Trainings' });
@@ -40,6 +43,8 @@ export function TrainingsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [ageGroup, setAgeGroup] = useState('');
   const [businessId, setBusinessId] = useState(() => searchParams.get('businessId') ?? '');
+  // Opened from a team's calendar session (?team=…&session=…): open that training with its team context, once.
+  const sessionLink = useRef({ teamId: searchParams.get('team'), sessionId: searchParams.get('session'), opened: false });
   // Free-text filters: debounce so a query fires once the user stops typing,
   // not on every keystroke.
   const debouncedAgeGroup = useDebouncedValue(ageGroup, 350);
@@ -48,7 +53,9 @@ export function TrainingsPage() {
   // returns to the plan on cancel.
   const [dialog, setDialog] = useState<
     | { mode: 'new'; initial?: NewTrainingInput }
-    | { mode: 'view'; training: Training } | { mode: 'edit'; training: Training; fromView: boolean } | null
+    | { mode: 'view'; training: Training; teamContext?: TeamContext }
+    | { mode: 'edit'; training: Training; fromView: boolean; teamContext?: TeamContext }
+    | null
   >(null);
   const [pendingDelete, setPendingDelete] = useState<Training | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -59,6 +66,14 @@ export function TrainingsPage() {
     if (debouncedBusinessId.trim()) {
       const found = await findTrainingByBusinessId(debouncedBusinessId.trim());
       setTrainings(found ? [found] : []);
+      const link = sessionLink.current;
+      if (found && link.teamId && link.sessionId && !link.opened) {
+        link.opened = true;
+        const session = await getCalendarSession(link.teamId, link.sessionId).catch(() => null);
+        if (session && session.trainingId === found.id) {
+          setDialog({ mode: 'view', training: found, teamContext: { teamId: link.teamId, date: session.date, notes: session.notes ?? '' } });
+        }
+      }
       setLastDoc(null);
       setHasMore(false);
       setLoaded(true);
@@ -232,7 +247,8 @@ export function TrainingsPage() {
         <TrainingViewSheet
           training={dialog.training}
           onClose={() => setDialog(null)}
-          onEdit={() => setDialog({ mode: 'edit', training: dialog.training, fromView: true })}
+          teamContext={dialog.teamContext}
+          onEdit={() => setDialog({ mode: 'edit', training: dialog.training, fromView: true, teamContext: dialog.teamContext })}
         />
       )}
 
@@ -241,7 +257,11 @@ export function TrainingsPage() {
           training={dialog.mode === 'edit' ? dialog.training : undefined}
           initial={dialog.mode === 'new' ? dialog.initial : undefined}
           onClose={() =>
-            setDialog(dialog.mode === 'edit' && dialog.fromView ? { mode: 'view', training: dialog.training } : null)
+            setDialog(
+              dialog.mode === 'edit' && dialog.fromView
+                ? { mode: 'view', training: dialog.training, teamContext: dialog.teamContext }
+                : null
+            )
           }
           onSaved={() => {
             setDialog(null);

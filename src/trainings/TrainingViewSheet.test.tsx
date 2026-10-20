@@ -10,6 +10,14 @@ import { TrainingViewSheet } from './TrainingViewSheet';
 vi.mock('../exercises/exercisesApi');
 vi.mock('../export/shareFile');
 vi.mock('./pdf/exportTrainingPdf');
+vi.mock('../players/playersApi', () => ({
+  listPlayers: vi.fn().mockResolvedValue({
+    players: [{ id: 'p1', fullName: 'Ilaria Lanzoni', number: 10, positionCategory: 'OH', level: 'Advanced', starting: false, leftClubAt: null }],
+    lastDoc: null,
+    hasMore: false,
+  }),
+}));
+vi.mock('../teams/teamsApi', () => ({ getTeam: vi.fn().mockResolvedValue({ id: 'u17', name: 'U17' }) }));
 vi.mock('../diagrams/diagramsApi', () => ({ listDiagrams: vi.fn().mockResolvedValue([]) }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../diagrams/DiagramThumbnail', () => ({ DiagramThumbnail: () => null }));
@@ -147,6 +155,34 @@ describe('TrainingViewSheet', () => {
       expect(screen.queryByText('PDF downloaded')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Share PDF ready' }));
       expect(await screen.findByText('PDF downloaded')).toBeInTheDocument();
+    });
+  });
+
+  describe('share as PDF for a calendar session', () => {
+    it('asks for team notes first, then builds the PDF with them', async () => {
+      const pdf = new File(['%PDF'], 'x.pdf', { type: 'application/pdf' });
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockResolvedValue(pdf);
+      render(
+        <NoticeProvider>
+          <TrainingViewSheet
+            training={training}
+            teamContext={{ teamId: 'u17', date: '2026-10-24', notes: 'Gym B' }}
+            onClose={vi.fn()}
+            onEdit={vi.fn()}
+          />
+        </NoticeProvider>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
+      fireEvent.change(await screen.findByLabelText('What to look at for Ilaria Lanzoni'), { target: { value: 'Lead the line.' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Create PDF' }));
+      expect(await screen.findByRole('button', { name: 'Share PDF ready' })).toBeInTheDocument();
+      expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledWith(training, {
+        teamName: 'U17',
+        date: '2026-10-24',
+        general: 'Gym B',
+        players: [{ name: 'Ilaria Lanzoni', position: 'Outside', level: 'Advanced', note: 'Lead the line.' }],
+      });
+      expect(screen.getByRole('button', { name: 'Edit team notes' })).toBeInTheDocument();
     });
   });
 });

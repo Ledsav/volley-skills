@@ -17,7 +17,8 @@ import {
 import { db } from '../firebase/config';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
-import type { NewTrainingInput, Training } from '../types/training';
+import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
+import type { NewTrainingInput, Training, TrainingUpdate } from '../types/training';
 import { formatBusinessId } from './businessId';
 
 const TRAININGS_PAGE_SIZE = 25;
@@ -38,7 +39,7 @@ export async function createTraining(
     tx.set(counterRef, { lastSequence: nextSequence });
     tx.set(trainingRef, {
       businessId: nextBusinessId,
-      ...input,
+      ...optionalForCreate(input, ['suggestedPlayers', 'targets']),
       exerciseIds: input.exercises.map((e) => e.exerciseId),
       createdBy: creatorUid,
       createdAt: serverTimestamp(),
@@ -50,8 +51,8 @@ export async function createTraining(
   return { id: trainingRef.id, businessId };
 }
 
-export async function updateTraining(trainingId: string, updates: Partial<NewTrainingInput>): Promise<void> {
-  const payload: Record<string, unknown> = { ...updates };
+export async function updateTraining(trainingId: string, updates: TrainingUpdate): Promise<void> {
+  const payload = optionalForUpdate(updates, ['suggestedPlayers', 'targets']);
   if (updates.exercises) {
     payload.exerciseIds = updates.exercises.map((e) => e.exerciseId);
   }
@@ -145,7 +146,7 @@ export async function bulkCreateTrainings(
         const trainingRef = doc(collection(db, 'trainings'));
         tx.set(trainingRef, {
           businessId: formatBusinessId(lastSequence + i + 1),
-          ...input,
+          ...optionalForCreate(input, ['suggestedPlayers', 'targets']),
           exerciseIds: input.exercises.map((e) => e.exerciseId),
           createdBy: creatorUid,
           createdAt: serverTimestamp(),

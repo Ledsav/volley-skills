@@ -103,17 +103,17 @@ describe('testingSessions rules', () => {
     );
   });
 
-  it('lets only a superadmin delete sessions (team deletion clears them)', async () => {
+  it('lets the team admin delete a session, denies anyone outside the team', async () => {
     const env = await getTestEnv();
     await env.withSecurityRulesDisabled(async (context) => {
       await context.firestore().doc('adminAllowlist/super@example.com').set({});
     });
 
-    const coach = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
-    await assertFails(coach.doc('teams/team-1/testingSessions/session-1').delete());
-
     const stranger = env.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
     await assertFails(stranger.doc('teams/team-1/testingSessions/session-1').delete());
+
+    const coach = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(coach.doc('teams/team-1/testingSessions/session-1').delete());
 
     const superadmin = env.authenticatedContext('super-uid', { email: 'super@example.com' }).firestore();
     await assertSucceeds(superadmin.doc('teams/team-1/testingSessions/session-1').delete());

@@ -66,6 +66,22 @@ describe('LiveSessionView', () => {
     expect(onSessionClosed).toHaveBeenCalled();
   });
 
+  it('deletes the session, and the results it recorded, after confirmation', async () => {
+    mockEntriesListener();
+    const deleteSpy = vi.spyOn(testingSessionsApi, 'deleteSession').mockResolvedValue(undefined);
+    const onSessionClosed = vi.fn();
+
+    render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={onSessionClosed} />);
+    await waitFor(() => expect(testingSessionsApi.subscribeEntries).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete session' }));
+    expect(screen.getByRole('alertdialog', { name: 'Delete this session?' })).toHaveTextContent("can't be undone");
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1', 'session-1'));
+    expect(onSessionClosed).toHaveBeenCalled();
+  });
+
   it('shows entry updates from the listener without re-reading, and unsubscribes on unmount', async () => {
     const { listener, unsubscribe } = mockEntriesListener();
 

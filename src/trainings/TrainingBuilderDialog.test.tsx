@@ -350,4 +350,83 @@ describe('TrainingBuilderDialog', () => {
       expect(createSpy).not.toHaveBeenCalled();
     });
   });
+  describe('picker suggestions', () => {
+    const base = {
+      id: 't-5',
+      businessId: 'TR-0005',
+      name: 'Serve day',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+      exerciseIds: [],
+      createdBy: 'x',
+      createdAt: null,
+    };
+    const big = { id: 'ex-8', name: 'Big game', description: '', category: 'game' as const, minPlayers: 8, createdBy: 'x', createdAt: null };
+    const small = { id: 'ex-4', name: 'Small serve', description: '', category: 'service' as const, minPlayers: 4, createdBy: 'x', createdAt: null };
+    const filterGroup = () => screen.getByRole('group', { name: 'Filter exercises by category' });
+
+    beforeEach(() => {
+      vi.mocked(exercisesApi.listExercisesInCategories).mockResolvedValue({ exercises: [small], lastDoc: null, hasMore: false });
+    });
+
+    it('shows a suggested section from the targets, and none without targets', async () => {
+      const { unmount } = render(
+        <TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />
+      );
+      fireEvent.click(screen.getByText('Add exercise'));
+      expect(await within(await screen.findByRole('list', { name: 'Suggested for your targets' })).findByText('Small serve')).toBeInTheDocument();
+      expect(exercisesApi.listExercisesInCategories).toHaveBeenCalledWith(['service'], null);
+      unmount();
+
+      vi.mocked(exercisesApi.listExercisesInCategories).mockClear();
+      render(<TrainingBuilderDialog training={base} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('button', { name: 'Add Pepper' });
+      expect(screen.queryByRole('list', { name: 'Suggested for your targets' })).not.toBeInTheDocument();
+      expect(exercisesApi.listExercisesInCategories).not.toHaveBeenCalled();
+    });
+
+    it('hides the suggested section while a category filter is picked', async () => {
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('list', { name: 'Suggested for your targets' });
+      fireEvent.click(within(filterGroup()).getByRole('button', { name: 'Defense' }));
+      await waitFor(() => expect(screen.queryByRole('list', { name: 'Suggested for your targets' })).not.toBeInTheDocument());
+      fireEvent.click(within(filterGroup()).getByRole('button', { name: 'All' }));
+      expect(await screen.findByRole('list', { name: 'Suggested for your targets' })).toBeInTheDocument();
+    });
+
+    it('flags and sinks a drill needing more players than suggested, but keeps it addable', async () => {
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [big, exOne, small], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, suggestedPlayers: 6 }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('button', { name: 'Add Big game' });
+      const names = screen.getAllByRole('button', { name: /^Add (?!exercise)/ }).map((b) => b.getAttribute('aria-label'));
+      expect(names).toEqual(['Add Pepper', 'Add Small serve', 'Add Big game']);
+      expect(screen.getByText('Needs 8 · suggested 6')).toBeInTheDocument();
+      expect(screen.getByText('Min 4 players')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add Big game' })).toBeEnabled();
+    });
+
+    it('flags a selected row that needs more players than suggested', async () => {
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [big], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, suggestedPlayers: 6 }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Add Big game' }));
+      const rows = screen.getByRole('list', { name: 'Training exercises' });
+      expect(within(rows).getByText('Needs 8 · suggested 6')).toBeInTheDocument();
+    });
+
+    it('marks a target as covered once a selected exercise has that category', async () => {
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exTwo], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service', 'defense'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      const targets = screen.getByRole('group', { name: 'Training targets' });
+      expect(within(targets).queryByRole('button', { name: 'Service (covered)' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('Add exercise'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Add Serve targets' }));
+      expect(within(targets).getByRole('button', { name: 'Service (covered)' })).toBeInTheDocument();
+      expect(within(targets).getByRole('button', { name: 'Defense' })).toBeInTheDocument();
+    });
+  });
 });

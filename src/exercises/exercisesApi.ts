@@ -117,6 +117,27 @@ export async function listExercises(
   return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
 }
 
+/**
+ * One page of exercises whose category is any of `categories` (the builder's
+ * "suggested for your targets"). Served by the (category, name) index.
+ */
+export async function listExercisesInCategories(
+  categories: ExerciseCategory[],
+  afterDoc: QueryDocumentSnapshot | null
+): Promise<ExercisesPage> {
+  if (categories.length === 0 || categories.length > 30) throw new Error('need 1–30 categories');
+  const constraints = [
+    where('category', 'in', categories),
+    orderBy('name'),
+    ...(afterDoc ? [startAfter(afterDoc)] : []),
+    limit(EXERCISES_PAGE_SIZE),
+  ];
+  const snapshot = await getDocs(query(collection(db, 'exercises'), ...constraints));
+  const exercises = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
+}
+
 export async function getExercisesByIds(ids: string[]): Promise<Exercise[]> {
   const snaps = await Promise.all(ids.map((id) => getDoc(doc(db, 'exercises', id))));
   return snaps

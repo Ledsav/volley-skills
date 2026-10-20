@@ -6,6 +6,7 @@ import { DraftDiagramPreview } from './DraftDiagramPreview';
 import { NumberField } from './NumberField';
 import { moveStep, removeStep, setStepMinutes, stepName, totalMinutes } from './trainingDraftOps';
 import { DRAFT_LIMITS, type TrainingDraft } from './types';
+import { PlayersNote } from '../trainings/PlayersNote';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
   ExerciseCategory,
@@ -102,6 +103,10 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
                   {category && (
                     <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{CATEGORY_LABEL[category]}</span>
                   )}
+                  <PlayersNote
+                    minPlayers={s.kind === 'library' ? s.minPlayers : s.exercise.minPlayers}
+                    suggested={draft.suggestedPlayers}
+                  />
                 </div>
               </div>
               <NumberField

@@ -1,17 +1,19 @@
 import type { ChatMessage } from '../ai/aiClient';
-import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import { diagramFormatGuide } from './diagramPrompt';
 import { DRAFT_LIMITS } from './types';
 
 const CATEGORY_LIST = EXERCISE_CATEGORIES.map((c) => c.key).join(', ');
 
-export const EXERCISE_SHAPE = `{"name":string,"category":string,"description":string,"diagram":object}`;
+export const EXERCISE_SHAPE = `{"name":string,"category":string,"minPlayers":number,"description":string,"diagram":object}`;
 
 /** Field rules + diagram guide shared by exercise drafting and new exercises inside a training. */
 export function exerciseRules(): string {
   return [
     `"category" is one of: ${CATEGORY_LIST}.`,
-    `"name" at most ${DRAFT_LIMITS.nameMax} characters. "description" is plain text, at most 1200 characters: setup, how it runs, coaching points, one variation.`,
+    `"name" at most ${DRAFT_LIMITS.nameMax} characters.`,
+    `"minPlayers" is the fewest players needed to run it, a whole number ${PLAYER_LIMITS.minPlayers.min}-${PLAYER_LIMITS.minPlayers.max}.`,
+    '"description" is plain text, at most 1200 characters, as lines starting "Purpose:", "Setup:", "How it runs:", "Coaching points:" (then "- " bullets), "Easier:", "Harder:".',
     'Never include names of real people.',
     diagramFormatGuide(),
   ].join('\n');

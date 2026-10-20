@@ -167,3 +167,46 @@ describe('TrainingDraftDialog', () => {
     expect(await screen.findByText('AI draft')).toBeInTheDocument();
   });
 });
+
+describe('TrainingDraftDialog — players and targets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: lib, lastDoc: null, hasMore: false });
+    vi.mocked(exercisesApi.createExercise).mockResolvedValue('new-1');
+    vi.mocked(diagramsApi.saveDiagramSet).mockResolvedValue({ idMap: {} });
+  });
+
+  it('sends targets and suggested players to the model and hands them to the builder', async () => {
+    const { ask, onOpenInBuilder } = renderDialog();
+    fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '9' } });
+    fireEvent.click(within(screen.getByRole('group', { name: 'Targets' })).getByRole('button', { name: 'Reception' }));
+    await generate();
+    const userMessage = ask.mock.calls[0][0][1].content as string;
+    expect(userMessage).toContain('Targets: reception');
+    expect(userMessage).toContain('Players: 9 (plan for 6–12)');
+    expect(exercisesApi.listExercises).toHaveBeenCalledWith(null, 'reception');
+    fireEvent.click(screen.getByRole('button', { name: 'Open in builder' }));
+    await waitFor(() => expect(onOpenInBuilder).toHaveBeenCalled());
+    expect(onOpenInBuilder.mock.calls[0][0]).toMatchObject({ targets: ['reception'], suggestedPlayers: 9 });
+  });
+});
+
+describe('TrainingDraftDialog — players in the review', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(exercisesApi.listExercises).mockResolvedValue({
+      exercises: [{ ...lib[0], minPlayers: 12 }, lib[1]],
+      lastDoc: null,
+      hasMore: false,
+    });
+  });
+
+  it("shows each step's minimum players and flags steps that need more than suggested", async () => {
+    renderDialog(vi.fn().mockResolvedValue({ ...reply, steps: [{ exerciseId: 'ex-1', minutes: 15 }, { new: { ...reply.steps[1].new, minPlayers: 4 }, minutes: 20 }] }));
+    fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '9' } });
+    await generate();
+    const [first, second] = steps();
+    expect(within(first).getByText('Needs 12 · suggested 9')).toBeInTheDocument();
+    expect(within(second).getByText('Min 4 players')).toBeInTheDocument();
+  });
+});

@@ -30,7 +30,7 @@ export async function saveExerciseDrafts(drafts: ExerciseDraft[], uid: string, c
     if (!d.category) throw new DraftSaveError(withAdded(`“${d.name}” needs a category.`));
     let id: string;
     try {
-      id = await createExercise({ name: d.name, description: d.description, category: d.category }, uid);
+      id = await createExercise({ name: d.name, description: d.description, category: d.category, minPlayers: d.minPlayers ?? undefined }, uid);
     } catch {
       throw new DraftSaveError(withAdded(`Could not add “${d.name}”.`));
     }
@@ -58,6 +58,8 @@ export function trainingDraftToInput(draft: TrainingDraft, created: Map<string, 
     name: draft.name.trim(),
     description: draft.description,
     ageGroupTarget: draft.ageGroupTarget,
+    targets: draft.targets.length > 0 ? draft.targets : undefined,
+    suggestedPlayers: draft.suggestedPlayers ?? undefined,
     exercises: draft.steps.map((s, i) => ({
       exerciseId: s.kind === 'library' ? s.exerciseId : (created.get(s.exercise.key) as string),
       order: i + 1,

@@ -23,7 +23,13 @@ export function categoriesForGoal(goal: string): ExerciseCategory[] | null {
   return [...new Set<ExerciseCategory>([...hits, 'warmup', 'game'])];
 }
 
-const toEntry = (e: Exercise): LibraryIndexEntry => ({ id: e.id, name: e.name, category: e.category, description: e.description });
+const toEntry = (e: Exercise): LibraryIndexEntry => ({
+  id: e.id,
+  name: e.name,
+  category: e.category,
+  description: e.description,
+  ...(e.minPlayers !== undefined ? { minPlayers: e.minPlayers } : {}),
+});
 
 async function collect(category: ExerciseCategory | null, cap: number, maxPages = Infinity): Promise<Exercise[]> {
   const out: Exercise[] = [];
@@ -37,9 +43,12 @@ async function collect(category: ExerciseCategory | null, cap: number, maxPages 
   return out.slice(0, cap);
 }
 
-/** Bounded library index for a training prompt: matched categories (plus warm-up and game), or the whole library, capped. */
-export async function loadLibraryIndex(goal: string): Promise<LibraryIndexEntry[]> {
-  const cats = categoriesForGoal(goal);
+/**
+ * Bounded library index for a training prompt: the coach's targets (or categories matched
+ * from the goal), plus warm-up and game; or the whole library, capped.
+ */
+export async function loadLibraryIndex(goal: string, targets: ExerciseCategory[] = []): Promise<LibraryIndexEntry[]> {
+  const cats = targets.length > 0 ? [...new Set<ExerciseCategory>([...targets, 'warmup', 'game'])] : categoriesForGoal(goal);
   if (!cats) return (await collect(null, DRAFT_LIMITS.indexCap)).map(toEntry);
   const out: Exercise[] = [];
   for (const c of cats) {

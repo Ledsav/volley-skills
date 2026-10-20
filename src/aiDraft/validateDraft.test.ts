@@ -125,3 +125,23 @@ describe('validateTrainingProposal', () => {
     expect(() => validateTrainingProposal({ name: 'T', steps: [] }, opts)).toThrow(AiError);
   });
 });
+
+describe('minPlayers in drafts', () => {
+  it('keeps a whole number from 1 to 30 and drops anything else', () => {
+    expect(validateExerciseDraft({ name: 'X', category: 'game', minPlayers: 6 })?.minPlayers).toBe(6);
+    for (const bad of [0, 31, 2.5, '6', null, undefined]) {
+      expect(validateExerciseDraft({ name: 'X', category: 'game', minPlayers: bad })?.minPlayers).toBeNull();
+    }
+  });
+
+  it("carries the coach's targets and suggested players onto the training draft", () => {
+    const index = [{ id: 'ex-1', name: 'Pepper', category: 'warmup' as const, description: '', minPlayers: 2 }];
+    const draft = validateTrainingProposal(
+      { steps: [{ exerciseId: 'ex-1', minutes: 10 }] },
+      { index, allowNew: false, ageGroupTarget: 'U17', targets: ['reception'], suggestedPlayers: 9 },
+    );
+    expect(draft.targets).toEqual(['reception']);
+    expect(draft.suggestedPlayers).toBe(9);
+    expect(draft.steps[0]).toMatchObject({ kind: 'library', minPlayers: 2 });
+  });
+});

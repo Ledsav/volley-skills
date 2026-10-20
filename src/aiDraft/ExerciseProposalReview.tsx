@@ -6,6 +6,7 @@ import { sceneAsDiagram } from '../diagrams/sceneFactory';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import { DraftDiagramPreview } from './DraftDiagramPreview';
 import { DRAFT_LIMITS, type ExerciseDraft } from './types';
+import { PlayersNote } from '../trainings/PlayersNote';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
   ExerciseCategory,
@@ -82,6 +83,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                         {CATEGORY_LABEL[d.category]}
                       </span>
                     )}
+                    <PlayersNote minPlayers={d.minPlayers} suggested={null} />
                     {added.has(d.key) && (
                       <span className="rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
                         Added to library

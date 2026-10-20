@@ -3,7 +3,7 @@ import * as exercisesApi from '../exercises/exercisesApi';
 import * as diagramsApi from '../diagrams/diagramsApi';
 import * as trainingsApi from '../trainings/trainingsApi';
 import { emptyScene } from '../diagrams/sceneFactory';
-import { DraftSaveError, saveExerciseDrafts, saveTrainingDraft } from './saveDrafts';
+import { DraftSaveError, saveExerciseDrafts, saveTrainingDraft, trainingDraftToInput } from './saveDrafts';
 import type { ExerciseDraft, TrainingDraft } from './types';
 
 vi.mock('../exercises/exercisesApi');
@@ -15,6 +15,7 @@ const draft = (key: string, withScene = true): ExerciseDraft => ({
   key,
   name: `Name ${key}`,
   category: 'game',
+  minPlayers: null,
   description: 'd',
   scene: withScene ? emptyScene('full') : null,
   issues: [],
@@ -64,6 +65,8 @@ describe('saveTrainingDraft', () => {
     name: 'T',
     description: 'D',
     ageGroupTarget: 'U15',
+    targets: [],
+    suggestedPlayers: null,
     issues: [],
     steps: [
       { kind: 'library', exerciseId: 'lib-1', name: 'L', category: 'warmup', description: '', minutes: 10 },
@@ -100,5 +103,21 @@ describe('saveTrainingDraft', () => {
     await expect(saveTrainingDraft(training, 'u1', created)).rejects.toThrow('The new exercises were saved, but the training was not. Try Save again.');
     await saveTrainingDraft(training, 'u1', created);
     expect(exercisesApi.createExercise).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('new fields', () => {
+  it('saves a drafted exercise with its minimum players', async () => {
+    vi.mocked(exercisesApi.createExercise).mockResolvedValue('id-9');
+    await saveExerciseDrafts([{ ...draft('m', false), minPlayers: 6 }], 'u1', new Map());
+    expect(exercisesApi.createExercise).toHaveBeenCalledWith({ name: 'Name m', category: 'game', description: 'd', minPlayers: 6 }, 'u1');
+  });
+
+  it('puts targets and suggested players on the training input', () => {
+    const input = trainingDraftToInput(
+      { name: 'T', description: '', ageGroupTarget: 'U17', steps: [], issues: [], targets: ['reception'], suggestedPlayers: 9 },
+      new Map(),
+    );
+    expect(input).toMatchObject({ targets: ['reception'], suggestedPlayers: 9 });
   });
 });

@@ -65,7 +65,7 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
 
       {loadError && <p role="alert" className="mb-3 text-sm text-red">{loadError}</p>}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <PlayerRosterPicker players={players} entries={entries} selectedPlayerId={selectedPlayerId} onSelect={setSelectedPlayerId} />
         {selectedPlayerId && (
           <QualityTileGrid

@@ -46,8 +46,7 @@ describe('LiveSessionView', () => {
     render(<LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />);
 
     await waitFor(() => expect(testingSessionsApi.subscribeEntries).toHaveBeenCalledWith('team-1', 'session-1', expect.any(Function), expect.any(Function)));
-    fireEvent.focus(screen.getByLabelText('Search players'));
-    fireEvent.mouseDown(screen.getByText('Jane Doe'));
+    fireEvent.click(screen.getByRole('button', { name: /Jane Doe/ }));
 
     expect(screen.getByText('Qualities for player-1 (Jane Doe)')).toBeInTheDocument();
   });
@@ -73,8 +72,7 @@ describe('LiveSessionView', () => {
     const { unmount } = render(
       <LiveSessionView teamId="team-1" session={SESSION} players={PLAYERS} recordedByUid="coach-uid" onSessionClosed={vi.fn()} />
     );
-    fireEvent.focus(screen.getByLabelText('Search players'));
-    fireEvent.mouseDown(screen.getByText('Jane Doe'));
+    fireEvent.click(screen.getByRole('button', { name: /Jane Doe/ }));
     expect(screen.getByText('0 entries')).toBeInTheDocument();
 
     act(() =>

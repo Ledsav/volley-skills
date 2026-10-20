@@ -149,7 +149,9 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         </label>
         <Input
           id="exercise-min-players"
-          type="number"
+          // Text, not type="number": a number input reports "" for input it can't parse
+          // (e.g. "7,5"), which would read as "not set" instead of showing the error.
+          type="text"
           inputMode="numeric"
           value={minPlayersText}
           onChange={(e) => setMinPlayersText(e.target.value)}

@@ -464,3 +464,12 @@ describe('TrainingBuilderDialog', () => {
     });
 });
 });
+
+describe('TrainingBuilderDialog naming hint', () => {
+  it('suggests the club naming convention under the name field', () => {
+    render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+    const name = screen.getByLabelText('Name');
+    expect(name).toHaveAttribute('placeholder', 'Reception + free ball: control and convert');
+    expect(name).toHaveAccessibleDescription(/Focus \+ focus: objective/);
+  });
+});

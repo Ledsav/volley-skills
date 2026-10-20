@@ -13,6 +13,7 @@ import { parseOptionalInt } from '../components/parseOptionalInt';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
+import { EXERCISE_NAME_EXAMPLE, EXERCISE_NAME_HINT } from '../trainings/naming';
 
 const FORM_ID = 'exercise-form';
 
@@ -126,7 +127,16 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         <label htmlFor="exercise-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
-        <Input id="exercise-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          id="exercise-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={EXERCISE_NAME_EXAMPLE}
+          aria-describedby="exercise-name-hint"
+        />
+        <p id="exercise-name-hint" className="mt-1 text-xs text-slate">
+          {EXERCISE_NAME_HINT}
+        </p>
 
         <label htmlFor="exercise-category" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Category

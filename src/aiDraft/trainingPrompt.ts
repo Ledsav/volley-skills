@@ -2,6 +2,7 @@ import type { ChatMessage } from '../ai/aiClient';
 import { EXERCISE_SHAPE, exerciseRules } from './exercisePrompt';
 import type { ExerciseCategory } from '../types/exercise';
 import { DRAFT_LIMITS, type LibraryIndexEntry } from './types';
+import { TRAINING_NAME_HINT } from '../trainings/naming';
 
 /** How far the actual turnout may differ from the suggested number of players. */
 const PLAYER_SLACK = 3;
@@ -27,6 +28,7 @@ export function buildTrainingMessages(input: {
   const system = [
     'You plan volleyball training sessions for a club coach.',
     `Reply only with a JSON object: {"name":string,"description":string,"ageGroupTarget":string,"steps":[${stepShape}]}.`,
+    `Training "name": ${TRAINING_NAME_HINT}`,
     `Use library exercises by their exact id. Start with a warm-up and end with a game when the library allows. Minutes per step ${DRAFT_LIMITS.minutesMin}-${DRAFT_LIMITS.minutesMax}, at most ${DRAFT_LIMITS.maxSteps} steps, total close to the target.`,
     'When targets are given, most steps should be in those categories. When a number of players is given, only use exercises whose min players fits the lowest expected turnout.',
     input.allowNew ? `Only when no library exercise fits, add a new one with "new":\n${exerciseRules()}` : 'Use only library exercises.',

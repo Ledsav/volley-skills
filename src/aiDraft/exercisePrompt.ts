@@ -2,6 +2,7 @@ import type { ChatMessage } from '../ai/aiClient';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import { diagramFormatGuide } from './diagramPrompt';
 import { DRAFT_LIMITS } from './types';
+import { EXERCISE_NAME_HINT } from '../trainings/naming';
 
 const CATEGORY_LIST = EXERCISE_CATEGORIES.map((c) => c.key).join(', ');
 
@@ -11,7 +12,7 @@ export const EXERCISE_SHAPE = `{"name":string,"category":string,"minPlayers":num
 export function exerciseRules(): string {
   return [
     `"category" is one of: ${CATEGORY_LIST}.`,
-    `"name" at most ${DRAFT_LIMITS.nameMax} characters.`,
+    `"name" at most ${DRAFT_LIMITS.nameMax} characters. ${EXERCISE_NAME_HINT}`,
     `"minPlayers" is the fewest players needed to run it, a whole number ${PLAYER_LIMITS.minPlayers.min}-${PLAYER_LIMITS.minPlayers.max}.`,
     '"description" is plain text, at most 1200 characters, as lines starting "Purpose:", "Setup:", "How it runs:", "Coaching points:" (then "- " bullets), "Easier:", "Harder:".',
     'Never include names of real people.',

@@ -8,11 +8,12 @@ vi.mock('../../exercises/exercisesApi');
 vi.mock('../../diagrams/diagramsApi');
 vi.mock('../../firebase/config', () => ({ auth: {}, db: {} }));
 
-const { createPdf, addVirtualFileSystem } = vi.hoisted(() => ({
+const { createPdf, addVirtualFileSystem, setUrlAccessPolicy } = vi.hoisted(() => ({
   createPdf: vi.fn(),
   addVirtualFileSystem: vi.fn(),
+  setUrlAccessPolicy: vi.fn(),
 }));
-vi.mock('pdfmake/build/pdfmake', () => ({ default: { createPdf, addVirtualFileSystem } }));
+vi.mock('pdfmake/build/pdfmake', () => ({ default: { createPdf, addVirtualFileSystem, setUrlAccessPolicy } }));
 vi.mock('pdfmake/build/vfs_fonts', () => ({ default: { 'Roboto-Regular.ttf': 'x' } }));
 
 const training = {
@@ -50,5 +51,11 @@ describe('generateTrainingPdf', () => {
     expect(createPdf).toHaveBeenCalledTimes(1);
     expect(file.name).toBe('TR-0007-Serve-day.pdf');
     expect(file.type).toBe('application/pdf');
+  });
+
+  it('never lets pdfmake fetch anything from a URL', async () => {
+    await generateTrainingPdf(training);
+    const policy = setUrlAccessPolicy.mock.calls[0][0] as (url: string) => boolean;
+    expect(policy('https://example.com/x.png')).toBe(false);
   });
 });

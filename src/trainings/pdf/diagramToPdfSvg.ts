@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DiagramSvg } from '../../diagrams/DiagramSvg';
+import { bbox, DiagramSvg } from '../../diagrams/DiagramSvg';
 import type { Scene } from '../../types/diagram';
 
 /** The light-theme `--color-*` values from `:root` in src/index.css. A PDF has no CSS, so they're inlined. */
@@ -29,8 +29,21 @@ export function resolveThemeColors(svg: string): string {
   });
 }
 
+// A half court spans y 6–72 of the square canvas (CourtBackdrop); below that is usually empty.
+const HALF_COURT_BOTTOM = 78;
+
+/** Canvas height to print: a half court is cropped below the court, but never above an item. */
+function printHeight(scene: Scene): number {
+  if (scene.court !== 'half') return 100;
+  const lowest = Math.max(0, ...scene.items.map((i) => { const b = bbox(i); return b.y + b.h; }));
+  return Math.min(100, Math.max(HALF_COURT_BOTTOM, Math.ceil(lowest + 2)));
+}
+
 /** A court diagram as a standalone, CSS-free SVG string (always light colours). */
 export function diagramToPdfSvg(scene: Scene): string {
-  const markup = resolveThemeColors(renderToStaticMarkup(createElement(DiagramSvg, { scene })));
-  return /^<svg[^>]*\swidth=/.test(markup) ? markup : markup.replace(/^<svg/, '<svg width="100" height="100"');
+  const height = printHeight(scene);
+  const markup = resolveThemeColors(renderToStaticMarkup(createElement(DiagramSvg, { scene })))
+    .replace('viewBox="0 0 100 100"', `viewBox="0 0 100 ${height}"`)
+    .replace(/^<svg\s(?:width="[^"]*"\s+height="[^"]*"\s+)?/, `<svg width="100" height="${height}" `);
+  return markup;
 }

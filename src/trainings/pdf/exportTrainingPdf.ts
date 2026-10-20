@@ -27,6 +27,7 @@ export async function generateTrainingPdf(training: Training): Promise<File> {
 
   const pdfMake = interop(pdfMakeModule);
   pdfMake.addVirtualFileSystem(vfsModule.default);
+  pdfMake.setUrlAccessPolicy(() => false); // everything is inline: no remote fonts or images
   const definition = buildTrainingDocDefinition({
     training,
     exercisesById,

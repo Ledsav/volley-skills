@@ -2,7 +2,7 @@ import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
 import { parseScene } from '../diagrams/parseScene';
 import { SCENE_LIMITS, type Scene } from '../types/diagram';
-import { EXERCISE_CATEGORIES, type NewExerciseInput } from '../types/exercise';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type NewExerciseInput } from '../types/exercise';
 
 const CATEGORY_KEYS = EXERCISE_CATEGORIES.map((c) => c.key);
 
@@ -23,6 +23,7 @@ export const EXERCISE_IMPORT_EXAMPLE = `[
     "name": "Butterfly passing",
     "description": "3-player weave, continuous",
     "category": "reception",
+    "minPlayers": 3,
     "diagrams": [
       {
         "title": "Setup",
@@ -70,6 +71,12 @@ export function validateExerciseRows(rows: unknown[]): ValidationResult<Exercise
       else errors.push(`row ${n}: "description" must be text`);
     }
 
+    const { min, max } = PLAYER_LIMITS.minPlayers;
+    const minPlayers = row.minPlayers;
+    if (minPlayers !== undefined && !(Number.isInteger(minPlayers) && (minPlayers as number) >= min && (minPlayers as number) <= max)) {
+      errors.push(`row ${n}: "minPlayers" must be a whole number from ${min} to ${max}`);
+    }
+
     const diagrams: ImportedDiagram[] = [];
     if (row.diagrams !== undefined) {
       if (!Array.isArray(row.diagrams)) {
@@ -109,6 +116,7 @@ export function validateExerciseRows(rows: unknown[]): ValidationResult<Exercise
         name,
         description,
         category: row.category as NewExerciseInput['category'],
+        ...(minPlayers !== undefined ? { minPlayers: minPlayers as number } : {}),
         diagrams,
       });
     }

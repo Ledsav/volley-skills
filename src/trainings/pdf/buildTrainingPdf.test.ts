@@ -142,6 +142,66 @@ describe('buildTrainingDocDefinition', () => {
   });
 });
 
+describe('team notes', () => {
+  const svgFor = () => '<svg width="100" height="100"></svg>';
+  const notes = {
+    teamName: 'U17',
+    date: '2026-10-24',
+    general: 'Focus on calling the free ball.',
+    players: [
+      { name: 'Chloé HENS', position: 'Outside hitter', level: 'Advanced' as const, note: 'Lead the reception line.' },
+      { name: 'Olivia SANCHEZ', position: '', level: null, note: '' },
+    ],
+  };
+
+  it('adds a team notes page right after the cover with every expected player', () => {
+    const def = buildTrainingDocDefinition({ training: training(), exercisesById, diagramsById: new Map(), svgFor, teamNotes: notes });
+    const json = JSON.stringify(def.content);
+    expect(json).toContain('Team notes');
+    expect(json).toContain('U17  ·  2026-10-24  ·  2 expected players');
+    expect(json).toContain('Focus on calling the free ball.');
+    expect(json).toContain('Chloé HENS');
+    expect(json).toContain('Lead the reception line.');
+    expect(json).toContain('Olivia SANCHEZ');
+    expect(json.indexOf('Team notes')).toBeLessThan(json.indexOf('#1, #3 · Float serve'));
+    // cover + notes page + 2 exercise pages
+    expect(pageBreaks(def.content)).toBe(3);
+  });
+
+  it('shows "Not rated" for a player without a level', () => {
+    const json = JSON.stringify(
+      buildTrainingDocDefinition({ training: training(), exercisesById, diagramsById: new Map(), svgFor, teamNotes: notes }).content,
+    );
+    expect(json).toContain('Not rated');
+  });
+
+  it('has no team notes page without team notes', () => {
+    const json = JSON.stringify(buildTrainingDocDefinition({ training: training(), exercisesById, diagramsById: new Map(), svgFor }).content);
+    expect(json).not.toContain('Team notes');
+  });
+});
+
+describe('trainingPdfFileName with a session date', () => {
+  it('appends the date', () => {
+    expect(trainingPdfFileName(training(), '2026-10-24')).toBe('TR-0007-Serve-receive-2026-10-24.pdf');
+  });
+});
+
+describe('characters the PDF font lacks', () => {
+  it('turns arrows into a glyph the font has, everywhere text is printed', () => {
+    const def = buildTrainingDocDefinition({
+      training: training({ name: 'Base → target', description: 'Mobility → plyo ← back ↔ both' }),
+      exercisesById: new Map([['a', ex('a', 'B → A → C', { description: 'Loop B → A' })]]),
+      diagramsById: new Map(),
+      svgFor: () => '<svg width="100" height="100"></svg>',
+    });
+    const all = JSON.stringify(def.content) + JSON.stringify((def.header as () => unknown)());
+    expect(all).not.toMatch(/[→←↔]/);
+    expect(all).toContain('Mobility › plyo ‹ back ‹› both');
+    expect(all).toContain('B › A › C');
+  });
+});
+
 describe('trainingPdfFileName', () => {
   it('uses the business id and a slug of the name', () => {
     expect(trainingPdfFileName(training())).toBe('TR-0007-Serve-receive.pdf');

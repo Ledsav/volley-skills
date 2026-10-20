@@ -51,6 +51,12 @@ function matchLabel(m: Match): string {
   return m.status === 'setup' ? `vs ${m.opponent}` : `vs ${m.opponent} ${m.result.setsUs}–${m.result.setsThem}`;
 }
 
+/** Opens the session's training with its team context, so the PDF export can add team notes. */
+function sessionLink(teamId: string, session: CalendarSession): string {
+  const params = new URLSearchParams({ businessId: session.trainingBusinessId, team: teamId, session: session.id });
+  return `/trainings?${params}`;
+}
+
 function MatchChip({ teamId, match, touch = false }: { teamId: string; match: Match; touch?: boolean }) {
   return (
     <Link
@@ -239,7 +245,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                   {(sessionsByDate[cell.date] ?? []).map((session) => (
                     <li key={session.id} className="flex items-center gap-1.5 rounded-sm bg-blue/10 py-0.5 pl-1.5 pr-1 text-xs">
                       <Link
-                        to={`/trainings?businessId=${session.trainingBusinessId}`}
+                        to={sessionLink(teamId, session)}
                         className="min-w-0 flex-1 truncate text-blue hover:underline"
                         title={sessionLabel(session)}
                       >
@@ -404,7 +410,7 @@ function MobileMonthView({
                 key={session.id}
                 className="flex items-center gap-2 rounded-md border border-l-4 border-border border-l-blue bg-surface pl-3 shadow-card"
               >
-                <Link to={`/trainings?businessId=${session.trainingBusinessId}`} className="min-w-0 flex-1 py-2.5">
+                <Link to={sessionLink(teamId, session)} className="min-w-0 flex-1 py-2.5">
                   <span className="block text-xs font-medium tabular-nums text-blue">{session.trainingBusinessId}</span>
                   <span className="block truncate text-sm font-medium text-ink">{session.trainingName}</span>
                   {session.notes && <span className="mt-0.5 block truncate text-xs text-slate">{session.notes}</span>}

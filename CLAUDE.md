@@ -96,6 +96,11 @@ diagrams go in as vector SVG via `diagramToPdfSvg.ts` (theme CSS variables inlin
 to light colours). `pdfmake` + fonts load only through the dynamic import in
 `TrainingViewSheet`, and sharing is two taps ("Share PDF" builds, "Share PDF ready"
 opens the share sheet) because browsers only allow `navigator.share` right after a tap.
+Opened from a team calendar session (`/trainings?businessId=…&team=…&session=…`), the
+export first asks for team notes (`TeamNotesDialog`): expected players with name,
+position, level and a per-player note go on a "Team notes" page. That is the only
+player data the PDF carries, by club decision. Roboto lacks arrow glyphs, so
+`fontSafe` swaps them for ›/‹ in every printed string.
 
 ### Feature-folder layout
 

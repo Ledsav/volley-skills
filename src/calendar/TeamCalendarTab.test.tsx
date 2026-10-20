@@ -203,4 +203,14 @@ describe('TeamCalendarTab', () => {
       expect(screen.getByText('assign-stub')).toBeInTheDocument();
     });
   });
+
+  it('links each session to its training with the team and session, so the PDF can add team notes', async () => {
+    render(
+      <MemoryRouter>
+        <TeamCalendarTab teamId="team-1" />
+      </MemoryRouter>
+    );
+    const link = await screen.findByRole('link', { name: 'TR-0007 · Passing circuit' });
+    expect(link).toHaveAttribute('href', `/trainings?businessId=TR-0007&team=team-1&session=${session.id}`);
+  });
 });

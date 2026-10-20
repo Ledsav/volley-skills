@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -31,6 +32,12 @@ export async function listCalendarSessions(
     )
   );
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as CalendarSession);
+}
+
+export async function getCalendarSession(teamId: string, sessionId: string): Promise<CalendarSession | null> {
+  const snapshot = await getDoc(doc(db, 'teams', teamId, 'calendar', sessionId));
+  if (!snapshot.exists()) return null;
+  return { id: snapshot.id, ...snapshot.data() } as CalendarSession;
 }
 
 export async function createCalendarSession(

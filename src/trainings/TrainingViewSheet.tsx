@@ -174,6 +174,11 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
           </p>
         )}
 
+        {/* The share button is disabled while building, so focus can't carry the news: announce it. */}
+        <p data-testid="pdf-status" aria-live="polite" className="sr-only">
+          {pdf === 'building' ? 'Preparing the PDF…' : pdf instanceof File ? 'PDF ready. Tap Share PDF ready to send it.' : ''}
+        </p>
+
         {!entries && !error && <p className="text-sm text-slate">Loading exercises…</p>}
 
         {entries && (

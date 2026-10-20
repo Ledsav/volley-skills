@@ -117,6 +117,18 @@ describe('TrainingViewSheet', () => {
       expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
     });
 
+    it('announces when the PDF is being prepared and when it is ready', async () => {
+      let resolve: (f: File) => void = () => {};
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockReturnValue(new Promise((r) => (resolve = r)));
+      renderSheet();
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
+      const status = screen.getByTestId('pdf-status');
+      expect(status).toHaveAttribute('aria-live', 'polite');
+      await waitFor(() => expect(status).toHaveTextContent('Preparing the PDF…'));
+      resolve(pdf);
+      await waitFor(() => expect(status).toHaveTextContent('PDF ready. Tap Share PDF ready to send it.'));
+    });
+
     it('shows an inline error and resets when the PDF cannot be built', async () => {
       vi.mocked(exportTrainingPdf.generateTrainingPdf).mockRejectedValue(new Error('boom'));
       renderSheet();

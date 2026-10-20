@@ -332,12 +332,22 @@ describe('TrainingBuilderDialog', () => {
     it('clears both fields on a training that had them', async () => {
       const updateSpy = vi.mocked(trainingsApi.updateTraining).mockResolvedValue(undefined);
       render(<TrainingBuilderDialog training={saved} onClose={vi.fn()} onSaved={vi.fn()} />);
-      expect(screen.getByLabelText('Suggested players')).toHaveValue(12);
+      expect(screen.getByLabelText('Suggested players')).toHaveValue('12');
       fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '' } });
       fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Service/ }));
       fireEvent.click(screen.getByText('Save'));
       await waitFor(() => expect(updateSpy).toHaveBeenCalled());
       expect(updateSpy.mock.calls[0][1]).toMatchObject({ suggestedPlayers: null, targets: null });
+    });
+
+    it('blocks an unparseable suggested players value instead of reading it as blank', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '1e' } });
+      fireEvent.click(screen.getByText('Save'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Suggested players must be a whole number from 1 to 60.');
+      expect(createSpy).not.toHaveBeenCalled();
     });
 
     it('blocks an invalid suggested players value', async () => {
@@ -428,7 +438,23 @@ describe('TrainingBuilderDialog', () => {
       expect(within(targets).getByRole('button', { name: 'Service (covered)' })).toBeInTheDocument();
       expect(within(targets).getByRole('button', { name: 'Defense' })).toBeInTheDocument();
     });
-      it('offers more suggestions only when the query says there are more', async () => {
+      it('ignores a suggestions answer that arrives after the targets changed', async () => {
+      const recv = { ...small, id: 'ex-r', name: 'Reception drill', category: 'reception' as const };
+      let answerOld: (p: { exercises: typeof small[]; lastDoc: null; hasMore: boolean }) => void = () => {};
+      vi.mocked(exercisesApi.listExercisesInCategories)
+        .mockReturnValueOnce(new Promise((r) => (answerOld = r)))
+        .mockResolvedValueOnce({ exercises: [small, recv], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      fireEvent.click(within(screen.getByRole('group', { name: 'Training targets' })).getByRole('button', { name: /Reception/ }));
+      const list = await screen.findByRole('list', { name: 'Suggested for your targets' });
+      await within(list).findByText('Reception drill');
+      answerOld({ exercises: [small], lastDoc: null, hasMore: false });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(within(screen.getByRole('list', { name: 'Suggested for your targets' })).getByText('Reception drill')).toBeInTheDocument();
+    });
+
+    it('offers more suggestions only when the query says there are more', async () => {
       const cursor = { id: 'ex-4' } as never;
       vi.mocked(exercisesApi.listExercisesInCategories).mockResolvedValue({ exercises: [small], lastDoc: cursor, hasMore: false });
       render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);

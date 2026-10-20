@@ -212,12 +212,22 @@ describe('ExerciseFormDialog', () => {
     it('clears minimum players on an exercise that had one', async () => {
       const updateSpy = vi.spyOn(exercisesApi, 'updateExercise').mockResolvedValue(undefined);
       renderForm({ ...existing, minPlayers: 6 });
-      expect(screen.getByLabelText('Minimum players')).toHaveValue(6);
+      expect(screen.getByLabelText('Minimum players')).toHaveValue('6');
       fireEvent.change(screen.getByLabelText('Minimum players'), { target: { value: '' } });
       fireEvent.click(screen.getByText('Save'));
       await waitFor(() =>
         expect(updateSpy).toHaveBeenCalledWith('ex-1', { name: 'Pepper', description: '', category: 'warmup', minPlayers: null })
       );
+    });
+
+    it('blocks an unparseable minimum players on "Create & add diagrams" too', async () => {
+      const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-9');
+      renderForm();
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Minimum players'), { target: { value: '7,5' } });
+      fireEvent.click(screen.getByText('Create & add diagrams'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Minimum players must be a whole number from 1 to 30.');
+      expect(createSpy).not.toHaveBeenCalled();
     });
 
     it('blocks an invalid minimum players with an inline error', async () => {

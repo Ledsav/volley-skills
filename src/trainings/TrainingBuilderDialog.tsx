@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Trash2, TriangleAlert, Users } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
@@ -84,6 +84,8 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   const [suggested, setSuggested] = useState<Exercise[]>([]);
   const [suggestedLastDoc, setSuggestedLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [suggestedHasMore, setSuggestedHasMore] = useState(false);
+  // Bumped whenever the targets change, so an answer to an older suggestions query is dropped.
+  const suggestRequest = useRef(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,19 +128,22 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   }
 
   async function loadSuggested(categories: ExerciseCategory[], afterDoc: QueryDocumentSnapshot | null) {
+    const request = suggestRequest.current;
     try {
       const page = await listExercisesInCategories(categories, afterDoc);
+      if (request !== suggestRequest.current) return;
       setSuggested((current) => (afterDoc ? [...current, ...page.exercises] : page.exercises));
       setSuggestedLastDoc(page.lastDoc);
       setSuggestedHasMore(page.hasMore);
     } catch {
-      setError('Could not load suggested exercises. Please try again.');
+      if (request === suggestRequest.current) setError('Could not load suggested exercises. Please try again.');
     }
   }
 
   // Suggestions follow the targets: reload from the first page whenever they change while picking.
   const targetsKey = targets.join(',');
   useEffect(() => {
+    suggestRequest.current += 1;
     setSuggested([]);
     setSuggestedLastDoc(null);
     setSuggestedHasMore(false);
@@ -354,7 +359,9 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         </label>
         <Input
           id="training-suggested-players"
-          type="number"
+          // Text, not type="number": a number input reports "" for input it can't parse
+          // (e.g. "7,5"), which would read as "not set" instead of showing the error.
+          type="text"
           inputMode="numeric"
           value={suggestedPlayersText}
           onChange={(e) => setSuggestedPlayersText(e.target.value)}

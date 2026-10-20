@@ -20,14 +20,15 @@ import { db } from '../firebase/config';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { saveDiagramSet } from '../diagrams/diagramsApi';
-import type { Exercise, ExerciseCategory, NewExerciseInput } from '../types/exercise';
+import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
+import type { Exercise, ExerciseCategory, ExerciseUpdate, NewExerciseInput } from '../types/exercise';
 import type { ExerciseImportInput, ImportedDiagram } from './exercisesImport';
 
 const EXERCISES_PAGE_SIZE = 25;
 
 export async function createExercise(input: NewExerciseInput, creatorUid: string): Promise<string> {
   const docRef = await addDoc(collection(db, 'exercises'), {
-    ...input,
+    ...optionalForCreate(input, ['minPlayers']),
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
   });
@@ -47,7 +48,7 @@ export async function bulkCreateExercises(
   for (const input of inputs) {
     const { diagrams, ...exercise } = input;
     const ref = doc(collection(db, 'exercises'));
-    batch.set(ref, { ...exercise, createdBy: creatorUid, createdAt: serverTimestamp() });
+    batch.set(ref, { ...optionalForCreate(exercise, ['minPlayers']), createdBy: creatorUid, createdAt: serverTimestamp() });
     created.push({ ref, diagrams });
   }
   await withBackoff(() => batch.commit());
@@ -77,8 +78,8 @@ export async function bulkCreateExercises(
   return inputs.length;
 }
 
-export async function updateExercise(exerciseId: string, updates: Partial<NewExerciseInput>): Promise<void> {
-  await updateDoc(doc(db, 'exercises', exerciseId), updates);
+export async function updateExercise(exerciseId: string, updates: ExerciseUpdate): Promise<void> {
+  await updateDoc(doc(db, 'exercises', exerciseId), optionalForUpdate(updates, ['minPlayers']));
 }
 
 export async function deleteExercise(exerciseId: string): Promise<void> {

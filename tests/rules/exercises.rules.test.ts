@@ -79,4 +79,36 @@ describe('exercises rules', () => {
       db.collection('exercises').add({ name: 'X', description: '', category: 'warmup', createdBy: 'someone-else' })
     );
   });
+  describe('optional minPlayers', () => {
+    const base = { name: 'Serve targets', description: '', category: 'service', createdBy: 'admin-uid' };
+    const adminDb = async () =>
+      (await getTestEnv()).authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+
+    it('allows creating with a whole number from 1 to 30', async () => {
+      const db = await adminDb();
+      await assertSucceeds(db.collection('exercises').add({ ...base, minPlayers: 1 }));
+      await assertSucceeds(db.collection('exercises').add({ ...base, minPlayers: 30 }));
+    });
+
+    it('denies creating with an out-of-range or non-integer minPlayers', async () => {
+      const db = await adminDb();
+      for (const minPlayers of [0, 31, 7.5, '6', null]) {
+        await assertFails(db.collection('exercises').add({ ...base, minPlayers }));
+      }
+    });
+
+    it('allows setting and later removing minPlayers on update', async () => {
+      const db = await adminDb();
+      await assertSucceeds(db.doc('exercises/ex-1').update({ minPlayers: 12 }));
+      await assertSucceeds(
+        db.doc('exercises/ex-1').set({ name: 'Pepper', description: '', category: 'warmup', createdBy: 'admin-uid' }),
+      );
+    });
+
+    it('denies updating to an invalid minPlayers', async () => {
+      const db = await adminDb();
+      await assertFails(db.doc('exercises/ex-1').update({ minPlayers: 0 }));
+      await assertFails(db.doc('exercises/ex-1').update({ minPlayers: 2.5 }));
+    });
+  });
 });

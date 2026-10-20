@@ -12,6 +12,12 @@ service cloud.firestore {
     function canReadExercises() { return isSuperAdmin() || inSection('exercises') || inSection('trainings'); }
     function canWriteExercises() { return isSuperAdmin() || inSection('exercises'); }
     function canTrainings()      { return isSuperAdmin() || inSection('trainings'); }
+    // Optional fields: absent is "not set" (older docs); when present they must be valid.
+    function optIntIn(d, k, lo, hi) { return !(k in d) || (d[k] is int && d[k] >= lo && d[k] <= hi); }
+    function optTargets(d) {
+      return !('targets' in d) || (d.targets is list && d.targets.size() >= 1 && d.targets.size() <= 9
+        && d.targets.toSet().difference(['warmup','physical','service','setting','defense','reception','attack','compound','game'].toSet()).size() == 0);
+    }
     function canGuides()         { return isSuperAdmin() || inSection('guides'); }
 
     match /adminAllowlist/{email} {
@@ -42,12 +48,14 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.category in
-           ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
+           ['warmup','physical','service','setting','defense','reception','attack','compound','game']
+        && optIntIn(request.resource.data, 'minPlayers', 1, 30);
       allow update: if canWriteExercises()
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.category in
-           ['warmup','physical','service','setting','defense','reception','attack','compound','game'];
+           ['warmup','physical','service','setting','defense','reception','attack','compound','game']
+        && optIntIn(request.resource.data, 'minPlayers', 1, 30);
       allow delete: if canWriteExercises();
 
       match /diagrams/{diagramId} {
@@ -74,13 +82,17 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.exercises is list
-        && request.resource.data.exerciseIds is list;
+        && request.resource.data.exerciseIds is list
+        && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
+        && optTargets(request.resource.data);
       allow update: if canTrainings()
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.exercises is list
         && request.resource.data.exerciseIds is list
-        && request.resource.data.businessId == resource.data.businessId;
+        && request.resource.data.businessId == resource.data.businessId
+        && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
+        && optTargets(request.resource.data);
       allow delete: if canTrainings();
     }
 

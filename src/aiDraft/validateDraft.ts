@@ -2,7 +2,7 @@ import { AiError } from '../ai/aiClient';
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import { parseScene } from '../diagrams/parseScene';
 import { newId } from '../diagrams/sceneFactory';
-import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '../types/diagram';
 import { DRAFT_ITEM_TYPES, DRAFT_LIMITS, type ExerciseDraft, type LibraryIndexEntry, type TrainingDraft, type TrainingStepDraft } from './types';
 
@@ -44,10 +44,13 @@ export function validateExerciseDraft(raw: unknown): ExerciseDraft | null {
   if (!name) return null;
   const category = isCategory(raw.category) ? raw.category : null;
   const diagram = toDraftScene(raw.diagram);
+  const { min, max } = PLAYER_LIMITS.minPlayers;
+  const minPlayers = Number.isInteger(raw.minPlayers) && (raw.minPlayers as number) >= min && (raw.minPlayers as number) <= max ? (raw.minPlayers as number) : null;
   return {
     key: newId(),
     name,
     category,
+    minPlayers,
     description: text(raw.description, DRAFT_LIMITS.descriptionMax),
     scene: diagram.scene,
     issues: [...(category ? [] : ['Pick a category.']), ...diagram.issues],
@@ -73,7 +76,7 @@ const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 export function validateTrainingProposal(
   raw: unknown,
-  opts: { index: LibraryIndexEntry[]; allowNew: boolean; ageGroupTarget: string },
+  opts: { index: LibraryIndexEntry[]; allowNew: boolean; ageGroupTarget: string; targets?: ExerciseCategory[]; suggestedPlayers?: number | null },
 ): TrainingDraft {
   const obj = isPlainObject(raw) ? raw : {};
   const byId = new Map(opts.index.map((e) => [e.id, e]));
@@ -90,7 +93,7 @@ export function validateTrainingProposal(
         unknownIds++;
         continue;
       }
-      steps.push({ kind: 'library', exerciseId: hit.id, name: hit.name, category: hit.category, description: hit.description, minutes: minutes(s.minutes) });
+      steps.push({ kind: 'library', exerciseId: hit.id, name: hit.name, category: hit.category, description: hit.description, minPlayers: hit.minPlayers, minutes: minutes(s.minutes) });
     } else if (isPlainObject(s.new)) {
       if (!opts.allowNew) {
         newOff++;
@@ -115,6 +118,8 @@ export function validateTrainingProposal(
     description: text(obj.description, DRAFT_LIMITS.descriptionMax),
     // The coach's own age group wins over the model's guess.
     ageGroupTarget: opts.ageGroupTarget || text(obj.ageGroupTarget, 40),
+    targets: opts.targets ?? [],
+    suggestedPlayers: opts.suggestedPlayers ?? null,
     steps,
     issues,
   };

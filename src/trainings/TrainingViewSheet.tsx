@@ -9,6 +9,8 @@ import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/Exer
 import { getExercisesByIds } from '../exercises/exercisesApi';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import type { Training } from '../types/training';
+import type { TeamNotes } from './pdf/buildTrainingPdf';
+import { TeamNotesDialog, type TeamNotesDraft } from './TeamNotesDialog';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
   ExerciseCategory,
@@ -17,6 +19,8 @@ const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key,
 
 interface TrainingViewSheetProps {
   training: Training;
+  /** Set when opened from a team's calendar session: the PDF export then adds team notes. */
+  teamContext?: { teamId: string; date: string; notes: string };
   onClose: () => void;
   onEdit: () => void;
 }
@@ -26,7 +30,7 @@ interface TrainingViewSheetProps {
  * with time slots, each opening full-screen, and "Start" to step through the
  * whole session from the first exercise. Editing is one tap away via "Edit".
  */
-export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewSheetProps) {
+export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: TrainingViewSheetProps) {
   const [entries, setEntries] = useState<ExerciseDetailEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
@@ -34,14 +38,16 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
   const [pdf, setPdf] = useState<File | 'building' | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const notify = useNotify();
+  const [askingNotes, setAskingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState<TeamNotesDraft | undefined>(undefined);
 
-  async function buildPdf() {
+  async function buildPdf(teamNotes?: TeamNotes) {
     setPdf('building');
     setPdfError(null);
     try {
       // Lazy: the PDF code (pdfmake + fonts) is its own chunk, loaded only when someone exports.
       const { generateTrainingPdf } = await import('./pdf/exportTrainingPdf');
-      setPdf(await generateTrainingPdf(training));
+      setPdf(await generateTrainingPdf(training, teamNotes));
     } catch {
       setPdf(null);
       setPdfError('Could not create the PDF. Please try again.');
@@ -105,7 +111,7 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
           ) : (
             <Button
               variant="secondary"
-              onClick={() => void buildPdf()}
+              onClick={() => (teamContext ? setAskingNotes(true) : void buildPdf())}
               disabled={pdf === 'building'}
               className="flex-1 gap-1.5 sm:mr-auto sm:flex-none"
             >
@@ -174,6 +180,16 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
           </p>
         )}
 
+        {teamContext && pdf instanceof File && (
+          <button
+            type="button"
+            onClick={() => setAskingNotes(true)}
+            className="self-start rounded-sm text-sm font-medium text-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          >
+            Edit team notes
+          </button>
+        )}
+
         {/* The share button is disabled while building, so focus can't carry the news: announce it. */}
         <p data-testid="pdf-status" aria-live="polite" className="sr-only">
           {pdf === 'building' ? 'Preparing the PDF…' : pdf instanceof File ? 'PDF ready. Tap Share PDF ready to send it.' : ''}
@@ -227,6 +243,21 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
           </ol>
         )}
       </div>
+
+      {askingNotes && teamContext && (
+        <TeamNotesDialog
+          teamId={teamContext.teamId}
+          date={teamContext.date}
+          initialGeneral={teamContext.notes}
+          draft={notesDraft}
+          onCancel={() => setAskingNotes(false)}
+          onConfirm={(notes, draft) => {
+            setNotesDraft(draft);
+            setAskingNotes(false);
+            void buildPdf(notes);
+          }}
+        />
+      )}
 
       {viewing !== null && entries && (
         <ExerciseDetailSheet entries={entries} startIndex={viewing} onClose={() => setViewing(null)} />

@@ -65,3 +65,16 @@ describe('existingExerciseNames', () => {
     expect(exercisesApi.listExercises).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('loadLibraryIndex with targets', () => {
+  it("uses the coach's targets (plus warm-up and game) instead of guessing from the goal", async () => {
+    vi.mocked(exercisesApi.listExercises).mockImplementation(async (_after, cat) => ({
+      exercises: [{ ...ex(`${cat}-1`, cat as ExerciseCategory), minPlayers: 4 }],
+      lastDoc: null,
+      hasMore: false,
+    }));
+    const index = await loadLibraryIndex('anything at all', ['reception']);
+    expect(index.map((e) => e.category)).toEqual(['reception', 'warmup', 'game']);
+    expect(index[0].minPlayers).toBe(4);
+  });
+});

@@ -241,3 +241,17 @@ describe('ExerciseFormDialog', () => {
     });
   });
 });
+
+describe('ExerciseFormDialog naming hint', () => {
+  it('suggests the club naming convention under the name field', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never }));
+    render(
+      <MemoryRouter>
+        <ExerciseFormDialog onClose={vi.fn()} onSaved={vi.fn()} />
+      </MemoryRouter>
+    );
+    const name = screen.getByLabelText('Name');
+    expect(name).toHaveAttribute('placeholder', 'Reception: mixed serves to target');
+    expect(name).toHaveAccessibleDescription(/Focus: what it trains/);
+  });
+});

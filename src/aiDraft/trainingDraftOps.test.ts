@@ -6,10 +6,12 @@ const d: TrainingDraft = {
   name: 'T',
   description: '',
   ageGroupTarget: '',
+  targets: [],
+  suggestedPlayers: null,
   issues: [],
   steps: [
     { kind: 'library', exerciseId: 'a', name: 'A', category: 'warmup', description: '', minutes: 10 },
-    { kind: 'new', exercise: { key: 'k', name: 'B', category: 'game', description: '', scene: null, issues: [] }, minutes: 20 },
+    { kind: 'new', exercise: { key: 'k', name: 'B', category: 'game', minPlayers: null, description: '', scene: null, issues: [] }, minutes: 20 },
   ],
 };
 

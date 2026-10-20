@@ -23,6 +23,8 @@ export interface ExerciseDraft {
   /** null => the model's category was unusable; the coach must pick one. */
   category: ExerciseCategory | null;
   description: string;
+  /** null => the model gave no usable number; the coach can add it later. */
+  minPlayers: number | null;
   /** null => no usable diagram. */
   scene: Scene | null;
   issues: string[];
@@ -34,16 +36,20 @@ export interface LibraryIndexEntry {
   category: ExerciseCategory;
   /** Full description; the prompt line truncates it. */
   description: string;
+  minPlayers?: number;
 }
 
 export type TrainingStepDraft =
-  | { kind: 'library'; exerciseId: string; name: string; category: ExerciseCategory; description: string; minutes: number }
+  | { kind: 'library'; exerciseId: string; name: string; category: ExerciseCategory; description: string; minPlayers?: number; minutes: number }
   | { kind: 'new'; exercise: ExerciseDraft; minutes: number };
 
 export interface TrainingDraft {
   name: string;
   description: string;
   ageGroupTarget: string;
+  /** The coach's own choices, carried to the saved training. */
+  targets: ExerciseCategory[];
+  suggestedPlayers: number | null;
   steps: TrainingStepDraft[];
   issues: string[];
 }

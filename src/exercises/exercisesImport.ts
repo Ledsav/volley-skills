@@ -20,7 +20,7 @@ export interface ExerciseImportInput extends NewExerciseInput {
 
 export const EXERCISE_IMPORT_EXAMPLE = `[
   {
-    "name": "Butterfly passing",
+    "name": "Reception: butterfly passing",
     "description": "3-player weave, continuous",
     "category": "reception",
     "minPlayers": 3,
@@ -40,7 +40,7 @@ export const EXERCISE_IMPORT_EXAMPLE = `[
     ]
   },
   {
-    "name": "Block footwork ladder",
+    "name": "Defense: block footwork ladder",
     "category": "defense"
   }
 ]`;

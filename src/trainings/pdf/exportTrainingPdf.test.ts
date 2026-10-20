@@ -58,4 +58,15 @@ describe('generateTrainingPdf', () => {
     const policy = setUrlAccessPolicy.mock.calls[0][0] as (url: string) => boolean;
     expect(policy('https://example.com/x.png')).toBe(false);
   });
+
+  it('includes team notes and dates the file when built for a calendar session', async () => {
+    const file = await generateTrainingPdf(training, {
+      teamName: 'U17',
+      date: '2026-10-24',
+      general: '',
+      players: [{ name: 'Chloé HENS', position: 'Outside hitter', level: 'Advanced', note: 'Lead the line.' }],
+    });
+    expect(JSON.stringify(createPdf.mock.calls[0][0].content)).toContain('Lead the line.');
+    expect(file.name).toBe('TR-0007-Serve-day-2026-10-24.pdf');
+  });
 });

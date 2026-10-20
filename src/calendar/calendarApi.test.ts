@@ -1,7 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { listCalendarSessions, createCalendarSession, deleteCalendarSession } from './calendarApi';
+import { listCalendarSessions, createCalendarSession, deleteCalendarSession, getCalendarSession } from './calendarApi';
 
-const { mockAddDoc, mockDeleteDoc, mockGetDocs, mockCollection, mockDoc, mockWhere } = vi.hoisted(() => ({
+const { mockAddDoc, mockDeleteDoc, mockGetDoc, mockGetDocs, mockCollection, mockDoc, mockWhere } = vi.hoisted(() => ({
+  mockGetDoc: vi.fn(),
   mockAddDoc: vi.fn(),
   mockDeleteDoc: vi.fn(),
   mockGetDocs: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock('firebase/firestore', () => ({
   doc: mockDoc,
   addDoc: mockAddDoc,
   deleteDoc: mockDeleteDoc,
+  getDoc: mockGetDoc,
   getDocs: mockGetDocs,
   query: vi.fn((...args: unknown[]) => args),
   where: mockWhere,
@@ -72,5 +74,13 @@ describe('calendarApi', () => {
     mockDeleteDoc.mockResolvedValue(undefined);
     await deleteCalendarSession('team-1', 's-2');
     expect(mockDeleteDoc).toHaveBeenCalledWith('doc-ref');
+  });
+
+  it('reads one session, or null when it is gone', async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => true, id: 's-1', data: () => ({ date: '2026-10-24', notes: 'Gym B' }) });
+    expect(await getCalendarSession('team-1', 's-1')).toEqual({ id: 's-1', date: '2026-10-24', notes: 'Gym B' });
+    expect(mockDoc).toHaveBeenCalledWith({}, 'teams', 'team-1', 'calendar', 's-1');
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false });
+    expect(await getCalendarSession('team-1', 'gone')).toBeNull();
   });
 });

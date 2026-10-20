@@ -1,7 +1,7 @@
 # Volley Skills — Multi-club (multi-tenant) design
 
 Date: 2026-10-15
-Status: **Deferred — not planned.** Recorded so the decision and the path are known when a second club becomes real. Nothing here is to be built until then.
+Status: **Superseded** by `2026-10-20-volley-skills-club-platform-design.md` (2026-10-20). Kept for the reasoning behind option B.
 Companion to: `2026-09-04-volley-skills-app-design.md` (data model §5), `2026-09-11-volley-skills-access-model.md`
 
 ## 1. Where we are

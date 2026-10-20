@@ -20,14 +20,15 @@ import { db } from '../firebase/config';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { saveDiagramSet } from '../diagrams/diagramsApi';
-import type { Exercise, ExerciseCategory, NewExerciseInput } from '../types/exercise';
+import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
+import type { Exercise, ExerciseCategory, ExerciseUpdate, NewExerciseInput } from '../types/exercise';
 import type { ExerciseImportInput, ImportedDiagram } from './exercisesImport';
 
 const EXERCISES_PAGE_SIZE = 25;
 
 export async function createExercise(input: NewExerciseInput, creatorUid: string): Promise<string> {
   const docRef = await addDoc(collection(db, 'exercises'), {
-    ...input,
+    ...optionalForCreate(input, ['minPlayers']),
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
   });
@@ -47,7 +48,7 @@ export async function bulkCreateExercises(
   for (const input of inputs) {
     const { diagrams, ...exercise } = input;
     const ref = doc(collection(db, 'exercises'));
-    batch.set(ref, { ...exercise, createdBy: creatorUid, createdAt: serverTimestamp() });
+    batch.set(ref, { ...optionalForCreate(exercise, ['minPlayers']), createdBy: creatorUid, createdAt: serverTimestamp() });
     created.push({ ref, diagrams });
   }
   await withBackoff(() => batch.commit());
@@ -77,8 +78,8 @@ export async function bulkCreateExercises(
   return inputs.length;
 }
 
-export async function updateExercise(exerciseId: string, updates: Partial<NewExerciseInput>): Promise<void> {
-  await updateDoc(doc(db, 'exercises', exerciseId), updates);
+export async function updateExercise(exerciseId: string, updates: ExerciseUpdate): Promise<void> {
+  await updateDoc(doc(db, 'exercises', exerciseId), optionalForUpdate(updates, ['minPlayers']));
 }
 
 export async function deleteExercise(exerciseId: string): Promise<void> {
@@ -111,6 +112,27 @@ export async function listExercises(
     limit(EXERCISES_PAGE_SIZE),
   ];
   const snapshot = await getDocs(query(base, ...constraints));
+  const exercises = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
+}
+
+/**
+ * One page of exercises whose category is any of `categories` (the builder's
+ * "suggested for your targets"). Served by the (category, name) index.
+ */
+export async function listExercisesInCategories(
+  categories: ExerciseCategory[],
+  afterDoc: QueryDocumentSnapshot | null
+): Promise<ExercisesPage> {
+  if (categories.length === 0 || categories.length > 30) throw new Error('need 1–30 categories');
+  const constraints = [
+    where('category', 'in', categories),
+    orderBy('name'),
+    ...(afterDoc ? [startAfter(afterDoc)] : []),
+    limit(EXERCISES_PAGE_SIZE),
+  ];
+  const snapshot = await getDocs(query(collection(db, 'exercises'), ...constraints));
   const exercises = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };

@@ -98,4 +98,57 @@ describe('trainings and counters rules', () => {
     await assertFails(db.doc('counters/trainings').set({ lastSequence: -1 }));
     await assertFails(db.doc('counters/trainings').set({ lastSequence: 'lots' }));
   });
+  describe('optional suggestedPlayers and targets', () => {
+    const base = {
+      businessId: 'TR-0002',
+      name: 'Serve receive',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+      exerciseIds: [],
+      createdBy: 'admin-uid',
+    };
+    const adminDb = async () =>
+      (await getTestEnv()).authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+
+    it('allows creating with valid suggestedPlayers and targets', async () => {
+      const db = await adminDb();
+      await assertSucceeds(
+        db.collection('trainings').add({ ...base, suggestedPlayers: 12, targets: ['service', 'reception'] }),
+      );
+      await assertSucceeds(db.collection('trainings').add({ ...base, suggestedPlayers: 60 }));
+    });
+
+    it('still allows a training with neither field', async () => {
+      const db = await adminDb();
+      await assertSucceeds(db.collection('trainings').add(base));
+    });
+
+    it('denies an out-of-range or non-integer suggestedPlayers', async () => {
+      const db = await adminDb();
+      for (const suggestedPlayers of [0, 61, 3.5, '12']) {
+        await assertFails(db.collection('trainings').add({ ...base, suggestedPlayers }));
+      }
+    });
+
+    it('denies targets that are not a 1-9 list of categories', async () => {
+      const db = await adminDb();
+      await assertFails(db.collection('trainings').add({ ...base, targets: 'service' }));
+      await assertFails(db.collection('trainings').add({ ...base, targets: [] }));
+      await assertFails(db.collection('trainings').add({ ...base, targets: ['nonsense'] }));
+      await assertFails(db.collection('trainings').add({ ...base, targets: Array(10).fill('service') }));
+    });
+
+    it('allows setting, and later removing, the fields on update', async () => {
+      const db = await adminDb();
+      await assertSucceeds(db.doc('trainings/training-1').update({ suggestedPlayers: 8, targets: ['defense'] }));
+      await assertSucceeds(db.doc('trainings/training-1').set({ ...base, businessId: 'TR-0001' }));
+    });
+
+    it('denies an invalid value on update', async () => {
+      const db = await adminDb();
+      await assertFails(db.doc('trainings/training-1').update({ suggestedPlayers: 0 }));
+      await assertFails(db.doc('trainings/training-1').update({ targets: ['nonsense'] }));
+    });
+  });
 });

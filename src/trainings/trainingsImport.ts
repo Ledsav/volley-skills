@@ -1,12 +1,17 @@
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput, TrainingExercise } from '../types/training';
+
+const CATEGORY_KEYS = EXERCISE_CATEGORIES.map((c) => c.key);
 
 export const TRAINING_IMPORT_EXAMPLE = `[
   {
     "name": "U17 defense circuit",
     "description": "Rotational blocking + dig transition",
     "ageGroupTarget": "U17",
+    "suggestedPlayers": 12,
+    "targets": ["defense", "reception"],
     "exercises": [
       { "name": "Butterfly passing", "durationMinutes": 15 },
       { "name": "Block footwork ladder", "durationMinutes": 10 }
@@ -60,6 +65,23 @@ export function validateTrainingRows(
       else fail(`row ${n}: "ageGroupTarget" must be text`);
     }
 
+    const { min, max } = PLAYER_LIMITS.suggestedPlayers;
+    const suggestedPlayers = row.suggestedPlayers;
+    if (
+      suggestedPlayers !== undefined &&
+      !(Number.isInteger(suggestedPlayers) && (suggestedPlayers as number) >= min && (suggestedPlayers as number) <= max)
+    ) {
+      fail(`row ${n}: "suggestedPlayers" must be a whole number from ${min} to ${max}`);
+    }
+    let targets: ExerciseCategory[] = [];
+    if (row.targets !== undefined) {
+      const valid =
+        Array.isArray(row.targets) &&
+        row.targets.every((t) => typeof t === 'string' && (CATEGORY_KEYS as string[]).includes(t));
+      if (valid) targets = [...new Set(row.targets as ExerciseCategory[])];
+      else fail(`row ${n}: "targets" must be a list of: ${CATEGORY_KEYS.join(', ')}`);
+    }
+
     const exercises: TrainingExercise[] = [];
     if (row.exercises !== undefined) {
       if (!Array.isArray(row.exercises)) {
@@ -96,7 +118,14 @@ export function validateTrainingRows(
     }
 
     if (rowOk) {
-      inputs.push({ name, description, ageGroupTarget, exercises });
+      inputs.push({
+        name,
+        description,
+        ageGroupTarget,
+        exercises,
+        ...(suggestedPlayers !== undefined ? { suggestedPlayers: suggestedPlayers as number } : {}),
+        ...(targets.length > 0 ? { targets } : {}),
+      });
     }
   });
 

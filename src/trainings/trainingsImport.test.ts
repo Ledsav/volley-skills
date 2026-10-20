@@ -95,4 +95,34 @@ describe('validateTrainingRows', () => {
     expect(result.errors).toEqual([]);
     expect(result.inputs[0].exercises).toHaveLength(50);
   });
+  describe('suggestedPlayers and targets', () => {
+    const KEYS = 'warmup, physical, service, setting, defense, reception, attack, compound, game';
+
+    it('keeps suggestedPlayers and de-duplicated targets', () => {
+      const result = validateTrainingRows(
+        [{ name: 'C', suggestedPlayers: 12, targets: ['service', 'reception', 'service'] }],
+        map
+      );
+      expect(result.errors).toEqual([]);
+      expect(result.inputs[0].suggestedPlayers).toBe(12);
+      expect(result.inputs[0].targets).toEqual(['service', 'reception']);
+    });
+
+    it('leaves both absent when not given, or when targets is empty', () => {
+      const [a, b] = validateTrainingRows([{ name: 'C' }, { name: 'D', targets: [] }], map).inputs;
+      expect('suggestedPlayers' in a).toBe(false);
+      expect('targets' in a).toBe(false);
+      expect('targets' in b).toBe(false);
+    });
+
+    it.each([0, 61, 3.5, '12'])('rejects suggestedPlayers %s', (suggestedPlayers) => {
+      const result = validateTrainingRows([{ name: 'C', suggestedPlayers }], map);
+      expect(result.errors).toEqual(['row 1: "suggestedPlayers" must be a whole number from 1 to 60']);
+    });
+
+    it.each([['nonsense'], 'service', [3]])('rejects targets %j', (targets) => {
+      const result = validateTrainingRows([{ name: 'C', targets }], map);
+      expect(result.errors).toEqual([`row 1: "targets" must be a list of: ${KEYS}`]);
+    });
+  });
 });

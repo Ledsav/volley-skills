@@ -199,10 +199,10 @@ describe('TrainingBuilderDialog', () => {
     await screen.findByRole('button', { name: 'Add Pepper' });
     expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, null);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Service', pressed: false }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filter exercises by category' })).getByRole('button', { name: 'Service', pressed: false }));
 
     await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, 'service'));
-    expect(screen.getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Filter exercises by category' })).getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
   });
 
   it('opens an added exercise full-screen and steps to the next one', async () => {
@@ -290,4 +290,177 @@ describe('TrainingBuilderDialog', () => {
     expect(await screen.findByText('Pepper')).toBeInTheDocument();
     expect(screen.getByText('1 exercise · 15 min')).toBeInTheDocument();
   });
+  describe('suggested players and targets', () => {
+    const saved = {
+      id: 't-9',
+      businessId: 'TR-0009',
+      name: 'Serve day',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+      exerciseIds: [],
+      suggestedPlayers: 12,
+      targets: ['service' as const],
+      createdBy: 'x',
+      createdAt: null,
+    };
+    const targetsGroup = () => screen.getByRole('group', { name: 'Training targets' });
+
+    it('saves suggested players and targets in category order', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Serve day' } });
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '12' } });
+      fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Reception/ }));
+      fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Service/ }));
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(createSpy).toHaveBeenCalled());
+      expect(createSpy.mock.calls[0][0]).toMatchObject({ suggestedPlayers: 12, targets: ['service', 'reception'] });
+    });
+
+    it('sends neither field when nothing is set', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Plain' } });
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(createSpy).toHaveBeenCalled());
+      const input = createSpy.mock.calls[0][0];
+      expect(input.suggestedPlayers).toBeUndefined();
+      expect(input.targets).toBeUndefined();
+    });
+
+    it('clears both fields on a training that had them', async () => {
+      const updateSpy = vi.mocked(trainingsApi.updateTraining).mockResolvedValue(undefined);
+      render(<TrainingBuilderDialog training={saved} onClose={vi.fn()} onSaved={vi.fn()} />);
+      expect(screen.getByLabelText('Suggested players')).toHaveValue('12');
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '' } });
+      fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Service/ }));
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(updateSpy).toHaveBeenCalled());
+      expect(updateSpy.mock.calls[0][1]).toMatchObject({ suggestedPlayers: null, targets: null });
+    });
+
+    it('blocks an unparseable suggested players value instead of reading it as blank', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '1e' } });
+      fireEvent.click(screen.getByText('Save'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Suggested players must be a whole number from 1 to 60.');
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('blocks an invalid suggested players value', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '61' } });
+      fireEvent.click(screen.getByText('Save'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Suggested players must be a whole number from 1 to 60.');
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+  });
+  describe('picker suggestions', () => {
+    const base = {
+      id: 't-5',
+      businessId: 'TR-0005',
+      name: 'Serve day',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+      exerciseIds: [],
+      createdBy: 'x',
+      createdAt: null,
+    };
+    const big = { id: 'ex-8', name: 'Big game', description: '', category: 'game' as const, minPlayers: 8, createdBy: 'x', createdAt: null };
+    const small = { id: 'ex-4', name: 'Small serve', description: '', category: 'service' as const, minPlayers: 4, createdBy: 'x', createdAt: null };
+    const filterGroup = () => screen.getByRole('group', { name: 'Filter exercises by category' });
+
+    beforeEach(() => {
+      vi.mocked(exercisesApi.listExercisesInCategories).mockResolvedValue({ exercises: [small], lastDoc: null, hasMore: false });
+    });
+
+    it('shows a suggested section from the targets, and none without targets', async () => {
+      const { unmount } = render(
+        <TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />
+      );
+      fireEvent.click(screen.getByText('Add exercise'));
+      expect(await within(await screen.findByRole('list', { name: 'Suggested for your targets' })).findByText('Small serve')).toBeInTheDocument();
+      expect(exercisesApi.listExercisesInCategories).toHaveBeenCalledWith(['service'], null);
+      unmount();
+
+      vi.mocked(exercisesApi.listExercisesInCategories).mockClear();
+      render(<TrainingBuilderDialog training={base} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('button', { name: 'Add Pepper' });
+      expect(screen.queryByRole('list', { name: 'Suggested for your targets' })).not.toBeInTheDocument();
+      expect(exercisesApi.listExercisesInCategories).not.toHaveBeenCalled();
+    });
+
+    it('hides the suggested section while a category filter is picked', async () => {
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('list', { name: 'Suggested for your targets' });
+      fireEvent.click(within(filterGroup()).getByRole('button', { name: 'Defense' }));
+      await waitFor(() => expect(screen.queryByRole('list', { name: 'Suggested for your targets' })).not.toBeInTheDocument());
+      fireEvent.click(within(filterGroup()).getByRole('button', { name: 'All' }));
+      expect(await screen.findByRole('list', { name: 'Suggested for your targets' })).toBeInTheDocument();
+    });
+
+    it('flags and sinks a drill needing more players than suggested, but keeps it addable', async () => {
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [big, exOne, small], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, suggestedPlayers: 6 }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('button', { name: 'Add Big game' });
+      const names = screen.getAllByRole('button', { name: /^Add (?!exercise)/ }).map((b) => b.getAttribute('aria-label'));
+      expect(names).toEqual(['Add Pepper', 'Add Small serve', 'Add Big game']);
+      expect(screen.getByText('Needs 8 · suggested 6')).toBeInTheDocument();
+      expect(screen.getByText('Min 4 players')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add Big game' })).toBeEnabled();
+    });
+
+    it('flags a selected row that needs more players than suggested', async () => {
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [big], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, suggestedPlayers: 6 }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Add Big game' }));
+      const rows = screen.getByRole('list', { name: 'Training exercises' });
+      expect(within(rows).getByText('Needs 8 · suggested 6')).toBeInTheDocument();
+    });
+
+    it('marks a target as covered once a selected exercise has that category', async () => {
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exTwo], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service', 'defense'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      const targets = screen.getByRole('group', { name: 'Training targets' });
+      expect(within(targets).queryByRole('button', { name: 'Service (covered)' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('Add exercise'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Add Serve targets' }));
+      expect(within(targets).getByRole('button', { name: 'Service (covered)' })).toBeInTheDocument();
+      expect(within(targets).getByRole('button', { name: 'Defense' })).toBeInTheDocument();
+    });
+      it('ignores a suggestions answer that arrives after the targets changed', async () => {
+      const recv = { ...small, id: 'ex-r', name: 'Reception drill', category: 'reception' as const };
+      let answerOld: (p: { exercises: typeof small[]; lastDoc: null; hasMore: boolean }) => void = () => {};
+      vi.mocked(exercisesApi.listExercisesInCategories)
+        .mockReturnValueOnce(new Promise((r) => (answerOld = r)))
+        .mockResolvedValueOnce({ exercises: [small, recv], lastDoc: null, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      fireEvent.click(within(screen.getByRole('group', { name: 'Training targets' })).getByRole('button', { name: /Reception/ }));
+      const list = await screen.findByRole('list', { name: 'Suggested for your targets' });
+      await within(list).findByText('Reception drill');
+      answerOld({ exercises: [small], lastDoc: null, hasMore: false });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(within(screen.getByRole('list', { name: 'Suggested for your targets' })).getByText('Reception drill')).toBeInTheDocument();
+    });
+
+    it('offers more suggestions only when the query says there are more', async () => {
+      const cursor = { id: 'ex-4' } as never;
+      vi.mocked(exercisesApi.listExercisesInCategories).mockResolvedValue({ exercises: [small], lastDoc: cursor, hasMore: false });
+      render(<TrainingBuilderDialog training={{ ...base, targets: ['service'] }} onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await within(await screen.findByRole('list', { name: 'Suggested for your targets' })).findByText('Small serve');
+      expect(screen.queryByRole('button', { name: 'Load more suggestions' })).not.toBeInTheDocument();
+    });
+});
 });

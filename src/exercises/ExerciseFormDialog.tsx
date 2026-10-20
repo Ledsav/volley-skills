@@ -9,7 +9,8 @@ import { Input, Textarea } from '../components/Input';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import { DiagramLightbox } from '../diagrams/DiagramLightbox';
 import { listDiagrams } from '../diagrams/diagramsApi';
-import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
+import { parseOptionalInt } from '../components/parseOptionalInt';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
 
@@ -26,6 +27,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
   const [name, setName] = useState(exercise?.name ?? '');
   const [description, setDescription] = useState(exercise?.description ?? '');
   const [category, setCategory] = useState<ExerciseCategory>(exercise?.category ?? 'warmup');
+  const [minPlayersText, setMinPlayersText] = useState(exercise?.minPlayers?.toString() ?? '');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
@@ -38,18 +40,38 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
 
   const { saving, save } = useSave();
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  /** The form's fields, or null (with the error shown) when they don't validate. */
+  // No min/max on the input: native validation would block submit silently, the inline alert explains instead.
+  function readFields(): { name: string; description: string; category: ExerciseCategory; minPlayers?: number | null } | null {
     if (!name.trim()) {
       setError('Name is required.');
-      return;
+      return null;
     }
+    const { min, max } = PLAYER_LIMITS.minPlayers;
+    const minPlayers = parseOptionalInt(minPlayersText, min, max);
+    if (!minPlayers.ok) {
+      setError(`Minimum players must be a whole number from ${min} to ${max}.`);
+      return null;
+    }
+    const fields = { name: name.trim(), description, category };
+    if (minPlayers.value !== null) return { ...fields, minPlayers: minPlayers.value };
+    // Blank clears it, but only an exercise that had one needs the delete.
+    return exercise?.minPlayers !== undefined ? { ...fields, minPlayers: null } : fields;
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    const fields = readFields();
+    if (!fields) return;
     const uid = firebaseUser?.uid;
     if (!exercise && !uid) return;
     setError(null);
     try {
-      const fields = { name: name.trim(), description, category };
-      const done = await save(() => (exercise ? updateExercise(exercise.id, fields) : createExercise(fields, uid ?? '')));
+      const done = await save(() =>
+        exercise
+          ? updateExercise(exercise.id, fields)
+          : createExercise({ ...fields, minPlayers: fields.minPlayers ?? undefined }, uid ?? ''),
+      );
       if (!done) return;
       onSaved();
     } catch {
@@ -58,10 +80,8 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
   }
 
   async function handleCreateAndDraw() {
-    if (!name.trim()) {
-      setError('Name is required.');
-      return;
-    }
+    const fields = readFields();
+    if (!fields) return;
     if (!firebaseUser) return;
     setError(null);
     const uid = firebaseUser.uid;
@@ -69,7 +89,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
       let id = '';
       const done = await save(
         async () => {
-          id = await createExercise({ name: name.trim(), description, category }, uid);
+          id = await createExercise({ ...fields, minPlayers: fields.minPlayers ?? undefined }, uid);
         },
         { offline: 'block' },
       );
@@ -123,6 +143,24 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
             </option>
           ))}
         </select>
+
+        <label htmlFor="exercise-min-players" className="mb-1 mt-4 block text-sm font-medium text-ink">
+          Minimum players
+        </label>
+        <Input
+          id="exercise-min-players"
+          // Text, not type="number": a number input reports "" for input it can't parse
+          // (e.g. "7,5"), which would read as "not set" instead of showing the error.
+          type="text"
+          inputMode="numeric"
+          value={minPlayersText}
+          onChange={(e) => setMinPlayersText(e.target.value)}
+          aria-describedby="exercise-min-players-hint"
+          className="w-24"
+        />
+        <p id="exercise-min-players-hint" className="mt-1 text-xs text-slate">
+          Fewest people needed to run it. Optional.
+        </p>
 
         <label htmlFor="exercise-description" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Description

@@ -1,10 +1,15 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NoticeProvider } from '../components/Notice';
 import * as exercisesApi from '../exercises/exercisesApi';
+import * as shareFile from '../export/shareFile';
+import * as exportTrainingPdf from './pdf/exportTrainingPdf';
 import type { Training } from '../types/training';
 import { TrainingViewSheet } from './TrainingViewSheet';
 
 vi.mock('../exercises/exercisesApi');
+vi.mock('../export/shareFile');
+vi.mock('./pdf/exportTrainingPdf');
 vi.mock('../diagrams/diagramsApi', () => ({ listDiagrams: vi.fn().mockResolvedValue([]) }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../diagrams/DiagramThumbnail', () => ({ DiagramThumbnail: () => null }));
@@ -66,5 +71,82 @@ describe('TrainingViewSheet', () => {
     await screen.findByRole('list', { name: 'Training plan' });
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+  it('shows suggested players and targets only when the training has them', async () => {
+    const { unmount } = render(
+      <TrainingViewSheet
+        training={{ ...training, suggestedPlayers: 12, targets: ['service', 'defense'] }}
+        onClose={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('12 players')).toBeInTheDocument();
+    const targets = screen.getByRole('list', { name: 'Targets' });
+    expect(within(targets).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Service', 'Defense']);
+    await screen.findByRole('list', { name: 'Training plan' });
+    unmount();
+
+    render(<TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} />);
+    expect(screen.queryByText(/\d+ players/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Targets' })).not.toBeInTheDocument();
+    await screen.findByRole('list', { name: 'Training plan' });
+  });
+  describe('share as PDF', () => {
+    const pdf = new File(['%PDF'], 'TR-0007-Passing-circuit.pdf', { type: 'application/pdf' });
+    const renderSheet = () =>
+      render(
+        <NoticeProvider>
+          <TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} />
+        </NoticeProvider>,
+      );
+
+    it('builds the PDF on the first tap, then shares it on the second without rebuilding', async () => {
+      let resolve: (f: File) => void = () => {};
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockReturnValue(new Promise((r) => (resolve = r)));
+      vi.mocked(shareFile.shareOrDownload).mockResolvedValue('shared');
+      renderSheet();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
+      expect(await screen.findByRole('button', { name: 'Preparing PDF…' })).toBeDisabled();
+      resolve(pdf);
+      fireEvent.click(await screen.findByRole('button', { name: 'Share PDF ready' }));
+      await waitFor(() => expect(shareFile.shareOrDownload).toHaveBeenCalledWith([pdf], 'Passing circuit'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF ready' }));
+      await waitFor(() => expect(shareFile.shareOrDownload).toHaveBeenCalledTimes(2));
+      expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
+    });
+
+    it('announces when the PDF is being prepared and when it is ready', async () => {
+      let resolve: (f: File) => void = () => {};
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockReturnValue(new Promise((r) => (resolve = r)));
+      renderSheet();
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
+      const status = screen.getByTestId('pdf-status');
+      expect(status).toHaveAttribute('aria-live', 'polite');
+      await waitFor(() => expect(status).toHaveTextContent('Preparing the PDF…'));
+      resolve(pdf);
+      await waitFor(() => expect(status).toHaveTextContent('PDF ready. Tap Share PDF ready to send it.'));
+    });
+
+    it('shows an inline error and resets when the PDF cannot be built', async () => {
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockRejectedValue(new Error('boom'));
+      renderSheet();
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the PDF. Please try again.');
+      expect(screen.getByRole('button', { name: 'Share PDF' })).toBeEnabled();
+    });
+
+    it('confirms a download fallback, and stays ready after a cancelled share', async () => {
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockResolvedValue(pdf);
+      vi.mocked(shareFile.shareOrDownload).mockResolvedValueOnce('cancelled').mockResolvedValueOnce('downloaded');
+      renderSheet();
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Share PDF ready' }));
+      await waitFor(() => expect(shareFile.shareOrDownload).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('PDF downloaded')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Share PDF ready' }));
+      expect(await screen.findByText('PDF downloaded')).toBeInTheDocument();
+    });
   });
 });

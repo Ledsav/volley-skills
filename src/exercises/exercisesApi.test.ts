@@ -4,6 +4,7 @@ import {
   updateExercise,
   deleteExercise,
   listExercises,
+  listExercisesInCategories,
   getExercisesByIds,
   countTrainingsUsingExercise,
   bulkCreateExercises,
@@ -245,6 +246,17 @@ describe('exercisesApi', () => {
     mockGetDocs.mockResolvedValue({ docs: [] });
     await listExercises(null, 'attack');
     expect(mockWhere).toHaveBeenCalledWith('category', '==', 'attack');
+  });
+
+  it('lists exercises in any of several categories with an in-clause', async () => {
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'ex-1', data: () => ({ name: 'Pepper', category: 'service' }) }] });
+    const page = await listExercisesInCategories(['service', 'reception'], null);
+    expect(mockWhere).toHaveBeenCalledWith('category', 'in', ['service', 'reception']);
+    expect(page.exercises).toEqual([{ id: 'ex-1', name: 'Pepper', category: 'service' }]);
+  });
+
+  it('refuses an empty category list', async () => {
+    await expect(listExercisesInCategories([], null)).rejects.toThrow();
   });
 
   it('resolves a list of exercise ids, dropping ones that no longer exist', async () => {

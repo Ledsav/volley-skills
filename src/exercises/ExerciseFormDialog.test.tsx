@@ -182,4 +182,62 @@ describe('ExerciseFormDialog', () => {
     expect(createSpy).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });
+  describe('minimum players', () => {
+    const existing = { id: 'ex-1', name: 'Pepper', description: '', category: 'warmup' as const, createdBy: 'x', createdAt: null };
+    const renderForm = (exercise?: typeof existing & { minPlayers?: number }) =>
+      render(
+        <MemoryRouter>
+          <ExerciseFormDialog exercise={exercise} onClose={vi.fn()} onSaved={vi.fn()} />
+        </MemoryRouter>
+      );
+
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    });
+
+    it('saves a new exercise with its minimum players', async () => {
+      const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-9');
+      renderForm();
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Six-pack' } });
+      fireEvent.change(screen.getByLabelText('Minimum players'), { target: { value: '6' } });
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() =>
+        expect(createSpy).toHaveBeenCalledWith(
+          { name: 'Six-pack', description: '', category: 'warmup', minPlayers: 6 },
+          'coach-uid'
+        )
+      );
+    });
+
+    it('clears minimum players on an exercise that had one', async () => {
+      const updateSpy = vi.spyOn(exercisesApi, 'updateExercise').mockResolvedValue(undefined);
+      renderForm({ ...existing, minPlayers: 6 });
+      expect(screen.getByLabelText('Minimum players')).toHaveValue('6');
+      fireEvent.change(screen.getByLabelText('Minimum players'), { target: { value: '' } });
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() =>
+        expect(updateSpy).toHaveBeenCalledWith('ex-1', { name: 'Pepper', description: '', category: 'warmup', minPlayers: null })
+      );
+    });
+
+    it('blocks an unparseable minimum players on "Create & add diagrams" too', async () => {
+      const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-9');
+      renderForm();
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Minimum players'), { target: { value: '7,5' } });
+      fireEvent.click(screen.getByText('Create & add diagrams'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Minimum players must be a whole number from 1 to 30.');
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('blocks an invalid minimum players with an inline error', async () => {
+      const createSpy = vi.spyOn(exercisesApi, 'createExercise').mockResolvedValue('ex-9');
+      renderForm();
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Minimum players'), { target: { value: '0' } });
+      fireEvent.click(screen.getByText('Save'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Minimum players must be a whole number from 1 to 30.');
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+  });
 });

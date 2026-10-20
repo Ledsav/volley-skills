@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2, TriangleAlert } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Trash2, TriangleAlert, Users } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { OfflineError, useSave } from '../components/useSave';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
+import { parseOptionalInt } from '../components/parseOptionalInt';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
-import { getExercisesByIds, listExercises } from '../exercises/exercisesApi';
-import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
+import { getExercisesByIds, listExercises, listExercisesInCategories } from '../exercises/exercisesApi';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput, Training, TrainingExercise } from '../types/training';
+import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
@@ -25,6 +27,25 @@ const chipClass = (active: boolean) =>
 
 const FORM_ID = 'training-form';
 
+/** "Min N players", or the warning when the drill needs more than the training suggests. */
+function PlayersNote({ minPlayers, suggested }: { minPlayers?: number; suggested: number | null }) {
+  if (minPlayers === undefined) return null;
+  if (needsMorePlayers(minPlayers, suggested)) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-sm bg-orange/10 px-1.5 py-0.5 text-xs font-medium tabular-nums text-orange-strong">
+        <TriangleAlert aria-hidden="true" className="h-3 w-3 shrink-0" />
+        {`Needs ${minPlayers} · suggested ${suggested}`}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs tabular-nums text-slate">
+      <Users aria-hidden="true" className="h-3 w-3 shrink-0" />
+      {`Min ${minPlayers} players`}
+    </span>
+  );
+}
+
 const rowIconBtn =
   'inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink disabled:opacity-30 sm:h-9 sm:w-9';
 
@@ -32,6 +53,7 @@ interface Row extends TrainingExercise {
   name: string | null; // null => the exercise no longer exists
   description: string;
   category?: ExerciseCategory;
+  minPlayers?: number;
 }
 
 interface TrainingBuilderDialogProps {
@@ -47,6 +69,10 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   const [name, setName] = useState(training?.name ?? initial?.name ?? '');
   const [description, setDescription] = useState(training?.description ?? initial?.description ?? '');
   const [ageGroupTarget, setAgeGroupTarget] = useState(training?.ageGroupTarget ?? initial?.ageGroupTarget ?? '');
+  const [suggestedPlayersText, setSuggestedPlayersText] = useState(
+    (training?.suggestedPlayers ?? initial?.suggestedPlayers)?.toString() ?? ''
+  );
+  const [targets, setTargets] = useState<ExerciseCategory[]>(training?.targets ?? initial?.targets ?? []);
   const [rows, setRows] = useState<Row[]>([]);
   const [picker, setPicker] = useState<Exercise[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -55,6 +81,11 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   const [viewing, setViewing] = useState<number | null>(null);
   const [pickerLastDoc, setPickerLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [pickerHasMore, setPickerHasMore] = useState(false);
+  const [suggested, setSuggested] = useState<Exercise[]>([]);
+  const [suggestedLastDoc, setSuggestedLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [suggestedHasMore, setSuggestedHasMore] = useState(false);
+  // Bumped whenever the targets change, so an answer to an older suggestions query is dropped.
+  const suggestRequest = useRef(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,6 +103,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               name: byId.get(e.exerciseId)?.name ?? null,
               description: byId.get(e.exerciseId)?.description ?? '',
               category: byId.get(e.exerciseId)?.category,
+              minPlayers: byId.get(e.exerciseId)?.minPlayers,
             }))
         );
       })
@@ -94,6 +126,30 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
       );
     }
   }
+
+  async function loadSuggested(categories: ExerciseCategory[], afterDoc: QueryDocumentSnapshot | null) {
+    const request = suggestRequest.current;
+    try {
+      const page = await listExercisesInCategories(categories, afterDoc);
+      if (request !== suggestRequest.current) return;
+      setSuggested((current) => (afterDoc ? [...current, ...page.exercises] : page.exercises));
+      setSuggestedLastDoc(page.lastDoc);
+      setSuggestedHasMore(page.hasMore);
+    } catch {
+      if (request === suggestRequest.current) setError('Could not load suggested exercises. Please try again.');
+    }
+  }
+
+  // Suggestions follow the targets: reload from the first page whenever they change while picking.
+  const targetsKey = targets.join(',');
+  useEffect(() => {
+    suggestRequest.current += 1;
+    setSuggested([]);
+    setSuggestedLastDoc(null);
+    setSuggestedHasMore(false);
+    if (pickerOpen && targets.length > 0) void loadSuggested(targets, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickerOpen, targetsKey]);
 
   function openPicker() {
     setPickerOpen(true);
@@ -119,9 +175,18 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         name: exercise.name,
         description: exercise.description,
         category: exercise.category,
+        minPlayers: exercise.minPlayers,
       },
     ]);
     // Picker stays open so several exercises can be added in one pass.
+  }
+
+  function toggleTarget(key: ExerciseCategory) {
+    setTargets((current) =>
+      current.includes(key)
+        ? current.filter((t) => t !== key)
+        : EXERCISE_CATEGORIES.map((c) => c.key).filter((k) => k === key || current.includes(k))
+    );
   }
 
   function move(index: number, delta: number) {
@@ -144,12 +209,26 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
 
   const totalMinutes = useMemo(() => rows.reduce((sum, r) => sum + (r.durationMinutes || 0), 0), [rows]);
 
+  const suggestedPlayersValue = useMemo(() => {
+    const { min, max } = PLAYER_LIMITS.suggestedPlayers;
+    const parsed = parseOptionalInt(suggestedPlayersText, min, max);
+    return parsed.ok ? parsed.value : null;
+  }, [suggestedPlayersText]);
+  const covered = useMemo(() => coveredTargets(targets, rows), [targets, rows]);
+  const showSuggested = targets.length > 0 && pickerCategory === '';
+
   const { saving, save } = useSave();
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) {
       setError('Name is required.');
+      return;
+    }
+    const { min, max } = PLAYER_LIMITS.suggestedPlayers;
+    const suggestedPlayers = parseOptionalInt(suggestedPlayersText, min, max);
+    if (!suggestedPlayers.ok) {
+      setError(`Suggested players must be a whole number from ${min} to ${max}.`);
       return;
     }
     setError(null);
@@ -163,13 +242,84 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
     const fields = { name: name.trim(), description, ageGroupTarget, exercises };
     try {
       const done = training
-        ? await save(() => updateTraining(training.id, fields))
-        : await save(() => createTraining(fields, uid ?? ''), { offline: 'block' });
+        ? await save(() =>
+            updateTraining(training.id, {
+              ...fields,
+              suggestedPlayers: suggestedPlayers.value,
+              targets: targets.length > 0 ? targets : null,
+            })
+          )
+        : await save(
+            () =>
+              createTraining(
+                {
+                  ...fields,
+                  suggestedPlayers: suggestedPlayers.value ?? undefined,
+                  targets: targets.length > 0 ? targets : undefined,
+                },
+                uid ?? ''
+              ),
+            { offline: 'block' }
+          );
       if (!done) return;
       onSaved();
     } catch (e) {
       setError(e instanceof OfflineError ? "You're offline. A new training gets its number from the server, so creating one needs a connection." : 'Could not save the training. Please try again.');
     }
+  }
+
+  function renderPickerItem(ex: Exercise, section: 'suggested' | 'all') {
+    const expandKey = `${section}:${ex.id}`;
+    const expanded = expandedId === expandKey;
+    return (
+      <li key={ex.id} className="py-2">
+        <div className="flex items-start gap-2">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={expanded ? `Collapse ${ex.name}` : `Expand ${ex.name}`}
+            onClick={() => setExpandedId(expanded ? null : expandKey)}
+            className="mt-0.5 shrink-0 rounded-sm text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          >
+            {expanded ? (
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2">
+              <span className="text-sm font-medium text-ink">{ex.name}</span>
+              <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+                {CATEGORY_LABEL[ex.category]}
+              </span>
+              <PlayersNote minPlayers={ex.minPlayers} suggested={suggestedPlayersValue} />
+            </div>
+            {ex.description && !expanded && (
+              <p className="mt-0.5 line-clamp-1 text-xs text-slate">{ex.description}</p>
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => addExercise(ex)}
+            aria-label={`Add ${ex.name}`}
+            className="shrink-0"
+          >
+            Add
+          </Button>
+        </div>
+        {expanded && (
+          <div className="mt-2 flex gap-3 pl-6">
+            <DiagramThumbnail
+              exerciseId={ex.id}
+              className="aspect-square w-24 shrink-0 overflow-hidden rounded-sm border border-border"
+            />
+            <p className="text-xs text-slate">{ex.description || 'No description.'}</p>
+          </div>
+        )}
+      </li>
+    );
   }
 
   return (
@@ -203,6 +353,47 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           Age group target
         </label>
         <Input id="training-age" value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
+
+        <label htmlFor="training-suggested-players" className="mb-1 mt-4 block text-sm font-medium text-ink">
+          Suggested players
+        </label>
+        <Input
+          id="training-suggested-players"
+          // Text, not type="number": a number input reports "" for input it can't parse
+          // (e.g. "7,5"), which would read as "not set" instead of showing the error.
+          type="text"
+          inputMode="numeric"
+          value={suggestedPlayersText}
+          onChange={(e) => setSuggestedPlayersText(e.target.value)}
+          aria-describedby="training-suggested-players-hint"
+          className="w-24"
+        />
+        <p id="training-suggested-players-hint" className="mt-1 text-xs text-slate">
+          Roughly how many players this session is designed for. Optional.
+        </p>
+
+        <span id="training-targets-label" className="mb-1 mt-4 block text-sm font-medium text-ink">
+          Targets
+        </span>
+        <div role="group" aria-label="Training targets" className="flex flex-wrap gap-1.5">
+          {EXERCISE_CATEGORIES.map((c) => {
+            const active = targets.includes(c.key);
+            const isCovered = covered.has(c.key);
+            return (
+              <button
+                key={c.key}
+                type="button"
+                aria-pressed={active}
+                aria-label={isCovered ? `${c.label} (covered)` : c.label}
+                onClick={() => toggleTarget(c.key)}
+                className={`${chipClass(active)} inline-flex items-center gap-1`}
+              >
+                {isCovered && <Check aria-hidden="true" className="h-3.5 w-3.5" />}
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
 
         <label htmlFor="training-description" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Description
@@ -254,6 +445,11 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                         {row.category ? `${CATEGORY_LABEL[row.category]} · ` : ''}min {startMinute}–
                         {startMinute + (row.durationMinutes || 0)}
                       </span>
+                      {needsMorePlayers(row.minPlayers, suggestedPlayersValue) && (
+                        <span className="mt-0.5 block">
+                          <PlayersNote minPlayers={row.minPlayers} suggested={suggestedPlayersValue} />
+                        </span>
+                      )}
                     </span>
                     <ChevronRight className="h-5 w-5 shrink-0 text-slate" aria-hidden="true" />
                   </button>
@@ -336,61 +532,35 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                 ))}
               </div>
 
+              {showSuggested && (
+                <>
+                  <p id="picker-suggested" className="mb-1 text-xs font-medium text-ink">
+                    Suggested for your targets
+                  </p>
+                  <ul aria-labelledby="picker-suggested" className="mb-2 divide-y divide-border">
+                    {suggested.length === 0 && (
+                      <li className="py-2 text-sm text-slate">No exercises match these targets yet.</li>
+                    )}
+                    {sortByFit(suggested, suggestedPlayersValue).map((ex) => renderPickerItem(ex, 'suggested'))}
+                  </ul>
+                  {suggestedHasMore && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void loadSuggested(targets, suggestedLastDoc)}
+                      className="mb-2"
+                    >
+                      Load more suggestions
+                    </Button>
+                  )}
+                  <p className="mb-1 mt-2 text-xs font-medium text-ink">All exercises</p>
+                </>
+              )}
               <ul className="divide-y divide-border">
                 {picker.length === 0 && (
                   <li className="py-2 text-sm text-slate">No exercises in this category.</li>
                 )}
-                {picker.map((ex) => {
-                  const expanded = expandedId === ex.id;
-                  return (
-                    <li key={ex.id} className="py-2">
-                      <div className="flex items-start gap-2">
-                        <button
-                          type="button"
-                          aria-expanded={expanded}
-                          aria-label={expanded ? `Collapse ${ex.name}` : `Expand ${ex.name}`}
-                          onClick={() => setExpandedId(expanded ? null : ex.id)}
-                          className="mt-0.5 shrink-0 rounded-sm text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-                        >
-                          {expanded ? (
-                            <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                          )}
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-x-2">
-                            <span className="text-sm font-medium text-ink">{ex.name}</span>
-                            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
-                              {CATEGORY_LABEL[ex.category]}
-                            </span>
-                          </div>
-                          {ex.description && !expanded && (
-                            <p className="mt-0.5 line-clamp-1 text-xs text-slate">{ex.description}</p>
-                          )}
-                        </div>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => addExercise(ex)}
-                          aria-label={`Add ${ex.name}`}
-                          className="shrink-0"
-                        >
-                          Add
-                        </Button>
-                      </div>
-                      {expanded && (
-                        <div className="mt-2 flex gap-3 pl-6">
-                          <DiagramThumbnail
-                            exerciseId={ex.id}
-                            className="aspect-square w-24 shrink-0 overflow-hidden rounded-sm border border-border"
-                          />
-                          <p className="text-xs text-slate">{ex.description || 'No description.'}</p>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
+                {sortByFit(picker, suggestedPlayersValue).map((ex) => renderPickerItem(ex, 'all'))}
               </ul>
               {pickerHasMore && (
                 <Button
@@ -425,6 +595,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             description: row.description,
             category: row.category,
             durationMinutes: row.durationMinutes,
+            minPlayers: row.minPlayers,
           }))}
           startIndex={viewing}
           onClose={() => setViewing(null)}

@@ -90,6 +90,13 @@ is copied to `public/mediapipe/` by a Vite plugin and the model lives in
 `public/models/` — both same-origin, which is why CSP `script-src` has
 `'wasm-unsafe-eval'`. Photos and cut-outs are memory-only and consent-gated.
 
+**Training PDF** (`src/trainings/pdf/`): `buildTrainingPdf.ts` is a pure pdfmake
+doc definition (cover with the session plan, then one page per unique exercise);
+diagrams go in as vector SVG via `diagramToPdfSvg.ts` (theme CSS variables inlined
+to light colours). `pdfmake` + fonts load only through the dynamic import in
+`TrainingViewSheet`, and sharing is two taps ("Share PDF" builds, "Share PDF ready"
+opens the share sheet) because browsers only allow `navigator.share` right after a tap.
+
 ### Feature-folder layout
 
 `src/<feature>/` groups everything for a feature: components, dialogs, and a

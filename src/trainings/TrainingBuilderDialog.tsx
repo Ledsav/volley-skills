@@ -6,10 +6,11 @@ import { Button } from '../components/Button';
 import { OfflineError, useSave } from '../components/useSave';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
+import { parseOptionalInt } from '../components/parseOptionalInt';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds, listExercises } from '../exercises/exercisesApi';
-import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
+import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput, Training, TrainingExercise } from '../types/training';
 import { createTraining, updateTraining } from './trainingsApi';
 
@@ -32,6 +33,7 @@ interface Row extends TrainingExercise {
   name: string | null; // null => the exercise no longer exists
   description: string;
   category?: ExerciseCategory;
+  minPlayers?: number;
 }
 
 interface TrainingBuilderDialogProps {
@@ -47,6 +49,10 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   const [name, setName] = useState(training?.name ?? initial?.name ?? '');
   const [description, setDescription] = useState(training?.description ?? initial?.description ?? '');
   const [ageGroupTarget, setAgeGroupTarget] = useState(training?.ageGroupTarget ?? initial?.ageGroupTarget ?? '');
+  const [suggestedPlayersText, setSuggestedPlayersText] = useState(
+    (training?.suggestedPlayers ?? initial?.suggestedPlayers)?.toString() ?? ''
+  );
+  const [targets, setTargets] = useState<ExerciseCategory[]>(training?.targets ?? initial?.targets ?? []);
   const [rows, setRows] = useState<Row[]>([]);
   const [picker, setPicker] = useState<Exercise[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -72,6 +78,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               name: byId.get(e.exerciseId)?.name ?? null,
               description: byId.get(e.exerciseId)?.description ?? '',
               category: byId.get(e.exerciseId)?.category,
+              minPlayers: byId.get(e.exerciseId)?.minPlayers,
             }))
         );
       })
@@ -119,9 +126,18 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         name: exercise.name,
         description: exercise.description,
         category: exercise.category,
+        minPlayers: exercise.minPlayers,
       },
     ]);
     // Picker stays open so several exercises can be added in one pass.
+  }
+
+  function toggleTarget(key: ExerciseCategory) {
+    setTargets((current) =>
+      current.includes(key)
+        ? current.filter((t) => t !== key)
+        : EXERCISE_CATEGORIES.map((c) => c.key).filter((k) => k === key || current.includes(k))
+    );
   }
 
   function move(index: number, delta: number) {
@@ -152,6 +168,12 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
       setError('Name is required.');
       return;
     }
+    const { min, max } = PLAYER_LIMITS.suggestedPlayers;
+    const suggestedPlayers = parseOptionalInt(suggestedPlayersText, min, max);
+    if (!suggestedPlayers.ok) {
+      setError(`Suggested players must be a whole number from ${min} to ${max}.`);
+      return;
+    }
     setError(null);
     const exercises: TrainingExercise[] = rows.map((row, i) => ({
       exerciseId: row.exerciseId,
@@ -163,8 +185,25 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
     const fields = { name: name.trim(), description, ageGroupTarget, exercises };
     try {
       const done = training
-        ? await save(() => updateTraining(training.id, fields))
-        : await save(() => createTraining(fields, uid ?? ''), { offline: 'block' });
+        ? await save(() =>
+            updateTraining(training.id, {
+              ...fields,
+              suggestedPlayers: suggestedPlayers.value,
+              targets: targets.length > 0 ? targets : null,
+            })
+          )
+        : await save(
+            () =>
+              createTraining(
+                {
+                  ...fields,
+                  suggestedPlayers: suggestedPlayers.value ?? undefined,
+                  targets: targets.length > 0 ? targets : undefined,
+                },
+                uid ?? ''
+              ),
+            { offline: 'block' }
+          );
       if (!done) return;
       onSaved();
     } catch (e) {
@@ -203,6 +242,42 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           Age group target
         </label>
         <Input id="training-age" value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
+
+        <label htmlFor="training-suggested-players" className="mb-1 mt-4 block text-sm font-medium text-ink">
+          Suggested players
+        </label>
+        <Input
+          id="training-suggested-players"
+          type="number"
+          inputMode="numeric"
+          value={suggestedPlayersText}
+          onChange={(e) => setSuggestedPlayersText(e.target.value)}
+          aria-describedby="training-suggested-players-hint"
+          className="w-24"
+        />
+        <p id="training-suggested-players-hint" className="mt-1 text-xs text-slate">
+          Roughly how many players this session is designed for. Optional.
+        </p>
+
+        <span id="training-targets-label" className="mb-1 mt-4 block text-sm font-medium text-ink">
+          Targets
+        </span>
+        <div role="group" aria-label="Training targets" className="flex flex-wrap gap-1.5">
+          {EXERCISE_CATEGORIES.map((c) => {
+            const active = targets.includes(c.key);
+            return (
+              <button
+                key={c.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleTarget(c.key)}
+                className={chipClass(active)}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
 
         <label htmlFor="training-description" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Description
@@ -425,6 +500,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             description: row.description,
             category: row.category,
             durationMinutes: row.durationMinutes,
+            minPlayers: row.minPlayers,
           }))}
           startIndex={viewing}
           onClose={() => setViewing(null)}

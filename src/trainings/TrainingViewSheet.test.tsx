@@ -67,4 +67,23 @@ describe('TrainingViewSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
+  it('shows suggested players and targets only when the training has them', async () => {
+    const { unmount } = render(
+      <TrainingViewSheet
+        training={{ ...training, suggestedPlayers: 12, targets: ['service', 'defense'] }}
+        onClose={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('12 players')).toBeInTheDocument();
+    const targets = screen.getByRole('list', { name: 'Targets' });
+    expect(within(targets).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Service', 'Defense']);
+    await screen.findByRole('list', { name: 'Training plan' });
+    unmount();
+
+    render(<TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} />);
+    expect(screen.queryByText(/\d+ players/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Targets' })).not.toBeInTheDocument();
+    await screen.findByRole('list', { name: 'Training plan' });
+  });
 });

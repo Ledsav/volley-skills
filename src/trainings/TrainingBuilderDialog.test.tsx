@@ -199,10 +199,10 @@ describe('TrainingBuilderDialog', () => {
     await screen.findByRole('button', { name: 'Add Pepper' });
     expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, null);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Service', pressed: false }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filter exercises by category' })).getByRole('button', { name: 'Service', pressed: false }));
 
     await waitFor(() => expect(exercisesApi.listExercises).toHaveBeenLastCalledWith(null, 'service'));
-    expect(screen.getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Filter exercises by category' })).getByRole('button', { name: 'Service', pressed: true })).toBeInTheDocument();
   });
 
   it('opens an added exercise full-screen and steps to the next one', async () => {
@@ -289,5 +289,65 @@ describe('TrainingBuilderDialog', () => {
     expect(screen.getByLabelText('Age group target')).toHaveValue('U15');
     expect(await screen.findByText('Pepper')).toBeInTheDocument();
     expect(screen.getByText('1 exercise · 15 min')).toBeInTheDocument();
+  });
+  describe('suggested players and targets', () => {
+    const saved = {
+      id: 't-9',
+      businessId: 'TR-0009',
+      name: 'Serve day',
+      description: '',
+      ageGroupTarget: '',
+      exercises: [],
+      exerciseIds: [],
+      suggestedPlayers: 12,
+      targets: ['service' as const],
+      createdBy: 'x',
+      createdAt: null,
+    };
+    const targetsGroup = () => screen.getByRole('group', { name: 'Training targets' });
+
+    it('saves suggested players and targets in category order', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Serve day' } });
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '12' } });
+      fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Reception/ }));
+      fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Service/ }));
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(createSpy).toHaveBeenCalled());
+      expect(createSpy.mock.calls[0][0]).toMatchObject({ suggestedPlayers: 12, targets: ['service', 'reception'] });
+    });
+
+    it('sends neither field when nothing is set', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Plain' } });
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(createSpy).toHaveBeenCalled());
+      const input = createSpy.mock.calls[0][0];
+      expect(input.suggestedPlayers).toBeUndefined();
+      expect(input.targets).toBeUndefined();
+    });
+
+    it('clears both fields on a training that had them', async () => {
+      const updateSpy = vi.mocked(trainingsApi.updateTraining).mockResolvedValue(undefined);
+      render(<TrainingBuilderDialog training={saved} onClose={vi.fn()} onSaved={vi.fn()} />);
+      expect(screen.getByLabelText('Suggested players')).toHaveValue(12);
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '' } });
+      fireEvent.click(within(targetsGroup()).getByRole('button', { name: /Service/ }));
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(updateSpy).toHaveBeenCalled());
+      expect(updateSpy.mock.calls[0][1]).toMatchObject({ suggestedPlayers: null, targets: null });
+    });
+
+    it('blocks an invalid suggested players value', async () => {
+      const createSpy = vi.mocked(trainingsApi.createTraining).mockResolvedValue({ id: 't-1', businessId: 'TR-0007' });
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'X' } });
+      fireEvent.change(screen.getByLabelText('Suggested players'), { target: { value: '61' } });
+      fireEvent.click(screen.getByText('Save'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Suggested players must be a whole number from 1 to 60.');
+      expect(createSpy).not.toHaveBeenCalled();
+    });
   });
 });

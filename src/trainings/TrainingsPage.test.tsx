@@ -18,7 +18,12 @@ vi.mock('../aiDraft/TrainingDraftDialog', () => ({
   ),
 }));
 vi.mock('./TrainingViewSheet', () => ({
-  TrainingViewSheet: ({ onEdit }: { onEdit: () => void }) => <button onClick={onEdit}>view-stub</button>,
+  TrainingViewSheet: ({ onEdit, teamContext }: { onEdit: () => void; teamContext?: { teamId: string; date: string; notes: string } }) => (
+    <button onClick={onEdit}>view-stub{teamContext ? `:${teamContext.teamId}:${teamContext.date}:${teamContext.notes}` : ''}</button>
+  ),
+}));
+vi.mock('../calendar/calendarApi', () => ({
+  getCalendarSession: vi.fn().mockResolvedValue({ id: 's-1', date: '2026-10-24', notes: 'Gym B', trainingId: 't-1' }),
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', async () => {
@@ -181,5 +186,11 @@ describe('TrainingsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Draft with AI' }));
     fireEvent.click(screen.getByText('draft-dialog-stub'));
     expect(await screen.findByText('builder-stub:From AI')).toBeInTheDocument();
+  });
+
+  it('opens the training for a calendar session with its team context', async () => {
+    vi.mocked(trainingsApi.findTrainingByBusinessId).mockResolvedValue(training);
+    renderPage('/trainings?businessId=TR-0007&team=u17&session=s-1');
+    expect(await screen.findByText('view-stub:u17:2026-10-24:Gym B')).toBeInTheDocument();
   });
 });

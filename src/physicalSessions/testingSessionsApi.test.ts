@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startSession, closeSession, getSession, listPastSessions, listSessionEntries, subscribeEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
+import { startSession, closeSession, deleteSession, getSession, listPastSessions, listSessionEntries, subscribeEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
+import { deletePhysicalTest } from '../players/physicalTestsApi';
 
-const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockOnSnapshot, mockQuery, mockSetDoc } = vi.hoisted(() => ({
+const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockOnSnapshot, mockQuery, mockSetDoc, mockBatch } = vi.hoisted(() => ({
+  mockBatch: { delete: vi.fn(), update: vi.fn(), commit: vi.fn() },
   mockRunTransaction: vi.fn(),
   mockCollection: vi.fn(() => 'sessions-collection'),
   mockDoc: vi.fn((...args: unknown[]) => ({ type: 'doc', args, id: 'session-1' })),
@@ -25,11 +27,12 @@ vi.mock('firebase/firestore', () => ({
   limit: vi.fn((...args: unknown[]) => ({ type: 'limit', args })),
   serverTimestamp: () => 'server-timestamp',
   setDoc: mockSetDoc,
+  writeBatch: () => mockBatch,
 }));
 
 vi.mock('../firebase/config', () => ({ db: {} }));
 
-vi.mock('../players/physicalTestsApi', () => ({ createPhysicalTest: vi.fn() }));
+vi.mock('../players/physicalTestsApi', () => ({ createPhysicalTest: vi.fn(), deletePhysicalTest: vi.fn() }));
 
 describe('testingSessionsApi', () => {
   beforeEach(() => {
@@ -176,5 +179,39 @@ describe('listSessionEntries', () => {
     const entries = await listSessionEntries('team-1', 'session-1');
     expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'testingSessions', 'session-1', 'entries');
     expect(entries).toEqual([{ id: 'p1__cmj', playerId: 'p1', testType: 'cmj', status: 'complete' }]);
+  });
+});
+
+describe('deleteSession', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDoc.mockImplementation((...args: unknown[]) => ({ type: 'doc', args, id: 'session-1', path: args.slice(1).join('/') }));
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { id: 'p1__cmj', data: () => ({ playerId: 'p1', testType: 'cmj', status: 'complete', resultTestId: 't1' }) },
+        { id: 'p2__cmj', data: () => ({ playerId: 'p2', testType: 'cmj', status: 'in_progress', resultTestId: null }) },
+      ],
+    });
+  });
+
+  it("deletes the session's saved results, its entries and the session itself", async () => {
+    mockGetDoc.mockResolvedValue({ data: () => ({ activeTestingSessionId: null }) });
+    await deleteSession('team-1', 'session-1');
+    expect(deletePhysicalTest).toHaveBeenCalledTimes(1);
+    expect(deletePhysicalTest).toHaveBeenCalledWith('team-1', 'p1', 't1');
+    const deleted = mockBatch.delete.mock.calls.map(([ref]) => ref.path);
+    expect(deleted).toEqual([
+      'teams/team-1/testingSessions/session-1/entries/p1__cmj',
+      'teams/team-1/testingSessions/session-1/entries/p2__cmj',
+      'teams/team-1/testingSessions/session-1',
+    ]);
+    expect(mockBatch.update).not.toHaveBeenCalled();
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('clears the team pointer when deleting the open session', async () => {
+    mockGetDoc.mockResolvedValue({ data: () => ({ activeTestingSessionId: 'session-1' }) });
+    await deleteSession('team-1', 'session-1');
+    expect(mockBatch.update).toHaveBeenCalledWith(expect.objectContaining({ path: 'teams/team-1' }), { activeTestingSessionId: null });
   });
 });

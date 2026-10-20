@@ -5,6 +5,7 @@ import { startSession, listPastSessions } from './testingSessionsApi';
 import type { TestingSession } from '../types/testingSession';
 import { ChevronRight } from 'lucide-react';
 import { PastSessionDialog } from './PastSessionDialog';
+import { useNotify } from '../components/Notice';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -20,6 +21,7 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
   const [date, setDate] = useState(todayIso());
   const [pastSessions, setPastSessions] = useState<TestingSession[]>([]);
   const [viewing, setViewing] = useState<TestingSession | null>(null);
+  const notify = useNotify();
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -69,7 +71,18 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
         ))}
       </ul>
 
-      {viewing && <PastSessionDialog teamId={teamId} session={viewing} onClose={() => setViewing(null)} />}
+      {viewing && (
+        <PastSessionDialog
+          teamId={teamId}
+          session={viewing}
+          onClose={() => setViewing(null)}
+          onDeleted={() => {
+            setPastSessions((current) => current.filter((s) => s.id !== viewing.id));
+            setViewing(null);
+            notify('Session deleted.');
+          }}
+        />
+      )}
     </div>
   );
 }

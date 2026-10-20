@@ -130,7 +130,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
       const page = await listExercisesInCategories(categories, afterDoc);
       setSuggested((current) => (afterDoc ? [...current, ...page.exercises] : page.exercises));
       setSuggestedLastDoc(page.lastDoc);
-      setSuggestedHasMore(page.exercises.length > 0 && page.lastDoc !== null);
+      setSuggestedHasMore(page.hasMore);
     } catch {
       setError('Could not load suggested exercises. Please try again.');
     }

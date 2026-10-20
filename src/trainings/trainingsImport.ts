@@ -7,14 +7,14 @@ const CATEGORY_KEYS = EXERCISE_CATEGORIES.map((c) => c.key);
 
 export const TRAINING_IMPORT_EXAMPLE = `[
   {
-    "name": "U17 defense circuit",
+    "name": "Defense + reception: block and dig transition",
     "description": "Rotational blocking + dig transition",
     "ageGroupTarget": "U17",
     "suggestedPlayers": 12,
     "targets": ["defense", "reception"],
     "exercises": [
-      { "name": "Butterfly passing", "durationMinutes": 15 },
-      { "name": "Block footwork ladder", "durationMinutes": 10 }
+      { "name": "Reception: butterfly passing", "durationMinutes": 15 },
+      { "name": "Defense: block footwork ladder", "durationMinutes": 10 }
     ]
   }
 ]`;

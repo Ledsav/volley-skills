@@ -15,6 +15,7 @@ import type { NewTrainingInput, Training, TrainingExercise } from '../types/trai
 import { PlayersNote } from './PlayersNote';
 import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
+import { TRAINING_NAME_EXAMPLE, TRAINING_NAME_HINT } from './naming';
 
 const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
   ExerciseCategory,
@@ -329,7 +330,16 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         <label htmlFor="training-name" className="mb-1 block text-sm font-medium text-ink">
           Name
         </label>
-        <Input id="training-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          id="training-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={TRAINING_NAME_EXAMPLE}
+          aria-describedby="training-name-hint"
+        />
+        <p id="training-name-hint" className="mt-1 text-xs text-slate">
+          {TRAINING_NAME_HINT}
+        </p>
 
         <label htmlFor="training-age" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Age group target

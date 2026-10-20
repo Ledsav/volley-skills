@@ -40,3 +40,11 @@ describe('buildTrainingMessages with targets and suggested players', () => {
     expect(system.content).toContain('"minPlayers"');
   });
 });
+
+describe('naming convention in prompts', () => {
+  it('asks for convention names for trainings and new exercises', () => {
+    const [system] = buildTrainingMessages({ goal: 'g', ageGroupTarget: '', totalMinutes: 60, allowNew: true, index: [] });
+    expect(system.content).toContain('Focus + focus: objective');
+    expect(system.content).toContain('Focus: what it trains');
+  });
+});

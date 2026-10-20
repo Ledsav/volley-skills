@@ -4,6 +4,9 @@ import { StartSessionCard } from './StartSessionCard';
 import * as testingSessionsApi from './testingSessionsApi';
 
 vi.mock('./testingSessionsApi');
+vi.mock('./PastSessionDialog', () => ({
+  PastSessionDialog: ({ session }: { session: { date: string } }) => <div role="dialog">results for {session.date}</div>,
+}));
 
 describe('StartSessionCard', () => {
   it('lists past closed sessions on mount', async () => {
@@ -44,5 +47,14 @@ describe('StartSessionCard', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('A testing session is already open for this team.'));
     expect(onStarted).not.toHaveBeenCalled();
+  });
+
+  it('opens a past session to see its results', async () => {
+    vi.spyOn(testingSessionsApi, 'listPastSessions').mockResolvedValue([
+      { id: 'session-old', date: '2026-09-10', status: 'closed', createdBy: 'coach-uid', createdAt: null, closedAt: null },
+    ]);
+    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: /2026-09-10/ }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('results for 2026-09-10');
   });
 });

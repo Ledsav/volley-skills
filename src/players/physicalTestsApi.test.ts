@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPhysicalTest, deletePhysicalTest, getLatestByType, listHistoryByType, loadLatestTests } from './physicalTestsApi';
+import { createPhysicalTest, deletePhysicalTest, getLatestByType, getPhysicalTest, listHistoryByType, loadLatestTests } from './physicalTestsApi';
 
 const { mockGetDoc, mockUpdateDoc, mockBatch, mockGetDocs, mockCollection, mockQuery, mockDeleteDoc, mockDoc } = vi.hoisted(() => ({
   mockGetDoc: vi.fn(),
@@ -221,5 +221,14 @@ describe('physicalTestsApi', () => {
     await deletePhysicalTest('team-1', 'player-1', 'test-1');
 
     expect(mockUpdateDoc).toHaveBeenCalledWith(expect.anything(), { 'latestTests.cmj': 'DELETE_FIELD' });
+  });
+});
+
+describe('getPhysicalTest', () => {
+  it('reads one saved test, or null when it is gone', async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => true, id: 't1', data: () => ({ testType: 'cmj', bestCm: 34 }) });
+    expect(await getPhysicalTest('team-1', 'p1', 't1')).toEqual({ id: 't1', testType: 'cmj', bestCm: 34 });
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false });
+    expect(await getPhysicalTest('team-1', 'p1', 'gone')).toBeNull();
   });
 });

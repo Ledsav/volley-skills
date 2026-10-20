@@ -33,10 +33,23 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }, [teamId, team.activeTestingSessionId]);
 
   useEffect(() => {
+    let cancelled = false;
     setPlayersError(null);
-    listPlayers(teamId)
-      .then((page) => setPlayers(page.players))
-      .catch(() => setPlayersError('Could not load the roster. Please refresh the page.'));
+    // The whole roster, not just the first page: a team can have more than one page of players.
+    (async () => {
+      let page = await listPlayers(teamId);
+      const all = [...page.players];
+      while (page.hasMore && page.lastDoc) {
+        page = await listPlayers(teamId, page.lastDoc);
+        all.push(...page.players);
+      }
+      if (!cancelled) setPlayers(all.filter((p) => !p.leftClubAt));
+    })().catch(() => {
+      if (!cancelled) setPlayersError('Could not load the roster. Please refresh the page.');
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [teamId]);
 
   if (!firebaseUser) return null;

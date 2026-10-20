@@ -137,4 +137,26 @@ describe('TeamPhysicalSessionTab', () => {
     await waitFor(() => expect(screen.getByText('Start new session')).toBeInTheDocument());
     expect(onTeamChanged).toHaveBeenCalledWith(expect.objectContaining({ activeTestingSessionId: null }));
   });
+
+  it('loads every roster page and skips players who left the club', async () => {
+    const page1 = Array.from({ length: 25 }, (_, i) => ({ ...ONE_PLAYER[0], id: `p${i}`, fullName: `Player ${i}` }));
+    const listPlayersSpy = vi
+      .spyOn(playersApi, 'listPlayers')
+      .mockResolvedValueOnce({ players: page1, lastDoc: { id: 'p24' } as never, hasMore: true })
+      .mockResolvedValueOnce({
+        players: [
+          { ...ONE_PLAYER[0], id: 'p25', fullName: 'Player 25' },
+          { ...ONE_PLAYER[0], id: 'gone', fullName: 'Gone Player', leftClubAt: '2026-09-01' },
+        ],
+        lastDoc: null,
+        hasMore: false,
+      });
+    vi.spyOn(testingSessionsApi, 'getSession').mockResolvedValue({ id: 's-1', date: '2026-10-20', status: 'open' } as never);
+    render(<TeamPhysicalSessionTab teamId="team-1" team={buildTeam({ activeTestingSessionId: 's-1' })} onTeamChanged={vi.fn()} />);
+    const roster = await screen.findByText(/^Roster:/);
+    expect(listPlayersSpy).toHaveBeenLastCalledWith('team-1', { id: 'p24' });
+    expect(roster).toHaveTextContent('Player 0');
+    expect(roster).toHaveTextContent('Player 25');
+    expect(roster).not.toHaveTextContent('Gone Player');
+  });
 });

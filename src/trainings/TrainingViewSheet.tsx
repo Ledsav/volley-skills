@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, Pencil, Play, TriangleAlert, Users } from 'lucide-react';
+import { ChevronRight, Clock, FileDown, Pencil, Play, Share2, TriangleAlert, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
+import { useNotify } from '../components/Notice';
+import { shareOrDownload } from '../export/shareFile';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds } from '../exercises/exercisesApi';
@@ -28,10 +30,33 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
   const [entries, setEntries] = useState<ExerciseDetailEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
+  // Two taps: browsers only open the share sheet straight after a tap, and building takes too long for that.
+  const [pdf, setPdf] = useState<File | 'building' | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const notify = useNotify();
+
+  async function buildPdf() {
+    setPdf('building');
+    setPdfError(null);
+    try {
+      // Lazy: the PDF code (pdfmake + fonts) is its own chunk, loaded only when someone exports.
+      const { generateTrainingPdf } = await import('./pdf/exportTrainingPdf');
+      setPdf(await generateTrainingPdf(training));
+    } catch {
+      setPdf(null);
+      setPdfError('Could not create the PDF. Please try again.');
+    }
+  }
+
+  async function sharePdf(file: File) {
+    const result = await shareOrDownload([file], training.name);
+    if (result === 'downloaded') notify('PDF downloaded');
+  }
 
   useEffect(() => {
     const ordered = training.exercises.slice().sort((a, b) => a.order - b.order);
     let cancelled = false;
+    setPdf(null); // a built PDF belongs to the training it was built from
     getExercisesByIds(ordered.map((e) => e.exerciseId))
       .then((found) => {
         if (cancelled) return;
@@ -72,6 +97,22 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
       onClose={onClose}
       footer={
         <>
+          {pdf instanceof File ? (
+            <Button variant="secondary" onClick={() => void sharePdf(pdf)} className="flex-1 gap-1.5 sm:mr-auto sm:flex-none">
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+              Share PDF ready
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => void buildPdf()}
+              disabled={pdf === 'building'}
+              className="flex-1 gap-1.5 sm:mr-auto sm:flex-none"
+            >
+              <FileDown className="h-4 w-4" aria-hidden="true" />
+              {pdf === 'building' ? 'Preparing PDF…' : 'Share PDF'}
+            </Button>
+          )}
           <Button variant="secondary" onClick={onEdit} className="flex-1 gap-1.5 sm:flex-none">
             <Pencil className="h-4 w-4" aria-hidden="true" />
             Edit
@@ -124,6 +165,12 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
         {error && (
           <p role="alert" className="text-sm text-red">
             {error}
+          </p>
+        )}
+
+        {pdfError && (
+          <p role="alert" className="text-sm text-red">
+            {pdfError}
           </p>
         )}
 

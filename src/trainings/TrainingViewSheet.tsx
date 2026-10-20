@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, Pencil, Play, TriangleAlert } from 'lucide-react';
+import { ChevronRight, Clock, FileDown, Pencil, Play, Share2, TriangleAlert, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
+import { useNotify } from '../components/Notice';
+import { shareOrDownload } from '../export/shareFile';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds } from '../exercises/exercisesApi';
@@ -28,10 +30,33 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
   const [entries, setEntries] = useState<ExerciseDetailEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
+  // Two taps: browsers only open the share sheet straight after a tap, and building takes too long for that.
+  const [pdf, setPdf] = useState<File | 'building' | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const notify = useNotify();
+
+  async function buildPdf() {
+    setPdf('building');
+    setPdfError(null);
+    try {
+      // Lazy: the PDF code (pdfmake + fonts) is its own chunk, loaded only when someone exports.
+      const { generateTrainingPdf } = await import('./pdf/exportTrainingPdf');
+      setPdf(await generateTrainingPdf(training));
+    } catch {
+      setPdf(null);
+      setPdfError('Could not create the PDF. Please try again.');
+    }
+  }
+
+  async function sharePdf(file: File) {
+    const result = await shareOrDownload([file], training.name);
+    if (result === 'downloaded') notify('PDF downloaded');
+  }
 
   useEffect(() => {
     const ordered = training.exercises.slice().sort((a, b) => a.order - b.order);
     let cancelled = false;
+    setPdf(null); // a built PDF belongs to the training it was built from
     getExercisesByIds(ordered.map((e) => e.exerciseId))
       .then((found) => {
         if (cancelled) return;
@@ -45,6 +70,7 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
               description: ex?.description ?? '',
               category: ex?.category,
               durationMinutes: e.durationMinutes,
+              minPlayers: ex?.minPlayers,
             };
           })
         );
@@ -71,6 +97,22 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
       onClose={onClose}
       footer={
         <>
+          {pdf instanceof File ? (
+            <Button variant="secondary" onClick={() => void sharePdf(pdf)} className="flex-1 gap-1.5 sm:mr-auto sm:flex-none">
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+              Share PDF ready
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => void buildPdf()}
+              disabled={pdf === 'building'}
+              className="flex-1 gap-1.5 sm:mr-auto sm:flex-none"
+            >
+              <FileDown className="h-4 w-4" aria-hidden="true" />
+              {pdf === 'building' ? 'Preparing PDF…' : 'Share PDF'}
+            </Button>
+          )}
           <Button variant="secondary" onClick={onEdit} className="flex-1 gap-1.5 sm:flex-none">
             <Pencil className="h-4 w-4" aria-hidden="true" />
             Edit
@@ -98,7 +140,23 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
             <Clock className="h-4 w-4" aria-hidden="true" />
             {exerciseCount} exercise{exerciseCount === 1 ? '' : 's'} · {totalMinutes} min
           </span>
+          {training.suggestedPlayers !== undefined && (
+            <span className="inline-flex items-center gap-1 tabular-nums text-slate">
+              <Users className="h-4 w-4" aria-hidden="true" />
+              {training.suggestedPlayers} players
+            </span>
+          )}
         </div>
+
+        {training.targets && training.targets.length > 0 && (
+          <ul aria-label="Targets" className="-mt-2 flex flex-wrap gap-1.5">
+            {training.targets.map((t) => (
+              <li key={t} className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-ink">
+                {CATEGORY_LABEL[t]}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {training.description && (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{training.description}</p>
@@ -109,6 +167,17 @@ export function TrainingViewSheet({ training, onClose, onEdit }: TrainingViewShe
             {error}
           </p>
         )}
+
+        {pdfError && (
+          <p role="alert" className="text-sm text-red">
+            {pdfError}
+          </p>
+        )}
+
+        {/* The share button is disabled while building, so focus can't carry the news: announce it. */}
+        <p data-testid="pdf-status" aria-live="polite" className="sr-only">
+          {pdf === 'building' ? 'Preparing the PDF…' : pdf instanceof File ? 'PDF ready. Tap Share PDF ready to send it.' : ''}
+        </p>
 
         {!entries && !error && <p className="text-sm text-slate">Loading exercises…</p>}
 

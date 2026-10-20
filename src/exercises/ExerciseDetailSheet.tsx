@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
@@ -23,6 +23,7 @@ export interface ExerciseDetailEntry {
   category?: ExerciseCategory;
   /** Set when the exercise is shown as a step of a training. */
   durationMinutes?: number;
+  minPlayers?: number;
   /** An unsaved (AI draft) diagram: rendered as is, nothing is fetched. `null` => draft without a diagram. */
   scene?: Scene | null;
 }
@@ -154,6 +155,12 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
             <span className="inline-flex items-center gap-1 rounded-sm bg-bg px-1.5 py-0.5 text-xs font-medium tabular-nums text-ink">
               <Clock className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
               {entry.durationMinutes} min · min {startMinute}–{startMinute + (entry.durationMinutes ?? 0)}
+            </span>
+          )}
+          {entry.minPlayers !== undefined && (
+            <span className="inline-flex items-center gap-1 rounded-sm bg-bg px-1.5 py-0.5 text-xs font-medium tabular-nums text-ink">
+              <Users className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
+              Min {entry.minPlayers} players
             </span>
           )}
         </div>

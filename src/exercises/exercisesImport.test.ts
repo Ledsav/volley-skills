@@ -134,4 +134,22 @@ describe('validateExerciseRows — diagrams', () => {
     expect(result.errors).toEqual([]);
     expect(result.inputs[0].diagrams[0].scene.items[0].size).toBe(2);
   });
+  describe('minPlayers', () => {
+    it('keeps a valid minPlayers', () => {
+      const result = validateExerciseRows([{ name: 'X', category: 'game', minPlayers: 6 }]);
+      expect(result.errors).toEqual([]);
+      expect(result.inputs[0].minPlayers).toBe(6);
+    });
+
+    it('leaves minPlayers absent when the row has none', () => {
+      const result = validateExerciseRows([{ name: 'X', category: 'game' }]);
+      expect('minPlayers' in result.inputs[0]).toBe(false);
+    });
+
+    it.each([0, 31, 2.5, '6', null])('rejects minPlayers %s', (minPlayers) => {
+      const result = validateExerciseRows([{ name: 'X', category: 'game', minPlayers }]);
+      expect(result.errors).toEqual(['row 1: "minPlayers" must be a whole number from 1 to 30']);
+      expect(result.inputs).toEqual([]);
+    });
+  });
 });

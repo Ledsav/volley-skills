@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startSession, closeSession, getSession, listPastSessions, subscribeEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
+import { startSession, closeSession, getSession, listPastSessions, listSessionEntries, subscribeEntries, saveEntryProgress, finishEntry } from './testingSessionsApi';
 
 const { mockRunTransaction, mockCollection, mockDoc, mockGetDoc, mockGetDocs, mockOnSnapshot, mockQuery, mockSetDoc } = vi.hoisted(() => ({
   mockRunTransaction: vi.fn(),
@@ -167,5 +167,14 @@ describe('testingSessionsApi entries', () => {
       expect.objectContaining({ status: 'complete', resultTestId: 'test-99', updatedAt: 'server-timestamp' }),
       { merge: true }
     );
+  });
+});
+
+describe('listSessionEntries', () => {
+  it("reads a session's entries once", async () => {
+    mockGetDocs.mockResolvedValueOnce({ docs: [{ id: 'p1__cmj', data: () => ({ playerId: 'p1', testType: 'cmj', status: 'complete' }) }] });
+    const entries = await listSessionEntries('team-1', 'session-1');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'testingSessions', 'session-1', 'entries');
+    expect(entries).toEqual([{ id: 'p1__cmj', playerId: 'p1', testType: 'cmj', status: 'complete' }]);
   });
 });

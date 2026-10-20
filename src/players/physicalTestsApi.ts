@@ -64,6 +64,12 @@ export async function createPhysicalTest(
   return testRef.id;
 }
 
+export async function getPhysicalTest(teamId: string, playerId: string, testId: string): Promise<PhysicalTest | null> {
+  const snapshot = await getDoc(doc(db, 'teams', teamId, 'players', playerId, 'physicalTests', testId));
+  if (!snapshot.exists()) return null;
+  return { id: snapshot.id, ...snapshot.data() } as PhysicalTest;
+}
+
 export async function getLatestByType(
   teamId: string,
   playerId: string,

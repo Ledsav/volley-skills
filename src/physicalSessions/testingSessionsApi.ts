@@ -72,6 +72,12 @@ export async function listPastSessions(teamId: string): Promise<TestingSession[]
  * instead of re-reading the collection after every save: after the first load
  * only changed entries are billed, and local writes show up immediately.
  */
+/** A session's entries read once (bounded: at most players × 8 qualities) — for viewing a closed session. */
+export async function listSessionEntries(teamId: string, sessionId: string): Promise<TestingSessionEntry[]> {
+  const snapshot = await getDocs(collection(db, 'teams', teamId, 'testingSessions', sessionId, 'entries'));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as TestingSessionEntry);
+}
+
 export function subscribeEntries(
   teamId: string,
   sessionId: string,

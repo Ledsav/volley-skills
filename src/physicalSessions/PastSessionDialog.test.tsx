@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as playersApi from '../players/playersApi';
 import * as physicalTestsApi from '../players/physicalTestsApi';
@@ -35,7 +35,7 @@ describe('PastSessionDialog', () => {
   });
 
   it('shows each tested player with their results from that session', async () => {
-    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} />);
+    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} onDeleted={vi.fn()} />);
     expect(screen.getByRole('dialog', { name: 'Physical testing · 2026-09-16' })).toBeInTheDocument();
     const list = await screen.findByRole('list', { name: 'Results' });
     const [anna, chloe] = within(list).getAllByRole('listitem');
@@ -50,13 +50,25 @@ describe('PastSessionDialog', () => {
 
   it('says so when nobody was tested', async () => {
     vi.mocked(testingSessionsApi.listSessionEntries).mockResolvedValue([]);
-    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} />);
+    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} onDeleted={vi.fn()} />);
     expect(await screen.findByText('No results were recorded in this session.')).toBeInTheDocument();
   });
 
   it('shows an inline error when results cannot be loaded', async () => {
     vi.mocked(testingSessionsApi.listSessionEntries).mockRejectedValue(new Error('offline'));
-    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} />);
+    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} onDeleted={vi.fn()} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this session. Please try again.');
+  });
+
+  it('deletes the session after confirming how many results go with it', async () => {
+    const onDeleted = vi.fn();
+    vi.mocked(testingSessionsApi.deleteSession).mockResolvedValue(undefined);
+    render(<PastSessionDialog teamId="team-1" session={{ id: 's1', date: '2026-09-16' } as never} onClose={vi.fn()} onDeleted={onDeleted} />);
+    await screen.findByRole('list', { name: 'Results' });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete session' }));
+    expect(screen.getByRole('alertdialog', { name: 'Delete this session?' })).toHaveTextContent('2 results');
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }));
+    await waitFor(() => expect(testingSessionsApi.deleteSession).toHaveBeenCalledWith('team-1', 's1'));
+    expect(onDeleted).toHaveBeenCalled();
   });
 });

@@ -5,7 +5,9 @@ import { formatPhysicalTestSummary } from '../players/physicalTestFormat';
 import { getPlayer } from '../players/playersApi';
 import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER, type PhysicalTestType } from '../types/physicalTest';
 import type { TestingSession } from '../types/testingSession';
-import { listSessionEntries } from './testingSessionsApi';
+import { deleteSession, listSessionEntries } from './testingSessionsApi';
+import { Button } from '../components/Button';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface PlayerResults {
   playerId: string;
@@ -14,9 +16,37 @@ interface PlayerResults {
 }
 
 /** Read-only results of a closed session: who was tested, and each result recorded that day. */
-export function PastSessionDialog({ teamId, session, onClose }: { teamId: string; session: TestingSession; onClose: () => void }) {
+export function PastSessionDialog({
+  teamId,
+  session,
+  onClose,
+  onDeleted,
+}: {
+  teamId: string;
+  session: TestingSession;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
   const [rows, setRows] = useState<PlayerResults[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function confirmDelete() {
+    try {
+      await deleteSession(teamId, session.id);
+    } catch {
+      setDeleteError('Could not delete the session. Please try again.');
+      return;
+    }
+    setConfirmingDelete(false);
+    onDeleted();
+  }
+
+  const resultCount = (rows ?? []).reduce(
+    (n, r) => n + r.results.filter((x) => x.value !== 'Not finished' && x.value !== 'Result deleted').length,
+    0,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +82,17 @@ export function PastSessionDialog({ teamId, session, onClose }: { teamId: string
   }, [teamId, session.id]);
 
   return (
-    <Dialog title={`Physical testing · ${session.date}`} size="lg" mobileSheet onClose={onClose}>
+    <Dialog
+      title={`Physical testing · ${session.date}`}
+      size="lg"
+      mobileSheet
+      onClose={onClose}
+      footer={
+        <Button variant="dangerGhost" onClick={() => { setDeleteError(null); setConfirmingDelete(true); }} disabled={!rows && !error}>
+          Delete session
+        </Button>
+      }
+    >
       {error && (
         <p role="alert" className="text-sm text-red">
           {error}
@@ -81,6 +121,16 @@ export function PastSessionDialog({ teamId, session, onClose }: { teamId: string
             ))}
           </ul>
         </>
+      )}
+      {confirmingDelete && (
+        <ConfirmDialog
+          title="Delete this session?"
+          message={`This also removes the ${resultCount} result${resultCount === 1 ? '' : 's'} recorded in it from the players' cards. This can't be undone.`}
+          confirmLabel="Yes, delete"
+          onConfirm={() => void confirmDelete()}
+          onCancel={() => setConfirmingDelete(false)}
+          error={deleteError}
+        />
       )}
     </Dialog>
   );

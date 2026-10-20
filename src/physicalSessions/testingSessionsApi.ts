@@ -11,9 +11,10 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { createPhysicalTest } from '../players/physicalTestsApi';
+import { createPhysicalTest, deletePhysicalTest } from '../players/physicalTestsApi';
 import { buildEntryId, type TestingSessionEntry } from '../types/testingSession';
 import type { NewPhysicalTestInput, PhysicalTestType } from '../types/physicalTest';
 import type { TestingSession } from '../types/testingSession';
@@ -51,6 +52,26 @@ export async function closeSession(teamId: string, sessionId: string): Promise<v
     tx.update(sessionRef, { status: 'closed', closedAt: serverTimestamp() });
     tx.update(teamRef, { activeTestingSessionId: null });
   });
+}
+
+/**
+ * Deletes a session (open or closed) together with what it recorded: each
+ * finished result is removed from the player's history (keeping their
+ * latest-result summary right), then the entries and the session go in one
+ * batch, and the team stops pointing at it if it was the open one.
+ */
+export async function deleteSession(teamId: string, sessionId: string): Promise<void> {
+  const entries = await listSessionEntries(teamId, sessionId);
+  for (const e of entries) {
+    if (e.status === 'complete' && e.resultTestId) await deletePhysicalTest(teamId, e.playerId, e.resultTestId);
+  }
+  const teamRef = doc(db, 'teams', teamId);
+  const team = await getDoc(teamRef);
+  const batch = writeBatch(db);
+  for (const e of entries) batch.delete(doc(db, 'teams', teamId, 'testingSessions', sessionId, 'entries', e.id));
+  batch.delete(doc(db, 'teams', teamId, 'testingSessions', sessionId));
+  if (team.data()?.activeTestingSessionId === sessionId) batch.update(teamRef, { activeTestingSessionId: null });
+  await batch.commit();
 }
 
 export async function getSession(teamId: string, sessionId: string): Promise<TestingSession | null> {

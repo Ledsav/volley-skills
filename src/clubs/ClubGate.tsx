@@ -3,6 +3,8 @@ import { useAuth } from '../auth/AuthContext';
 import { ClubStatusScreen } from './ClubStatusScreen';
 import { WelcomePage } from './WelcomePage';
 import { clubView } from './clubView';
+import { MinimalShell } from '../layout/MinimalShell';
+import { ClubAreaPage } from './area/ClubAreaPage';
 import { nextBoundaryDelay } from './nextBoundary';
 
 /** Decides from the active club's live status and the person's role what they get to see. */
@@ -23,7 +25,11 @@ export function ClubGate({ children }: { children: ReactNode }) {
     case 'pending':
       return <ClubStatusScreen kind="pending" />;
     case 'exportOnly':
-      return <ClubStatusScreen kind="exportOnly" />;
+      return (
+        <MinimalShell title={club?.name ?? 'Club'}>
+          <ClubAreaPage restricted />
+        </MinimalShell>
+      );
     case 'locked': {
       const retrievalEnds = club?.termination.retrievalEndsAt?.toMillis();
       const ended = club?.status === 'terminating' && (retrievalEnds === undefined || now.getTime() >= retrievalEnds);

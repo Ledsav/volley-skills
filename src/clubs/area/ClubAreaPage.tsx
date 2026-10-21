@@ -5,6 +5,7 @@ import { SectionTabs } from '../../components/SectionTabs';
 import { useAuth } from '../../auth/AuthContext';
 import { ProfileTab } from './ProfileTab';
 import { PeopleTab } from './PeopleTab';
+import { ContractTab } from './ContractTab';
 
 type ClubTab = 'profile' | 'people' | 'contract';
 
@@ -30,9 +31,7 @@ export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
         onChange={(id) => setParams({ tab: id }, { replace: true })} />
       {active === 'profile' && <ProfileTab restricted={restricted} />}
       {active === 'people' && <PeopleTab />}
-      {active === 'contract' && (
-        <p className="text-sm text-slate">Contract details will appear here.</p>
-      )}
+      {active === 'contract' && <ContractTab />}
     </div>
   );
 }

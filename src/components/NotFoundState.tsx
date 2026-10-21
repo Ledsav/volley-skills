@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { SearchX } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { Button } from './Button';
 
 interface NotFoundStateProps {
   title: string;
@@ -17,11 +19,23 @@ export function isNotFoundError(e: unknown): boolean {
 }
 
 export function NotFoundState({ title, message, backTo, backLabel, illustration }: NotFoundStateProps) {
+  const { memberships, activeClubId, switchClub } = useAuth();
+  const otherClubs = memberships.filter((m) => m.clubId !== activeClubId);
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
       {illustration ?? <SearchX size={48} strokeWidth={1.5} className="text-slate" aria-hidden="true" />}
       <h1 tabIndex={-1} className="mt-4 text-title font-semibold text-ink">{title}</h1>
       {message && <p className="mt-2 text-slate">{message}</p>}
+      {otherClubs.length > 0 && (
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <p className="text-slate">This may belong to another of your clubs.</p>
+          {otherClubs.map((m) => (
+            <Button key={m.clubId} variant="secondary" size="sm" onClick={() => switchClub(m.clubId)}>
+              Switch to {m.clubName}
+            </Button>
+          ))}
+        </div>
+      )}
       <Link to={backTo} className="mt-6 inline-flex min-h-11 items-center rounded-md bg-blue px-4 font-medium text-white hover:bg-blue-strong">
         {backLabel}
       </Link>

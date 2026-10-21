@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, House, KeyRound, LogOut, Repeat, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
+import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, Building2, House, KeyRound, LogOut, Repeat, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Menu } from '../components/Menu';
@@ -67,8 +67,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: '/exercises', label: 'Exercises', Icon: Dumbbell, show: !!access?.sections.exercises },
     { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
     { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides, admin: true },
+    { to: '/club', label: 'Club', Icon: KeyRound, show: !!access?.isClubAdmin, admin: true },
     {
-      to: '/club', label: 'Club', Icon: KeyRound, show: !!access?.isClubAdmin, admin: true,
+      to: '/platform', label: 'Platform', Icon: Building2, show: isPlatformAdmin, admin: true,
       badge: pendingSignups > 0 ? pendingSignups : undefined,
     },
   ].filter((item) => item.show);
@@ -128,6 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
               ...(access?.sections.guides ? [{ kind: 'action' as const, label: 'Guides', icon: <BookOpen size={16} />, onSelect: () => navigate('/admin/guides') }] : []),
               ...(access?.isClubAdmin ? [{ kind: 'action' as const, label: 'Club', icon: <KeyRound size={16} />, onSelect: () => navigate('/club') }] : []),
+              ...(isPlatformAdmin ? [{ kind: 'action' as const, label: 'Platform', icon: <Building2 size={16} />, onSelect: () => navigate('/platform') }] : []),
               { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
               { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
               ...otherClubs.map((m) => ({

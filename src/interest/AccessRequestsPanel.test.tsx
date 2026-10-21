@@ -21,6 +21,15 @@ beforeEach(() => {
 });
 
 describe('AccessRequestsPanel', () => {
+  it('renders no Grant access action without onGrant, and one per request with it', async () => {
+    const { unmount } = render(<AccessRequestsPanel />);
+    await screen.findByText('ana@example.com');
+    expect(screen.queryByRole('button', { name: 'Grant access' })).not.toBeInTheDocument();
+    unmount();
+    render(<AccessRequestsPanel onGrant={vi.fn()} />);
+    expect(await screen.findAllByRole('button', { name: 'Grant access' })).toHaveLength(2);
+  });
+
   it('lists reviewed and new requests, flagging only the new ones', async () => {
     render(<AccessRequestsPanel onGrant={vi.fn()} />);
     expect(await screen.findByText('ana@example.com')).toBeInTheDocument();

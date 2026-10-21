@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShell } from './AppShell';
@@ -11,7 +11,10 @@ const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../auth/AuthContext');
 vi.mock('../components/Notice');
-vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(0) }));
+const unreviewed = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../interest/interestApi', () => ({
+  countUnreviewedInterestSignups: () => Promise.resolve(unreviewed.count),
+}));
 
 function renderShell() {
   return render(
@@ -40,6 +43,20 @@ describe('AppShell', () => {
       expect(screen.getAllByText(label)).toHaveLength(1);
     }
     expect(screen.getByText('Page content')).toBeInTheDocument();
+  });
+
+  it('shows a Platform link only to platform admins, carrying the pending leads count', async () => {
+    renderShell();
+    expect(screen.queryByRole('link', { name: /Platform/ })).not.toBeInTheDocument();
+    cleanup();
+    unreviewed.count = 4;
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
+    renderShell();
+    const link = screen.getByRole('link', { name: /Platform/ });
+    expect(link).toHaveAttribute('href', '/platform');
+    await waitFor(() => expect(link).toHaveTextContent('4'));
+    expect(screen.getByRole('link', { name: 'Club' })).toHaveAttribute('href', '/club');
+    unreviewed.count = 0;
   });
 
   it('shows Club for club admins', () => {

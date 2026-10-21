@@ -1,6 +1,6 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import { Link } from 'react-router-dom';
-import { BookOpen, ChevronRight, KeyRound } from 'lucide-react';
+import { BookOpen, Building2, ChevronRight, KeyRound } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { usePendingSignups } from '../interest/usePendingSignups';
@@ -34,7 +34,7 @@ export function SettingsPage() {
         {aiEnabled && <AiProviderSettings />}
 
         {/* The phone bottom bar has no room for admin pages; this is their way in there. */}
-        {(canGuides || isClubAdmin) && (
+        {(canGuides || isClubAdmin || isPlatformAdmin) && (
           <SettingsSection title="Admin" description="Club-wide guides and who can sign in.">
             <nav aria-label="Admin" className="flex flex-col divide-y divide-border rounded-md border border-border">
               {canGuides && (
@@ -48,6 +48,13 @@ export function SettingsPage() {
                 <Link to="/club" className={ADMIN_LINK}>
                   <KeyRound size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
                   <span className="flex-1">Club</span>
+                  <ChevronRight size={16} aria-hidden="true" className="text-slate" />
+                </Link>
+              )}
+              {isPlatformAdmin && (
+                <Link to="/platform" className={ADMIN_LINK}>
+                  <Building2 size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
+                  <span className="flex-1">Platform</span>
                   {pendingSignups > 0 && (
                     <span className="rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">
                       {pendingSignups}<span className="sr-only"> pending requests</span>

@@ -35,11 +35,14 @@ export async function probePlatformAdmin(email: string): Promise<boolean> {
   }
 }
 
-/** Follows the club doc live; a missing doc or a read error reports `null`. */
+/**
+ * Follows the club doc live; a missing doc or a read error reports `null`.
+ * Pending server timestamps read as local estimates rather than null.
+ */
 export function subscribeClub(clubId: string, onClub: (club: Club | null) => void): Unsubscribe {
   return onSnapshot(
     doc(db, 'clubs', clubId),
-    (snap) => onClub(snap.exists() ? ({ id: snap.id, ...snap.data() } as Club) : null),
+    (snap) => onClub(snap.exists() ? ({ id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) } as Club) : null),
     () => onClub(null),
   );
 }

@@ -13,7 +13,8 @@ export interface ClubTermination {
 
 export interface ClubLegal {
   versionKey: string;
-  acceptedAt: Timestamp;
+  /** Null while a serverTimestamp() write is still pending locally. */
+  acceptedAt: Timestamp | null;
   acceptedBy: string;
 }
 

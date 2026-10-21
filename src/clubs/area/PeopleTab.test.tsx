@@ -162,6 +162,40 @@ describe('PeopleTab', () => {
     await waitFor(() => expect(membersApi.removeFromClub).toHaveBeenCalledWith('coach@example.com'));
   });
 
+  it('asks before an admin demotes themselves, then reloads the page', async () => {
+    const reload = vi.fn();
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...realLocation, reload } });
+    try {
+      vi.mocked(useAuth).mockReturnValue(authValue({
+        access: clubAdminAccess, role: 'admin',
+        appUser: { uid: 'u-2', email: 'second@example.com' },
+        club: testClub({ ownerEmail: 'owner@example.com' }),
+      }));
+      render(<PeopleTab />);
+      await openPerson('second@example.com');
+      fireEvent.click(screen.getByRole('button', { name: 'Make member' }));
+      const dialog = screen.getByRole('alertdialog', { name: 'Stop being an admin?' });
+      expect(membersApi.setMemberRole).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Make me a member' }));
+      await waitFor(() => expect(membersApi.setMemberRole).toHaveBeenCalledWith('second@example.com', 'member'));
+      await waitFor(() => expect(reload).toHaveBeenCalled());
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: realLocation });
+    }
+  });
+
+  it('refuses to add a malformed email', async () => {
+    render(<PeopleTab />);
+    await screen.findByText('coach@example.com');
+    for (const bad of ['coach', 'coach@example', 'co ach@example.com', '@example.com']) {
+      fireEvent.change(screen.getByLabelText('Add person by email'), { target: { value: bad } });
+      fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
+      expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address.');
+    }
+    expect(membersApi.addMember).not.toHaveBeenCalled();
+  });
+
   it('surfaces an error if data fails to load', async () => {
     vi.mocked(accessApi.listAllTeams).mockRejectedValueOnce(new Error('permission-denied'));
     render(<PeopleTab />);

@@ -29,7 +29,7 @@ const memberDoc = (clubId: string, role: string) => ({
 const clubSnap = (id: string, data: Record<string, unknown> | null) => ({
   id,
   exists: () => data !== null,
-  data: () => data,
+  data: vi.fn(() => data),
 });
 
 beforeEach(() => {
@@ -117,5 +117,13 @@ describe('subscribeClub', () => {
     onClub.mockClear();
     error({ code: 'permission-denied' });
     expect(onClub).toHaveBeenCalledWith(null);
+  });
+
+  it('reads pending server timestamps as estimates', () => {
+    subscribeClub('c1', vi.fn());
+    const [, next] = m.onSnapshot.mock.calls[0];
+    const snap = clubSnap('c1', { name: 'One' });
+    next(snap);
+    expect(snap.data).toHaveBeenCalledWith({ serverTimestamps: 'estimate' });
   });
 });

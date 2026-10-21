@@ -28,6 +28,13 @@ vi.mock('./clubs/clubsApi', () => ({
   },
 }));
 
+vi.mock('./interest/interestApi', () => ({
+  listInterestSignups: async () => ({ signups: [], lastDoc: null, hasMore: false }),
+  countUnreviewedInterestSignups: async () => 0,
+  markInterestSignupReviewed: vi.fn(),
+  deleteInterestSignup: vi.fn(),
+  submitInterestSignup: vi.fn(),
+}));
 vi.mock('./platform/platformApi', () => ({
   listClubs: async () => ({ clubs: [], lastDoc: null, hasMore: false }),
   changeClubStatus: vi.fn(),
@@ -81,5 +88,15 @@ describe('App', () => {
     window.history.pushState({}, '', '/admin/access');
     render(<App />);
     await waitFor(() => expect(window.location.pathname + window.location.search).toBe('/club?tab=people'));
+  });
+
+  it('redirects /admin/interest to the Leads tab of /platform', async () => {
+    signedIn.value = true;
+    signedIn.platform = true;
+    signedIn.memberships = false;
+    window.history.pushState({}, '', '/admin/interest');
+    render(<App />);
+    await waitFor(() => expect(window.location.pathname + window.location.search).toBe('/platform?tab=leads'));
+    expect(await screen.findByRole('tab', { name: 'Leads' })).toHaveAttribute('aria-selected', 'true');
   });
 });

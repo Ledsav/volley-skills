@@ -70,6 +70,12 @@ describe('ContractTab', () => {
     expect(screen.getByText(new RegExp(fmt(T1)))).toBeInTheDocument();
   });
 
+  it('shows the accepted terms without a date while acceptedAt is still pending', () => {
+    signIn({ legal: { versionKey: '2026-09', acceptedAt: null, acceptedBy: 'owner@example.com' } });
+    render(<ContractTab />);
+    expect(screen.getByText('2026-09, accepted by owner@example.com')).toBeInTheDocument();
+  });
+
   it('End our contract asks for confirmation then writes the request', async () => {
     signIn();
     render(<ContractTab />);

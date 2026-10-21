@@ -62,6 +62,8 @@ export function App() {
                 </RequirePlatformAdmin>
               }
             />
+            {/* Leads moved to the operator's platform page. */}
+            <Route path="/admin/interest" element={<Navigate to="/platform?tab=leads" replace />} />
             <Route element={<AuthenticatedLayout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/teams" element={<TeamsListPage />} />
@@ -113,7 +115,6 @@ export function App() {
               />
               {/* Old link targets: access management moved into the club area. */}
               <Route path="/admin/access" element={<Navigate to="/club?tab=people" replace />} />
-              <Route path="/admin/interest" element={<Navigate to="/club?tab=people" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
             <Route

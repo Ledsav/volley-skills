@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Timestamp } from 'firebase/firestore';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -95,8 +95,10 @@ describe('ClubGate', () => {
       </MemoryRouter>
     );
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Contract' })).toBeInTheDocument();
+    // Opens on Contract, where the export-window dates are.
+    expect(screen.getByRole('tab', { name: 'Contract' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('tab', { name: 'People & access' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Profile' }));
     for (const input of screen.getAllByRole('textbox')) expect(input).toBeDisabled();
   });
 });

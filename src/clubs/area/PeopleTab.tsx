@@ -22,7 +22,9 @@ function sameGrants(a: GrantSet, b: GrantSet): boolean {
   return sa === sb && SECTION_KEYS.every((s) => a.sections[s] === b.sections[s]);
 }
 
-type Confirm = 'remove' | 'owner' | null;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type Confirm = 'remove' | 'owner' | 'demoteSelf' | null;
 
 export function PeopleTab() {
   const { club, appUser } = useAuth();
@@ -84,6 +86,10 @@ export function PeopleTab() {
   async function add() {
     const email = newEmail.trim().toLowerCase();
     if (!email) return;
+    if (!EMAIL_SHAPE.test(email)) {
+      setError('Enter a valid email address.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -112,6 +118,12 @@ export function PeopleTab() {
     await setMemberRole(selected, role);
     await reload();
   }, 'Could not change the role. Please try again.');
+
+  // Demoting yourself drops your admin access, so the page reloads to pick that up.
+  async function doDemoteSelf() {
+    const ok = await run(() => setMemberRole(myEmail, 'member'), 'Could not change the role. Please try again.');
+    if (ok) window.location.reload();
+  }
 
   async function doRemove() {
     if (!selected) return;
@@ -229,7 +241,11 @@ export function PeopleTab() {
               <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap">
                 {target.role === 'admin' ? (
                   <Button variant="secondary" size="sm" className="w-full sm:w-auto"
-                    disabled={busy || !rules.demote} onClick={() => void changeRole('member')}>
+                    disabled={busy || !rules.demote}
+                    onClick={() => {
+                      if (target.email === myEmail) { setError(null); setConfirm('demoteSelf'); }
+                      else void changeRole('member');
+                    }}>
                     Make member
                   </Button>
                 ) : (
@@ -260,6 +276,12 @@ export function PeopleTab() {
           message="They lose all access to this club's teams and sections right away."
           confirmLabel="Remove" error={error}
           onConfirm={() => void doRemove()} onCancel={() => setConfirm(null)} />
+      )}
+      {confirm === 'demoteSelf' && (
+        <ConfirmDialog title="Stop being an admin?"
+          message="You lose admin access to this club, including this page. The page reloads afterwards."
+          confirmLabel="Make me a member" error={error}
+          onConfirm={() => void doDemoteSelf()} onCancel={() => setConfirm(null)} />
       )}
       {confirm === 'owner' && target && (
         <ConfirmDialog title={`Make ${target.email} the club owner?`}

@@ -119,8 +119,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession({ appUser, access, memberships, activeClubId: clubId, role, isPlatformAdmin, droppedClub: dropped });
         setAuthError(null);
         if (clubId) {
+          // Section access depends on the club's status in the rules, so it is probed again
+          // whenever the status changes; only the latest probe of this sign-in lands.
+          let seenStatus: Club['status'] | null | undefined;
+          let probe = 0;
+          const reprobe = async () => {
+            const mine = ++probe;
+            try {
+              const next = role ? await resolveAccess(role) : null;
+              if (current === generation && mine === probe) setSession((s) => ({ ...s, access: next }));
+            } catch {
+              // Offline or transient: keep the access already resolved.
+            }
+          };
           // Loading ends with the first club snapshot, so screens can branch on its status.
           unsubscribeClub = subscribeClub(clubId, (next) => {
+            const status = next?.status ?? null;
+            if (seenStatus !== undefined && status !== seenStatus) void reprobe();
+            seenStatus = status;
             setClub(next);
             setLoading(false);
           });

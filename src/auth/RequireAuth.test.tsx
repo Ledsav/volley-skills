@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { RequireAuth } from './RequireAuth';
+import { RequireAuth, RequireSignedIn } from './RequireAuth';
 import { useAuth } from './AuthContext';
 import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 
@@ -120,5 +120,22 @@ describe('ClubGate through RequireAuth', () => {
     );
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: "Your club's access is paused" })).toBeInTheDocument();
+  });
+});
+
+describe('RequireSignedIn', () => {
+  it('renders its content for a signed-in person with no club, without the club gate', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ memberships: [], activeClubId: null, club: null, role: null, isPlatformAdmin: true })
+    );
+    render(
+      <MemoryRouter>
+        <RequireSignedIn>
+          <p>Platform content</p>
+        </RequireSignedIn>
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Platform content')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Welcome to Volley Skills' })).not.toBeInTheDocument();
   });
 });

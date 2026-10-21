@@ -35,3 +35,21 @@ describe('WelcomePage', () => {
     expect(switchClub).toHaveBeenCalledWith('club-2');
   });
 });
+
+describe('WelcomePage for a platform admin', () => {
+  it('offers the platform page to a platform admin with no club', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ memberships: [], activeClubId: null, club: null, role: null, isPlatformAdmin: true })
+    );
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Open the platform page' })).toHaveAttribute('href', '/platform');
+  });
+
+  it('does not offer the platform page to anyone else', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ memberships: [], activeClubId: null, club: null, role: null, isPlatformAdmin: false })
+    );
+    renderPage();
+    expect(screen.queryByRole('link', { name: 'Open the platform page' })).not.toBeInTheDocument();
+  });
+});

@@ -1,6 +1,163 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ---- Club platform (multi-club) ------------------------------------------
+    // Emails are stored and compared lowercased everywhere; the token's email is
+    // lowercased here so a mixed-case sign-in still matches its member doc.
+    function signedIn()        { return request.auth != null; }
+    function email()           { return request.auth.token.email.lower(); }
+    // The platform operator. Used only on platformAdmins, clubs/{clubId} itself,
+    // acceptances, statusLog and interestSignups, never on club data.
+    function isPlatformAdmin() { return signedIn() && exists(/databases/$(database)/documents/platformAdmins/$(email())); }
+
+    match /platformAdmins/{e} {
+      allow get: if signedIn() && e == email();
+      allow list, write: if false;
+    }
+
+    // "My clubs": a person reads only member docs carrying their own email
+    // (collection-group query `members where email == me`).
+    match /{path=**}/members/{e} {
+      allow read: if signedIn() && resource.data.email == email();
+    }
+
+    match /clubs/{clubId} {
+      function clubPath()    { return /databases/$(database)/documents/clubs/$(clubId); }
+      function club()        { return get(clubPath()).data; }
+      function memberDoc()   { return /databases/$(database)/documents/clubs/$(clubId)/members/$(email()); }
+      function isMember()    { return signedIn() && exists(memberDoc()); }
+      function isClubAdmin() { return isMember() && get(memberDoc()).data.role == 'admin'; }
+      // Time-aware: a terminating club keeps full use until termination.effectiveAt.
+      function isActive()    { return club().status == 'active'
+                                 || (club().status == 'terminating' && request.time < club().termination.effectiveAt); }
+      function activeMember(){ return isMember() && isActive(); }
+      function activeAdmin() { return isClubAdmin() && isActive(); }
+      // Export-only access for club admins of a suspended club, and of a
+      // terminating club until termination.retrievalEndsAt.
+      function exporter()    { return isClubAdmin() && (club().status in ['active','suspended']
+                                 || (club().status == 'terminating' && request.time < club().termination.retrievalEndsAt)); }
+      function changed()     { return request.resource.data.diff(resource.data).affectedKeys(); }
+      function inSection(s) {
+        return email() in get(/databases/$(database)/documents/clubs/$(clubId)/sectionAccess/$(s)).data.adminEmails;
+      }
+      function canReadExercises()  { return isClubAdmin() || inSection('exercises') || inSection('trainings'); }
+      function canWriteExercises() { return isClubAdmin() || inSection('exercises'); }
+      function canTrainings()      { return isClubAdmin() || inSection('trainings'); }
+      function canGuides()         { return isClubAdmin() || inSection('guides'); }
+
+      function transitionAllowed(from, to) {
+        return (from == 'pending'     && to in ['active','deleted'])
+            || (from == 'active'      && to in ['suspended','terminating'])
+            || (from == 'suspended'   && to in ['active','terminating'])
+            || (from == 'terminating' && to == 'active');
+      }
+      function optTimestamp(v) { return v == null || v is timestamp; }
+
+      // The operator moves a club through its lifecycle. Every change carries a
+      // statusLog entry written in the same batch. `billing` is deliberately not
+      // writable yet; it arrives with payments.
+      function platformStatusChange() {
+        let prev = resource.data;
+        let next = request.resource.data;
+        return isPlatformAdmin()
+          && changed().hasOnly(['status','statusReason','statusChangedAt','statusChangedBy','lastStatusLogId','termination'])
+          && transitionAllowed(prev.status, next.status)
+          && next.statusChangedAt == request.time
+          && next.statusChangedBy == email()
+          && (next.statusReason == null || (next.statusReason is string && next.statusReason.size() <= 300))
+          && (next.status != 'suspended' || (next.statusReason is string && next.statusReason.size() > 0))
+          && next.lastStatusLogId is string
+          && existsAfter(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
+          // Only the operator's half of the termination map; requestedAt/By stay the club's.
+          && next.termination.diff(prev.termination).affectedKeys().hasOnly(['effectiveAt','retrievalEndsAt'])
+          && optTimestamp(next.termination.effectiveAt)
+          && optTimestamp(next.termination.retrievalEndsAt)
+          && (next.status != 'terminating'
+              || (next.termination.effectiveAt is timestamp
+                  && next.termination.retrievalEndsAt is timestamp
+                  && next.termination.retrievalEndsAt >= next.termination.effectiveAt + duration.value(30, 'd')));
+      }
+
+      // Club admins edit the profile of an active (or still pending) club.
+      // `legal` is not editable until Plan 3 (re-acceptance).
+      function clubAdminProfileChange() {
+        let next = request.resource.data;
+        return isClubAdmin()
+          && (isActive() || resource.data.status == 'pending')
+          && changed().hasOnly(['name','country','locale','aiEnabled','referenceOptOut','growthTestsEnabled','ownerEmail'])
+          && next.name is string && next.name.size() >= 2 && next.name.size() <= 80
+          && next.country is string && next.country.matches('^[A-Z]{2}$')
+          && next.locale in ['en','it']
+          && next.aiEnabled is bool
+          && next.referenceOptOut is bool
+          && next.growthTestsEnabled is bool
+          // Ownership moves only to another admin member.
+          && (next.ownerEmail == resource.data.ownerEmail
+              || get(/databases/$(database)/documents/clubs/$(clubId)/members/$(next.ownerEmail)).data.role == 'admin');
+      }
+
+      // A club admin asks to end the contract (a suspended club can still ask to leave).
+      function terminationRequest() {
+        let prev = resource.data.termination;
+        let next = request.resource.data.termination;
+        return isClubAdmin()
+          && resource.data.status in ['active','suspended']
+          && changed().hasOnly(['termination'])
+          && next.diff(prev).affectedKeys().hasOnly(['requestedAt','requestedBy'])
+          && next.requestedAt == request.time
+          && next.requestedBy == email();
+      }
+
+      allow get:  if isMember() || isPlatformAdmin();
+      allow list: if isPlatformAdmin();
+      // The sign-up create (pending club + owner member + acceptance in one batch) arrives in Plan 3.
+      allow create, delete: if false;
+      allow update: if platformStatusChange() || clubAdminProfileChange() || terminationRequest();
+
+      match /members/{e} {
+        function validMember() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['email','clubId','role','addedBy','addedAt'])
+            && d.email == e && e == e.lower()
+            && d.clubId == clubId
+            && d.role in ['admin','member'];
+        }
+        allow read: if activeMember() || exporter() || (isMember() && club().status == 'pending');
+        allow create: if activeAdmin()
+          && validMember()
+          && request.resource.data.addedBy == email()
+          && request.resource.data.addedAt == request.time;
+        // The owner always stays an admin and cannot be removed.
+        allow update: if activeAdmin()
+          && changed().hasOnly(['role'])
+          && request.resource.data.role in ['admin','member']
+          && (e != club().ownerEmail || request.resource.data.role == 'admin');
+        allow delete: if activeAdmin() && e != club().ownerEmail;
+      }
+
+      // Immutable lifecycle log, written by the operator in the same batch as the
+      // status change. get() sees the pre-batch club, getAfter() the post-batch one;
+      // the log must be the one the club change names (lastStatusLogId).
+      match /statusLog/{id} {
+        allow read: if isClubAdmin() || isPlatformAdmin();
+        allow create: if isPlatformAdmin()
+          && request.resource.data.keys().hasOnly(['from','to','reason','by','at'])
+          && request.resource.data.from == club().status
+          && request.resource.data.to == getAfter(clubPath()).data.status
+          && getAfter(clubPath()).data.lastStatusLogId == id
+          && request.resource.data.by == email()
+          && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
+
+      // Immutable legal acceptance records. The sign-up / re-accept create arrives in Plan 3.
+      match /acceptances/{v} {
+        allow read: if isClubAdmin() || isPlatformAdmin();
+        allow write: if false;
+      }
+    }
+
+    // ---- Single-club rules (removed once the data lives under clubs/) ---------
     function isSuperAdmin() {
       return request.auth != null
         && exists(/databases/$(database)/documents/adminAllowlist/$(request.auth.token.email));

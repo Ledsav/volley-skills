@@ -15,10 +15,10 @@ const ADMIN_LINK = 'flex min-h-11 items-center gap-3 px-3 py-2 text-sm font-medi
 export function SettingsPage() {
   usePageMeta({ title: 'Settings' });
   const { signOut, unsyncedDialog } = useSignOut();
-  const { access } = useAuth();
+  const { access, isPlatformAdmin } = useAuth();
   const canGuides = !!access?.sections.guides;
   const isClubAdmin = !!access?.isClubAdmin;
-  const pendingSignups = usePendingSignups(isClubAdmin);
+  const pendingSignups = usePendingSignups(!!isPlatformAdmin);
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">

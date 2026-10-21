@@ -4,8 +4,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AccessManagerPage } from './AccessManagerPage';
 import * as accessApi from './accessApi';
 import * as interestApi from '../interest/interestApi';
+import { useAuth } from '../auth/AuthContext';
+import { authValue, clubAdminAccess } from '../test/authValue';
 
 vi.mock('./accessApi');
+vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../interest/interestApi');
 vi.mock('../firebase/config', () => ({ db: {} }));
 
@@ -24,6 +27,10 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useAuth).mockReturnValue(authValue({
+    access: clubAdminAccess, role: 'admin', isPlatformAdmin: true,
+    appUser: { uid: 'u-1', email: 'admin@example.com' },
+  }));
   vi.mocked(accessApi.emptyGrantSet).mockReturnValue({
     teamIds: [], sections: { exercises: false, trainings: false, guides: false },
   });
@@ -67,6 +74,7 @@ describe('AccessManagerPage', () => {
         'coach@example.com',
         { teamIds: ['t1', 't2'], sections: { exercises: false, trainings: true, guides: false } },
         { teamIds: ['t1'], sections: { exercises: true, trainings: false, guides: false } },
+        'admin@example.com',
       )
     );
   });
@@ -82,6 +90,13 @@ describe('AccessManagerPage', () => {
     vi.mocked(accessApi.listAllTeams).mockRejectedValueOnce(new Error('permission-denied'));
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i);
+  });
+
+  it('hides the access requests panel from a club admin who is not the platform operator', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, role: 'admin', isPlatformAdmin: false }));
+    renderPage();
+    await screen.findByText('coach@example.com');
+    expect(screen.queryByRole('heading', { name: 'Access requests' })).not.toBeInTheDocument();
   });
 
   it('always shows the access requests list, even when none are new', async () => {

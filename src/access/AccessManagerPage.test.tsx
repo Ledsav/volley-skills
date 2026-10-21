@@ -3,11 +3,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AccessManagerPage } from './AccessManagerPage';
 import * as accessApi from './accessApi';
+import * as membersApi from './membersApi';
 import * as interestApi from '../interest/interestApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, clubAdminAccess } from '../test/authValue';
 
 vi.mock('./accessApi');
+vi.mock('./membersApi');
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../interest/interestApi');
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -39,7 +41,7 @@ beforeEach(() => {
     { email: 'coach@example.com', grants: { teamIds: ['t1'], sections: { exercises: true, trainings: false, guides: false } } },
   ]);
   vi.mocked(accessApi.saveGrants).mockResolvedValue(undefined);
-  vi.mocked(accessApi.removeAllGrants).mockResolvedValue(undefined);
+  vi.mocked(membersApi.removeFromClub).mockResolvedValue(undefined);
   vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(0);
   vi.mocked(interestApi.listInterestSignups).mockResolvedValue({ signups: [], lastDoc: null, hasMore: false });
   vi.mocked(interestApi.markInterestSignupReviewed).mockResolvedValue(undefined);
@@ -74,7 +76,6 @@ describe('AccessManagerPage', () => {
         'coach@example.com',
         { teamIds: ['t1', 't2'], sections: { exercises: false, trainings: true, guides: false } },
         { teamIds: ['t1'], sections: { exercises: true, trainings: false, guides: false } },
-        'admin@example.com',
       )
     );
   });
@@ -83,7 +84,7 @@ describe('AccessManagerPage', () => {
     renderPage();
     fireEvent.click(await screen.findByText('coach@example.com'));
     fireEvent.click(screen.getByRole('button', { name: 'Remove all access' }));
-    await waitFor(() => expect(accessApi.removeAllGrants).toHaveBeenCalledWith('coach@example.com'));
+    await waitFor(() => expect(membersApi.removeFromClub).toHaveBeenCalledWith('coach@example.com'));
   });
 
   it('surfaces an error if teams fail to load', async () => {

@@ -159,6 +159,135 @@ service cloud.firestore {
         allow read: if isClubAdmin() || isPlatformAdmin();
         allow write: if false;
       }
+
+      // ---- Team subtree --------------------------------------------------------
+      // Reads need an active (or terminating-in-time) membership, or export-only
+      // access for a club admin; writes need an active membership.
+      match /teams/{teamId} {
+        // A club admin, or an email listed on this team. Short-circuits on the
+        // cheap member-doc read before touching the team doc.
+        function teamAdmin() {
+          return isClubAdmin()
+            || email() in get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)).data.adminEmails;
+        }
+
+        allow read:   if (activeMember() && (email() in resource.data.adminEmails || isClubAdmin()))
+                      || exporter();
+        allow create: if activeMember() && isClubAdmin()
+                      && request.resource.data.createdBy == request.auth.uid
+                      && request.resource.data.adminEmails is list;
+        allow update: if activeMember()
+                      && ((email() in resource.data.adminEmails
+                           && request.resource.data.adminEmails == resource.data.adminEmails)
+                          || isClubAdmin());
+        allow delete: if activeMember() && isClubAdmin();
+
+        match /players/{playerId} {
+          function validScore(score) {
+            return score == null || (score is number && score >= 1 && score <= 10);
+          }
+
+          function validSkills(skills) {
+            return validScore(skills.serve.score) &&
+              validScore(skills.attack.score) &&
+              validScore(skills.block.score) &&
+              validScore(skills.set.score) &&
+              validScore(skills.defence.score) &&
+              validScore(skills.reception.score) &&
+              validScore(skills.jump.score) &&
+              validScore(skills.speed.score) &&
+              validScore(skills.iq.score);
+          }
+
+          allow read: if (activeMember() && (teamAdmin() || email() in resource.data.viewerEmails))
+                      || exporter();
+          allow create, update: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills);
+          allow delete: if activeMember() && teamAdmin();
+
+          match /physicalTests/{testId} {
+            allow read: if (activeMember() && (teamAdmin() ||
+                email() in
+                  get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/players/$(playerId)).data.viewerEmails))
+              || exporter();
+            allow create, update: if activeMember() && teamAdmin();
+            // Team admins can delete a single entry from the history view, and this
+            // also lets a player's own hard-delete clean up their test history
+            // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
+            allow delete: if activeMember() && teamAdmin();
+          }
+        }
+
+        match /calendar/{sessionId} {
+          allow read: if (activeMember() && teamAdmin() && canTrainings()) || exporter();
+          allow create: if activeMember() && teamAdmin() && canTrainings()
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.date is string;
+          allow update: if false;
+          allow delete: if activeMember() && teamAdmin() && canTrainings();
+        }
+
+        match /testingSessions/{sessionId} {
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow create, update: if activeMember() && teamAdmin();
+          // Team admins delete a session started by mistake (its entries and
+          // results go with it, client-side); team deletion also clears them.
+          allow delete: if activeMember() && teamAdmin();
+
+          match /entries/{entryId} {
+            allow read: if (activeMember() && teamAdmin()) || exporter();
+            allow create, update: if activeMember() && teamAdmin()
+              && get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
+            // Team admins can delete in any session status: deleting a player
+            // erases their entries too (GDPR erasure, app design spec §10).
+            allow delete: if activeMember() && teamAdmin();
+          }
+        }
+
+        match /matches/{matchId} {
+          function validStatus(d) {
+            return d.status in ['setup', 'live', 'finished'];
+          }
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow delete: if activeMember() && teamAdmin();
+          allow create: if activeMember() && teamAdmin()
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.date is string
+            && validStatus(request.resource.data);
+          allow update: if activeMember() && teamAdmin()
+            && request.resource.data.date is string
+            && validStatus(request.resource.data);
+
+          match /events/{eventId} {
+            function validEvent(d) {
+              return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
+                && d.order is number
+                && d.source in ['tap', 'text', 'correction']
+                && (d.type != 'action'
+                    || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
+                        && d.grade in ['#', '+', '!', '-', '/', '=']));
+            }
+            allow read: if (activeMember() && teamAdmin()) || exporter();
+            allow delete: if activeMember() && teamAdmin();
+            allow create, update: if activeMember() && teamAdmin() && validEvent(request.resource.data);
+          }
+        }
+
+        match /awards/{scope} {
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow delete: if activeMember() && teamAdmin();
+          allow create, update: if activeMember() && teamAdmin()
+            && scope == 'season'
+            && request.resource.data.picks is map
+            && request.resource.data.custom is list
+            && request.resource.data.custom.size() <= 5
+            && request.resource.data.order is list;
+        }
+
+        match /scoutProfile/{docId} {
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow write: if activeMember() && teamAdmin();
+        }
+      }
     }
 
     // ---- Single-club rules (removed once the data lives under clubs/) ---------

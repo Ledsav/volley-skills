@@ -1,6 +1,6 @@
 import { assertFails, assertSucceeds, type RulesTestContext } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { getTestEnv } from './testEnv';
+import { getTestEnv, seedClub } from './testEnv';
 
 const NULL_SKILLS = {
   serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
@@ -11,6 +11,7 @@ describe('bulk import rules', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
+    await seedClub(env, { id: 'club-a', admins: ['coach@example.com'] });
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
       await db.doc('adminAllowlist/coach@example.com').set({});
@@ -20,7 +21,7 @@ describe('bulk import rules', () => {
       await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
       await db.doc('sectionAccess/trainings').set({ adminEmails: ['trainer@example.com'] });
       await db.doc('sectionAccess/guides').set({ adminEmails: [] });
-      await db.doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
+      await db.doc('clubs/club-a/teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
       await db.doc('counters/trainings').set({ lastSequence: 6 });
     });
   });
@@ -62,12 +63,12 @@ describe('bulk import rules', () => {
     await assertFails(batch.commit());
   });
 
-  it('accepts a team-admin batch of valid players', async () => {
+  it('accepts a club-admin batch of valid players', async () => {
     const env = await getTestEnv();
     const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
     const batch = db.batch();
     for (const number of [4, 5]) {
-      batch.set(db.collection('teams/team-1/players').doc(), {
+      batch.set(db.collection('clubs/club-a/teams/team-1/players').doc(), {
         number,
         fullName: `Player ${number}`,
         skills: NULL_SKILLS,
@@ -83,7 +84,7 @@ describe('bulk import rules', () => {
     const env = await getTestEnv();
     const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
     const batch = db.batch();
-    batch.set(db.collection('teams/team-1/players').doc(), {
+    batch.set(db.collection('clubs/club-a/teams/team-1/players').doc(), {
       number: 7,
       fullName: 'Good Skills',
       skills: NULL_SKILLS,
@@ -91,7 +92,7 @@ describe('bulk import rules', () => {
       consent: { given: false, date: null, confirmedBy: null },
       createdBy: 'admin-uid',
     });
-    batch.set(db.collection('teams/team-1/players').doc(), {
+    batch.set(db.collection('clubs/club-a/teams/team-1/players').doc(), {
       number: 6,
       fullName: 'Bad Skills',
       skills: { ...NULL_SKILLS, serve: { score: 42 } },

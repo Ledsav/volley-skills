@@ -87,6 +87,11 @@ async function main() {
     out[name] = scores;
   });
 
+  if (Object.keys(out).length === 0) {
+    console.error(`No player under clubs/${args.club}/ has a fullName — nothing to snapshot. ${args.out} was not written.`);
+    process.exit(1);
+  }
+
   const sorted = Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
   writeFileSync(args.out, JSON.stringify(sorted, null, 2) + '\n');
   console.log(`Wrote ${Object.keys(sorted).length} players to ${args.out}${dupes ? ` (${dupes} duplicate name(s) collapsed)` : ''}.`);

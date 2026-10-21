@@ -108,6 +108,21 @@ describe('physicalTests rules', () => {
     await assertSucceeds(db.doc(`${TESTS}/test-1`).update({ bestCm: 35 }));
   });
 
+  it('refuses relabelling an existing growth test while growth tests are off', async () => {
+    const env = await getTestEnv();
+    await env.clearFirestore();
+    await seedTeamPlayerAndTest(env, false);
+    const db = dbAs(env, 'coach@example.com');
+    await assertFails(db.doc(`${TESTS}/growth-1`).update({ testType: 'cmj', heightCm: 170 }));
+    // Deleting it stays allowed (see the delete test below).
+  });
+
+  it('lets a growth test be relabelled while growth tests are on', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, 'coach@example.com');
+    await assertSucceeds(db.doc(`${TESTS}/growth-1`).update({ testType: 'cmj', heightCm: 170 }));
+  });
+
   it('accepts growth tests when the club has growth tests on', async () => {
     const env = await getTestEnv();
     const db = dbAs(env, 'coach@example.com');

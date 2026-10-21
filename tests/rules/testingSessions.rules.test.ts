@@ -110,13 +110,22 @@ describe('testingSessions rules', () => {
     });
     await assertFails(db.doc(`${entries}/player-1__growth`).set(entry('growth')));
     await assertFails(db.doc(`${entries}/player-2__growth`).update({ status: 'complete' }));
+    // Relabelling the stored growth entry does not get round the gate.
+    await assertFails(db.doc(`${entries}/player-2__growth`).update({ testType: 'cmj', status: 'complete' }));
     // Other test types are unaffected, and an existing growth entry can still be deleted.
     await assertSucceeds(db.doc(`${entries}/player-1__cmj`).set(entry('cmj')));
     await assertSucceeds(db.doc(`${entries}/player-2__growth`).delete());
-    // Control: with growth tests on, the same growth entry is accepted.
+    // Control: with growth tests on, the same growth entry is accepted and the
+    // relabel goes through.
     await env.clearFirestore();
     await seedTeam(env, true);
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`${entries}/player-2__growth`).set({
+        playerId: 'player-2', testType: 'growth', status: 'in_progress', data: {}, resultTestId: null,
+      });
+    });
     await assertSucceeds(db.doc(`${entries}/player-1__growth`).set(entry('growth')));
+    await assertSucceeds(db.doc(`${entries}/player-2__growth`).update({ testType: 'cmj', status: 'complete' }));
   });
 
   it('denies a non-admin from reading or writing entries', async () => {

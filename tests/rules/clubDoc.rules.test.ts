@@ -275,6 +275,59 @@ describe('club doc rules', () => {
     );
   });
 
+  it('refuses entering terminating with an effectiveAt in the past', async () => {
+    // Entering terminating with effectiveAt two days ago.
+    const twoDaysAgo = inDays(-2);
+    await assertFails(
+      statusBatch({
+        from: 'active',
+        to: 'terminating',
+        clubExtra: {
+          'termination.effectiveAt': twoDaysAgo,
+          'termination.retrievalEndsAt': new Date(twoDaysAgo.getTime() + 30 * DAY),
+        },
+      })
+    );
+  });
+
+  it('refuses re-dating a live termination into the past', async () => {
+    // Re-dating to 40 days ago (retrieval would have ended 10 days ago).
+    await seedClubIn('terminating');
+    await assertFails(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        clubExtra: { 'termination.effectiveAt': inDays(-40), 'termination.retrievalEndsAt': inDays(-10) },
+      })
+    );
+  });
+
+  it('accepts effectiveAt = now (serious breach), entering and re-dating', async () => {
+    const now = new Date();
+    await assertSucceeds(
+      statusBatch({
+        from: 'active',
+        to: 'terminating',
+        clubExtra: {
+          'termination.effectiveAt': now,
+          'termination.retrievalEndsAt': new Date(now.getTime() + 30 * DAY),
+        },
+      })
+    );
+    const again = new Date();
+    await assertSucceeds(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        logId: 'log-2',
+        clubExtra: {
+          'termination.effectiveAt': again,
+          'termination.retrievalEndsAt': new Date(again.getTime() + 30 * DAY),
+        },
+      })
+    );
+  });
+
   it("refuses a statusLog whose reason differs from the club's statusReason", async () => {
     await assertFails(
       statusBatch({ from: 'active', to: 'suspended', clubExtra: { statusReason: 'a' }, log: { reason: 'b' } })

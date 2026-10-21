@@ -38,8 +38,12 @@ service cloud.firestore {
                                  || (club().status == 'terminating' && request.time < club().termination.retrievalEndsAt)); }
       // Growth (height/weight) tests are opt-in per club; other test types are
       // unaffected. club() is already read by activeMember(), so no extra lookup.
+      // An update checks the stored type too, so a growth record cannot be edited
+      // by relabelling it while growth tests are off. Deletes stay allowed.
       function growthAllowed() { return request.resource.data.testType != 'growth'
                                  || club().growthTestsEnabled == true; }
+      function growthUpdateAllowed() { return growthAllowed()
+                                 && (resource.data.testType != 'growth' || club().growthTestsEnabled == true); }
       function changed()     { return request.resource.data.diff(resource.data).affectedKeys(); }
       function inSection(s) {
         return email() in get(/databases/$(database)/documents/clubs/$(clubId)/sectionAccess/$(s)).data.adminEmails;
@@ -82,6 +86,9 @@ service cloud.firestore {
           && (next.status != 'terminating'
               || (next.termination.effectiveAt is timestamp
                   && next.termination.retrievalEndsAt is timestamp
+                  // effectiveAt may be now (serious breach), never the past; one day
+                  // of tolerance covers "today" in local time.
+                  && next.termination.effectiveAt >= request.time - duration.value(1, 'd')
                   && next.termination.retrievalEndsAt >= next.termination.effectiveAt + duration.value(30, 'd')));
       }
 
@@ -217,7 +224,8 @@ service cloud.firestore {
                 email() in
                   get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/players/$(playerId)).data.viewerEmails))
               || exporter();
-            allow create, update: if activeMember() && teamAdmin() && growthAllowed();
+            allow create: if activeMember() && teamAdmin() && growthAllowed();
+            allow update: if activeMember() && teamAdmin() && growthUpdateAllowed();
             // Team admins can delete a single entry from the history view, and this
             // also lets a player's own hard-delete clean up their test history
             // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
@@ -243,8 +251,11 @@ service cloud.firestore {
 
           match /entries/{entryId} {
             allow read: if (activeMember() && teamAdmin()) || exporter();
-            allow create, update: if activeMember() && teamAdmin() && growthAllowed()
-              && get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
+            function sessionOpen() {
+              return get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
+            }
+            allow create: if activeMember() && teamAdmin() && growthAllowed() && sessionOpen();
+            allow update: if activeMember() && teamAdmin() && growthUpdateAllowed() && sessionOpen();
             // Team admins can delete in any session status: deleting a player
             // erases their entries too (GDPR erasure, app design spec §10).
             allow delete: if activeMember() && teamAdmin();

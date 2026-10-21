@@ -6,7 +6,7 @@ async function seedTeam(env: Awaited<ReturnType<typeof getTestEnv>>) {
   await seedClub(env, {
     id: 'club-a',
     admins: ['super@example.com'],
-    members: ['coach@example.com', 'other-coach@example.com'],
+    members: ['coach@example.com', 'other-coach@example.com', 'plain@example.com'],
   });
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -143,5 +143,19 @@ describe('testingSessions rules', () => {
 
     const clubAdmin = dbAs(env, 'super@example.com');
     await assertSucceeds(clubAdmin.doc('clubs/club-a/teams/team-1/testingSessions/session-closed/entries/player-2__cmj').delete());
+  });
+
+  it('denies a club member who is not a team admin any session or entry access', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, 'plain@example.com');
+    const s = 'clubs/club-a/teams/team-1/testingSessions/session-1';
+    await assertFails(db.doc(s).get());
+    await assertFails(db.collection('clubs/club-a/teams/team-1/testingSessions').add({ date: '2026-09-17', status: 'open', createdBy: 'uid-plain@example.com' }));
+    await assertFails(db.doc(s).delete());
+    await assertFails(db.doc(`${s}/entries/player-1__cmj`).get());
+    await assertFails(
+      db.doc(`${s}/entries/player-1__cmj`).set({ playerId: 'player-1', testType: 'cmj', status: 'in_progress', data: {}, resultTestId: null })
+    );
+    await assertFails(db.doc(`${s}/entries/player-1__cmj`).delete());
   });
 });

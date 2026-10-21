@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, it } from 'vitest';
 import { dbAs, getTestEnv, seedClub } from './testEnv';
 
 async function seedTeamPlayerAndTest(env: Awaited<ReturnType<typeof getTestEnv>>) {
-  await seedClub(env, { id: 'club-a', admins: ['super@example.com'], members: ['coach@example.com', 'parent@example.com'] });
+  await seedClub(env, { id: 'club-a', admins: ['super@example.com'], members: ['coach@example.com', 'parent@example.com', 'plain@example.com'] });
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     await db.doc('clubs/club-a/teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
@@ -70,5 +70,21 @@ describe('physicalTests rules', () => {
 
     const adminDb = dbAs(env, 'coach@example.com');
     await assertSucceeds(adminDb.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/test-1').delete());
+  });
+
+  it('denies a club member who is neither viewer nor team admin', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, 'plain@example.com');
+    await assertFails(db.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/test-1').get());
+    await assertFails(db.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/test-1').delete());
+  });
+
+  it('denies a viewer listed in viewerEmails who is not a club member', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('clubs/club-a/teams/team-1/players/player-1').update({ viewerEmails: ['parent@example.com', 'ghost@example.com'] });
+    });
+    const db = dbAs(env, 'ghost@example.com');
+    await assertFails(db.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/test-1').get());
   });
 });

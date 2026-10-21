@@ -36,6 +36,10 @@ service cloud.firestore {
       // terminating club until termination.retrievalEndsAt.
       function exporter()    { return isClubAdmin() && (club().status in ['active','suspended']
                                  || (club().status == 'terminating' && request.time < club().termination.retrievalEndsAt)); }
+      // Growth (height/weight) tests are opt-in per club; other test types are
+      // unaffected. club() is already read by activeMember(), so no extra lookup.
+      function growthAllowed() { return request.resource.data.testType != 'growth'
+                                 || club().growthTestsEnabled == true; }
       function changed()     { return request.resource.data.diff(resource.data).affectedKeys(); }
       function inSection(s) {
         return email() in get(/databases/$(database)/documents/clubs/$(clubId)/sectionAccess/$(s)).data.adminEmails;
@@ -49,13 +53,14 @@ service cloud.firestore {
         return (from == 'pending'     && to in ['active','deleted'])
             || (from == 'active'      && to in ['suspended','terminating'])
             || (from == 'suspended'   && to in ['active','terminating'])
-            || (from == 'terminating' && to == 'active');
+            || (from == 'terminating' && to in ['active','terminating']);
       }
       function optTimestamp(v) { return v == null || v is timestamp; }
 
       // The operator moves a club through its lifecycle. Every change carries a
-      // statusLog entry written in the same batch. `billing` is deliberately not
-      // writable yet; it arrives with payments.
+      // statusLog entry written in the same batch. terminating -> terminating is a
+      // change of termination dates: it too needs a fresh log and the 30-day rule.
+      // `billing` is deliberately not writable yet; it arrives with payments.
       function platformStatusChange() {
         let prev = resource.data;
         let next = request.resource.data;
@@ -141,11 +146,14 @@ service cloud.firestore {
 
       // Immutable lifecycle log, written by the operator in the same batch as the
       // status change. get() sees the pre-batch club, getAfter() the post-batch one;
-      // the log must be the one the club change names (lastStatusLogId).
+      // the log must be the one the club change names (lastStatusLogId), and its
+      // reason is always present and equal to the club's statusReason.
       match /statusLog/{id} {
         allow read: if isClubAdmin() || isPlatformAdmin();
         allow create: if isPlatformAdmin()
           && request.resource.data.keys().hasOnly(['from','to','reason','by','at'])
+          && request.resource.data.keys().hasAll(['from','to','reason','by','at'])
+          && request.resource.data.reason == getAfter(clubPath()).data.statusReason
           && request.resource.data.from == club().status
           && request.resource.data.to == getAfter(clubPath()).data.status
           && getAfter(clubPath()).data.lastStatusLogId == id
@@ -209,7 +217,7 @@ service cloud.firestore {
                 email() in
                   get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/players/$(playerId)).data.viewerEmails))
               || exporter();
-            allow create, update: if activeMember() && teamAdmin();
+            allow create, update: if activeMember() && teamAdmin() && growthAllowed();
             // Team admins can delete a single entry from the history view, and this
             // also lets a player's own hard-delete clean up their test history
             // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
@@ -235,7 +243,7 @@ service cloud.firestore {
 
           match /entries/{entryId} {
             allow read: if (activeMember() && teamAdmin()) || exporter();
-            allow create, update: if activeMember() && teamAdmin()
+            allow create, update: if activeMember() && teamAdmin() && growthAllowed()
               && get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
             // Team admins can delete in any session status: deleting a player
             // erases their entries too (GDPR erasure, app design spec §10).

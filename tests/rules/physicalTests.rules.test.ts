@@ -2,8 +2,13 @@ import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
 import { dbAs, getTestEnv, seedClub } from './testEnv';
 
-async function seedTeamPlayerAndTest(env: Awaited<ReturnType<typeof getTestEnv>>) {
-  await seedClub(env, { id: 'club-a', admins: ['super@example.com'], members: ['coach@example.com', 'parent@example.com', 'plain@example.com'] });
+async function seedTeamPlayerAndTest(env: Awaited<ReturnType<typeof getTestEnv>>, growthTestsEnabled = true) {
+  await seedClub(env, {
+    id: 'club-a',
+    admins: ['super@example.com'],
+    members: ['coach@example.com', 'parent@example.com', 'plain@example.com'],
+    growthTestsEnabled,
+  });
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     await db.doc('clubs/club-a/teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
@@ -21,8 +26,18 @@ async function seedTeamPlayerAndTest(env: Awaited<ReturnType<typeof getTestEnv>>
       bestCm: 34,
       date: '2026-09-07',
     });
+    await db.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/growth-1').set({
+      testType: 'growth',
+      heightCm: 160,
+      bodyMassKg: 50,
+      date: '2026-09-07',
+    });
   });
 }
+
+const TESTS = 'clubs/club-a/teams/team-1/players/player-1/physicalTests';
+const growthTest = { testType: 'growth', heightCm: 161, bodyMassKg: 51, date: '2026-09-08' };
+const cmjTest = { testType: 'cmj', attemptsCm: [31, 35, 33], bestCm: 35, date: '2026-09-08' };
 
 describe('physicalTests rules', () => {
   beforeEach(async () => {
@@ -77,6 +92,35 @@ describe('physicalTests rules', () => {
     const db = dbAs(env, 'plain@example.com');
     await assertFails(db.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/test-1').get());
     await assertFails(db.doc('clubs/club-a/teams/team-1/players/player-1/physicalTests/test-1').delete());
+  });
+
+  it('refuses a growth test when the club has growth tests off', async () => {
+    const env = await getTestEnv();
+    await env.clearFirestore();
+    await seedTeamPlayerAndTest(env, false);
+    const db = dbAs(env, 'coach@example.com');
+    await assertFails(db.collection(TESTS).add(growthTest));
+    await assertFails(db.doc(`${TESTS}/growth-1`).update({ heightCm: 162 }));
+    // Turning an existing test into a growth test is refused too.
+    await assertFails(db.doc(`${TESTS}/test-1`).update({ ...growthTest }));
+    // Other test types are unaffected.
+    await assertSucceeds(db.collection(TESTS).add(cmjTest));
+    await assertSucceeds(db.doc(`${TESTS}/test-1`).update({ bestCm: 35 }));
+  });
+
+  it('accepts growth tests when the club has growth tests on', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, 'coach@example.com');
+    await assertSucceeds(db.collection(TESTS).add(growthTest));
+    await assertSucceeds(db.doc(`${TESTS}/growth-1`).update({ heightCm: 162 }));
+  });
+
+  it('still lets a team admin delete an existing growth test when growth tests are off', async () => {
+    const env = await getTestEnv();
+    await env.clearFirestore();
+    await seedTeamPlayerAndTest(env, false);
+    await assertFails(dbAs(env, 'parent@example.com').doc(`${TESTS}/growth-1`).delete());
+    await assertSucceeds(dbAs(env, 'coach@example.com').doc(`${TESTS}/growth-1`).delete());
   });
 
   it('denies a viewer listed in viewerEmails who is not a club member', async () => {

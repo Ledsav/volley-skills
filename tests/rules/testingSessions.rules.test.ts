@@ -2,11 +2,12 @@ import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
 import { dbAs, getTestEnv, seedClub } from './testEnv';
 
-async function seedTeam(env: Awaited<ReturnType<typeof getTestEnv>>) {
+async function seedTeam(env: Awaited<ReturnType<typeof getTestEnv>>, growthTestsEnabled = true) {
   await seedClub(env, {
     id: 'club-a',
     admins: ['super@example.com'],
     members: ['coach@example.com', 'other-coach@example.com', 'plain@example.com'],
+    growthTestsEnabled,
   });
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
@@ -91,6 +92,31 @@ describe('testingSessions rules', () => {
         resultTestId: null,
       })
     );
+  });
+
+  it('refuses a growth entry when the club has growth tests off', async () => {
+    const env = await getTestEnv();
+    await env.clearFirestore();
+    await seedTeam(env, false);
+    const entries = 'clubs/club-a/teams/team-1/testingSessions/session-1/entries';
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`${entries}/player-2__growth`).set({
+        playerId: 'player-2', testType: 'growth', status: 'in_progress', data: {}, resultTestId: null,
+      });
+    });
+    const db = dbAs(env, 'coach@example.com');
+    const entry = (testType: string) => ({
+      playerId: 'player-1', testType, status: 'in_progress', data: {}, resultTestId: null,
+    });
+    await assertFails(db.doc(`${entries}/player-1__growth`).set(entry('growth')));
+    await assertFails(db.doc(`${entries}/player-2__growth`).update({ status: 'complete' }));
+    // Other test types are unaffected, and an existing growth entry can still be deleted.
+    await assertSucceeds(db.doc(`${entries}/player-1__cmj`).set(entry('cmj')));
+    await assertSucceeds(db.doc(`${entries}/player-2__growth`).delete());
+    // Control: with growth tests on, the same growth entry is accepted.
+    await env.clearFirestore();
+    await seedTeam(env, true);
+    await assertSucceeds(db.doc(`${entries}/player-1__growth`).set(entry('growth')));
   });
 
   it('denies a non-admin from reading or writing entries', async () => {

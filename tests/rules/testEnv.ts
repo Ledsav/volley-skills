@@ -121,3 +121,92 @@ export function dbAs(env: RulesTestEnvironment, email: string): Firestore {
 export function serverTimestamp(): firebase.firestore.FieldValue {
   return firebase.firestore.FieldValue.serverTimestamp();
 }
+
+/**
+ * Every doc path inside a club (relative to `clubs/{clubId}`; '' is the club doc
+ * itself), with one valid doc at each once `seedClubTree` has run. The isolation
+ * suites (cross-club, platform admin) probe these.
+ */
+export function clubTreePaths(clubId: string, teamId: string, memberEmail: string): string[] {
+  const team = `teams/${teamId}`;
+  return [
+    '',
+    `members/${memberEmail.toLowerCase()}`,
+    'acceptances/v1',
+    'statusLog/l1',
+    team,
+    `${team}/players/p1`,
+    `${team}/players/p1/physicalTests/t1`,
+    `${team}/calendar/s1`,
+    `${team}/testingSessions/ts1`,
+    `${team}/testingSessions/ts1/entries/e1`,
+    `${team}/matches/m1`,
+    `${team}/matches/m1/events/ev1`,
+    `${team}/awards/season`,
+    `${team}/scoutProfile/usage`,
+    'exercises/x1',
+    'exercises/x1/diagrams/d1',
+    'trainings/tr1',
+    'counters/trainings',
+    'config/skillGuide',
+    'config/physicalTestGuide',
+    'sectionAccess/exercises',
+  ].map((p) => (p ? `clubs/${clubId}/${p}` : `clubs/${clubId}`));
+}
+
+/**
+ * Writes one valid doc at every non-seedClub path of `clubTreePaths` (the club,
+ * members and sectionAccess docs come from `seedClub`). `teamAdmins` go on the
+ * team's `adminEmails` and the player's `viewerEmails`.
+ */
+export async function seedClubTree(
+  env: RulesTestEnvironment,
+  clubId: string,
+  teamId: string,
+  teamAdmins: string[]
+): Promise<void> {
+  const emails = teamAdmins.map((e) => e.toLowerCase());
+  const skill = { score: 5 };
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    const c = `clubs/${clubId}`;
+    const team = `${c}/teams/${teamId}`;
+    const writes: Array<[string, Record<string, unknown>]> = [
+      [`${c}/acceptances/v1`, { versionKey: 'v1', acceptedBy: 'seed@example.com', acceptedAt: new Date() }],
+      [`${c}/statusLog/l1`, { from: 'pending', to: 'active', reason: null, by: OPERATOR, at: new Date() }],
+      [team, { name: `Team ${teamId}`, adminEmails: emails, createdBy: 'seed' }],
+      [
+        `${team}/players/p1`,
+        {
+          name: 'Player One',
+          viewerEmails: emails,
+          skills: {
+            serve: skill, attack: skill, block: skill, set: skill, defence: skill,
+            reception: skill, jump: skill, speed: skill, iq: skill,
+          },
+        },
+      ],
+      [`${team}/players/p1/physicalTests/t1`, { testType: 'sprint', date: '2026-10-01', value: 4.2 }],
+      [`${team}/calendar/s1`, { date: '2026-10-01', createdBy: 'seed' }],
+      [`${team}/testingSessions/ts1`, { status: 'open', date: '2026-10-01' }],
+      [`${team}/testingSessions/ts1/entries/e1`, { playerId: 'p1', value: 4.2 }],
+      [`${team}/matches/m1`, { status: 'finished', date: '2026-10-01', createdBy: 'seed' }],
+      [`${team}/matches/m1/events/ev1`, { type: 'point', order: 1, source: 'tap' }],
+      [`${team}/awards/season`, { picks: {}, custom: [], order: [] }],
+      [`${team}/scoutProfile/usage`, { counts: {} }],
+      [`${c}/exercises/x1`, { name: 'Pepper', category: 'warmup', createdBy: 'seed' }],
+      [
+        `${c}/exercises/x1/diagrams/d1`,
+        { title: 'Setup', order: 0, updatedBy: 'seed', scene: { v: 1, court: 'full', items: [] } },
+      ],
+      [
+        `${c}/trainings/tr1`,
+        { businessId: 'T-0001', name: 'Monday', exercises: [], exerciseIds: [], createdBy: 'seed' },
+      ],
+      [`${c}/counters/trainings`, { lastSequence: 1 }],
+      [`${c}/config/skillGuide`, { skills: [] }],
+      [`${c}/config/physicalTestGuide`, { tests: [] }],
+    ];
+    for (const [path, data] of writes) await db.doc(path).set(data);
+  });
+}

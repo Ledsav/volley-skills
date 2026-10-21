@@ -1,16 +1,15 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
-import { getTestEnv } from './testEnv';
+import { dbAs, getTestEnv, OPERATOR, seedClub, seedPlatformAdmin } from './testEnv';
 
 describe('interestSignups', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
+    await seedPlatformAdmin(env, OPERATOR);
+    await seedClub(env, { id: 'club-a', admins: ['club-admin@example.com'] });
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
-      await db.doc('adminAllowlist/super@example.com').set({});
-      await db.doc('users/super-uid').set({ email: 'super@example.com', role: 'superadmin' });
-      await db.doc('users/member-uid').set({ email: 'member@example.com', role: 'member' });
       await db.doc('interestSignups/s-1').set({
         name: 'Jamie Coach', email: 'jamie@example.com', role: 'coach', reviewed: false, createdAt: new Date(),
       });
@@ -79,7 +78,7 @@ describe('interestSignups', () => {
     );
   });
 
-  it('denies a non-superadmin reading, updating, or deleting signups', async () => {
+  it('denies a signed-in non-operator reading, updating, or deleting signups', async () => {
     const db = await authDb('member-uid', 'member@example.com');
     await assertFails(db.doc('interestSignups/s-1').get());
     await assertFails(db.doc('interestSignups/s-1').update({ reviewed: true }));
@@ -92,8 +91,17 @@ describe('interestSignups', () => {
     await assertFails(db.doc('interestSignups/s-1').update({ reviewed: true }));
   });
 
-  it('lets a superadmin read, mark reviewed, and delete signups', async () => {
-    const db = await authDb('super-uid', 'super@example.com');
+  it('denies a club admin reading sign-ups', async () => {
+    const db = dbAs(await getTestEnv(), 'club-admin@example.com');
+    await assertFails(db.doc('interestSignups/s-1').get());
+    await assertFails(db.collection('interestSignups').get());
+    await assertFails(db.doc('interestSignups/s-1').update({ reviewed: true }));
+    await assertFails(db.doc('interestSignups/s-1').delete());
+  });
+
+  it('lets the platform admin read, mark reviewed, and delete signups', async () => {
+    const db = dbAs(await getTestEnv(), OPERATOR);
+    await assertSucceeds(db.collection('interestSignups').get());
     await assertSucceeds(db.doc('interestSignups/s-1').get());
     await assertSucceeds(db.doc('interestSignups/s-1').update({ reviewed: true }));
     await assertSucceeds(db.doc('interestSignups/s-1').delete());

@@ -15,7 +15,7 @@ export interface StoryStat {
   detail: string | null;
 }
 
-export const MIN_ROTATION_RALLIES = 20;
+const MIN_ROTATION_RALLIES = 20;
 
 const pct = (x: number) => Math.round(x * 100);
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);

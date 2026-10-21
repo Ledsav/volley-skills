@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   bulkCreatePlayers,
   createPlayer,
@@ -61,6 +61,10 @@ const team: Team = {
 };
 
 describe('playersApi', () => {
+  // Retry tests run withBackoff's jittered sleeps on fake timers, so they
+  // stay instant and don't depend on its default delays.
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     mockAddDoc.mockReset();
     mockGetDocs.mockReset();
@@ -199,7 +203,8 @@ describe('playersApi', () => {
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
     const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
-    const count = await bulkCreatePlayers(
+    vi.useFakeTimers();
+    const pending = bulkCreatePlayers(
       'team-1',
       team,
       [
@@ -218,6 +223,8 @@ describe('playersApi', () => {
       ],
       'coach-uid'
     );
+    await vi.runAllTimersAsync();
+    const count = await pending;
 
     expect(count).toBe(1);
     expect(batchCommit).toHaveBeenCalledTimes(2);

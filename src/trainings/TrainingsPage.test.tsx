@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { TrainingsPage } from './TrainingsPage';
 import * as trainingsApi from './trainingsApi';
 
@@ -67,6 +67,13 @@ describe('TrainingsPage', () => {
     vi.mocked(trainingsApi.findTrainingByBusinessId).mockResolvedValue(training);
   });
 
+  afterEach(() => vi.useRealTimers());
+
+  // The free-text filters are debounced; tests that type into them switch to
+  // fake timers after the first load and flush the debounce, so they stay fast
+  // and don't depend on the debounce delay.
+  const flushDebounce = () => act(() => vi.runOnlyPendingTimersAsync());
+
   it('lists trainings from the paginated query by default', async () => {
     renderPage();
     expect(await screen.findByText('Passing circuit')).toBeInTheDocument();
@@ -111,10 +118,12 @@ describe('TrainingsPage', () => {
   it('switches to the single business-id lookup when that field is filled', async () => {
     renderPage();
     await screen.findByText('Passing circuit');
+    vi.useFakeTimers();
 
     fireEvent.change(screen.getByLabelText('Business ID'), { target: { value: 'TR-0007' } });
+    await flushDebounce();
 
-    await waitFor(() => expect(trainingsApi.findTrainingByBusinessId).toHaveBeenCalledWith('TR-0007'));
+    expect(trainingsApi.findTrainingByBusinessId).toHaveBeenCalledWith('TR-0007');
   });
 
   it('seeds the business-id filter from the ?businessId= query param', async () => {
@@ -169,6 +178,7 @@ describe('TrainingsPage', () => {
     renderPage();
     await screen.findByText('Passing circuit');
     vi.mocked(trainingsApi.listTrainings).mockClear();
+    vi.useFakeTimers();
 
     const field = screen.getByLabelText('Age group');
     fireEvent.change(field, { target: { value: 'U' } });
@@ -177,7 +187,8 @@ describe('TrainingsPage', () => {
 
     expect(trainingsApi.listTrainings).not.toHaveBeenCalled();
 
-    await waitFor(() => expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1));
+    await flushDebounce();
+    expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1);
     expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' });
   });
 

@@ -1,6 +1,6 @@
 import type { DiagramItemType } from '../types/diagram';
 
-export const PALETTE_ITEMS: { type: DiagramItemType; label: string }[] = [
+const PALETTE_ITEMS: { type: DiagramItemType; label: string }[] = [
   { type: 'player', label: 'Player' },
   { type: 'ball', label: 'Ball' },
   { type: 'cone', label: 'Cone' },

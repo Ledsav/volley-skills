@@ -5,7 +5,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export type AiErrorKind =
+type AiErrorKind =
   | 'notConfigured'
   | 'unauthorized'
   | 'rateLimited'

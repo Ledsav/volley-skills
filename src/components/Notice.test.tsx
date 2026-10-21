@@ -37,6 +37,14 @@ describe('NoticeProvider', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
+  it('clears its pending dismiss timer on unmount', () => {
+    const { unmount } = render(<NoticeProvider><Trigger message="Bye" /></NoticeProvider>);
+    fireEvent.click(screen.getByText('go'));
+    expect(vi.getTimerCount()).toBe(1);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('is a no-op outside the provider', () => {
     render(<Trigger message="Nothing" />);
     expect(() => fireEvent.click(screen.getByText('go'))).not.toThrow();

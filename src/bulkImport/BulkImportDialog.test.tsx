@@ -82,6 +82,27 @@ describe('BulkImportDialog', () => {
     await screen.findByText('1 entry ready to import.');
   });
 
+  it('shows a sentence-case error when a sync validator throws', () => {
+    const validate = vi.fn((): ValidationResult<Row> => {
+      throw new Error('boom');
+    });
+    setup({ validate });
+    paste('[1]');
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not validate the data. Please try again.');
+  });
+
+  it('shows a sentence-case error when an async validator rejects', async () => {
+    const validate = vi.fn(async (): Promise<ValidationResult<Row>> => {
+      throw new Error('boom');
+    });
+    setup({ validate });
+    paste('[1]');
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not validate the data. Please try again.');
+    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+  });
+
   it('drops a stale async validation when the textarea changes before it resolves', async () => {
     let resolveValidation: (result: ValidationResult<Row>) => void = () => {};
     const validate = vi.fn(

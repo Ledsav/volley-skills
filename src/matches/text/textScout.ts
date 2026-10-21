@@ -21,7 +21,7 @@ export interface ParsedBatch {
   unparsed: string[];
 }
 
-export interface AnchorInfo {
+interface AnchorInfo {
   set: number;
   score: { us: number; them: number };
   serving: Side;
@@ -29,7 +29,7 @@ export interface AnchorInfo {
   onCourt: number[];
 }
 
-export interface PromptPlayer {
+interface PromptPlayer {
   number: number;
   role: string;
   isLibero: boolean;
@@ -145,8 +145,8 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isInt
 const toNum = (v: unknown): unknown => (typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v);
 const toSkill = (v: unknown): unknown => (typeof v === 'string' ? v.trim().toUpperCase() : v);
 
-export const MAX_RALLIES = 200;
-export const MAX_ACTIONS_PER_RALLY = 30;
+const MAX_RALLIES = 200;
+const MAX_ACTIONS_PER_RALLY = 30;
 const TOO_LARGE = 'Reply too large.';
 
 export function parseBatch(raw: unknown): { ok: true; batch: ParsedBatch } | { ok: false; error: string } {

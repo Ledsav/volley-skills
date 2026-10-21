@@ -3,7 +3,7 @@
 Date: 2026-10-20
 Status: Design — awaiting approval
 Programme: `feature/club-platform` (see `2026-10-20-volley-skills-club-platform-design.md`)
-Evidence: `reports/Legal framework for club software.md` and its notes in `research_notes/Legal framework for club software/`.
+Evidence: `docs/research/2026-10-20-legal-framework.md` and its notes in `docs/research/notes/legal-framework/`.
 
 > **These documents are drafts written by a non-lawyer from research.** Having a lawyer review them is a **launch gate**: no club other than the migrated one is activated on these texts until an Italian lawyer (and, while the operator is in Luxembourg, a Luxembourg-qualified one or a fiduciaire's referral) has reviewed them. Every text carries "Draft — under legal review" until then.
 

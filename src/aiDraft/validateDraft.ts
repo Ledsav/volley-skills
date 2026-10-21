@@ -10,7 +10,7 @@ const CATEGORY_KEYS = new Set<string>(EXERCISE_CATEGORIES.map((c) => c.key));
 const COURTS: CourtPreset[] = ['full', 'half', 'blank'];
 const ALLOWED = new Set<string>(DRAFT_ITEM_TYPES);
 
-export function isCategory(v: unknown): v is ExerciseCategory {
+function isCategory(v: unknown): v is ExerciseCategory {
   return typeof v === 'string' && CATEGORY_KEYS.has(v);
 }
 

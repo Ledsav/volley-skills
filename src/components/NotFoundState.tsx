@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { SearchX } from 'lucide-react';
 
-export interface NotFoundStateProps {
+interface NotFoundStateProps {
   title: string;
   message?: string;
   backTo: string;

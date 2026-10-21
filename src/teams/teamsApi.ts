@@ -66,7 +66,7 @@ export async function bulkCreateTeams(
   return inputs.length;
 }
 
-export interface TeamsPage {
+interface TeamsPage {
   teams: Team[];
   lastDoc: QueryDocumentSnapshot | null;
   // A full page might still be the last one — but a page shorter than the

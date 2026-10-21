@@ -89,7 +89,7 @@ export async function listAllPhysicalTests(teamId: string, playerId: string): Pr
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PhysicalTest);
 }
 
-export interface PhysicalTestHistoryPage {
+interface PhysicalTestHistoryPage {
   tests: PhysicalTest[];
   lastDoc: QueryDocumentSnapshot | null;
 }

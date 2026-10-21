@@ -48,7 +48,7 @@ const EMPTY_SKILLS: Record<SkillKey, { score: null; notes: string; priority: boo
   iq: { score: null, notes: '', priority: false },
 };
 
-export interface NewPlayerInput {
+interface NewPlayerInput {
   number: number;
   fullName: string;
   dob: string;
@@ -153,7 +153,7 @@ export async function bulkCreatePlayers(
   return inputs.length;
 }
 
-export interface PlayersPage {
+interface PlayersPage {
   players: Player[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;

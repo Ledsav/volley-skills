@@ -94,7 +94,7 @@ export async function deleteExercise(exerciseId: string): Promise<void> {
   await withBackoff(() => batch.commit());
 }
 
-export interface ExercisesPage {
+interface ExercisesPage {
   exercises: Exercise[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;

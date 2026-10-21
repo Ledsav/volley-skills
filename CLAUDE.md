@@ -25,8 +25,11 @@ The authoritative specs live in `docs/superpowers/`:
 | `specs/2026-09-07-volley-skills-plan-2-design.md`, `plan-3-design.md` | Design detail for later plan increments. |
 | `specs/2026-10-13-volley-skills-scouting-design.md` | Match scouting: event-sourced live scouting, match/event data model, post-match report, offline behavior. |
 | `specs/2026-10-14-volley-skills-home-stats-awards-design.md` | Home dashboard (`/`), team stats tab, season/match awards cards, 404 + SEO (`noindex` everywhere except `/login`, `/privacy`, `/request-access`). |
-| `specs/2026-10-15-volley-skills-multi-club.md` | **Deferred** multi-club design (one project, `clubs/{clubId}` root). Read before adding any new top-level collection. |
-| `plans/*.md` | The phased implementation plans (foundation, plan 2, plan 3 calendar + library). |
+| `specs/2026-10-20-volley-skills-club-platform-design.md` | **Multi-club platform** (in design, branch `feature/club-platform`): `clubs/{clubId}` root, self-service sign-up, club lifecycle, platform admin, export, legal acceptance. Read before adding any new top-level collection. |
+| `specs/2026-10-20-volley-skills-legal-documents-design.md`, `-italian-design.md`, `-dvw-import-design.md` | Terms/DPA/sub-processors, Italian translation, DataVolley `.dvw` import — same programme. |
+| `docs/research/` | Pricing/competitor and legal research behind those designs (not legal advice). |
+
+Implementation plans are written per increment to `docs/superpowers/plans/` and deleted once built (git history keeps them); the specs stay the source of truth.
 
 ## Commands
 

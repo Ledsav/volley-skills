@@ -25,7 +25,7 @@ export type SkillKey =
   | 'speed'
   | 'iq';
 
-export const SKILL_KEYS: SkillKey[] = [
+export const SKILL_KEYS: readonly SkillKey[] = [
   'serve', 'attack', 'block', 'set', 'defence', 'reception', 'jump', 'speed', 'iq',
 ];
 

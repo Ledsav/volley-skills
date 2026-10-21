@@ -47,7 +47,7 @@ export interface ActionRecord {
   source: EventSource;
 }
 
-export type WarningCode =
+type WarningCode =
   | 'noSet'
   | 'offCourt'
   | 'unknownPlayer'
@@ -98,7 +98,7 @@ export function sortEvents(events: MatchEvent[]): MatchEvent[] {
 }
 
 /** Side-out rotation: P2 → P1, P1 → P6, … */
-export function rotateLineup(lineup: string[]): string[] {
+function rotateLineup(lineup: string[]): string[] {
   return lineup.map((_, i) => lineup[(i + 1) % 6]);
 }
 
@@ -110,11 +110,11 @@ export function prevRotation(rotation: number): number {
   return rotation === 6 ? 1 : rotation + 1;
 }
 
-export function setTarget(format: MatchFormat, set: number): number {
+function setTarget(format: MatchFormat, set: number): number {
   return set === format.bestOf ? format.decidingSetPoints : format.setPoints;
 }
 
-export function setsToWin(format: MatchFormat): number {
+function setsToWin(format: MatchFormat): number {
   return Math.ceil(format.bestOf / 2);
 }
 

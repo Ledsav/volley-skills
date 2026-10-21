@@ -2,7 +2,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -63,7 +62,7 @@ export async function deleteTraining(trainingId: string): Promise<void> {
   await deleteDoc(doc(db, 'trainings', trainingId));
 }
 
-export interface TrainingsPage {
+interface TrainingsPage {
   trainings: Training[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;
@@ -93,12 +92,6 @@ export async function findTrainingByBusinessId(businessId: string): Promise<Trai
   if (snapshot.docs.length === 0) return null;
   const d = snapshot.docs[0];
   return { id: d.id, ...d.data() } as Training;
-}
-
-export async function getTraining(trainingId: string): Promise<Training | null> {
-  const snapshot = await getDoc(doc(db, 'trainings', trainingId));
-  if (!snapshot.exists()) return null;
-  return { id: snapshot.id, ...snapshot.data() } as Training;
 }
 
 /**

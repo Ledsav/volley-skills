@@ -5,7 +5,7 @@ import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
 import * as playersApi from '../players/playersApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 import { NoticeProvider } from '../components/Notice';
 
@@ -61,8 +61,8 @@ describe('TeamPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
   });
@@ -180,7 +180,7 @@ describe('TeamPage', () => {
 
   it('shows the Calendar tab with trainings access', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: { isSuperAdmin: false, sections: { exercises: false, trainings: true, guides: false } } })
+      authValue({ access: { isClubAdmin: false, sections: { exercises: false, trainings: true, guides: false } } })
     );
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });

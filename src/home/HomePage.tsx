@@ -40,7 +40,7 @@ export function HomePage() {
   const email = appUser?.email ?? null;
   const name = (email?.split('@')[0] ?? '').split(/[._-]/)[0];
   const state = useHomeFeed(email);
-  const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isSuperAdmin);
+  const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isClubAdmin);
   const today = state.today;
   const club = clubName(state.teams);
 

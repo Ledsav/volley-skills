@@ -11,7 +11,7 @@ function Denied() {
   );
 }
 
-export function RequireSuperAdmin({ children }: { children: ReactNode }) {
+export function RequireClubAdmin({ children }: { children: ReactNode }) {
   return (
     <RequireAuth>
       <Gate>{children}</Gate>
@@ -21,5 +21,5 @@ export function RequireSuperAdmin({ children }: { children: ReactNode }) {
 
 function Gate({ children }: { children: ReactNode }) {
   const { access } = useAuth();
-  return access?.isSuperAdmin ? <>{children}</> : <Denied />;
+  return access?.isClubAdmin ? <>{children}</> : <Denied />;
 }

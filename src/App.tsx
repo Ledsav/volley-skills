@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
 import { RequireAuth } from './auth/RequireAuth';
-import { RequireSuperAdmin } from './auth/RequireSuperAdmin';
+import { RequireClubAdmin } from './auth/RequireClubAdmin';
 import { RequireSection } from './auth/RequireSection';
 import { AppShell } from './layout/AppShell';
 import { LoginPage } from './auth/LoginPage';
@@ -93,9 +93,9 @@ export function App() {
               <Route
                 path="/admin/access"
                 element={
-                  <RequireSuperAdmin>
+                  <RequireClubAdmin>
                     <AccessManagerPage />
-                  </RequireSuperAdmin>
+                  </RequireClubAdmin>
                 }
               />
               {/* Old link target: requests now live on the Access page. */}

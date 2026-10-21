@@ -27,13 +27,13 @@ vi.mock('../calendar/calendarApi', () => ({
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', async () => {
-  const { authValue, superAdminAccess } = await import('../test/authValue');
+  const { authValue, clubAdminAccess } = await import('../test/authValue');
   return {
     useAuth: () =>
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' as const },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       }),
   };
 });

@@ -153,8 +153,7 @@ export function AccessManagerPage() {
             </ul>
           )}
           <p className="mt-3 border-t border-border pt-3 text-xs text-slate">
-            Super-admins (full access) are managed directly in Firestore
-            (<code>adminAllowlist</code>) and are not listed here.
+            Club admins have full access and are not listed here.
           </p>
         </div>
 

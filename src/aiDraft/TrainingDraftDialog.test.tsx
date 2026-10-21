@@ -17,7 +17,7 @@ vi.mock('../auth/AuthContext', async () => {
     useAuth: () =>
       authValue({
         firebaseUser: { uid: 'coach' } as never,
-        access: { isSuperAdmin: false, sections: { exercises: access.exercises, trainings: true, guides: false } },
+        access: { isClubAdmin: false, sections: { exercises: access.exercises, trainings: true, guides: false } },
       }),
   };
 });

@@ -117,7 +117,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           </Button>
         </div>
 
-        {access?.isSuperAdmin && (
+        {access?.isClubAdmin && (
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>

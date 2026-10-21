@@ -55,7 +55,7 @@ export function ContractTab() {
         </Row>
         <Row label="Accepted terms">
           {legal
-            ? `${legal.versionKey}, accepted ${fmt(legal.acceptedAt.toDate())} by ${legal.acceptedBy}`
+            ? `${legal.versionKey}, accepted ${legal.acceptedAt ? `${fmt(legal.acceptedAt.toDate())} ` : ''}by ${legal.acceptedBy}`
             : 'Not yet accepted'}
         </Row>
       </dl>

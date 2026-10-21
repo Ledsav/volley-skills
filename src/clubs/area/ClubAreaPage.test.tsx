@@ -8,6 +8,7 @@ import { authValue, clubAdminAccess } from '../../test/authValue';
 vi.mock('../../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('./ProfileTab', () => ({ ProfileTab: () => <div>profile-body</div> }));
 vi.mock('./PeopleTab', () => ({ PeopleTab: () => <div>people-body</div> }));
+vi.mock('./ContractTab', () => ({ ContractTab: () => <div>contract-body</div> }));
 
 beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, role: 'admin' }));
@@ -32,6 +33,13 @@ describe('ClubAreaPage', () => {
     renderAt('/club?tab=people');
     expect(screen.getByText('people-body')).toBeInTheDocument();
     expect(screen.queryByText('profile-body')).not.toBeInTheDocument();
+  });
+
+  it('opens on Contract by default when restricted', () => {
+    renderAt('/club', true);
+    expect(screen.getByText('contract-body')).toBeInTheDocument();
+    expect(screen.queryByText('profile-body')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Contract' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('offers only Profile and Contract when restricted', () => {

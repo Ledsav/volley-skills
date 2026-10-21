@@ -15,14 +15,17 @@ const ALL_TABS: { id: ClubTab; label: string }[] = [
   { id: 'contract', label: 'Contract' },
 ];
 
-/** `restricted` (a club whose contract has ended) keeps Profile read-only and Contract only. */
+/**
+ * `restricted` (a paused club, or one whose contract has ended) keeps Profile read-only and
+ * Contract only, and opens on Contract, where the export-window dates are.
+ */
 export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
   usePageMeta({ title: 'Club' });
   const { club } = useAuth();
   const [params, setParams] = useSearchParams();
   const tabs = restricted ? ALL_TABS.filter((t) => t.id !== 'people') : ALL_TABS;
   const requested = params.get('tab');
-  const active = tabs.find((t) => t.id === requested)?.id ?? 'profile';
+  const active = tabs.find((t) => t.id === requested)?.id ?? (restricted ? 'contract' : 'profile');
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">

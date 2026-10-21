@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { useClubFeatures } from '../clubs/useClubFeatures';
 import { Button } from '../components/Button';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
-import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER } from '../types/physicalTest';
+import { PHYSICAL_TEST_LABELS, visibleTestTypes } from '../types/physicalTest';
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
 import { formatPhysicalTestSummary } from './physicalTestFormat';
 import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
@@ -21,6 +22,7 @@ interface PhysicalTestingSectionProps {
 
 export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest, onLatestLoaded }: PhysicalTestingSectionProps) {
   const { firebaseUser } = useAuth();
+  const { growthTestsEnabled } = useClubFeatures();
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [activeDialogType, setActiveDialogType] = useState<PhysicalTestType | null>(null);
   const [historyType, setHistoryType] = useState<PhysicalTestType | null>(null);
@@ -56,7 +58,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
       )}
       {!loadError && (
         <ul className="divide-y divide-border">
-          {PHYSICAL_TEST_ORDER.map((testType) => {
+          {visibleTestTypes(growthTestsEnabled).map((testType) => {
             const latest = latestByType[testType];
             return (
               <li key={testType} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">

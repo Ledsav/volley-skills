@@ -2,6 +2,7 @@ import { usePageMeta } from '../layout/usePageMeta';
 import { Link } from 'react-router-dom';
 import { BookOpen, ChevronRight, KeyRound } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { useClubFeatures } from '../clubs/useClubFeatures';
 import { usePendingSignups } from '../interest/usePendingSignups';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
@@ -16,6 +17,7 @@ export function SettingsPage() {
   usePageMeta({ title: 'Settings' });
   const { signOut, unsyncedDialog } = useSignOut();
   const { access, isPlatformAdmin } = useAuth();
+  const { aiEnabled } = useClubFeatures();
   const canGuides = !!access?.sections.guides;
   const isClubAdmin = !!access?.isClubAdmin;
   const pendingSignups = usePendingSignups(!!isPlatformAdmin);
@@ -29,7 +31,7 @@ export function SettingsPage() {
           <ThemeToggle className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-ink hover:bg-bg sm:w-auto sm:justify-start lg:self-start" />
         </SettingsSection>
 
-        <AiProviderSettings />
+        {aiEnabled && <AiProviderSettings />}
 
         {/* The phone bottom bar has no room for admin pages; this is their way in there. */}
         {(canGuides || isClubAdmin) && (

@@ -79,7 +79,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(
 
 export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const { teamId = '', matchId = '' } = useParams();
-  const { firebaseUser, access } = useAuth();
+  const { firebaseUser, access, club } = useAuth();
   const navigate = useNavigate();
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [config, setConfig] = useState<AwardsInput>(EMPTY_AWARDS);
@@ -195,9 +195,9 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     if (!ready || !a.winner) return null;
     return {
       key: a.key, awardTitle: a.title, name: styleName(a.winner, nameStyle), number: a.winner.number,
-      statLine: a.statLine, footer: heading, teamName: ready.team.name, clubName: ready.team.club ?? '', note: a.note,
+      statLine: a.statLine, footer: heading, teamName: ready.team.name, clubName: club?.name ?? '', note: a.note,
     };
-  }, [ready, nameStyle, heading]);
+  }, [ready, nameStyle, heading, club]);
 
   const allowed = useMemo(() => photoAllowedKeys(awards, ready?.consented ?? NO_CONSENT), [awards, ready]);
   const livePhotos = useMemo(() => photosForWinners(awards, photos, photoOwners.current), [awards, photos]);
@@ -227,7 +227,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     const i = cards.findIndex((c) => c.key === key);
     return slideColors(palette, colorIndexForAward(slides, Math.max(0, i)));
   }, [cards, palette, slides]);
-  const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: ready?.team.club ?? '' }), [palette, cards, artFor, ready]);
+  const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: club?.name ?? '' }), [palette, cards, artFor, club]);
 
   const dropCutout = useCallback((key: string) => {
     const next = new Map(cutoutsRef.current);

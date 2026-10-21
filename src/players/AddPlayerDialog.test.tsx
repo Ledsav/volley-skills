@@ -13,7 +13,6 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 const team: Team = {
   id: 'team-1',
   name: 'U17',
-  club: 'Demo VC',
   ageGroup: 'U17',
   season: '2026-27',
   description: '',

@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PageSkeleton } from '../components/Skeleton';
 import { matchMvpLabel } from '../awards/matchMvp';
 import { usePageMeta } from '../layout/usePageMeta';
-import { clubName, liveMatches, nextUp, recentResults } from './homeFeed';
+import { liveMatches, nextUp, recentResults } from './homeFeed';
 import { LiveNowBlock } from './LiveNowBlock';
 import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
@@ -36,13 +36,13 @@ function CourtLines() {
 
 export function HomePage() {
   usePageMeta({ title: 'Home' });
-  const { appUser, access } = useAuth();
+  const { appUser, access, club: activeClub } = useAuth();
   const email = appUser?.email ?? null;
   const name = (email?.split('@')[0] ?? '').split(/[._-]/)[0];
   const state = useHomeFeed(email);
   const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isClubAdmin);
   const today = state.today;
-  const club = clubName(state.teams);
+  const club = activeClub?.name;
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">

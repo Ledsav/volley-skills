@@ -40,19 +40,3 @@ export function recentResults(input: FeedInput[], limit = 5): FeedMatch[] {
     .sort((a, b) => b.match.date.localeCompare(a.match.date))
     .slice(0, limit);
 }
-
-/**
- * The club to name in the Home header: the most common non-empty `team.club`
- * among the user's teams (one deployment serves one club, but nothing is
- * hardcoded — the name only ever comes from data). Null when no team has one.
- */
-export function clubName(teams: Pick<Team, 'club'>[]): string | null {
-  const counts = new Map<string, number>();
-  for (const t of teams) {
-    const club = t.club?.trim();
-    if (club) counts.set(club, (counts.get(club) ?? 0) + 1);
-  }
-  let best: string | null = null;
-  for (const [club, n] of counts) if (best === null || n > (counts.get(best) ?? 0)) best = club;
-  return best;
-}

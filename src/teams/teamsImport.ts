@@ -5,14 +5,13 @@ import type { NewTeamInput } from './teamsApi';
 export const TEAM_IMPORT_EXAMPLE = `[
   {
     "name": "U15 Girls",
-    "club": "Example Volley Club",
     "ageGroup": "U15",
     "season": "2026-27",
     "description": ""
   }
 ]`;
 
-const OPTIONAL_TEXT_FIELDS = ['club', 'ageGroup', 'season', 'description'] as const;
+const OPTIONAL_TEXT_FIELDS = ['ageGroup', 'season', 'description'] as const;
 
 export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput> {
   const inputs: NewTeamInput[] = [];
@@ -42,7 +41,6 @@ export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput
     if (name !== '' && Object.keys(optionals).length === OPTIONAL_TEXT_FIELDS.length) {
       inputs.push({
         name,
-        club: optionals.club,
         ageGroup: optionals.ageGroup,
         season: optionals.season,
         description: optionals.description,

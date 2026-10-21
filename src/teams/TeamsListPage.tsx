@@ -92,7 +92,7 @@ export function TeamsListPage() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-semibold text-ink group-hover:text-blue">{team.name}</div>
                   <p className="mt-0.5 truncate text-sm text-slate">
-                    {team.club} · {team.ageGroup}
+                    {team.ageGroup}
                   </p>
                 </div>
               </div>

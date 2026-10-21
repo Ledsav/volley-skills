@@ -26,7 +26,6 @@ const TEAMS_PAGE_SIZE = 20;
 
 export interface NewTeamInput {
   name: string;
-  club: string;
   ageGroup: string;
   season: string;
   description: string;

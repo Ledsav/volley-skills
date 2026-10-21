@@ -5,7 +5,6 @@ export type { DevelopmentPlan };
 export interface Team {
   id: string;
   name: string;
-  club: string;
   ageGroup: string;
   season: string;
   description: string;

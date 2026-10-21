@@ -31,7 +31,6 @@ vi.mock('react-router-dom', async (importOriginal) => {
 const baseTeam: Team = {
   id: 'team-1',
   name: 'U17',
-  club: 'Demo VC',
   ageGroup: 'U17',
   season: '2026-27',
   description: '',

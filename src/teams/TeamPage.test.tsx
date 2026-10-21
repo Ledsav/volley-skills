@@ -27,7 +27,6 @@ vi.mock('../matches/matchesApi', () => ({
 const team: Team = {
   id: 'team-1',
   name: 'U17 Boys',
-  club: 'VC',
   ageGroup: 'U17',
   season: '2026',
   description: 'Regional squad',

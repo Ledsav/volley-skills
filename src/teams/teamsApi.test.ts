@@ -48,7 +48,7 @@ describe('teamsApi', () => {
     mockAddDoc.mockResolvedValue({ id: 'team-1' });
 
     const id = await createTeam(
-      { name: 'U17', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '' },
+      { name: 'U17', ageGroup: 'U17', season: '2026-27', description: '' },
       'creator-uid',
       'coach@example.com'
     );
@@ -70,8 +70,8 @@ describe('teamsApi', () => {
 
     const count = await bulkCreateTeams(
       [
-        { name: 'A', club: '', ageGroup: '', season: '', description: '' },
-        { name: 'B', club: '', ageGroup: '', season: '', description: '' },
+        { name: 'A', ageGroup: '', season: '', description: '' },
+        { name: 'B', ageGroup: '', season: '', description: '' },
       ],
       'coach-uid',
       'coach@example.com'
@@ -100,7 +100,7 @@ describe('teamsApi', () => {
 
     vi.useFakeTimers();
     const pending = bulkCreateTeams(
-      [{ name: 'A', club: '', ageGroup: '', season: '', description: '' }],
+      [{ name: 'A', ageGroup: '', season: '', description: '' }],
       'coach-uid',
       'coach@example.com'
     );
@@ -118,7 +118,7 @@ describe('teamsApi', () => {
 
     await expect(
       bulkCreateTeams(
-        Array.from({ length: 101 }, () => ({ name: 'x', club: '', ageGroup: '', season: '', description: '' })),
+        Array.from({ length: 101 }, () => ({ name: 'x', ageGroup: '', season: '', description: '' })),
         'coach-uid',
         'coach@example.com'
       )

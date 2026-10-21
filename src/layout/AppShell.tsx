@@ -1,12 +1,14 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, House, KeyRound, LogOut, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
+import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, House, KeyRound, LogOut, Repeat, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Menu } from '../components/Menu';
 import { useTheme } from '../theme/useTheme';
 import { usePendingSignups } from '../interest/usePendingSignups';
 import { Logo } from '../components/Logo';
+import { useNotify } from '../components/Notice';
+import { ContractEndingBanner } from '../clubs/ContractEndingBanner';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
@@ -23,7 +25,9 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { access, firebaseUser } = useAuth();
+  const { access, firebaseUser, memberships, activeClubId, switchClub, droppedClub } = useAuth();
+  const notify = useNotify();
+  const notifiedDropped = useRef(false);
   const navigate = useNavigate();
   const [theme, toggleTheme] = useTheme();
   const adminGroupId = useId();
@@ -34,6 +38,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const prevPathname = useRef(pathname);
+
+  useEffect(() => {
+    if (!droppedClub || notifiedDropped.current) return;
+    notifiedDropped.current = true;
+    notify('You no longer have access to your previous club.');
+  }, [droppedClub, notify]);
+
+  const otherClubs = memberships.length > 1 ? memberships.filter((m) => m.clubId !== activeClubId) : [];
 
   // Move focus into the new page on route change (not on the initial load).
   useEffect(() => {
@@ -117,6 +129,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               ...(access?.isClubAdmin ? [{ kind: 'action' as const, label: 'Access', icon: <KeyRound size={16} />, onSelect: () => navigate('/admin/access') }] : []),
               { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
               { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
+              ...otherClubs.map((m) => ({
+                kind: 'action' as const,
+                label: `Switch to ${m.clubName}`,
+                icon: <Repeat size={16} />,
+                onSelect: () => switchClub(m.clubId),
+              })),
               { kind: 'divider' },
               { kind: 'action', label: 'Sign out', icon: <LogOut size={16} />, danger: true, onSelect: signOut },
             ]}
@@ -127,6 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* min-w-0: as a flex item beside the sidebar, wide content (tables)
           would otherwise stretch the whole page past the viewport. */}
       <div className="min-w-0 flex-1 pb-16 lg:pb-0">
+        <ContractEndingBanner />
         {/* One content width for every page: long lines on a wide monitor are hard to scan. */}
         <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto w-full max-w-screen-xl focus:outline-none">
           {children}

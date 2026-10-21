@@ -3,11 +3,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShell } from './AppShell';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, clubAdminAccess } from '../test/authValue';
+import { Timestamp } from 'firebase/firestore';
+import { authValue, clubAdminAccess, testClub } from '../test/authValue';
+import { useNotify } from '../components/Notice';
 
 const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../auth/AuthContext');
+vi.mock('../components/Notice');
 vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(0) }));
 
 function renderShell() {
@@ -140,5 +143,66 @@ describe('AppShell', () => {
     const menu = screen.getByRole('menu', { name: /^Account/ });
     expect(within(menu).getByRole('menuitem', { name: 'Guides' })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: 'Access' })).toBeInTheDocument();
+  });
+
+  describe('club state', () => {
+    const DAY = 86_400_000;
+    const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    const effective = new Date(Date.now() + 10 * DAY);
+    const retrieval = new Date(Date.now() + 40 * DAY);
+    const ending = () =>
+      testClub({
+        status: 'terminating',
+        termination: {
+          requestedAt: null,
+          requestedBy: null,
+          effectiveAt: Timestamp.fromDate(effective),
+          retrievalEndsAt: Timestamp.fromDate(retrieval),
+        },
+      });
+    const two = [
+      { clubId: 'club-1', role: 'member' as const, clubName: 'Test Club', status: 'active' as const },
+      { clubId: 'club-2', role: 'member' as const, clubName: 'Other Club', status: 'active' as const },
+    ];
+
+    it('shows the contract-ending banner while terminating', () => {
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: ending(), role: 'admin', access: clubAdminAccess }));
+      const { unmount } = renderShell();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `Your contract ends on ${fmt(effective)}. Export your data before ${fmt(retrieval)}.`
+      );
+      unmount();
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: ending(), role: 'member' }));
+      renderShell();
+      expect(screen.getByRole('status')).toHaveTextContent(`Your club's contract ends on ${fmt(effective)}.`);
+    });
+
+    it('offers Switch to <club> for each other club only when there is more than one', () => {
+      const switchClub = vi.fn();
+      vi.mocked(useAuth).mockReturnValue(authValue({ memberships: two, switchClub }));
+      const { unmount } = renderShell();
+      openAccountMenu();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Switch to Other Club' }));
+      expect(switchClub).toHaveBeenCalledWith('club-2');
+      unmount();
+      vi.mocked(useAuth).mockReturnValue(authValue());
+      renderShell();
+      openAccountMenu();
+      expect(screen.queryByRole('menuitem', { name: /^Switch to/ })).not.toBeInTheDocument();
+    });
+
+    it('notifies once when the stored club was dropped', () => {
+      const notify = vi.fn();
+      vi.mocked(useNotify).mockReturnValue(notify);
+      vi.mocked(useAuth).mockReturnValue(authValue({ droppedClub: true }));
+      const { rerender } = renderShell();
+      rerender(
+        <MemoryRouter initialEntries={['/teams']}>
+          <AppShell><p>Page content</p></AppShell>
+        </MemoryRouter>
+      );
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledWith('You no longer have access to your previous club.');
+    });
   });
 });

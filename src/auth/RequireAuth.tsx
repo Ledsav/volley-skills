@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { ClubGate } from '../clubs/ClubGate';
 import { useAuth } from './AuthContext';
 import { AuthShell } from './AuthShell';
 import { rememberReturnTo } from './returnTo';
@@ -34,5 +35,5 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     rememberReturnTo(`${location.pathname}${location.search}`);
     return <Navigate to="/login" replace />;
   }
-  return <>{children}</>;
+  return <ClubGate>{children}</ClubGate>;
 }

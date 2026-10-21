@@ -22,7 +22,7 @@ vi.mock('./clubs/clubsApi', () => ({
   listMyMemberships: async () => [{ clubId: 'club-1', role: 'member', clubName: 'Test Club', status: 'active' }],
   probePlatformAdmin: async () => false,
   subscribeClub: (_id: string, onClub: (club: unknown) => void) => {
-    onClub({ id: 'club-1', name: 'Test Club', status: 'active' });
+    onClub({ id: 'club-1', name: 'Test Club', status: 'active', termination: { requestedAt: null, requestedBy: null, effectiveAt: null, retrievalEndsAt: null } });
     return () => {};
   },
 }));

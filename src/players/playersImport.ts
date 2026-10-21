@@ -140,7 +140,7 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
         fail(`row ${n}: "skills" must be an object`);
       } else {
         for (const [key, value] of Object.entries(row.skills)) {
-          if (!(SKILL_KEYS as string[]).includes(key)) {
+          if (!(SKILL_KEYS as readonly string[]).includes(key)) {
             fail(`row ${n}: "skills" has an unknown key "${key}"`);
             continue;
           }

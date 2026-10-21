@@ -8,7 +8,7 @@ export class OfflineError extends Error {
   }
 }
 
-export interface SaveOptions {
+interface SaveOptions {
   /**
    * `queue` (default): offline, start the write and report done at once — Firestore's persistent
    * cache keeps it and syncs later (awaiting would hang until the server acks).

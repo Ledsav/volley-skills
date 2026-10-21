@@ -36,8 +36,7 @@ import { FINISHED_MATCHES_CAP } from './limits';
 
 const MATCHES_PAGE_SIZE = 20;
 const MATCHES_MONTH_CAP = 50;
-export { FINISHED_MATCHES_CAP };
-export const MATCH_EVENTS_CAP = 2000;
+const MATCH_EVENTS_CAP = 2000;
 
 const matchesCol = (teamId: string) => collection(db, 'teams', teamId, 'matches');
 const matchDoc = (teamId: string, matchId: string) => doc(db, 'teams', teamId, 'matches', matchId);
@@ -46,7 +45,7 @@ const usageDoc = (teamId: string) => doc(db, 'teams', teamId, 'scoutProfile', 'u
 
 const toMatch = (id: string, data: object) => ({ id, ...data }) as Match;
 
-export interface MatchesPage {
+interface MatchesPage {
   matches: Match[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;

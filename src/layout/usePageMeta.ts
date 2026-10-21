@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export interface PageMeta {
+interface PageMeta {
   title: string;
   description?: string;
   /** Private pages are `noindex` (the default); only /login, /privacy, /request-access pass `index`. */

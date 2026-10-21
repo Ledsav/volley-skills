@@ -5,7 +5,7 @@
  */
 export const WEAK_RECEPTION_POS = 0.4;
 /** Per-match error count; a season total isn't comparable, so season views skip it. */
-export const MANY_ERRORS_PER_MATCH = 3;
+const MANY_ERRORS_PER_MATCH = 3;
 
 export const WEAK_CLASS = 'font-semibold text-red-strong';
 

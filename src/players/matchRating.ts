@@ -6,10 +6,10 @@ import type { SkillKey } from '../types/player';
 export const GRADE_WEIGHTS: Record<Grade, number> = { '#': 1, '+': 0.75, '!': 0.5, '-': 0.25, '/': 0, '=': 0 };
 
 /** Below this many season attempts a skill gets no rating ("not enough data"). */
-export const MIN_ATTEMPTS = 15;
+const MIN_ATTEMPTS = 15;
 
 /** Scouted fundamentals behind each profile skill. jump, speed and iq have none. */
-export const SKILL_SOURCES: Partial<Record<SkillKey, Skill[]>> = {
+const SKILL_SOURCES: Partial<Record<SkillKey, Skill[]>> = {
   serve: ['S'],
   reception: ['R'],
   attack: ['A'],

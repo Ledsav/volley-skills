@@ -189,20 +189,20 @@ for the detailed steps.
 
 From the bulk-import and quota-protection reviews:
 
-- [ ] **F7** — `BulkImportDialog` async-validate error copy is lower-case
+- [x] **F7** — `BulkImportDialog` async-validate error copy is lower-case — fixed 2026-10-20
       (`'could not validate the data…'`), inconsistent with the sentence-case
       commit error. Only shows if a validator throws, which none currently can.
-- [ ] **F10** — no `tests/rules/` test for the trainings bulk-create
+- [x] **F10** — no `tests/rules/` test for the trainings bulk-create — fixed 2026-10-20
       transaction (teams + trainings write-shapes are rule-safe by inspection).
-- [ ] **F14** — the 4s `setTimeout(() => setNotice(null))` on the Exercises /
+- [x] **F14** — the 4s `setTimeout(() => setNotice(null))` on the Exercises / — fixed 2026-10-20
       Trainings / Teams import notices isn't cleared on unmount. React 18 no-ops
       the stale `setState`; harmless timer leak.
-- [ ] **F15** — `SKILL_KEYS` in `src/types/player.ts` is a mutable exported
+- [x] **F15** — `SKILL_KEYS` in `src/types/player.ts` is a mutable exported — fixed 2026-10-20
       array; `readonly` / `as const` would harden it.
 - [ ] **F16** — app design / bulk-import spec §8 says a failed commit "writes
       nothing"; a lost response can land server-side, and "always create new"
       means a retry duplicates. One sentence of doc.
-- [ ] **QP review minor** — `TrainingsPage` tests and the api retry tests now
+- [x] **QP review minor** — `TrainingsPage` tests and the api retry tests now — fixed 2026-10-20
       spend ~350ms / ~300ms of real time inside `waitFor` because of the debounce
       and `withBackoff` default `baseMs`. Not flaky, but fake timers (or a shared
       delay constant) would keep them fast and decoupled from the constants.

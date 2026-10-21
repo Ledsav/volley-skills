@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   createTraining,
   updateTraining,
@@ -46,6 +46,10 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('../firebase/config', () => ({ db: {} }));
 
 describe('trainingsApi', () => {
+  // Retry tests run withBackoff's jittered sleeps on fake timers, so they
+  // stay instant and don't depend on its default delays.
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -209,10 +213,13 @@ describe('trainingsApi', () => {
       .mockRejectedValueOnce(Object.assign(new Error('quota'), { code: 'resource-exhausted' }))
       .mockImplementation(async (_db: unknown, fn: (t: typeof tx) => unknown) => fn(tx));
 
-    const count = await bulkCreateTrainings(
+    vi.useFakeTimers();
+    const pending = bulkCreateTrainings(
       [{ name: 'A', description: '', ageGroupTarget: '', exercises: [] }],
       'coach-uid'
     );
+    await vi.runAllTimersAsync();
+    const count = await pending;
 
     expect(count).toBe(1);
     expect(mockRunTransaction).toHaveBeenCalledTimes(2);
@@ -223,7 +230,10 @@ describe('trainingsApi', () => {
       .mockRejectedValueOnce(Object.assign(new Error('blip'), { code: 'unavailable' }))
       .mockResolvedValue({ docs: [{ id: 'ex-1', data: () => ({ name: 'Butterfly' }) }] });
 
-    const map = await resolveExerciseNames(['Butterfly']);
+    vi.useFakeTimers();
+    const pending = resolveExerciseNames(['Butterfly']);
+    await vi.runAllTimersAsync();
+    const map = await pending;
 
     expect(map.get('Butterfly')).toEqual(['ex-1']);
     expect(mockGetDocs).toHaveBeenCalledTimes(2);

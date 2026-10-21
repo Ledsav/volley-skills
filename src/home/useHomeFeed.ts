@@ -5,7 +5,7 @@ import { listMyTeams } from '../teams/teamsApi';
 import type { Team } from '../types/team';
 import { addDays, todayIso, type FeedInput } from './homeFeed';
 
-export interface HomeFeedState {
+interface HomeFeedState {
   loading: boolean;
   today: string;
   teams: Team[];

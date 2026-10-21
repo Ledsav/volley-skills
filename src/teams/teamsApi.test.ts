@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { bulkCreateTeams, createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
 import { deleteCollection } from '../firebase/deleteCollection';
 
@@ -35,6 +35,10 @@ vi.mock('../firebase/config', () => ({ db: {} }));
 vi.mock('../firebase/deleteCollection');
 
 describe('teamsApi', () => {
+  // Retry tests run withBackoff's jittered sleeps on fake timers, so they
+  // stay instant and don't depend on its default delays.
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     mockAddDoc.mockReset();
     mockGetDocs.mockReset();
@@ -94,11 +98,14 @@ describe('teamsApi', () => {
       .mockResolvedValue(undefined);
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
-    const count = await bulkCreateTeams(
+    vi.useFakeTimers();
+    const pending = bulkCreateTeams(
       [{ name: 'A', club: '', ageGroup: '', season: '', description: '' }],
       'coach-uid',
       'coach@example.com'
     );
+    await vi.runAllTimersAsync();
+    const count = await pending;
 
     expect(count).toBe(1);
     expect(batchCommit).toHaveBeenCalledTimes(2);

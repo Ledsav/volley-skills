@@ -49,7 +49,7 @@ function* candidateHomes() {
 }
 
 /** @returns {{home: string|null, major: number}|null} */
-export function findJdk() {
+function findJdk() {
   let best = null;
   for (const home of candidateHomes()) {
     const bin = javaBinIn(home);

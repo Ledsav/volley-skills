@@ -2,7 +2,7 @@
 export const PUBLIC_ROUTES = ['/login', '/privacy', '/request-access'] as const;
 
 /** Private areas: path prefixes only, never IDs (robots.txt is public). */
-export const PRIVATE_PREFIXES = ['/teams', '/exercises', '/trainings', '/admin', '/settings', '/finish-sign-in'] as const;
+const PRIVATE_PREFIXES = ['/teams', '/exercises', '/trainings', '/admin', '/settings', '/finish-sign-in'] as const;
 
 export function robotsTxt(origin: string): string {
   return [

@@ -7,7 +7,7 @@ export type Slide =
   | { kind: 'awardTitle' | 'awardSuspense' | 'awardReveal'; colorIndex: number; awardIndex: number }
   | { kind: 'summary'; colorIndex: number };
 
-export interface StoryInput { introTitle: string; teamName: string; stats: StoryStat[]; awardCount: number; includeStory: boolean }
+interface StoryInput { introTitle: string; teamName: string; stats: StoryStat[]; awardCount: number; includeStory: boolean }
 
 /** The full presentation: optional story, three steps per award, then a summary. One palette colour per scene. */
 export function buildStory(i: StoryInput): Slide[] {

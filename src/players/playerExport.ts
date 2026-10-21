@@ -3,7 +3,7 @@ import type { PhysicalTest } from '../types/physicalTest';
 import { downloadJson, fileSlug, toExportable } from '../export/exportJson';
 import { EMPTY_FOOTPRINT, type PlayerFootprint } from './playerFootprint';
 
-export interface PlayerExport {
+interface PlayerExport {
   exportedAt: string;
   player: Record<string, unknown>;
   physicalTests: Record<string, unknown>[];

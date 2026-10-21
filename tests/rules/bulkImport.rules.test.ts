@@ -1,5 +1,5 @@
-import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { afterAll, beforeEach, describe, it } from 'vitest';
+import { assertFails, assertSucceeds, type RulesTestContext } from '@firebase/rules-unit-testing';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { getTestEnv } from './testEnv';
 
 const NULL_SKILLS = {
@@ -16,10 +16,12 @@ describe('bulk import rules', () => {
       await db.doc('adminAllowlist/coach@example.com').set({});
       await db.doc('users/admin-uid').set({ email: 'coach@example.com', role: 'superadmin' });
       await db.doc('users/viewer-uid').set({ email: 'parent@example.com', role: 'member' });
+      await db.doc('users/trainer-uid').set({ email: 'trainer@example.com', role: 'member' });
       await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
-      await db.doc('sectionAccess/trainings').set({ adminEmails: [] });
+      await db.doc('sectionAccess/trainings').set({ adminEmails: ['trainer@example.com'] });
       await db.doc('sectionAccess/guides').set({ adminEmails: [] });
       await db.doc('teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
+      await db.doc('counters/trainings').set({ lastSequence: 6 });
     });
   });
 
@@ -98,5 +100,70 @@ describe('bulk import rules', () => {
       createdBy: 'admin-uid',
     });
     await assertFails(batch.commit());
+  });
+
+  // Mirrors bulkCreateTrainings: one transaction reads the counter, creates
+  // every training with its derived businessId, then bumps the counter.
+  function bulkCreateTrainings(db: ReturnType<RulesTestContext['firestore']>, uid: string, names: string[]) {
+    return db.runTransaction(async (tx) => {
+      const counterRef = db.doc('counters/trainings');
+      const snap = await tx.get(counterRef);
+      const last = (snap.data()?.lastSequence as number | undefined) ?? 0;
+      names.forEach((name, i) => {
+        tx.set(db.collection('trainings').doc(), {
+          businessId: `TR-${String(last + i + 1).padStart(4, '0')}`,
+          name,
+          description: '',
+          ageGroupTarget: '',
+          exercises: [],
+          exerciseIds: [],
+          createdBy: uid,
+        });
+      });
+      tx.set(counterRef, { lastSequence: last + names.length });
+    });
+  }
+
+  async function counterValue(): Promise<number> {
+    const env = await getTestEnv();
+    let value = -1;
+    await env.withSecurityRulesDisabled(async (context) => {
+      value = (await context.firestore().doc('counters/trainings').get()).data()?.lastSequence;
+    });
+    return value;
+  }
+
+  it('accepts a trainings-section admin transaction that creates several trainings and bumps the counter', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('trainer-uid', { email: 'trainer@example.com' }).firestore();
+    await assertSucceeds(bulkCreateTrainings(db, 'trainer-uid', ['A', 'B', 'C']));
+    expect(await counterValue()).toBe(9);
+  });
+
+  it('accepts the same transaction from a superadmin', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    await assertSucceeds(bulkCreateTrainings(db, 'admin-uid', ['A', 'B']));
+    expect(await counterValue()).toBe(8);
+  });
+
+  it('rejects the whole training transaction when one training is invalid, leaving the counter alone', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('trainer-uid', { email: 'trainer@example.com' }).firestore();
+    await assertFails(bulkCreateTrainings(db, 'trainer-uid', ['ok', '']));
+    expect(await counterValue()).toBe(6);
+  });
+
+  it('rejects a training transaction that claims another creator', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('trainer-uid', { email: 'trainer@example.com' }).firestore();
+    await assertFails(bulkCreateTrainings(db, 'someone-else', ['A']));
+  });
+
+  it('denies a non-admin the bulk training transaction', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
+    await assertFails(bulkCreateTrainings(db, 'viewer-uid', ['A']));
+    expect(await counterValue()).toBe(6);
   });
 });

@@ -2,12 +2,12 @@
 
 Date: 2026-10-20
 Status: Design — awaiting approval
-Supersedes: `2026-10-15-volley-skills-multi-club.md` (deferred design; its §3 target model is the starting point and is refined here)
+Supersedes: the deferred multi-club design of 2026-10-15 (removed; in git history) — its target model is the starting point and is refined here
 Companions (same programme, same branch `feature/club-platform`):
 - `2026-10-20-volley-skills-legal-documents-design.md` — Terms, DPA, sub-processors, privacy notice, the signature step's content
 - `2026-10-20-volley-skills-italian-design.md` — Italian translation
 - `2026-10-20-volley-skills-dvw-import-design.md` — DataVolley file import
-Evidence: `reports/Legal framework for club software.md`, `reports/Volleyball app pricing and competitors.md` (research, not legal advice)
+Evidence: `docs/research/2026-10-20-legal-framework.md`, `docs/research/2026-10-20-pricing-and-competitors.md` (research, not legal advice)
 
 ## 1. Intent
 

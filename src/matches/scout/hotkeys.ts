@@ -7,7 +7,7 @@ import { validGrades } from '../skillGrades';
  * sheet. Everything here is pure; the window listener lives in useScoutHotkeys.
  */
 
-export type HotkeyId =
+type HotkeyId =
   | 'grade'
   | 'skill'
   | 'player'
@@ -22,9 +22,9 @@ export type HotkeyId =
   | 'auto'
   | 'help';
 
-export type HotkeyGroup = 'Record' | 'Rally' | 'General';
+type HotkeyGroup = 'Record' | 'Rally' | 'General';
 
-export interface KeyBinding {
+interface KeyBinding {
   id: HotkeyId;
   /** Display labels, first one is the badge. */
   keys: readonly string[];
@@ -76,7 +76,7 @@ export type Command =
   | { type: 'toggleHelp' }
   | { type: 'closeHelp' };
 
-export interface KeyLike {
+interface KeyLike {
   key: string;
   shiftKey?: boolean;
   ctrlKey?: boolean;
@@ -196,7 +196,7 @@ export type JerseyAction =
   | { type: 'backspace'; now: number }
   | { type: 'clear' };
 
-export interface JerseyStep {
+interface JerseyStep {
   buffer: JerseyBuffer;
   /** Jersey number to select now. */
   select: number | null;

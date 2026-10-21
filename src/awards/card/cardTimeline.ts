@@ -1,6 +1,6 @@
 export const CARD_DURATION_MS = 3500;
 
-export interface Beats { bg: number; title: number; photo: number; name: number; stat: number; confetti: number }
+interface Beats { bg: number; title: number; photo: number; name: number; stat: number; confetti: number }
 
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a));

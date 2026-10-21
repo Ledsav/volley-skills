@@ -4,7 +4,7 @@ import { GRADE_WEIGHTS } from '../players/matchRating';
 import type { AwardId, AwardScope } from '../types/awards';
 import { GRADES, type Match, type PlayerStats, type Skill, type SkillLine } from '../types/match';
 
-export const MVP_QUALITY_WEIGHT = 0.5;
+const MVP_QUALITY_WEIGHT = 0.5;
 
 export const AWARD_TITLES: Record<AwardId, string> = {
   mvp: 'MVP', topScorer: 'Top scorer', attacker: 'Best attacker', server: 'Best server', receiver: 'Best receiver',
@@ -17,7 +17,7 @@ export const AWARDS_FOR: Record<AwardScope, AwardId[]> = {
   season: [...BOTH, 'mostImproved', 'everPresent', 'mvp'],
 };
 
-export const MIN_ATTEMPTS_FOR: Partial<Record<AwardId, { match: number; season: number }>> = {
+const MIN_ATTEMPTS_FOR: Partial<Record<AwardId, { match: number; season: number }>> = {
   attacker: { match: 8, season: 30 },
   server: { match: 8, season: 30 },
   receiver: { match: 8, season: 30 },

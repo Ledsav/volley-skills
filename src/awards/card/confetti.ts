@@ -1,4 +1,4 @@
-export interface Particle { x: number; y: number; rot: number; size: number; color: string; alpha: number }
+interface Particle { x: number; y: number; rot: number; size: number; color: string; alpha: number }
 
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;

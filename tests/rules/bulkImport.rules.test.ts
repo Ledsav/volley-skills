@@ -1,6 +1,6 @@
 import { assertFails, assertSucceeds, type RulesTestContext } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { getTestEnv, seedClub } from './testEnv';
+import { dbAs, getTestEnv, seedClub } from './testEnv';
 
 const NULL_SKILLS = {
   serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
@@ -11,18 +11,16 @@ describe('bulk import rules', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
-    await seedClub(env, { id: 'club-a', admins: ['coach@example.com'] });
+    await seedClub(env, {
+      id: 'club-a',
+      admins: ['coach@example.com'],
+      members: ['parent@example.com', 'trainer@example.com'],
+      sections: { trainings: ['trainer@example.com'] },
+    });
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
-      await db.doc('adminAllowlist/coach@example.com').set({});
-      await db.doc('users/admin-uid').set({ email: 'coach@example.com', role: 'superadmin' });
-      await db.doc('users/viewer-uid').set({ email: 'parent@example.com', role: 'member' });
-      await db.doc('users/trainer-uid').set({ email: 'trainer@example.com', role: 'member' });
-      await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
-      await db.doc('sectionAccess/trainings').set({ adminEmails: ['trainer@example.com'] });
-      await db.doc('sectionAccess/guides').set({ adminEmails: [] });
       await db.doc('clubs/club-a/teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
-      await db.doc('counters/trainings').set({ lastSequence: 6 });
+      await db.doc('clubs/club-a/counters/trainings').set({ lastSequence: 6 });
     });
   });
 
@@ -33,14 +31,14 @@ describe('bulk import rules', () => {
 
   it('accepts a batch that creates several valid exercises', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    const db = dbAs(env, 'coach@example.com');
     const batch = db.batch();
     for (const name of ['A', 'B', 'C']) {
-      batch.set(db.collection('exercises').doc(), {
+      batch.set(db.collection('clubs/club-a/exercises').doc(), {
         name,
         description: '',
         category: 'warmup',
-        createdBy: 'admin-uid',
+        createdBy: 'uid-coach@example.com',
       });
     }
     await assertSucceeds(batch.commit());
@@ -48,24 +46,24 @@ describe('bulk import rules', () => {
 
   it('rejects the whole batch when one exercise is invalid', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    const db = dbAs(env, 'coach@example.com');
     const batch = db.batch();
-    batch.set(db.collection('exercises').doc(), { name: 'ok', description: '', category: 'warmup', createdBy: 'admin-uid' });
-    batch.set(db.collection('exercises').doc(), { name: 'bad', description: '', category: 'nonsense', createdBy: 'admin-uid' });
+    batch.set(db.collection('clubs/club-a/exercises').doc(), { name: 'ok', description: '', category: 'warmup', createdBy: 'uid-coach@example.com' });
+    batch.set(db.collection('clubs/club-a/exercises').doc(), { name: 'bad', description: '', category: 'nonsense', createdBy: 'uid-coach@example.com' });
     await assertFails(batch.commit());
   });
 
-  it('denies a non-admin a batch of exercise creates', async () => {
+  it('denies a member without the exercises section a batch of exercise creates', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
+    const db = dbAs(env, 'parent@example.com');
     const batch = db.batch();
-    batch.set(db.collection('exercises').doc(), { name: 'x', description: '', category: 'warmup', createdBy: 'viewer-uid' });
+    batch.set(db.collection('clubs/club-a/exercises').doc(), { name: 'x', description: '', category: 'warmup', createdBy: 'uid-parent@example.com' });
     await assertFails(batch.commit());
   });
 
   it('accepts a club-admin batch of valid players', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    const db = dbAs(env, 'coach@example.com');
     const batch = db.batch();
     for (const number of [4, 5]) {
       batch.set(db.collection('clubs/club-a/teams/team-1/players').doc(), {
@@ -74,7 +72,7 @@ describe('bulk import rules', () => {
         skills: NULL_SKILLS,
         viewerEmails: [],
         consent: { given: false, date: null, confirmedBy: null },
-        createdBy: 'admin-uid',
+        createdBy: 'uid-coach@example.com',
       });
     }
     await assertSucceeds(batch.commit());
@@ -82,7 +80,7 @@ describe('bulk import rules', () => {
 
   it('rejects a player batch when one skill score is out of range', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
+    const db = dbAs(env, 'coach@example.com');
     const batch = db.batch();
     batch.set(db.collection('clubs/club-a/teams/team-1/players').doc(), {
       number: 7,
@@ -90,7 +88,7 @@ describe('bulk import rules', () => {
       skills: NULL_SKILLS,
       viewerEmails: [],
       consent: { given: false, date: null, confirmedBy: null },
-      createdBy: 'admin-uid',
+      createdBy: 'uid-coach@example.com',
     });
     batch.set(db.collection('clubs/club-a/teams/team-1/players').doc(), {
       number: 6,
@@ -98,7 +96,7 @@ describe('bulk import rules', () => {
       skills: { ...NULL_SKILLS, serve: { score: 42 } },
       viewerEmails: [],
       consent: { given: false, date: null, confirmedBy: null },
-      createdBy: 'admin-uid',
+      createdBy: 'uid-coach@example.com',
     });
     await assertFails(batch.commit());
   });
@@ -107,11 +105,11 @@ describe('bulk import rules', () => {
   // every training with its derived businessId, then bumps the counter.
   function bulkCreateTrainings(db: ReturnType<RulesTestContext['firestore']>, uid: string, names: string[]) {
     return db.runTransaction(async (tx) => {
-      const counterRef = db.doc('counters/trainings');
+      const counterRef = db.doc('clubs/club-a/counters/trainings');
       const snap = await tx.get(counterRef);
       const last = (snap.data()?.lastSequence as number | undefined) ?? 0;
       names.forEach((name, i) => {
-        tx.set(db.collection('trainings').doc(), {
+        tx.set(db.collection('clubs/club-a/trainings').doc(), {
           businessId: `TR-${String(last + i + 1).padStart(4, '0')}`,
           name,
           description: '',
@@ -129,42 +127,42 @@ describe('bulk import rules', () => {
     const env = await getTestEnv();
     let value = -1;
     await env.withSecurityRulesDisabled(async (context) => {
-      value = (await context.firestore().doc('counters/trainings').get()).data()?.lastSequence;
+      value = (await context.firestore().doc('clubs/club-a/counters/trainings').get()).data()?.lastSequence;
     });
     return value;
   }
 
   it('accepts a trainings-section admin transaction that creates several trainings and bumps the counter', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('trainer-uid', { email: 'trainer@example.com' }).firestore();
-    await assertSucceeds(bulkCreateTrainings(db, 'trainer-uid', ['A', 'B', 'C']));
+    const db = dbAs(env, 'trainer@example.com');
+    await assertSucceeds(bulkCreateTrainings(db, 'uid-trainer@example.com', ['A', 'B', 'C']));
     expect(await counterValue()).toBe(9);
   });
 
-  it('accepts the same transaction from a superadmin', async () => {
+  it('accepts the same transaction from a club admin', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
-    await assertSucceeds(bulkCreateTrainings(db, 'admin-uid', ['A', 'B']));
+    const db = dbAs(env, 'coach@example.com');
+    await assertSucceeds(bulkCreateTrainings(db, 'uid-coach@example.com', ['A', 'B']));
     expect(await counterValue()).toBe(8);
   });
 
   it('rejects the whole training transaction when one training is invalid, leaving the counter alone', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('trainer-uid', { email: 'trainer@example.com' }).firestore();
-    await assertFails(bulkCreateTrainings(db, 'trainer-uid', ['ok', '']));
+    const db = dbAs(env, 'trainer@example.com');
+    await assertFails(bulkCreateTrainings(db, 'uid-trainer@example.com', ['ok', '']));
     expect(await counterValue()).toBe(6);
   });
 
   it('rejects a training transaction that claims another creator', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('trainer-uid', { email: 'trainer@example.com' }).firestore();
+    const db = dbAs(env, 'trainer@example.com');
     await assertFails(bulkCreateTrainings(db, 'someone-else', ['A']));
   });
 
-  it('denies a non-admin the bulk training transaction', async () => {
+  it('denies a member without the trainings section the bulk training transaction', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
-    await assertFails(bulkCreateTrainings(db, 'viewer-uid', ['A']));
+    const db = dbAs(env, 'parent@example.com');
+    await assertFails(bulkCreateTrainings(db, 'uid-parent@example.com', ['A']));
     expect(await counterValue()).toBe(6);
   });
 });

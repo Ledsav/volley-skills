@@ -3,7 +3,7 @@ import type { FeedMatch } from './homeFeed';
 
 export function RecentResultsBlock({ items, failed, mvpFor }: { items: FeedMatch[]; failed: boolean; mvpFor?: (fm: FeedMatch) => string | null }) {
   return (
-    <section aria-labelledby="recent" className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card">
+    <section aria-labelledby="recent" className="rounded-lg border border-border bg-surface p-4 shadow-card">
       <h2 id="recent" className="mb-3 text-lg font-semibold text-ink">Recent results</h2>
       {failed && <p role="alert" className="mb-2 text-sm text-red">Could not load matches.</p>}
       {items.length === 0 ? (

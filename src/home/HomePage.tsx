@@ -75,7 +75,9 @@ export function HomePage() {
       ) : (
         <>
           <LiveNowBlock items={liveMatches(state.feed)} />
-          <div className="grid gap-6 lg:grid-cols-2">
+          {/* grid-cols-1 (minmax(0,1fr)), not the implicit auto track: a long
+              session name would otherwise widen the column past a phone's screen. */}
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <NextUpBlock items={nextUp(state.feed, today)} failed={state.errors.sessions} />
             <RecentResultsBlock items={recentResults(state.feed)} failed={state.errors.matches} mvpFor={(fm) => matchMvpLabel(fm.match)} />
           </div>

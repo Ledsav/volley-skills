@@ -7,9 +7,10 @@ import { useAuth } from '../auth/AuthContext';
 import { AccessRequestsPanel } from '../interest/AccessRequestsPanel';
 import { PageHeader } from '../layout/PageHeader';
 import {
-  emptyGrantSet, listAllTeams, listGrantHolders, removeAllGrants, saveGrants,
+  emptyGrantSet, listAllTeams, listGrantHolders, saveGrants,
   type GrantHolder, type GrantSet, type TeamRow,
 } from './accessApi';
+import { removeFromClub } from './membersApi';
 
 const SECTION_LABEL: Record<SectionKey, string> = {
   exercises: 'Exercises', trainings: 'Trainings', guides: 'Guides',
@@ -23,7 +24,7 @@ function sameGrants(a: GrantSet, b: GrantSet): boolean {
 
 export function AccessManagerPage() {
   usePageMeta({ title: 'Access' });
-  const { appUser, isPlatformAdmin } = useAuth();
+  const { isPlatformAdmin } = useAuth();
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [holders, setHolders] = useState<GrantHolder[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -93,7 +94,7 @@ export function AccessManagerPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveGrants(selected, draft, original, appUser?.email ?? '');
+      await saveGrants(selected, draft, original);
       await reload();
     } catch {
       setError('Could not save. Please try again.');
@@ -107,7 +108,7 @@ export function AccessManagerPage() {
     setSaving(true);
     setError(null);
     try {
-      await removeAllGrants(selected);
+      await removeFromClub(selected);
       await reload();
       setSelected(null);
     } catch {

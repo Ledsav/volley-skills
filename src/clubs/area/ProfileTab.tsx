@@ -20,6 +20,7 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
   const [locale, setLocale] = useState<ClubLocale>(club?.locale ?? 'en');
   const [aiEnabled, setAiEnabled] = useState(club?.aiEnabled ?? false);
   const [growthTestsEnabled, setGrowthTestsEnabled] = useState(club?.growthTestsEnabled ?? false);
+  const [referenceOptOut, setReferenceOptOut] = useState(club?.referenceOptOut ?? false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -40,7 +41,7 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
     try {
       await updateClubProfile({
         name: trimmed, country, locale, aiEnabled,
-        referenceOptOut: club.referenceOptOut, growthTestsEnabled,
+        referenceOptOut, growthTestsEnabled,
       });
       setName(trimmed);
       notify('Club details saved');
@@ -97,6 +98,15 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
           <p className="text-sm text-slate">
             Height and body mass may be health data. Only switch on if your club has a lawful basis to record them.
           </p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-3">
+        <input id="club-reference" type="checkbox" checked={referenceOptOut} disabled={restricted}
+          onChange={(e) => setReferenceOptOut(e.target.checked)} className="mt-1" />
+        <div>
+          <label htmlFor="club-reference" className="text-sm font-medium text-ink">Don't name our club as a customer</label>
+          <p className="text-sm text-slate">We won't list your club as a reference customer.</p>
         </div>
       </div>
 

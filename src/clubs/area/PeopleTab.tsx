@@ -61,7 +61,6 @@ export function PeopleTab() {
   );
   const target = members.find((x) => x.email === selected) ?? null;
   const rules = target ? canChangeRole(target, members, ownerEmail) : null;
-  const isOwner = !!myEmail && myEmail === ownerEmail;
 
   function select(email: string, from = holders) {
     setSelected(email);
@@ -239,7 +238,7 @@ export function PeopleTab() {
                     Make admin
                   </Button>
                 )}
-                {isOwner && target.role === 'admin' && target.email !== ownerEmail && (
+                {target.role === 'admin' && target.email !== ownerEmail && (
                   <Button variant="secondary" size="sm" className="w-full sm:w-auto"
                     disabled={busy} onClick={() => { setError(null); setConfirm('owner'); }}>
                     Make owner

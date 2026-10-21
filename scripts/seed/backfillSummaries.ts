@@ -28,6 +28,12 @@ const pending = finished.docs
 const profiles = new Map<string, UsageProfile>();
 const teamRefs = new Map<string, FirebaseFirestore.DocumentReference>();
 
+const allInClub = finished.docs.filter((d) => d.ref.path.startsWith(`clubs/${club}/`));
+if (allInClub.length === 0) {
+  console.error(`No finished matches found under clubs/${club}/ — wrong --club? Nothing was written.`);
+  process.exit(1);
+}
+
 for (const doc of pending) {
   const teamRef = doc.ref.parent.parent!;
   const match = { id: doc.id, ...doc.data() } as Match;

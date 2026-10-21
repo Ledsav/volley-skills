@@ -16,10 +16,10 @@ app's consent flow, so an admin must confirm consent per player in the app after
 import. Skill scores / notes / development-plan fields import as empty unless the
 workbook has them filled.
 
-Everything is club-scoped: every script takes `--club <id>` (default `demo`) and writes
+Everything is club-scoped: every script takes `--club <id>` (default `demo` on the emulator; **`--prod` requires an explicit `--club`** in `seed.mjs`, `backfillPlayers.mjs` and `snapshotSkills.mjs`) and writes
 under `clubs/<id>/...`. `exportProdPlayers.mjs` still reads top-level `teams` (prod is not
 migrated yet) unless you pass `--club <id>`. Collection-group scripts
-(`backfillSummaries`, `backfillPlayers`, `snapshotSkills`) only touch docs under the chosen club.
+(`backfillSummaries`, `backfillPlayers`, `snapshotSkills`) only touch docs under the chosen club and exit non-zero (writing nothing, never an empty `skillsSnapshot.json`) when no docs match.
 
 The script logs **counts only** — never player or guardian field values.
 
@@ -183,10 +183,12 @@ node scripts/seed/seed.mjs --prod --admin coach@realclub.example --yes
 Guards (all must pass):
 
 1. `serviceAccountKey.json` exists at the repo root.
-2. `--admin <email>` is given (the real team admin who will sign in). No default.
+2. `--club <id>` is given (no default in prod) and `--admin <email>` is given (the real team admin who will sign in). No default.
 3. `--yes` is given, or you type `seed` at the confirmation prompt.
-4. `clubs/<club>` does **not** exist yet. To seed into an existing club, add `--force`
-   (it appends another team and rewrites the club/member/section docs).
+4. Top-level `teams` is **empty** (prod is not migrated to clubs yet; otherwise seeding is refused) and
+   `clubs/<club>` does **not** exist. `--force` overrides both; on an existing club it only adds the
+   team, players and `config/skillGuide`, never touching the club, member or sectionAccess docs.
+   `platformAdmins/<admin>` is written on the emulator only.
 
 The script prints the target project id (from the key file) before writing. Run it
 **once**.
@@ -200,7 +202,7 @@ The script prints the target project id (from the key file) before writing. Run 
 | `clubs/<club>` | `name` ("Volley Demo" for `demo`), `country`, `locale`, `ownerEmail: <--admin>`, `status: "active"`, `aiEnabled`/`growthTestsEnabled: true`, `referenceOptOut: false`, `legal: null`, `termination` (all null), `billing: null`, `createdAt` |
 | `clubs/<club>/members/{<--admin>}` | `{ email, clubId, role: "admin", addedBy: "seed-script", addedAt }` (doc id = lowercased email) |
 | `clubs/<club>/sectionAccess/{exercises,trainings,guides}` | `{ adminEmails: [<--admin>] }` and nothing else (the rules only allow that key) |
-| `platformAdmins/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` |
+| `platformAdmins/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` (emulator only) |
 | `clubs/<club>/teams/{autoId}` | `name` (age group), `ageGroup`, `season`, empty `description`/`notes`, empty `developmentPlan`, `adminEmails: [<--admin>]`, `createdBy: "seed-script"`, `createdAt` (no `club` field: the name lives on the club doc) |
 | `clubs/<club>/config/skillGuide` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
 | `clubs/<club>/teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |

@@ -162,8 +162,9 @@ per-team (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
 `clubs/{clubId}/sectionAccess/{exercises,trainings,guides}.adminEmails`) via
 `useAuth().access` (`src/auth/access.ts`); a club admin has everything in their club.
 The platform operator is an email in `platformAdmins/{email}` (readable only by that
-email; written by script/console, never the client); the platform admin can read and
-status-update club docs but sees no club data. `users/{uid}` holds only email and
+email; written by script/console, never the client); the operator sees only the club
+profile/lifecycle doc and leads — never members, teams, players or library — and can
+status-update club docs. `users/{uid}` holds only email and
 timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
 (`pending | active | suspended | terminating | deleted`) drives `ClubGate`. See
 `docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
@@ -173,15 +174,20 @@ timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club 
 Profile, People & access and Contract tabs. A club whose status is paused (suspended, or
 terminating after `effectiveAt`) gets a restricted club area for admins instead of the app.
 Membership is explicit: People & access *adds* members (a `members/{email}` doc) and
-"Remove from club" deletes it. `/platform` sits **outside** `ClubGate` behind `RequirePlatformAdmin` and renders in
-`MinimalShell`: the operator's clubs table, lifecycle actions and leads. The operator never
-sees club data, so an operator-only account (no membership) works there. `RequireSignedIn`
-gates routes that need only a signed-in user (no club). `useClubFeatures()` reads the club's
+"Remove from club" deletes it. `/platform` sits **outside** `ClubGate` behind
+`RequirePlatformAdmin` and renders in `MinimalShell`: the operator's clubs table, lifecycle
+actions and leads (`/admin/interest` redirects to its Leads tab). The operator sees only the
+club profile/lifecycle doc and leads — never members, teams, players or library — so an
+operator-only account (no membership) works there. `RequireSignedIn` gates routes that need
+only a signed-in user (no club). `useClubFeatures()` reads the club's
 `aiEnabled`/`growthTestsEnabled` and hides AI features and growth tests when a club turns them
-off (rules also refuse growth writes once off and past the effective time). Termination date
-changes (terminating to terminating) are allowed by rules; `effectiveAt` defaults to now + 30
-days and may not be earlier than now − 1 day. Seed sign-ins: `operator@example.com`
-(`/platform` only) and `rival@example.com` (AI and growth tests off); see `scripts/seed/README.md`.
+off. While `growthTestsEnabled` is false, rules refuse growth creates and updates (including
+relabelling an existing growth record); deletes stay allowed, and there is no time element.
+Termination date changes (terminating to terminating) are allowed by rules; `effectiveAt`
+defaults to now + 30 days (today for a paused club) and may not be earlier than one day before
+now, unless a date change keeps the stored one. Reinstating clears the dates and the club's
+termination request. Seed sign-ins: `operator@example.com` (`/platform` only) and
+`rival@example.com` (AI and growth tests off); see `scripts/seed/README.md`.
 
 ### Firestore model shape (see spec §5 for the full contract)
 

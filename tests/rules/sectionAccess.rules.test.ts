@@ -108,4 +108,62 @@ describe('sectionAccess + section-gated libraries', () => {
     await assertSucceeds(ndb.doc('clubs/club-a/config/skillGuide').get());
     await assertFails(ndb.doc('clubs/club-a/config/skillGuide').set({ skills: {} }));
   });
+
+  it('suspended club: library, counter and section writes fail, admin export reads still work', async () => {
+    const env = await getTestEnv();
+    await seedClub(env, {
+      id: 'club-s', status: 'suspended', admins: ['super@example.com'], members: ['tr@example.com'],
+      sections: { trainings: ['tr@example.com'], exercises: ['tr@example.com'] },
+    });
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore();
+      await db.doc('clubs/club-s/exercises/e-1').set({ name: 'P', description: '', category: 'warmup', createdBy: 'x' });
+      await db.doc('clubs/club-s/exercises/e-1/diagrams/d-1').set({
+        title: 'D', order: 0, updatedBy: 'x', scene: { v: 1, court: 'full', items: [] },
+      });
+      await db.doc('clubs/club-s/trainings/t-1').set({
+        name: 'T', businessId: 'TR-0001', description: '', exercises: [], exerciseIds: [], createdBy: 'x',
+      });
+      await db.doc('clubs/club-s/counters/trainings').set({ lastSequence: 1 });
+    });
+    const admin = await as('super@example.com');
+    await assertSucceeds(admin.doc('clubs/club-s/trainings/t-1').get());
+    await assertSucceeds(admin.doc('clubs/club-s/counters/trainings').get());
+    await assertSucceeds(admin.doc('clubs/club-s/exercises/e-1/diagrams/d-1').get());
+    await assertSucceeds(admin.doc('clubs/club-s/sectionAccess/trainings').get());
+    await assertFails(admin.doc('clubs/club-s/trainings/t-1').update({ name: 'T2' }));
+    await assertFails(admin.doc('clubs/club-s/counters/trainings').set({ lastSequence: 2 }));
+    await assertFails(
+      admin.collection('clubs/club-s/exercises/e-1/diagrams').add({
+        title: 'N', order: 1, updatedBy: 'uid-super@example.com', scene: { v: 1, court: 'full', items: [] },
+      })
+    );
+    await assertFails(admin.doc('clubs/club-s/sectionAccess/trainings').update({ adminEmails: [] }));
+    const tr = await as('tr@example.com');
+    await assertFails(tr.doc('clubs/club-s/trainings/t-1').get());
+    await assertFails(tr.doc('clubs/club-s/trainings/t-1').update({ name: 'T3' }));
+    await assertFails(tr.doc('clubs/club-s/counters/trainings').set({ lastSequence: 3 }));
+    await assertFails(tr.doc('clubs/club-s/exercises/e-1/diagrams/d-1').get());
+    await assertFails(tr.doc('clubs/club-s/sectionAccess/trainings').get());
+  });
+
+  it('denies an email still listed in every section but without a member doc', async () => {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore();
+      for (const sec of ['exercises', 'trainings', 'guides']) {
+        await db.doc(`clubs/club-a/sectionAccess/${sec}`).set({ adminEmails: ['gone@example.com'] });
+      }
+      await db.doc('clubs/club-a/exercises/e-1/diagrams/d-1').set({
+        title: 'D', order: 0, updatedBy: 'x', scene: { v: 1, court: 'full', items: [] },
+      });
+    });
+    const gone = await as('gone@example.com');
+    await assertFails(gone.doc('clubs/club-a/exercises/e-1').get());
+    await assertFails(gone.doc('clubs/club-a/trainings/t-1').get());
+    await assertFails(gone.doc('clubs/club-a/exercises/e-1/diagrams/d-1').get());
+    await assertFails(gone.doc('clubs/club-a/sectionAccess/trainings').get());
+    await assertFails(gone.doc('clubs/club-a/counters/trainings').set({ lastSequence: 9 }));
+    await assertFails(gone.doc('clubs/club-a/config/skillGuide').set({ skills: [] }));
+  });
 });

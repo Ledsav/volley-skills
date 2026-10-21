@@ -145,6 +145,23 @@ describe('club members rules', () => {
     await assertSucceeds(batch.commit());
   });
 
+  it('lets the owner transfer ownership to another admin and then be demoted in the same batch', async () => {
+    const env = await getTestEnv();
+    const ADMIN_B = 'admin-b@example.com';
+    await seedClub(env, { ...CLUB_A, admins: [ADMIN, ADMIN_B], ownerEmail: ADMIN });
+    const db = dbAs(env, ADMIN);
+
+    const batch = db.batch();
+    batch.update(db.doc('clubs/club-a'), { ownerEmail: ADMIN_B });
+    batch.update(db.doc(`clubs/club-a/members/${ADMIN}`), { role: 'member' });
+    await assertSucceeds(batch.commit());
+
+    const club = await assertSucceeds(db.doc('clubs/club-a').get());
+    expect(club.data()?.ownerEmail).toBe(ADMIN_B);
+    const me = await assertSucceeds(db.doc(`clubs/club-a/members/${ADMIN}`).get());
+    expect(me.data()?.role).toBe('member');
+  });
+
   it('refuses member writes when the club is not active', async () => {
     const env = await getTestEnv();
     for (const status of ['suspended', 'pending'] as const) {

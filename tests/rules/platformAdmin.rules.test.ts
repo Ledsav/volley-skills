@@ -1,6 +1,15 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
-import { clubTreePaths, dbAs, getTestEnv, OPERATOR, seedClub, seedClubTree, seedPlatformAdmin } from './testEnv';
+import {
+  clubTreePaths,
+  dbAs,
+  getTestEnv,
+  OPERATOR,
+  seedClub,
+  seedClubTree,
+  seedPlatformAdmin,
+  serverTimestamp,
+} from './testEnv';
 
 // The platform operator runs the platform but is blind to club data: it reads a
 // club's doc, its acceptances and its statusLog, nothing else.
@@ -64,6 +73,40 @@ describe('platform admin (operator) isolation', () => {
       await assertFails(op.collectionGroup('members').get());
       // Control: its own (empty) membership query is allowed.
       await assertSucceeds(op.collectionGroup('members').where('email', '==', OPERATOR).get());
+    });
+
+    it('cannot create its own member doc in a club', async () => {
+      const env = await getTestEnv();
+      const member = (addedBy: string) => ({
+        email: OPERATOR,
+        clubId: 'club-a',
+        role: 'admin',
+        addedBy,
+        addedAt: serverTimestamp(),
+      });
+      await assertFails(dbAs(env, OPERATOR).doc(`clubs/club-a/members/${OPERATOR}`).set(member(OPERATOR)));
+      // Control: the same valid doc is accepted from a club admin.
+      await assertSucceeds(dbAs(env, ADMIN_A).doc(`clubs/club-a/members/${OPERATOR}`).set(member(ADMIN_A)));
+    });
+
+    it('cannot write a team doc', async () => {
+      const env = await getTestEnv();
+      const op = dbAs(env, OPERATOR);
+      const newTeam = (uid: string) => ({ name: 'U19', adminEmails: [OPERATOR], createdBy: uid });
+      await assertFails(op.doc('clubs/club-a/teams/team-2').set(newTeam(`uid-${OPERATOR}`)));
+      await assertFails(op.doc('clubs/club-a/teams/team-1').update({ name: 'Renamed' }));
+      await assertFails(op.doc('clubs/club-a/teams/team-1').delete());
+      // Control: a club admin creates the same team doc and renames the seeded one.
+      const admin = dbAs(env, ADMIN_A);
+      await assertSucceeds(admin.doc('clubs/club-a/teams/team-2').set(newTeam(`uid-${ADMIN_A}`)));
+      await assertSucceeds(admin.doc('clubs/club-a/teams/team-1').update({ name: 'Renamed' }));
+    });
+
+    it('cannot edit the club profile', async () => {
+      const env = await getTestEnv();
+      await assertFails(dbAs(env, OPERATOR).doc('clubs/club-a').update({ name: 'Operator name' }));
+      // Control: a club admin can.
+      await assertSucceeds(dbAs(env, ADMIN_A).doc('clubs/club-a').update({ name: 'Operator name' }));
     });
   });
 

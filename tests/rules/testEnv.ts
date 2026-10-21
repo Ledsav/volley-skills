@@ -50,6 +50,7 @@ export interface SeedClubOptions {
   // sectionAccess docs; all three are written (default []) unless skipSections
   sections?: Partial<Record<'exercises' | 'trainings' | 'guides', string[]>>;
   skipSections?: boolean; // write no sectionAccess docs at all
+  growthTestsEnabled?: boolean; // default true
 }
 
 /** Writes a full club doc (Task 1's `Club` shape), its member docs and its three sectionAccess docs. */
@@ -68,7 +69,7 @@ export async function seedClub(env: RulesTestEnvironment, opts: SeedClubOptions)
       ownerEmail,
       aiEnabled: false,
       referenceOptOut: false,
-      growthTestsEnabled: false,
+      growthTestsEnabled: opts.growthTestsEnabled ?? true,
       createdAt: new Date(),
       status: opts.status ?? 'active',
       statusReason: null,

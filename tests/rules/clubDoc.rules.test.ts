@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { afterAll, beforeEach, describe, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { ClubStatus } from '../../src/types/club';
 import {
   dbAs,
@@ -26,9 +26,12 @@ const ALLOWED = new Set([
   'suspended>active',
   'suspended>terminating',
   'terminating>active',
+  // The operator changes a terminating club's dates (a fresh log entry each time).
+  'terminating>terminating',
 ]);
+// Every from/to pair, self-transitions included (only terminating -> terminating is allowed).
 const PAIRS = STATUSES.flatMap((from) =>
-  STATUSES.filter((to) => to !== from).map((to) => ({ from, to, allowed: ALLOWED.has(`${from}>${to}`) }))
+  STATUSES.map((to) => ({ from, to, allowed: ALLOWED.has(`${from}>${to}`) }))
 );
 
 /** A club seeded in `status`, with termination dates set when it is terminating. */
@@ -225,6 +228,90 @@ describe('club doc rules', () => {
     );
   });
 
+  it('lets the operator change the dates of a terminating club with a fresh log', async () => {
+    const env = await getTestEnv();
+    await seedClubIn('terminating');
+    const effectiveAt = inDays(45);
+    const retrievalEndsAt = new Date(effectiveAt.getTime() + 30 * DAY);
+    await assertSucceeds(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        clubExtra: { 'termination.effectiveAt': effectiveAt, 'termination.retrievalEndsAt': retrievalEndsAt },
+      })
+    );
+    const snap = await dbAs(env, OPERATOR).doc('clubs/club-a').get();
+    expect(snap.data()?.status).toBe('terminating');
+    expect(snap.data()?.termination.effectiveAt.toMillis()).toBe(effectiveAt.getTime());
+    expect(snap.data()?.termination.retrievalEndsAt.toMillis()).toBe(retrievalEndsAt.getTime());
+    const log = await dbAs(env, OPERATOR).doc('clubs/club-a/statusLog/log-1').get();
+    expect(log.data()).toMatchObject({ from: 'terminating', to: 'terminating' });
+  });
+
+  it('refuses a date change under 30 days', async () => {
+    await seedClubIn('terminating');
+    const effectiveAt = inDays(45);
+    await assertFails(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        clubExtra: {
+          'termination.effectiveAt': effectiveAt,
+          'termination.retrievalEndsAt': new Date(effectiveAt.getTime() + 29 * DAY),
+        },
+      })
+    );
+    // A date change still needs its own fresh statusLog entry.
+    await assertFails(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        log: null,
+        clubExtra: {
+          'termination.effectiveAt': effectiveAt,
+          'termination.retrievalEndsAt': new Date(effectiveAt.getTime() + 30 * DAY),
+        },
+      })
+    );
+  });
+
+  it("refuses a statusLog whose reason differs from the club's statusReason", async () => {
+    await assertFails(
+      statusBatch({ from: 'active', to: 'suspended', clubExtra: { statusReason: 'a' }, log: { reason: 'b' } })
+    );
+    // Control: the same batch with matching reasons goes through.
+    await assertSucceeds(
+      statusBatch({ from: 'active', to: 'suspended', clubExtra: { statusReason: 'a' }, log: { reason: 'a' } })
+    );
+  });
+
+  it('refuses a statusLog missing the reason key', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, OPERATOR);
+    // Club statusReason null, log without a reason key at all.
+    const batch = db.batch();
+    batch.update(db.doc('clubs/club-a'), {
+      status: 'terminating',
+      statusReason: null,
+      statusChangedAt: serverTimestamp(),
+      statusChangedBy: OPERATOR,
+      lastStatusLogId: 'log-1',
+      'termination.effectiveAt': inDays(30),
+      'termination.retrievalEndsAt': inDays(60),
+    });
+    batch.set(db.doc('clubs/club-a/statusLog/log-1'), {
+      from: 'active',
+      to: 'terminating',
+      by: OPERATOR,
+      at: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+    // Control: the same batch with `reason: null` goes through.
+    await assertSucceeds(
+      statusBatch({ from: 'active', to: 'terminating', clubExtra: { statusReason: null }, log: { reason: null } })
+    );
+  });
+
   it("refuses the platform admin changing the club's termination request", async () => {
     await assertFails(
       statusBatch({
@@ -261,7 +348,8 @@ describe('club doc rules', () => {
     await assertSucceeds(club.update({ locale: 'it' }));
     await assertSucceeds(club.update({ aiEnabled: true }));
     await assertSucceeds(club.update({ referenceOptOut: true }));
-    await assertSucceeds(club.update({ growthTestsEnabled: true }));
+    // seedClub turns growth tests on by default, so the edit turns them off.
+    await assertSucceeds(club.update({ growthTestsEnabled: false }));
 
     await assertFails(club.update({ name: 'X' }));
     await assertFails(club.update({ name: 'x'.repeat(81) }));

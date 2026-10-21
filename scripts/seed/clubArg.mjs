@@ -15,6 +15,13 @@ export function parseClubArg(argv) {
   return id;
 }
 
+/** Throws when `--prod` is used without an explicit `--club <id>` (no silent `demo` in prod). */
+export function assertProdClub(argv) {
+  if (argv.includes('--prod') && !argv.includes('--club')) {
+    throw new Error('--prod requires an explicit --club <id> (there is no default club in prod).');
+  }
+}
+
 /** `clubs/{clubId}` as a DocumentReference (Admin SDK). */
 export function clubRoot(db, clubId) {
   return db.collection('clubs').doc(clubId);

@@ -20,7 +20,7 @@ import { createRequire } from 'node:module';
 import { BLOCK_GUIDE_DEFAULT, toPositionCategory } from './parseWorkbook.mjs';
 import { computeAvgScore, computeLevel } from './skillMath.mjs';
 
-import { clubRoot, parseClubArg } from './clubArg.mjs';
+import { assertProdClub, clubRoot, parseClubArg } from './clubArg.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -48,6 +48,12 @@ function parseArgs(argv) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  try {
+    assertProdClub(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 
   if (args.target === 'prod') {
     if (!existsSync(KEY_PATH)) {
@@ -70,6 +76,11 @@ async function main() {
   const root = clubRoot(db, args.club);
   // collectionGroup spans every club: keep only this club's docs.
   const players = (await db.collectionGroup('players').get()).docs.filter((d) => d.ref.path.startsWith(`clubs/${args.club}/`));
+
+  if (players.length === 0) {
+    console.error(`No players found under clubs/${args.club}/ — wrong --club? Nothing was written.`);
+    process.exit(1);
+  }
 
   let scanned = 0;
   let toPatch = 0;

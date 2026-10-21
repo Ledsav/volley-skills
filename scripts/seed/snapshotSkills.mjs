@@ -13,7 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { SKILL_KEYS } from './parseWorkbook.mjs';
 
-import { parseClubArg } from './clubArg.mjs';
+import { assertProdClub, parseClubArg } from './clubArg.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -41,6 +41,12 @@ function parseArgs(argv) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  try {
+    assertProdClub(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 
   if (args.target === 'prod') {
     if (!existsSync(KEY_PATH)) {
@@ -59,6 +65,11 @@ async function main() {
   const db = admin.firestore();
   // collectionGroup spans every club: keep only this club's docs.
   const snap = (await db.collectionGroup('players').get()).docs.filter((d) => d.ref.path.startsWith(`clubs/${args.club}/`));
+
+  if (snap.length === 0) {
+    console.error(`No players found under clubs/${args.club}/ — wrong --club? ${args.out} was not written.`);
+    process.exit(1);
+  }
 
   const out = {};
   let dupes = 0;

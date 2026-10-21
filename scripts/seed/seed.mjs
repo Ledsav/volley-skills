@@ -15,9 +15,11 @@
 //   --admin <email>  club admin + owner (and the team's adminEmails) so someone can
 //                    sign in and see the data; also made a platform admin. Emulator default: coach@example.com
 //                    (or $SEED_ADMIN_EMAIL). Required for --prod.
-//   --club <id>      club the data goes under (default: demo) -> clubs/<id>/...
+//   --club <id>      club the data goes under (default: demo; REQUIRED with --prod) -> clubs/<id>/...
 //   --reset          (emulator only) delete the whole club (clubs/<club>/**) first.
-//   --force          (prod only) allow seeding even though `clubs/<club>` exists.
+//   --force          (prod only) allow seeding even though top-level `teams` is non-empty
+//                    (pre-migration) or `clubs/<club>` exists. On an existing club only the
+//                    team data is added: the club, member and sectionAccess docs are untouched.
 //   --yes            (prod only) skip the interactive confirmation.
 //
 // Logs counts only — never player/guardian field values.
@@ -25,7 +27,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { parseWorkbook, SKILL_KEYS } from './parseWorkbook.mjs';
-import { clubRoot, parseClubArg, writeClub } from './clubArg.mjs';
+import { assertProdClub, clubRoot, parseClubArg, writeClub } from './clubArg.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -81,6 +83,12 @@ async function confirm(question) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  try {
+    assertProdClub(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 
   if (!existsSync(args.file)) {
     console.error(`Workbook not found: ${args.file}`);
@@ -138,6 +146,14 @@ async function main() {
   console.log(`Applied skill snapshot to ${overlaid}/${players.length} players.`);
 
   // --- Guards ----------------------------------------------------------
+  if (args.target === 'prod' && !args.force) {
+    // Prod is not migrated to clubs yet: refuse while the old top-level model has data.
+    const legacy = await db.collection('teams').limit(1).get();
+    if (!legacy.empty) {
+      console.error('Top-level `teams` already has documents (prod not migrated yet). Refusing to seed prod without --force.');
+      process.exit(1);
+    }
+  }
   const clubSnap = await root.get();
   if (clubSnap.exists) {
     if (args.target === 'prod' && !args.force) {
@@ -169,17 +185,23 @@ async function main() {
   const now = FieldValue.serverTimestamp();
 
   // Club doc + members + sectionAccess (admin owns the club and every section).
-  await writeClub(db, {
-    id: args.club,
-    name: args.club === 'demo' ? 'Volley Demo' : args.club,
-    status: 'active',
-    admins: [args.admin],
-  });
+  // --force on an existing prod club: never rewrite the club, member or sectionAccess docs.
+  const keepClub = args.target === 'prod' && clubSnap.exists;
+  if (!keepClub) {
+    await writeClub(db, {
+      id: args.club,
+      name: args.club === 'demo' ? 'Volley Demo' : args.club,
+      status: 'active',
+      admins: [args.admin],
+    });
+  }
   const batch = db.batch();
 
   // platformAdmins gates the operator console; seeding it keeps the admin able
-  // to open /platform locally.
-  batch.set(db.doc(`platformAdmins/${args.admin}`), { addedBy: 'seed-script', addedAt: now });
+  // to open /platform locally. Emulator only: in prod the operator gets it via migration.
+  if (args.target === 'emulator') {
+    batch.set(db.doc(`platformAdmins/${args.admin}`), { addedBy: 'seed-script', addedAt: now });
+  }
 
   const teamRef = root.collection('teams').doc();
   batch.set(teamRef, {
@@ -228,7 +250,7 @@ async function main() {
   await batch.commit();
 
   console.log(
-    `\nDone. Wrote clubs/${args.club} (+ members, sectionAccess/{exercises,trainings,guides}), platformAdmins/${args.admin}, ` +
+    `\nDone. ${keepClub ? `Kept existing clubs/${args.club} untouched; added` : `Wrote clubs/${args.club} (+ members, sectionAccess/{exercises,trainings,guides})${args.target === 'emulator' ? `, platformAdmins/${args.admin}` : ''},`} ` +
       `team ${teamRef.id}, config/skillGuide and ${players.length} players.` +
       `\nSign in as ${args.admin} to manage this team.`
   );

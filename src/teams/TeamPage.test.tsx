@@ -66,6 +66,19 @@ describe('TeamPage', () => {
     );
   });
 
+  it('uses the lowercased appUser email, not the raw sign-in email, for team admin', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+      })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByRole('tab', { name: 'Stats' })).toBeInTheDocument();
+  });
+
   it('shows the not-found state when the team cannot be read', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
     renderTeamPage();

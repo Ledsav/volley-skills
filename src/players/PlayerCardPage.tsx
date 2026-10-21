@@ -72,7 +72,7 @@ export function PlayerCardPage() {
   usePageMeta({ title: 'Player' });
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const navigate = useNavigate();
-  const { firebaseUser, access } = useAuth();
+  const { appUser, access } = useAuth();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,10 +99,10 @@ export function PlayerCardPage() {
           return;
         }
         setPlayer(fetchedPlayer);
-        setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, firebaseUser?.email, access));
+        setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, appUser?.email, access));
       })
       .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this player.')));
-  }, [teamId, playerId, firebaseUser?.email, access]);
+  }, [teamId, playerId, appUser?.email, access]);
 
   const handleLatestLoaded = useCallback(
     (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),
@@ -159,10 +159,10 @@ export function PlayerCardPage() {
   }
 
   async function handleRecordConsent() {
-    if (!firebaseUser?.email) return;
+    if (!appUser?.email) return;
     setConsentError(null);
     try {
-      const consent = await recordPlayerConsent(teamId!, playerId!, firebaseUser.email);
+      const consent = await recordPlayerConsent(teamId!, playerId!, appUser.email);
       setPlayer({ ...player!, consent });
     } catch {
       setConsentError('Could not record consent. Please try again.');

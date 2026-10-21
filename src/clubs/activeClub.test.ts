@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Membership } from '../types/club';
-import { ACTIVE_CLUB_KEY, pickActiveClub, readStoredClub, storeClub } from './activeClub';
+import { ACTIVE_CLUB_KEY, otherUsableClubs, pickActiveClub, readStoredClub, storeClub } from './activeClub';
 
 const m = (clubId: string, clubName: string, status: Membership['status'] = 'active'): Membership => ({
   clubId, clubName, status, role: 'member',
@@ -38,5 +38,14 @@ describe('stored active club', () => {
     expect(readStoredClub()).toBe('club-a');
     storeClub(null);
     expect(readStoredClub()).toBeNull();
+  });
+});
+
+describe('otherUsableClubs', () => {
+  it('lists usable memberships other than the active one', () => {
+    const list = [m('a', 'Alpha'), m('b', 'Beta'), m('c', 'Gamma', 'deleted')];
+    expect(otherUsableClubs(list, 'a').map((x) => x.clubId)).toEqual(['b']);
+    expect(otherUsableClubs(list, null).map((x) => x.clubId)).toEqual(['a', 'b']);
+    expect(otherUsableClubs([m('a', 'Alpha'), m('c', 'Gamma', 'deleted')], 'a')).toEqual([]);
   });
 });

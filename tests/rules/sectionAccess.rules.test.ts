@@ -166,4 +166,28 @@ describe('sectionAccess + section-gated libraries', () => {
     await assertFails(gone.doc('clubs/club-a/counters/trainings').set({ lastSequence: 9 }));
     await assertFails(gone.doc('clubs/club-a/config/skillGuide').set({ skills: [] }));
   });
+
+  it('with no sectionAccess docs: a club admin still has full library access, a plain member is denied', async () => {
+    const env = await getTestEnv();
+    await seedClub(env, { id: 'club-n', admins: ['super@example.com'], members: ['plain@example.com'], skipSections: true });
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore();
+      await db.doc('clubs/club-n/exercises/e-1').set({ name: 'Pepper', description: '', category: 'warmup', createdBy: 'x' });
+      await db.doc('clubs/club-n/trainings/t-1').set({
+        name: 'T', businessId: 'TR-0001', description: '', exercises: [], exerciseIds: [], createdBy: 'x',
+      });
+    });
+    const admin = await as('super@example.com');
+    await assertSucceeds(admin.doc('clubs/club-n/exercises/e-1').get());
+    await assertSucceeds(admin.doc('clubs/club-n/exercises/e-1').update({ name: 'Pepper 2', category: 'warmup' }));
+    await assertSucceeds(admin.doc('clubs/club-n/trainings/t-1').get());
+    await assertSucceeds(
+      admin.doc('clubs/club-n/trainings/t-1').update({ name: 'T2', businessId: 'TR-0001', exercises: [], exerciseIds: [] })
+    );
+    const plain = await as('plain@example.com');
+    await assertFails(plain.doc('clubs/club-n/exercises/e-1').get());
+    await assertFails(plain.doc('clubs/club-n/exercises/e-1').update({ name: 'nope', category: 'warmup' }));
+    await assertFails(plain.doc('clubs/club-n/trainings/t-1').get());
+    await assertFails(plain.doc('clubs/club-n/trainings/t-1').update({ name: 'nope' }));
+  });
 });

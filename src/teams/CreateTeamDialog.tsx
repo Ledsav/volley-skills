@@ -15,7 +15,7 @@ const labelClass = 'mb-1 block text-sm font-medium text-ink';
 const fieldClass = 'mb-4';
 
 export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, appUser } = useAuth();
   const [name, setName] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [season, setSeason] = useState('');
@@ -27,9 +27,9 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!firebaseUser?.email) return;
+    if (!firebaseUser || !appUser) return;
     const { uid } = firebaseUser;
-    const email = firebaseUser.email;
+    const email = appUser.email;
     try {
       const done = await save(() => createTeam({ name, ageGroup, season, description }, uid, email));
       if (!done) return;

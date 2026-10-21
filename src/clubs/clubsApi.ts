@@ -5,7 +5,7 @@ import {
 import { db } from '../firebase/config';
 import type { Club, MemberRole, Membership } from '../types/club';
 
-/** Every club the email belongs to; clubs that cannot be read are skipped. */
+/** Every club the email belongs to; clubs that are gone or denied are skipped, other errors throw. */
 export async function listMyMemberships(email: string): Promise<Membership[]> {
   const snap = await getDocs(query(collectionGroup(db, 'members'), where('email', '==', email)));
   const loaded = await Promise.all(
@@ -16,8 +16,9 @@ export async function listMyMemberships(email: string): Promise<Membership[]> {
         if (!club.exists()) return null;
         const data = club.data() as Omit<Club, 'id'>;
         return { clubId, role, clubName: data.name, status: data.status };
-      } catch {
-        return null;
+      } catch (error) {
+        if ((error as FirestoreError).code === 'permission-denied') return null;
+        throw error;
       }
     }),
   );

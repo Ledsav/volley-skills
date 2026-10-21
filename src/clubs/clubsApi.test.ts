@@ -73,6 +73,14 @@ describe('listMyMemberships', () => {
   });
 });
 
+describe('listMyMemberships errors', () => {
+  it('rethrows a transient club read error instead of dropping the club', async () => {
+    m.getDocs.mockResolvedValue({ docs: [memberDoc('c1', 'admin')] });
+    m.getDoc.mockRejectedValue({ code: 'unavailable' });
+    await expect(listMyMemberships('a@b.c')).rejects.toEqual({ code: 'unavailable' });
+  });
+});
+
 describe('probePlatformAdmin', () => {
   it('reports whether the platformAdmins doc exists', async () => {
     m.getDoc.mockResolvedValueOnce(clubSnap('a@b.c', {}));

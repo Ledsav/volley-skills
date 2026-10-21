@@ -191,6 +191,14 @@ describe('AppShell', () => {
       expect(screen.queryByRole('menuitem', { name: /^Switch to/ })).not.toBeInTheDocument();
     });
 
+    it('does not offer a switch to a deleted club', () => {
+      const memberships = [...two, { clubId: 'club-3', role: 'member' as const, clubName: 'Gone Club', status: 'deleted' as const }];
+      vi.mocked(useAuth).mockReturnValue(authValue({ memberships: [memberships[0], memberships[2]] }));
+      renderShell();
+      openAccountMenu();
+      expect(screen.queryByRole('menuitem', { name: /^Switch to/ })).not.toBeInTheDocument();
+    });
+
     it('notifies once when the stored club was dropped', () => {
       const notify = vi.fn();
       vi.mocked(useNotify).mockReturnValue(notify);

@@ -2,6 +2,7 @@ import { AuthShell } from '../auth/AuthShell';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
+import { otherUsableClubs } from './activeClub';
 
 export type ClubStatusKind = 'pending' | 'locked' | 'exportOnly' | 'ended';
 
@@ -9,7 +10,7 @@ export function ClubStatusScreen({ kind }: { kind: ClubStatusKind }) {
   const { club, memberships, activeClubId, switchClub } = useAuth();
   const { signOut, unsyncedDialog } = useSignOut();
   const clubName = club?.name ?? 'Your club';
-  const others = memberships.filter((m) => m.clubId !== activeClubId);
+  const others = otherUsableClubs(memberships, activeClubId);
 
   const copy: Record<ClubStatusKind, { title: string; body: string }> = {
     pending: {

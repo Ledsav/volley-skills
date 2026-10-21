@@ -34,7 +34,7 @@ const LEGACY_TAB: Record<string, TeamTab> = { overview: 'roster', physicalSessio
 
 export function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
-  const { firebaseUser, access } = useAuth();
+  const { firebaseUser, appUser, access } = useAuth();
   const canCalendar = !!access?.sections.trainings;
   const [team, setTeam] = useState<Team | null>(null);
   const [params, setParams] = useSearchParams();
@@ -85,7 +85,7 @@ export function TeamPage() {
     p.set('tab', next);
     setParams(p, { replace: true });
   };
-  const admin = isTeamAdmin(team, firebaseUser?.email, access);
+  const admin = isTeamAdmin(team, appUser?.email, access);
   const activeTab = (tab === 'calendar' && !canCalendar) || (tab === 'stats' && !admin) ? 'roster' : tab;
   // Ordered by how often a coach reaches for them; Settings stays last.
   const tabs: { id: TeamTab; label: string }[] = [

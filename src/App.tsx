@@ -16,7 +16,7 @@ import { ExercisesPage } from './exercises/ExercisesPage';
 import { TrainingsPage } from './trainings/TrainingsPage';
 import { PrivacyPage } from './legal/PrivacyPage';
 import { SettingsPage } from './settings/SettingsPage';
-import { AccessManagerPage } from './access/AccessManagerPage';
+import { ClubAreaPage } from './clubs/area/ClubAreaPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
 import { NotFoundPage } from './layout/NotFoundPage';
 import { HomePage } from './home/HomePage';
@@ -91,15 +91,16 @@ export function App() {
                 }
               />
               <Route
-                path="/admin/access"
+                path="/club"
                 element={
                   <RequireClubAdmin>
-                    <AccessManagerPage />
+                    <ClubAreaPage />
                   </RequireClubAdmin>
                 }
               />
-              {/* Old link target: requests now live on the Access page. */}
-              <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
+              {/* Old link targets: access management moved into the club area. */}
+              <Route path="/admin/access" element={<Navigate to="/club?tab=people" replace />} />
+              <Route path="/admin/interest" element={<Navigate to="/club?tab=people" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
             <Route

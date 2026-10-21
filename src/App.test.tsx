@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
@@ -49,5 +49,12 @@ describe('App', () => {
     window.history.pushState({}, '', '/does-not-exist');
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'This page is out of bounds' })).toBeInTheDocument();
+  });
+
+  it('redirects /admin/access to /club?tab=people', async () => {
+    signedIn.value = true;
+    window.history.pushState({}, '', '/admin/access');
+    render(<App />);
+    await waitFor(() => expect(window.location.pathname + window.location.search).toBe('/club?tab=people'));
   });
 });

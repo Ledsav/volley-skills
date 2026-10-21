@@ -45,19 +45,19 @@ describe('SettingsPage', () => {
   it('does not show the pending-request count to a club admin who is not the platform operator', async () => {
     mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
     renderSettings();
-    const accessLink = within(screen.getByRole('navigation', { name: 'Admin' })).getByRole('link', { name: /Access/ });
+    const accessLink = within(screen.getByRole('navigation', { name: 'Admin' })).getByRole('link', { name: /Club/ });
     await Promise.resolve();
     expect(accessLink).not.toHaveTextContent('pending requests');
   });
 
-  it('links club admins to Guides and Access, with the pending-request count for the platform operator', async () => {
+  it('links club admins to Guides and Club, with the pending-request count for the platform operator', async () => {
     mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
     mockAccess.platform = true;
     renderSettings();
     const nav = screen.getByRole('navigation', { name: 'Admin' });
     expect(within(nav).getByRole('link', { name: /Guides/ })).toHaveAttribute('href', '/admin/guides');
-    const accessLink = within(nav).getByRole('link', { name: /Access/ });
-    expect(accessLink).toHaveAttribute('href', '/admin/access');
+    const accessLink = within(nav).getByRole('link', { name: /Club/ });
+    expect(accessLink).toHaveAttribute('href', '/club');
     await waitFor(() => expect(accessLink).toHaveTextContent('3 pending requests'));
   });
 
@@ -66,7 +66,7 @@ describe('SettingsPage', () => {
     renderSettings();
     const nav = screen.getByRole('navigation', { name: 'Admin' });
     expect(within(nav).getByRole('link', { name: /Guides/ })).toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: /Access/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: /Club/ })).not.toBeInTheDocument();
   });
 
   it('shows the theme toggle', () => {

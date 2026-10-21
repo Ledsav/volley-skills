@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { SECTION_KEYS, type SectionKey } from '../auth/access';
+import { useAuth } from '../auth/AuthContext';
 import { AccessRequestsPanel } from '../interest/AccessRequestsPanel';
 import { PageHeader } from '../layout/PageHeader';
 import {
@@ -22,6 +23,7 @@ function sameGrants(a: GrantSet, b: GrantSet): boolean {
 
 export function AccessManagerPage() {
   usePageMeta({ title: 'Access' });
+  const { appUser, isPlatformAdmin } = useAuth();
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [holders, setHolders] = useState<GrantHolder[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -91,7 +93,7 @@ export function AccessManagerPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveGrants(selected, draft, original);
+      await saveGrants(selected, draft, original, appUser?.email ?? '');
       await reload();
     } catch {
       setError('Could not save. Please try again.');
@@ -120,7 +122,7 @@ export function AccessManagerPage() {
       <PageHeader title="Access" />
       {error && <p role="alert" className="mb-4 text-red">{error}</p>}
 
-      <AccessRequestsPanel onGrant={grantRequest} />
+      {isPlatformAdmin && <AccessRequestsPanel onGrant={grantRequest} />}
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">

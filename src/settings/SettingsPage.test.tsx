@@ -5,8 +5,8 @@ import { SettingsPage } from './SettingsPage';
 
 const mockSignOut = vi.fn();
 
-const mockAccess = vi.hoisted(() => ({ current: null as null | { isClubAdmin: boolean; sections: { guides: boolean } } }));
-vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ access: mockAccess.current }) }));
+const mockAccess = vi.hoisted(() => ({ current: null as null | { isClubAdmin: boolean; sections: { guides: boolean } }, platform: false }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ access: mockAccess.current, isPlatformAdmin: mockAccess.platform }) }));
 vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(3) }));
 
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
@@ -23,6 +23,7 @@ describe('SettingsPage', () => {
   beforeEach(() => {
     mockSignOut.mockReset();
     mockAccess.current = null;
+    mockAccess.platform = false;
   });
 
   it('hides the Admin section from members without admin access', () => {
@@ -30,8 +31,17 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('navigation', { name: 'Admin' })).not.toBeInTheDocument();
   });
 
-  it('links club admins to Guides and Access, with the pending-request count', async () => {
+  it('does not show the pending-request count to a club admin who is not the platform operator', async () => {
     mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
+    renderSettings();
+    const accessLink = within(screen.getByRole('navigation', { name: 'Admin' })).getByRole('link', { name: /Access/ });
+    await Promise.resolve();
+    expect(accessLink).not.toHaveTextContent('pending requests');
+  });
+
+  it('links club admins to Guides and Access, with the pending-request count for the platform operator', async () => {
+    mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
+    mockAccess.platform = true;
     renderSettings();
     const nav = screen.getByRole('navigation', { name: 'Admin' });
     expect(within(nav).getByRole('link', { name: /Guides/ })).toHaveAttribute('href', '/admin/guides');

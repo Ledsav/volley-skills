@@ -25,7 +25,7 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { access, firebaseUser, memberships, activeClubId, switchClub, droppedClub } = useAuth();
+  const { access, firebaseUser, isPlatformAdmin, memberships, activeClubId, switchClub, droppedClub } = useAuth();
   const notify = useNotify();
   const notifiedDropped = useRef(false);
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const email = firebaseUser?.email ?? '';
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const { signOut, unsyncedDialog } = useSignOut();
-  const pendingSignups = usePendingSignups(!!access?.isClubAdmin);
+  const pendingSignups = usePendingSignups(isPlatformAdmin);
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const prevPathname = useRef(pathname);

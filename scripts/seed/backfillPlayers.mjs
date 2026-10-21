@@ -20,6 +20,8 @@ import { createRequire } from 'node:module';
 import { BLOCK_GUIDE_DEFAULT, toPositionCategory } from './parseWorkbook.mjs';
 import { computeAvgScore, computeLevel } from './skillMath.mjs';
 
+import { clubRoot, parseClubArg } from './clubArg.mjs';
+
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
@@ -29,11 +31,13 @@ const SNAPSHOT_PATH = 'scripts/seed/skillsSnapshot.json';
 const BLOCK_DEFAULT = 5;
 
 function parseArgs(argv) {
-  const args = { target: 'emulator', yes: false };
-  for (const a of argv) {
+  const args = { target: 'emulator', yes: false, club: parseClubArg(argv) };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
     if (a === '--prod') args.target = 'prod';
     else if (a === '--emulator') args.target = 'emulator';
     else if (a === '--yes' || a === '-y') args.yes = true;
+    else if (a === '--club') i++;
     else {
       console.error(`Unknown argument: ${a}`);
       process.exit(2);
@@ -63,7 +67,9 @@ async function main() {
 
   const { FieldPath, FieldValue } = admin.firestore;
   const db = admin.firestore();
-  const players = await db.collectionGroup('players').get();
+  const root = clubRoot(db, args.club);
+  // collectionGroup spans every club: keep only this club's docs.
+  const players = (await db.collectionGroup('players').get()).docs.filter((d) => d.ref.path.startsWith(`clubs/${args.club}/`));
 
   let scanned = 0;
   let toPatch = 0;
@@ -109,7 +115,7 @@ async function main() {
   });
 
   // skillGuide/config: add the Block entry if the doc exists and lacks it.
-  const guideRef = db.doc('skillGuide/config');
+  const guideRef = root.collection('config').doc('skillGuide');
   const guideDoc = await guideRef.get();
   let guidePatched = false;
   if (guideDoc.exists) {

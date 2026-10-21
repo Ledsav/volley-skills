@@ -57,14 +57,17 @@ function encode(v) {
   return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, encode(x)]));
 }
 
+// Prod is not migrated to clubs yet (Plan 4): reads top-level `teams` unless --club <id> is given.
+const clubIdx = process.argv.indexOf('--club');
+const teamsCol = clubIdx > -1 ? db.collection('clubs').doc(process.argv[clubIdx + 1]).collection('teams') : db.collection('teams');
 const teamArg = process.argv.indexOf('--team');
 const teamIds =
-  teamArg > -1 ? [process.argv[teamArg + 1]] : (await db.collection('teams').limit(100).get()).docs.map((d) => d.id);
+  teamArg > -1 ? [process.argv[teamArg + 1]] : (await teamsCol.limit(100).get()).docs.map((d) => d.id);
 
 const teams = {};
 let total = 0;
 for (const teamId of teamIds) {
-  const coll = db.collection('teams').doc(teamId).collection('players');
+  const coll = teamsCol.doc(teamId).collection('players');
   const players = [];
   let last = null;
   for (;;) {

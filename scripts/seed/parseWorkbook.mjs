@@ -293,7 +293,6 @@ export async function parseWorkbook(filePath) {
 
   const team = {
     name: ageGroup,
-    club: 'Demo Volley Club',
     ageGroup,
     season,
     description: '',

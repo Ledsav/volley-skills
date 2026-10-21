@@ -7,6 +7,7 @@ import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 
 vi.mock('./AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('../clubs/clubAdminApi');
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: vi.fn() }));
 
 function renderGuard() {
@@ -98,11 +99,10 @@ describe('ClubGate through RequireAuth', () => {
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
   });
 
-  it('shows the export-only screen to an admin of a suspended club', () => {
+  it('shows the restricted club area to an admin of a suspended club', () => {
     vi.mocked(useAuth).mockReturnValue(authValue({ club: suspended(), role: 'admin', access: clubAdminAccess }));
     renderGuard();
-    expect(screen.getByRole('heading', { name: "Your club's access is paused" })).toBeInTheDocument();
-    expect(screen.getByText(/Your club's data is kept/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Contract' })).toBeInTheDocument();
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
   });
 

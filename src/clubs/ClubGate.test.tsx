@@ -4,10 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClubGate } from './ClubGate';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, testClub } from '../test/authValue';
+import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+vi.mock('./clubAdminApi');
+vi.mock('../access/membersApi');
+vi.mock('../access/accessApi');
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: vi.fn() }));
 
 const NOW = new Date('2026-11-01T10:00:00Z').getTime();
@@ -78,5 +81,22 @@ describe('ClubGate', () => {
       vi.advanceTimersByTime(30 * DAY);
     });
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
+  });
+
+  it('shows the restricted club area to an admin of a suspended club', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ club: testClub({ status: 'suspended' }), role: 'admin', access: clubAdminAccess })
+    );
+    render(
+      <MemoryRouter>
+        <ClubGate>
+          <p>Protected content</p>
+        </ClubGate>
+      </MemoryRouter>
+    );
+    expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Contract' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'People & access' })).not.toBeInTheDocument();
+    for (const input of screen.getAllByRole('textbox')) expect(input).toBeDisabled();
   });
 });

@@ -30,7 +30,8 @@ export function clubActions(club: Pick<Club, 'status'>): ClubAction[] {
   }
 }
 
-export function defaultTerminationDates(now: Date): { effectiveAt: Date; retrievalEndsAt: Date } {
-  const effectiveAt = new Date(now.getTime() + 30 * DAY_MS);
+// A paused club ends today by default: a later end date would give it full use again.
+export function defaultTerminationDates(now: Date, status?: ClubStatus): { effectiveAt: Date; retrievalEndsAt: Date } {
+  const effectiveAt = status === 'suspended' ? now : new Date(now.getTime() + 30 * DAY_MS);
   return { effectiveAt, retrievalEndsAt: new Date(effectiveAt.getTime() + 30 * DAY_MS) };
 }

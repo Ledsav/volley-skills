@@ -79,16 +79,25 @@ service cloud.firestore {
           // A fresh log entry, written in this batch (an older id would skip the log).
           && !exists(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
           && existsAfter(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
-          // Only the operator's half of the termination map; requestedAt/By stay the club's.
-          && next.termination.diff(prev.termination).affectedKeys().hasOnly(['effectiveAt','retrievalEndsAt'])
+          // Only the operator's half of the termination map; requestedAt/By stay the club's,
+          // except that reinstating clears the request (to null, never to another value).
+          && (next.termination.diff(prev.termination).affectedKeys().hasOnly(['effectiveAt','retrievalEndsAt'])
+              || (prev.status == 'terminating' && next.status == 'active'
+                  && next.termination.diff(prev.termination).affectedKeys()
+                       .hasOnly(['effectiveAt','retrievalEndsAt','requestedAt','requestedBy'])
+                  && next.termination.requestedAt == null
+                  && next.termination.requestedBy == null))
           && optTimestamp(next.termination.effectiveAt)
           && optTimestamp(next.termination.retrievalEndsAt)
           && (next.status != 'terminating'
               || (next.termination.effectiveAt is timestamp
                   && next.termination.retrievalEndsAt is timestamp
                   // effectiveAt may be now (serious breach), never the past; one day
-                  // of tolerance covers "today" in local time.
-                  && next.termination.effectiveAt >= request.time - duration.value(1, 'd')
+                  // of tolerance covers "today" in local time. A date change may keep
+                  // an end date that has already passed (to move only the export date).
+                  && (next.termination.effectiveAt >= request.time - duration.value(1, 'd')
+                      || (prev.status == 'terminating'
+                          && next.termination.effectiveAt == prev.termination.effectiveAt))
                   && next.termination.retrievalEndsAt >= next.termination.effectiveAt + duration.value(30, 'd')));
       }
 

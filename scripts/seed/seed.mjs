@@ -19,7 +19,7 @@
 //   --reset          (emulator only) delete the whole club (clubs/<club>/**) first.
 //   --force          (prod only) allow seeding even though top-level `teams` is non-empty
 //                    (pre-migration) or `clubs/<club>` exists. On an existing club only the
-//                    team data is added: the club, member and sectionAccess docs are untouched.
+//                    team data is added (config/skillGuide only if missing): the club, member and sectionAccess docs are untouched.
 //   --yes            (prod only) skip the interactive confirmation.
 //
 // Logs counts only — never player/guardian field values.
@@ -211,11 +211,15 @@ async function main() {
     createdAt: now,
   });
 
-  batch.set(root.collection('config').doc('skillGuide'), {
-    skills: skillGuide,
-    updatedBy: 'seed-script',
-    updatedAt: now,
-  });
+  // On an existing prod club keep its (possibly edited) guide: write only if missing.
+  const guideRef = root.collection('config').doc('skillGuide');
+  if (!keepClub || !(await guideRef.get()).exists) {
+    batch.set(guideRef, {
+      skills: skillGuide,
+      updatedBy: 'seed-script',
+      updatedAt: now,
+    });
+  }
 
   for (const p of players) {
     const avgScore = computeAvgScore(p.skills);

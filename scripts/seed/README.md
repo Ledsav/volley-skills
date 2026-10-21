@@ -187,7 +187,7 @@ Guards (all must pass):
 3. `--yes` is given, or you type `seed` at the confirmation prompt.
 4. Top-level `teams` is **empty** (prod is not migrated to clubs yet; otherwise seeding is refused) and
    `clubs/<club>` does **not** exist. `--force` overrides both; on an existing club it only adds the
-   team, players and `config/skillGuide`, never touching the club, member or sectionAccess docs.
+   team and players (and `config/skillGuide` only if it is missing), never touching the club, member or sectionAccess docs.
    `platformAdmins/<admin>` is written on the emulator only.
 
 The script prints the target project id (from the key file) before writing. Run it

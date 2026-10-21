@@ -1,5 +1,5 @@
-import { doc, getDoc, type FirestoreError } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, type FirestoreError } from 'firebase/firestore';
+import { clubDoc } from '../firebase/clubPaths';
 import type { AppUser } from '../types/auth';
 
 export type SectionKey = 'exercises' | 'trainings' | 'guides';
@@ -12,7 +12,7 @@ export interface Access {
 
 async function canReadSection(section: SectionKey): Promise<boolean> {
   try {
-    await getDoc(doc(db, 'sectionAccess', section));
+    await getDoc(clubDoc('sectionAccess', section));
     return true;
   } catch (error) {
     if ((error as FirestoreError).code === 'permission-denied') return false;

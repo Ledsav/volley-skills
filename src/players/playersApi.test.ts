@@ -176,7 +176,7 @@ describe('playersApi', () => {
     expect(count).toBe(2);
     expect(batchSet).toHaveBeenCalledTimes(2);
     expect(batchCommit).toHaveBeenCalledTimes(1);
-    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'players');
     const payload = batchSet.mock.calls[0][1];
     expect(payload).toMatchObject({
       number: 7,
@@ -266,7 +266,7 @@ describe('playersApi', () => {
 
     await deletePlayer('team-1', 'player-1');
 
-    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'players', 'player-1', 'physicalTests');
     expect(erasePlayerFootprint).toHaveBeenCalledWith('team-1', 'player-1');
     expect(order).toEqual(['footprint', 'tests', 'player']);
   });

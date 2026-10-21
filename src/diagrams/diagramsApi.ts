@@ -1,5 +1,4 @@
 import {
-  collection,
   doc,
   getDocs,
   limit,
@@ -9,6 +8,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { withBackoff } from '../firebase/withBackoff';
 import { parseScene } from './parseScene';
 import { emptyScene } from './sceneFactory';
@@ -23,7 +23,7 @@ export interface DiagramSaveOps {
 }
 
 function colRef(exerciseId: string) {
-  return collection(db, 'exercises', exerciseId, 'diagrams');
+  return clubCol('exercises', exerciseId, 'diagrams');
 }
 
 /**
@@ -88,7 +88,7 @@ export async function saveDiagramSet(
     });
   }
   for (const u of ops.updates) {
-    batch.update(doc(db, 'exercises', exerciseId, 'diagrams', u.id), {
+    batch.update(clubDoc('exercises', exerciseId, 'diagrams', u.id), {
       title: u.title,
       order: u.order,
       scene: repaired.get(u) ?? u.scene,
@@ -97,7 +97,7 @@ export async function saveDiagramSet(
     });
   }
   for (const id of ops.deletes) {
-    batch.delete(doc(db, 'exercises', exerciseId, 'diagrams', id));
+    batch.delete(clubDoc('exercises', exerciseId, 'diagrams', id));
   }
 
   await withBackoff(() => batch.commit());

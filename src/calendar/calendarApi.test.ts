@@ -79,7 +79,7 @@ describe('calendarApi', () => {
   it('reads one session, or null when it is gone', async () => {
     mockGetDoc.mockResolvedValueOnce({ exists: () => true, id: 's-1', data: () => ({ date: '2026-10-24', notes: 'Gym B' }) });
     expect(await getCalendarSession('team-1', 's-1')).toEqual({ id: 's-1', date: '2026-10-24', notes: 'Gym B' });
-    expect(mockDoc).toHaveBeenCalledWith({}, 'teams', 'team-1', 'calendar', 's-1');
+    expect(mockDoc).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'calendar', 's-1');
     mockGetDoc.mockResolvedValueOnce({ exists: () => false });
     expect(await getCalendarSession('team-1', 'gone')).toBeNull();
   });

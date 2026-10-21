@@ -56,7 +56,7 @@ describe('trainingsApi', () => {
 
   it('creates a training inside a transaction, incrementing the counter and formatting the business id', async () => {
     mockDoc.mockImplementation((...args: unknown[]) => {
-      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      if (args[3] === 'counters') return { ref: 'counters/trainings' };
       return { id: 'training-1' };
     });
     const tx = {
@@ -93,7 +93,7 @@ describe('trainingsApi', () => {
 
   it('starts the sequence at 1 when the counter does not exist yet', async () => {
     mockDoc.mockImplementation((...args: unknown[]) =>
-      args[1] === 'counters' ? { ref: 'counters/trainings' } : { id: 'training-1' }
+      args[3] === 'counters' ? { ref: 'counters/trainings' } : { id: 'training-1' }
     );
     const tx = { get: vi.fn().mockResolvedValue({ exists: () => false }), set: vi.fn() };
     mockRunTransaction.mockImplementation(async (_db: unknown, fn: (t: typeof tx) => unknown) => fn(tx));
@@ -165,7 +165,7 @@ describe('trainingsApi', () => {
 
   it('bulk-creates trainings in one transaction with sequential business ids', async () => {
     mockDoc.mockImplementation((...args: unknown[]) => {
-      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      if (args[3] === 'counters') return { ref: 'counters/trainings' };
       return { id: 'training-x' };
     });
     const tx = {
@@ -202,7 +202,7 @@ describe('trainingsApi', () => {
 
   it('retries the transaction once on a transient resource-exhausted error', async () => {
     mockDoc.mockImplementation((...args: unknown[]) => {
-      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      if (args[3] === 'counters') return { ref: 'counters/trainings' };
       return { id: 'training-x' };
     });
     const tx = {

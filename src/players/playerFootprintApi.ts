@@ -1,5 +1,6 @@
-import { collection, deleteField, doc, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { deleteField, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { readAll } from '../firebase/readAll';
 import type { Match } from '../types/match';
 import type { TestingSession, TestingSessionEntry } from '../types/testingSession';
@@ -11,11 +12,11 @@ import { anonymizeRoster, playerMatchRecord, rosterHasPlayer, type PlayerFootpri
 // an array, which Firestore cannot filter on, so matches are scanned.
 
 async function playerEntries(teamId: string, playerId: string) {
-  const sessions = await readAll(collection(db, 'teams', teamId, 'testingSessions'));
+  const sessions = await readAll(clubCol('teams', teamId, 'testingSessions'));
   const found: { sessionId: string; sessionDate: string; entries: TestingSessionEntry[] }[] = [];
   for (const s of sessions) {
     const entries = await readAll(
-      collection(db, 'teams', teamId, 'testingSessions', s.id, 'entries'),
+      clubCol('teams', teamId, 'testingSessions', s.id, 'entries'),
       where('playerId', '==', playerId),
     );
     if (entries.length > 0) {
@@ -30,7 +31,7 @@ async function playerEntries(teamId: string, playerId: string) {
 }
 
 async function playerMatches(teamId: string, playerId: string): Promise<Match[]> {
-  const matches = await readAll(collection(db, 'teams', teamId, 'matches'));
+  const matches = await readAll(clubCol('teams', teamId, 'matches'));
   return matches.map((m) => ({ id: m.id, ...m.data() }) as Match).filter((m) => rosterHasPlayer(m, playerId));
 }
 
@@ -54,14 +55,14 @@ export async function loadPlayerFootprint(teamId: string, playerId: string): Pro
 export async function erasePlayerFootprint(teamId: string, playerId: string): Promise<void> {
   for (const s of await playerEntries(teamId, playerId)) {
     const batch = writeBatch(db);
-    s.entries.forEach((e) => batch.delete(doc(db, 'teams', teamId, 'testingSessions', s.sessionId, 'entries', e.id)));
+    s.entries.forEach((e) => batch.delete(clubDoc('teams', teamId, 'testingSessions', s.sessionId, 'entries', e.id)));
     await batch.commit();
   }
   for (const m of await playerMatches(teamId, playerId)) {
-    await updateDoc(doc(db, 'teams', teamId, 'matches', m.id), { roster: anonymizeRoster(m.roster, playerId) });
+    await updateDoc(clubDoc('teams', teamId, 'matches', m.id), { roster: anonymizeRoster(m.roster, playerId) });
   }
   await setDoc(
-    doc(db, 'teams', teamId, 'scoutProfile', 'usage'),
+    clubDoc('teams', teamId, 'scoutProfile', 'usage'),
     { players: { [playerId]: deleteField() } },
     { merge: true },
   );

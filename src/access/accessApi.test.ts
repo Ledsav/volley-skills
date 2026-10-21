@@ -11,7 +11,7 @@ const getDoc = vi.fn();
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(() => 'col'),
-  doc: vi.fn((_db, c, id) => `${c}/${id}`),
+  doc: vi.fn((_db, ...p) => p.join('/')),
   query: vi.fn((...a) => a),
   orderBy: vi.fn(() => 'orderBy'),
   limit: vi.fn(() => 'limit'),
@@ -33,21 +33,21 @@ describe('saveGrants', () => {
     const next = { teamIds: ['t2', 't3'], sections: { exercises: false, trainings: true, guides: false } };
     await saveGrants('coach@example.com', next, prev);
 
-    expect(update).toHaveBeenCalledWith('teams/t3', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
-    expect(update).toHaveBeenCalledWith('teams/t1', { adminEmails: { __op: 'remove', v: ['coach@example.com'] } });
+    expect(update).toHaveBeenCalledWith('clubs/club-1/teams/t3', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
+    expect(update).toHaveBeenCalledWith('clubs/club-1/teams/t1', { adminEmails: { __op: 'remove', v: ['coach@example.com'] } });
     expect(set).toHaveBeenCalledWith(
-      'sectionAccess/trainings',
+      'clubs/club-1/sectionAccess/trainings',
       { adminEmails: { __op: 'union', v: ['coach@example.com'] } },
       { merge: true },
     );
     expect(set).toHaveBeenCalledWith(
-      'sectionAccess/exercises',
+      'clubs/club-1/sectionAccess/exercises',
       { adminEmails: { __op: 'remove', v: ['coach@example.com'] } },
       { merge: true },
     );
     // t2 unchanged, guides unchanged → not written
-    expect(update).not.toHaveBeenCalledWith('teams/t2', expect.anything());
-    expect(set).not.toHaveBeenCalledWith('sectionAccess/guides', expect.anything(), expect.anything());
+    expect(update).not.toHaveBeenCalledWith('clubs/club-1/teams/t2', expect.anything());
+    expect(set).not.toHaveBeenCalledWith('clubs/club-1/sectionAccess/guides', expect.anything(), expect.anything());
     expect(commit).toHaveBeenCalledTimes(1);
   });
 
@@ -66,9 +66,9 @@ describe('listGrantHolders', () => {
     });
     getDoc.mockImplementation((path: string) => {
       const map: Record<string, string[]> = {
-        'sectionAccess/exercises': ['a@x.com'],
-        'sectionAccess/trainings': [],
-        'sectionAccess/guides': ['c@x.com'],
+        'clubs/club-1/sectionAccess/exercises': ['a@x.com'],
+        'clubs/club-1/sectionAccess/trainings': [],
+        'clubs/club-1/sectionAccess/guides': ['c@x.com'],
       };
       return Promise.resolve({ data: () => ({ adminEmails: map[path] ?? [] }) });
     });

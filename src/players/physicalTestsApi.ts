@@ -1,5 +1,4 @@
 import {
-    collection,
     deleteDoc,
     deleteField,
     doc,
@@ -16,6 +15,7 @@ import {
     type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { PHYSICAL_TEST_ORDER, type NewPhysicalTestInput, type PhysicalTest, type PhysicalTestType } from '../types/physicalTest';
 import type { LatestTests } from '../types/player';
 
@@ -23,7 +23,7 @@ const HISTORY_PAGE_SIZE = 10;
 const FULL_HISTORY_CAP = 500;
 const TREND_SERIES_CAP = 60;
 
-const playerRef = (teamId: string, playerId: string) => doc(db, 'teams', teamId, 'players', playerId);
+const playerRef = (teamId: string, playerId: string) => clubDoc('teams', teamId, 'players', playerId);
 
 async function readLatestTests(teamId: string, playerId: string): Promise<LatestTests | undefined> {
   const snapshot = await getDoc(playerRef(teamId, playerId));
@@ -48,7 +48,7 @@ export async function createPhysicalTest(
   } catch {
     unknown = true; // offline with nothing cached
   }
-  const testRef = doc(collection(db, 'teams', teamId, 'players', playerId, 'physicalTests'));
+  const testRef = doc(clubCol('teams', teamId, 'players', playerId, 'physicalTests'));
   const data = { ...input, recordedBy: recordedByUid, createdAt: serverTimestamp() };
   const batch = writeBatch(db);
   batch.set(testRef, data);
@@ -65,7 +65,7 @@ export async function createPhysicalTest(
 }
 
 export async function getPhysicalTest(teamId: string, playerId: string, testId: string): Promise<PhysicalTest | null> {
-  const snapshot = await getDoc(doc(db, 'teams', teamId, 'players', playerId, 'physicalTests', testId));
+  const snapshot = await getDoc(clubDoc('teams', teamId, 'players', playerId, 'physicalTests', testId));
   if (!snapshot.exists()) return null;
   return { id: snapshot.id, ...snapshot.data() } as PhysicalTest;
 }
@@ -75,7 +75,7 @@ export async function getLatestByType(
   playerId: string,
   testType: PhysicalTestType
 ): Promise<PhysicalTest | null> {
-  const base = collection(db, 'teams', teamId, 'players', playerId, 'physicalTests');
+  const base = clubCol('teams', teamId, 'players', playerId, 'physicalTests');
   const q = query(base, where('testType', '==', testType), orderBy('date', 'desc'), limit(1));
   const snapshot = await getDocs(q);
   if (snapshot.docs.length === 0) return null;
@@ -84,7 +84,7 @@ export async function getLatestByType(
 }
 
 export async function listAllPhysicalTests(teamId: string, playerId: string): Promise<PhysicalTest[]> {
-  const base = collection(db, 'teams', teamId, 'players', playerId, 'physicalTests');
+  const base = clubCol('teams', teamId, 'players', playerId, 'physicalTests');
   const snapshot = await getDocs(query(base, orderBy('date', 'desc'), limit(FULL_HISTORY_CAP)));
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PhysicalTest);
 }
@@ -100,7 +100,7 @@ export async function listHistoryByType(
   testType: PhysicalTestType,
   afterDoc: QueryDocumentSnapshot | null = null
 ): Promise<PhysicalTestHistoryPage> {
-  const base = collection(db, 'teams', teamId, 'players', playerId, 'physicalTests');
+  const base = clubCol('teams', teamId, 'players', playerId, 'physicalTests');
   const q = afterDoc
     ? query(base, where('testType', '==', testType), orderBy('date', 'desc'), startAfter(afterDoc), limit(HISTORY_PAGE_SIZE))
     : query(base, where('testType', '==', testType), orderBy('date', 'desc'), limit(HISTORY_PAGE_SIZE));
@@ -117,7 +117,7 @@ export async function listSeriesByType(
   testType: PhysicalTestType,
   cap = TREND_SERIES_CAP
 ): Promise<PhysicalTest[]> {
-  const base = collection(db, 'teams', teamId, 'players', playerId, 'physicalTests');
+  const base = clubCol('teams', teamId, 'players', playerId, 'physicalTests');
   const q = query(base, where('testType', '==', testType), orderBy('date', 'asc'), limit(cap));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PhysicalTest);
@@ -125,7 +125,7 @@ export async function listSeriesByType(
 
 /** Deletes a test; when it was the latest of its type, the next newest takes its place. */
 export async function deletePhysicalTest(teamId: string, playerId: string, testId: string): Promise<void> {
-  await deleteDoc(doc(db, 'teams', teamId, 'players', playerId, 'physicalTests', testId));
+  await deleteDoc(clubDoc('teams', teamId, 'players', playerId, 'physicalTests', testId));
   const latest = await readLatestTests(teamId, playerId);
   const testType = PHYSICAL_TEST_ORDER.find((t) => latest?.[t]?.id === testId);
   if (!testType) return;

@@ -170,14 +170,14 @@ describe('teamsApi', () => {
     await deleteTeam('team-1');
 
     expect(order).toEqual([
-      'teams/team-1/players',
-      'teams/team-1/players/child-1/physicalTests',
-      'teams/team-1/matches',
-      'teams/team-1/matches/child-1/events',
-      'teams/team-1/testingSessions',
-      'teams/team-1/testingSessions/child-1/entries',
-      'teams/team-1/calendar',
-      'teams/team-1/scoutProfile',
+      'clubs/club-1/teams/team-1/players',
+      'clubs/club-1/teams/team-1/players/child-1/physicalTests',
+      'clubs/club-1/teams/team-1/matches',
+      'clubs/club-1/teams/team-1/matches/child-1/events',
+      'clubs/club-1/teams/team-1/testingSessions',
+      'clubs/club-1/teams/team-1/testingSessions/child-1/entries',
+      'clubs/club-1/teams/team-1/calendar',
+      'clubs/club-1/teams/team-1/scoutProfile',
       'team-doc',
     ]);
   });

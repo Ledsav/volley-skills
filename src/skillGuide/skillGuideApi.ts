@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { clubDoc } from '../firebase/clubPaths';
 import type { SkillGuideConfig, SkillGuideEntry } from '../types/skillGuide';
 
 /**
@@ -119,12 +119,12 @@ export const DEFAULT_SKILL_GUIDE: SkillGuideEntry[] = [
 ];
 
 export async function getSkillGuide(): Promise<SkillGuideConfig> {
-  const snapshot = await getDoc(doc(db, 'skillGuide', 'config'));
+  const snapshot = await getDoc(clubDoc('config', 'skillGuide'));
   return snapshot.exists()
     ? (snapshot.data() as SkillGuideConfig)
     : { skills: DEFAULT_SKILL_GUIDE, updatedBy: '', updatedAt: null };
 }
 
 export async function updateSkillGuide(skills: SkillGuideEntry[], updatedBy: string): Promise<void> {
-  await setDoc(doc(db, 'skillGuide', 'config'), { skills, updatedBy, updatedAt: serverTimestamp() });
+  await setDoc(clubDoc('config', 'skillGuide'), { skills, updatedBy, updatedAt: serverTimestamp() });
 }

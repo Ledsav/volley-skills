@@ -67,6 +67,8 @@ service cloud.firestore {
           && (next.statusReason == null || (next.statusReason is string && next.statusReason.size() <= 300))
           && (next.status != 'suspended' || (next.statusReason is string && next.statusReason.size() > 0))
           && next.lastStatusLogId is string
+          // A fresh log entry, written in this batch (an older id would skip the log).
+          && !exists(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
           && existsAfter(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
           // Only the operator's half of the termination map; requestedAt/By stay the club's.
           && next.termination.diff(prev.termination).affectedKeys().hasOnly(['effectiveAt','retrievalEndsAt'])
@@ -91,9 +93,10 @@ service cloud.firestore {
           && next.aiEnabled is bool
           && next.referenceOptOut is bool
           && next.growthTestsEnabled is bool
-          // Ownership moves only to another admin member.
+          // Ownership moves only to another admin member, judged after the batch so the
+          // new owner cannot be demoted or removed in the same write (promote-then-transfer is fine).
           && (next.ownerEmail == resource.data.ownerEmail
-              || get(/databases/$(database)/documents/clubs/$(clubId)/members/$(next.ownerEmail)).data.role == 'admin');
+              || getAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(next.ownerEmail)).data.role == 'admin');
       }
 
       // A club admin asks to end the contract (a suspended club can still ask to leave).
@@ -127,12 +130,13 @@ service cloud.firestore {
           && validMember()
           && request.resource.data.addedBy == email()
           && request.resource.data.addedAt == request.time;
-        // The owner always stays an admin and cannot be removed.
+        // The owner always stays an admin and cannot be removed. The owner is read after
+        // the batch, so an ownership transfer in the same batch cannot open a gap.
         allow update: if activeAdmin()
           && changed().hasOnly(['role'])
           && request.resource.data.role in ['admin','member']
-          && (e != club().ownerEmail || request.resource.data.role == 'admin');
-        allow delete: if activeAdmin() && e != club().ownerEmail;
+          && (e != getAfter(clubPath()).data.ownerEmail || request.resource.data.role == 'admin');
+        allow delete: if activeAdmin() && e != getAfter(clubPath()).data.ownerEmail;
       }
 
       // Immutable lifecycle log, written by the operator in the same batch as the

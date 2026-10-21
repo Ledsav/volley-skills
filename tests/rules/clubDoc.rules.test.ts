@@ -48,10 +48,11 @@ interface StatusBatch {
   to: ClubStatus;
   clubExtra?: Record<string, unknown>;
   log?: Record<string, unknown> | null; // null: no statusLog write
+  logId?: string; // default 'log-1'
 }
 
 /** The operator's status change: club update + statusLog/log-1 in one batch. */
-async function statusBatch({ from, to, clubExtra = {}, log = {} }: StatusBatch) {
+async function statusBatch({ from, to, clubExtra = {}, log = {}, logId = 'log-1' }: StatusBatch) {
   const env = await getTestEnv();
   const db = dbAs(env, OPERATOR);
   const batch = db.batch();
@@ -60,7 +61,7 @@ async function statusBatch({ from, to, clubExtra = {}, log = {} }: StatusBatch) 
     statusReason: 'r',
     statusChangedAt: serverTimestamp(),
     statusChangedBy: OPERATOR,
-    lastStatusLogId: 'log-1',
+    lastStatusLogId: logId,
   };
   if (to === 'terminating') {
     update['termination.effectiveAt'] = inDays(30);
@@ -68,7 +69,7 @@ async function statusBatch({ from, to, clubExtra = {}, log = {} }: StatusBatch) 
   }
   batch.update(db.doc('clubs/club-a'), { ...update, ...clubExtra });
   if (log !== null) {
-    batch.set(db.doc('clubs/club-a/statusLog/log-1'), {
+    batch.set(db.doc(`clubs/club-a/statusLog/${logId}`), {
       from,
       to,
       reason: 'r',
@@ -143,6 +144,23 @@ describe('club doc rules', () => {
   it('refuses a status change without its statusLog entry in the same batch', async () => {
     await assertFails(statusBatch({ from: 'active', to: 'suspended', log: null }));
     await assertSucceeds(statusBatch({ from: 'active', to: 'suspended' }));
+  });
+
+  it('refuses a later status change that reuses an existing statusLog id', async () => {
+    const env = await getTestEnv();
+    await assertSucceeds(statusBatch({ from: 'active', to: 'suspended' }));
+    // suspended -> active pointing at the already-written log-1, with no new log entry.
+    await assertFails(
+      dbAs(env, OPERATOR).doc('clubs/club-a').update({
+        status: 'active',
+        statusReason: 'r',
+        statusChangedAt: serverTimestamp(),
+        statusChangedBy: OPERATOR,
+        lastStatusLogId: 'log-1',
+      })
+    );
+    // The same change with its own fresh log entry goes through.
+    await assertSucceeds(statusBatch({ from: 'suspended', to: 'active', logId: 'log-2' }));
   });
 
   it('refuses a statusLog whose from/to do not match the club change', async () => {

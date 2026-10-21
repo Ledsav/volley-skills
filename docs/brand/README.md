@@ -14,7 +14,7 @@ All artwork lives in `src/assets/brand/`. Use the files; don't redraw or retype 
 | `volley-skills-lockup.svg` | Primary lockup on white / light surfaces |
 | `volley-skills-lockup-on-navy.svg` | Lockup on navy `#2356A8` or darker (sidebar, sign-in header) — what `Logo` renders |
 | `volley-skills-lockup-mono.svg` / `-white.svg` | One-colour (deep navy / white): embroidery, single-colour print, photos |
-| `volley-skills-mark.svg` | Ball with shadow, light surfaces — what `LogoMark` renders |
+| `volley-skills-mark.svg` | Ball with shadow, light surfaces |
 | `volley-skills-mark-on-navy.svg` | Ball with shadow, navy surfaces |
 | `volley-skills-mark-small.svg` / `-small-on-navy.svg` | Dot-free ball for **anything under 48 px** |
 | `volley-skills-mark-mono.svg` / `-white.svg` | One-colour ball |

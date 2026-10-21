@@ -169,6 +169,20 @@ timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club 
 `docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
 `2026-09-11-volley-skills-access-model.md` is superseded in part.
 
+**Club area and platform page.** `/club` (inside `ClubGate`/`AppShell`) is the club area with
+Profile, People & access and Contract tabs. A club whose status is paused (suspended, or
+terminating after `effectiveAt`) gets a restricted club area for admins instead of the app.
+Membership is explicit: People & access *adds* members (a `members/{email}` doc) and
+"Remove from club" deletes it. `/platform` sits **outside** `ClubGate` behind `RequirePlatformAdmin` and renders in
+`MinimalShell`: the operator's clubs table, lifecycle actions and leads. The operator never
+sees club data, so an operator-only account (no membership) works there. `RequireSignedIn`
+gates routes that need only a signed-in user (no club). `useClubFeatures()` reads the club's
+`aiEnabled`/`growthTestsEnabled` and hides AI features and growth tests when a club turns them
+off (rules also refuse growth writes once off and past the effective time). Termination date
+changes (terminating to terminating) are allowed by rules; `effectiveAt` defaults to now + 30
+days and may not be earlier than now − 1 day. Seed sign-ins: `operator@example.com`
+(`/platform` only) and `rival@example.com` (AI and growth tests off); see `scripts/seed/README.md`.
+
 ### Firestore model shape (see spec §5 for the full contract)
 
 Everything is under `clubs/{clubId}` (`clubs/{id}` is the club profile and lifecycle doc),

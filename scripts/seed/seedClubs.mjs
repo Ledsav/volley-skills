@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Seeds two more clubs next to the demo club, to try the multi-club app locally:
 //
-//   clubs/rival     "Rival Volley"  active   admin rival@example.com   (one team, two players, one exercise)
+//   clubs/rival     "Rival Volley"  active   admin rival@example.com   (one team, two players, one exercise; AI and growth tests off)
 //   clubs/newclub   "New Club"      pending  admin pending@example.com (nothing else)
 //
+// platformAdmins/operator@example.com is written with no membership in any club: it reaches
+// /platform only and never sees club data.
 // Sign in as nobody@example.com (no membership) to see the welcome page.
 // Emulator-only; re-runnable (the clubs are rewritten from scratch).
 //
@@ -27,10 +29,11 @@ const now = admin.firestore.FieldValue.serverTimestamp();
 
 const RIVAL_ADMIN = 'rival@example.com';
 const PENDING_ADMIN = 'pending@example.com';
+const OPERATOR = 'operator@example.com';
 
 // --- clubs/rival ----------------------------------------------------------
 await db.recursiveDelete(clubRoot(db, 'rival'));
-await writeClub(db, { id: 'rival', name: 'Rival Volley', status: 'active', admins: [RIVAL_ADMIN] });
+await writeClub(db, { id: 'rival', name: 'Rival Volley', status: 'active', admins: [RIVAL_ADMIN], aiEnabled: false, growthTestsEnabled: false });
 
 const rival = clubRoot(db, 'rival');
 const team = { name: 'Rival U17', ageGroup: 'U17', season: '2026-27' };
@@ -90,6 +93,8 @@ await batch.commit();
 await db.recursiveDelete(clubRoot(db, 'newclub'));
 await writeClub(db, { id: 'newclub', name: 'New Club', status: 'pending', admins: [PENDING_ADMIN] });
 
-console.log('Done. clubs/rival (active: 1 team, 2 players, 1 exercise) and clubs/newclub (pending).');
+await db.doc(`platformAdmins/${OPERATOR}`).set({ addedBy: 'seed-script', addedAt: now });
+
+console.log('Done. clubs/rival (active: 1 team, 2 players, 1 exercise) and clubs/newclub (pending); platformAdmins/' + OPERATOR + ' (no club).');
 console.log(`Sign in as ${RIVAL_ADMIN} (Rival Volley), ${PENDING_ADMIN} (pending screen) or nobody@example.com (welcome page).`);
 process.exit(0);

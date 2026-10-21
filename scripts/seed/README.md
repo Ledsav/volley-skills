@@ -148,8 +148,9 @@ you can try each state of the multi-club app. Sign in with the emulator link as:
 | Email | Sees |
 |---|---|
 | `coach@example.com` | Volley Demo (club admin, owner and platform admin): teams, library, matches, stats |
-| `rival@example.com` | Rival Volley: only `Rival U17` (2 players, 1 exercise) |
+| `rival@example.com` | Rival Volley: only `Rival U17` (2 players, 1 exercise); this club has AI and growth tests turned off, so those features are hidden |
 | `pending@example.com` | New Club: the pending screen |
+| `operator@example.com` | `/platform` only (platform admin with no club membership): clubs table and lifecycle actions, never any club data |
 | `nobody@example.com` (any other) | the welcome page (no club) |
 
 `seed:emulator` runs `node scripts/seed/seed.mjs --emulator --reset`:
@@ -207,9 +208,9 @@ The script prints the target project id (from the key file) before writing. Run 
 | `clubs/<club>/config/skillGuide` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
 | `clubs/<club>/teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |
 
-`seedClubs.mjs`: `clubs/rival` (`Rival Volley`, active, admin `rival@example.com`, team
+`seedClubs.mjs`: `clubs/rival` (`Rival Volley`, active, `aiEnabled`/`growthTestsEnabled: false`, admin `rival@example.com`, team
 `Rival U17` with two players, one exercise) and `clubs/newclub` (`New Club`, pending, admin
-`pending@example.com`), each with the same club/member/sectionAccess docs.
+`pending@example.com`), each with the same club/member/sectionAccess docs, plus `platformAdmins/operator@example.com` (no membership in any club).
 
 Other scripts (`seedLibrary`, `seedMatch`, `seedMen1`, `applyNumbers`, `importPlayers`) write
 under the same `clubs/<club>/` root.

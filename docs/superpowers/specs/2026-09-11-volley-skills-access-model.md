@@ -1,5 +1,13 @@
 # Volley Skills — Section-scoped access model
 
+> **Superseded in part by the club platform design**
+> (`2026-10-20-volley-skills-club-platform-design.md`). Replaced: the global `superadmin`
+> role and the `adminAllowlist` collection (roles are now per club: `clubs/{clubId}/members`,
+> plus `platformAdmins` for the operator), `RequireSuperAdmin` (now `RequireClubAdmin`), and
+> the top-level `teams`, `exercises`, `trainings`, `sectionAccess` and guide collections
+> (all moved under `clubs/{clubId}`). The section-scoped idea itself still holds. The body
+> below is kept as originally written.
+
 **Status:** design, pending review
 **Supersedes:** authorization model in `2026-09-04-volley-skills-app-design.md` §6
 **Date:** 2026-09-11

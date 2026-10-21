@@ -52,6 +52,19 @@ Last reviewed: 2026-10-14
 - [x] **Deploy Firestore rules + indexes to the live project** — done once from
       the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
 - [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.
+- [ ] **Club platform: migrate production before deploying this branch** — the
+      `feature/club-platform` branch is not deployable on its own: production data is
+      still top-level (`teams`, `exercises`, ...) until the Plan 4 migration moves it
+      under `clubs/{clubId}`. Deploying the new rules/client first locks everyone out.
+- [x] **Firestore region verified: `eur3`** (club platform spec §11) —
+      `firebase firestore:databases:get "(default)" --project volley-skills` reported
+      `eur3`, verified 2026-10-20.
+- [ ] **Rules trust the token email without `email_verified`** — membership and
+      `platformAdmins` are matched by `request.auth.token.email` alone. Safe for
+      email-link sign-in (the link proves control of the mailbox) and Google (verified
+      emails); before enabling ANY other provider (e.g. email/password), add
+      `request.auth.token.email_verified == true` to the rules' email helper and a
+      rules test. Note: Google sign-in is currently enabled (see section A).
 - [ ] **Prod seed (one-time)** — `node scripts/seed/seed.mjs --prod --admin
       alberto.valdes.rey.official@gmail.com`. Needs a gitignored
       `serviceAccountKey.json` at the repo root (console → Project Settings →

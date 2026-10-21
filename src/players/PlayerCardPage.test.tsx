@@ -7,7 +7,7 @@ import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
 import * as footprintApi from './playerFootprintApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 import * as matchesApi from '../matches/matchesApi';
@@ -105,8 +105,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -180,8 +180,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -203,8 +203,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -229,8 +229,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -268,8 +268,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, consent: { given: false, date: null, confirmedBy: null } });
@@ -296,8 +296,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -321,8 +321,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);

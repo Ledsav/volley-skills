@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const email = firebaseUser?.email ?? '';
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const { signOut, unsyncedDialog } = useSignOut();
-  const pendingSignups = usePendingSignups(!!access?.isSuperAdmin);
+  const pendingSignups = usePendingSignups(!!access?.isClubAdmin);
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const prevPathname = useRef(pathname);
@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
     { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides, admin: true },
     {
-      to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isSuperAdmin, admin: true,
+      to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isClubAdmin, admin: true,
       badge: pendingSignups > 0 ? pendingSignups : undefined,
     },
   ].filter((item) => item.show);
@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             items={[
               { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
               ...(access?.sections.guides ? [{ kind: 'action' as const, label: 'Guides', icon: <BookOpen size={16} />, onSelect: () => navigate('/admin/guides') }] : []),
-              ...(access?.isSuperAdmin ? [{ kind: 'action' as const, label: 'Access', icon: <KeyRound size={16} />, onSelect: () => navigate('/admin/access') }] : []),
+              ...(access?.isClubAdmin ? [{ kind: 'action' as const, label: 'Access', icon: <KeyRound size={16} />, onSelect: () => navigate('/admin/access') }] : []),
               { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
               { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
               { kind: 'divider' },

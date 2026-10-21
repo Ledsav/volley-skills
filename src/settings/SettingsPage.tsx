@@ -17,8 +17,8 @@ export function SettingsPage() {
   const { signOut, unsyncedDialog } = useSignOut();
   const { access } = useAuth();
   const canGuides = !!access?.sections.guides;
-  const isSuperAdmin = !!access?.isSuperAdmin;
-  const pendingSignups = usePendingSignups(isSuperAdmin);
+  const isClubAdmin = !!access?.isClubAdmin;
+  const pendingSignups = usePendingSignups(isClubAdmin);
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
@@ -32,7 +32,7 @@ export function SettingsPage() {
         <AiProviderSettings />
 
         {/* The phone bottom bar has no room for admin pages; this is their way in there. */}
-        {(canGuides || isSuperAdmin) && (
+        {(canGuides || isClubAdmin) && (
           <SettingsSection title="Admin" description="Club-wide guides and who can sign in.">
             <nav aria-label="Admin" className="flex flex-col divide-y divide-border rounded-md border border-border">
               {canGuides && (
@@ -42,7 +42,7 @@ export function SettingsPage() {
                   <ChevronRight size={16} aria-hidden="true" className="text-slate" />
                 </Link>
               )}
-              {isSuperAdmin && (
+              {isClubAdmin && (
                 <Link to="/admin/access" className={ADMIN_LINK}>
                   <KeyRound size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
                   <span className="flex-1">Access</span>

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PhysicalTestGuideEditor } from './PhysicalTestGuideEditor';
 import * as physicalTestGuideApi from './physicalTestGuideApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 
 vi.mock('./physicalTestGuideApi');
 vi.mock('../auth/AuthContext');
@@ -14,8 +14,8 @@ describe('PhysicalTestGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(physicalTestGuideApi, 'getPhysicalTestGuide').mockResolvedValue({
@@ -43,8 +43,8 @@ describe('PhysicalTestGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(physicalTestGuideApi, 'getPhysicalTestGuide').mockRejectedValue({ code: 'unavailable' });

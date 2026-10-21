@@ -56,7 +56,7 @@ export function TeamsListPage() {
       <PageHeader
         title="Teams"
         actions={
-          access?.isSuperAdmin ? (
+          access?.isClubAdmin ? (
             <>
               <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowImport(true)}>
                 Import
@@ -72,7 +72,7 @@ export function TeamsListPage() {
 
       {teams.length === 0 ? (
         <div className="rounded-lg border border-border bg-surface p-6 text-center text-sm text-slate shadow-card">
-          {access?.isSuperAdmin ? 'No teams yet.' : 'No teams assigned yet — ask your club admin.'}
+          {access?.isClubAdmin ? 'No teams yet.' : 'No teams assigned yet — ask your club admin.'}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

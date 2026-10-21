@@ -10,8 +10,8 @@ vi.mock('../exercises/exercisesApi');
 vi.mock('../diagrams/diagramsApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', async () => {
-  const { authValue, superAdminAccess } = await import('../test/authValue');
-  return { useAuth: () => authValue({ firebaseUser: { uid: 'coach' } as never, access: superAdminAccess }) };
+  const { authValue, clubAdminAccess } = await import('../test/authValue');
+  return { useAuth: () => authValue({ firebaseUser: { uid: 'coach' } as never, access: clubAdminAccess }) };
 });
 
 const proposal = (name: string) => ({

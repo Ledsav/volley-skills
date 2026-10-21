@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShell } from './AppShell';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 
 const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
@@ -23,11 +23,11 @@ const openAccountMenu = () => fireEvent.click(screen.getByRole('button', { name:
 describe('AppShell', () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: superAdminAccess, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
+      authValue({ access: clubAdminAccess, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
     );
   });
 
-  it('shows every nav destination in both shells for a super-admin', () => {
+  it('shows every nav destination in both shells for a club admin', () => {
     renderShell();
     for (const label of ['Home', 'Teams', 'Exercises', 'Trainings']) {
       expect(screen.getAllByText(label)).toHaveLength(2);
@@ -57,7 +57,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
   });
 
-  it('groups the admin-only destinations under an Admin label for a super-admin', () => {
+  it('groups the admin-only destinations under an Admin label for a club admin', () => {
     const { container } = renderShell();
     const aside = container.querySelector('aside') as HTMLElement;
     const admin = within(aside).getByRole('group', { name: 'Admin' });
@@ -68,7 +68,7 @@ describe('AppShell', () => {
 
   it('shows only granted sections for a member', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: { isSuperAdmin: false, sections: { exercises: true, trainings: false, guides: false } } })
+      authValue({ access: { isClubAdmin: false, sections: { exercises: true, trainings: false, guides: false } } })
     );
     renderShell();
     expect(screen.getAllByText('Teams')).toHaveLength(2);
@@ -123,9 +123,9 @@ describe('AppShell', () => {
     expect(labels.indexOf('Home')).toBeLessThan(labels.indexOf('Teams'));
   });
 
-  it('caps the phone bottom bar at 5 items for a superadmin', () => {
+  it('caps the phone bottom bar at 5 items for a club admin', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: superAdminAccess, appUser: { uid: 'u-1', email: 'user@example.com', role: 'superadmin' } })
+      authValue({ access: clubAdminAccess, appUser: { uid: 'u-1', email: 'user@example.com' } })
     );
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
@@ -134,7 +134,7 @@ describe('AppShell', () => {
     expect(within(bottom).queryByText('Access')).toBeNull();
   });
 
-  it('offers Guides and Access in the account menu for a superadmin', () => {
+  it('offers Guides and Access in the account menu for a club admin', () => {
     renderShell();
     openAccountMenu();
     const menu = screen.getByRole('menu', { name: /^Account/ });

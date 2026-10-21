@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { RequireAuth } from './RequireAuth';
 import { useAuth } from './AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 
 vi.mock('./AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
@@ -35,8 +35,8 @@ describe('RequireAuth', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
 

@@ -5,7 +5,7 @@ import { TeamSettingsTab } from './TeamSettingsTab';
 import * as teamsApi from './teamsApi';
 import * as teamExportApi from './teamExportApi';
 import * as teamExport from './teamExport';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 import { useAuth } from '../auth/AuthContext';
 import type { Team } from '../types/team';
 
@@ -46,7 +46,7 @@ function renderSettings(team: Team, onTeamUpdated: (team: Team) => void) {
 describe('TeamSettingsTab', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
-    vi.mocked(useAuth).mockReturnValue(authValue({ access: superAdminAccess }));
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess }));
   });
 
   it('has no admin-management UI', () => {
@@ -69,12 +69,12 @@ describe('TeamSettingsTab', () => {
     expect(onTeamUpdated).toHaveBeenCalledWith(expect.objectContaining({ name: 'U17 Elite' }));
   });
 
-  it('shows Delete team to a super-admin', () => {
+  it('shows Delete team to a club admin', () => {
     renderSettings(baseTeam, vi.fn());
     expect(screen.getByRole('button', { name: 'Delete team' })).toBeInTheDocument();
   });
 
-  it('hides Delete team from a non-super-admin', () => {
+  it('hides Delete team from a non-admin member', () => {
     vi.mocked(useAuth).mockReturnValue(authValue());
     renderSettings(baseTeam, vi.fn());
     expect(screen.queryByRole('button', { name: 'Delete team' })).not.toBeInTheDocument();

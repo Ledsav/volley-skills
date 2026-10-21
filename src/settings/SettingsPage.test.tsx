@@ -5,7 +5,7 @@ import { SettingsPage } from './SettingsPage';
 
 const mockSignOut = vi.fn();
 
-const mockAccess = vi.hoisted(() => ({ current: null as null | { isSuperAdmin: boolean; sections: { guides: boolean } } }));
+const mockAccess = vi.hoisted(() => ({ current: null as null | { isClubAdmin: boolean; sections: { guides: boolean } } }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ access: mockAccess.current }) }));
 vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(3) }));
 
@@ -30,8 +30,8 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('navigation', { name: 'Admin' })).not.toBeInTheDocument();
   });
 
-  it('links superadmins to Guides and Access, with the pending-request count', async () => {
-    mockAccess.current = { isSuperAdmin: true, sections: { guides: true } };
+  it('links club admins to Guides and Access, with the pending-request count', async () => {
+    mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
     renderSettings();
     const nav = screen.getByRole('navigation', { name: 'Admin' });
     expect(within(nav).getByRole('link', { name: /Guides/ })).toHaveAttribute('href', '/admin/guides');
@@ -41,7 +41,7 @@ describe('SettingsPage', () => {
   });
 
   it('shows only Guides to a guides-section admin', () => {
-    mockAccess.current = { isSuperAdmin: false, sections: { guides: true } };
+    mockAccess.current = { isClubAdmin: false, sections: { guides: true } };
     renderSettings();
     const nav = screen.getByRole('navigation', { name: 'Admin' });
     expect(within(nav).getByRole('link', { name: /Guides/ })).toBeInTheDocument();

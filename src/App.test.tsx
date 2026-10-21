@@ -13,10 +13,18 @@ vi.mock('firebase/auth', () => ({
 }));
 vi.mock('./firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('./auth/usersApi', () => ({
-  ensureUserDoc: async () => ({ uid: 'u-1', email: 'user@example.com', role: 'member' }),
+  ensureUserDoc: async () => ({ uid: 'u-1', email: 'user@example.com' }),
 }));
 vi.mock('./auth/access', () => ({
-  resolveAccess: async () => ({ isSuperAdmin: false, sections: { exercises: false, trainings: false, guides: false } }),
+  resolveAccess: async () => ({ isClubAdmin: false, sections: { exercises: false, trainings: false, guides: false } }),
+}));
+vi.mock('./clubs/clubsApi', () => ({
+  listMyMemberships: async () => [{ clubId: 'club-1', role: 'member', clubName: 'Test Club', status: 'active' }],
+  probePlatformAdmin: async () => false,
+  subscribeClub: (_id: string, onClub: (club: unknown) => void) => {
+    onClub({ id: 'club-1', name: 'Test Club', status: 'active' });
+    return () => {};
+  },
 }));
 
 describe('App', () => {

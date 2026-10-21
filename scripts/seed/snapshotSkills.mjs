@@ -13,6 +13,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { SKILL_KEYS } from './parseWorkbook.mjs';
 
+import { parseClubArg } from './clubArg.mjs';
+
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
@@ -22,12 +24,13 @@ const OUT_DEFAULT = 'scripts/seed/skillsSnapshot.json';
 const BLOCK_DEFAULT = 5;
 
 function parseArgs(argv) {
-  const args = { target: 'emulator', out: OUT_DEFAULT };
+  const args = { target: 'emulator', out: OUT_DEFAULT, club: parseClubArg(argv) };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--prod') args.target = 'prod';
     else if (a === '--emulator') args.target = 'emulator';
     else if (a === '--out') args.out = argv[++i];
+    else if (a === '--club') i++;
     else {
       console.error(`Unknown argument: ${a}`);
       process.exit(2);
@@ -54,7 +57,8 @@ async function main() {
   }
 
   const db = admin.firestore();
-  const snap = await db.collectionGroup('players').get();
+  // collectionGroup spans every club: keep only this club's docs.
+  const snap = (await db.collectionGroup('players').get()).docs.filter((d) => d.ref.path.startsWith(`clubs/${args.club}/`));
 
   const out = {};
   let dupes = 0;

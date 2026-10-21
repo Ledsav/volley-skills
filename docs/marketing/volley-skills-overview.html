@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Volley Skills — product overview</title>
+<!--
+  Source of volley-skills-overview.pdf (A4, 8 pages). Rebuild with:
+    node scripts/docs/buildBrochure.mjs
+  Screenshots come from docs/screenshots/ (scripts/docs/captureScreenshots.mjs).
+-->
+<style>
+  @font-face { font-family: Inter; font-weight: 400; src: url(../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: Inter; font-weight: 500; src: url(../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2) format('woff2'); }
+  @font-face { font-family: Inter; font-weight: 600; src: url(../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2) format('woff2'); }
+  @font-face { font-family: Inter; font-weight: 700; src: url(../../node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: Inter; font-weight: 800; src: url(../../node_modules/@fontsource/inter/files/inter-latin-800-normal.woff2) format('woff2'); }
+
+  :root {
+    --navy: #2356A8; --deep: #12295A; --deeper: #0B1B3F; --blue: #2865F6; --yellow: #F5C518;
+    --orange: #F97316; --green: #109861; --red: #DC2626;
+    --ink: #0F172A; --slate: #475569; --muted: #64748B; --line: #E2E8F0; --bg: #F5F7FB;
+  }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .page { width: 210mm; height: 297mm; position: relative; overflow: hidden; padding: 16mm 15mm 14mm; background: #fff; break-after: page; }
+  .page:last-child { break-after: auto; }
+
+  /* ---------- type ---------- */
+  .eyebrow { font-size: 9.5pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--navy); margin: 0 0 3mm; }
+  h1 { font-size: 40pt; line-height: 1.02; font-weight: 800; letter-spacing: -.02em; margin: 0; }
+  h2 { font-size: 24pt; line-height: 1.1; font-weight: 800; letter-spacing: -.015em; margin: 0 0 3mm; }
+  h3 { font-size: 11pt; font-weight: 700; margin: 0 0 1.2mm; }
+  p { font-size: 10pt; line-height: 1.5; color: var(--slate); margin: 0; }
+  .lead { font-size: 11.5pt; line-height: 1.5; color: var(--slate); max-width: 150mm; }
+  ul.points { list-style: none; padding: 0; margin: 0; display: grid; gap: 3.2mm; }
+  ul.points li { position: relative; padding-left: 6mm; font-size: 9.6pt; line-height: 1.45; color: var(--slate); }
+  ul.points li::before { content: ''; position: absolute; left: 0; top: 1.7mm; width: 2.4mm; height: 2.4mm; border-radius: 50%; background: var(--blue); }
+  ul.points b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- frames ---------- */
+  .browser { border-radius: 3mm; overflow: hidden; background: #fff; box-shadow: 0 1.5mm 6mm rgba(15, 23, 42, .16), 0 0 0 .25mm rgba(15, 23, 42, .08); }
+  .browser .bar { height: 5mm; background: #EEF1F6; display: flex; align-items: center; gap: 1.3mm; padding: 0 2.6mm; }
+  .browser .bar i { width: 1.7mm; height: 1.7mm; border-radius: 50%; background: #CBD3DF; }
+  .browser img { display: block; width: 100%; }
+  .phone { border-radius: 6mm; padding: 1.6mm; background: #0F172A; box-shadow: 0 1.5mm 6mm rgba(15, 23, 42, .25); }
+  .phone img { display: block; width: 100%; border-radius: 4.6mm; }
+  /* A phone cropped to a fixed height, showing the top of the screen. */
+  .phone.crop { overflow: hidden; }
+  .phone.crop img { height: 100%; object-fit: cover; object-position: top; }
+  .caption { font-size: 8pt; color: var(--muted); margin-top: 2mm; }
+
+  /* ---------- page furniture ---------- */
+  .folio { position: absolute; left: 15mm; right: 15mm; bottom: 8mm; display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--muted); }
+  .folio img { height: 4.5mm; }
+  .chip { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1mm 2.6mm; border-radius: 99px; }
+
+  /* ---------- cover ---------- */
+  .cover { background: radial-gradient(120% 80% at 85% 10%, #2E66C2 0%, var(--navy) 38%, var(--deep) 100%); color: #fff; padding: 16mm 15mm; }
+  .cover .lockup { height: 15mm; }
+  .cover .eyebrow { color: var(--yellow); margin-top: 20mm; }
+  .cover h1 { color: #fff; font-size: 46pt; }
+  .cover .lead { color: rgba(255,255,255,.86); margin-top: 6mm; max-width: 140mm; }
+  .cover .shots { position: absolute; left: 15mm; right: 15mm; bottom: 34mm; height: 118mm; }
+  .cover .shots .browser { position: absolute; left: 0; top: 0; width: 150mm; }
+  .cover .shots .phone { position: absolute; right: 0; top: 18mm; width: 50mm; }
+  .cover .tags { position: absolute; left: 15mm; right: 15mm; bottom: 14mm; display: flex; gap: 2.5mm; flex-wrap: wrap; }
+  .cover .tags span { font-size: 8.5pt; font-weight: 600; color: #fff; border: .3mm solid rgba(255,255,255,.35); padding: 1.6mm 3.2mm; border-radius: 99px; }
+  .court { position: absolute; right: -30mm; top: -6mm; width: 150mm; opacity: .09; }
+
+  /* ---------- overview ---------- */
+  .loop { display: block; margin: 6mm auto 4mm; width: 150mm; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 4mm; }
+  .card { border: .3mm solid var(--line); border-radius: 3mm; padding: 4mm; background: #fff; }
+  .card .n { display: inline-flex; align-items: center; justify-content: center; width: 6.5mm; height: 6.5mm; border-radius: 50%; font-size: 8.5pt; font-weight: 700; color: #fff; background: var(--navy); margin-bottom: 2.2mm; }
+  .card p { font-size: 9pt; }
+  .who { margin-top: 6mm; padding: 4.5mm 5mm; border-radius: 3mm; background: var(--bg); display: flex; gap: 6mm; align-items: center; }
+  .who p { font-size: 9.5pt; }
+
+  /* ---------- feature pages ---------- */
+  .head { max-width: 165mm; margin-bottom: 6mm; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; align-items: start; }
+  .stack { display: grid; gap: 6mm; }
+  .band { background: var(--bg); margin: 0 -15mm; padding: 7mm 15mm; }
+  .levels { display: flex; gap: 2mm; flex-wrap: wrap; margin-top: 2mm; }
+  .lv-b { background: #FDE8E8; color: #B91C1C; } .lv-d { background: #FFEDD5; color: #C2410C; }
+  .lv-a { background: #E0EAFF; color: #1D4ED8; } .lv-e { background: #DCF5EA; color: #0B7A4B; }
+  .tests { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2mm; margin-top: 3mm; }
+  .tests span { font-size: 8.2pt; font-weight: 600; text-align: center; padding: 2mm 1mm; border-radius: 2mm; background: #fff; border: .3mm solid var(--line); color: var(--ink); }
+  .callout { border-left: 1mm solid var(--orange); background: #FFF7ED; padding: 3.5mm 4.5mm; border-radius: 0 2.5mm 2.5mm 0; }
+  .callout p { font-size: 9.2pt; color: #7C2D12; }
+  .callout b { color: #7C2D12; }
+
+  /* ---------- closing ---------- */
+  .closing { background: linear-gradient(180deg, #fff 0%, #fff 56%, var(--deep) 56%, var(--deep) 100%); }
+  .trust { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; }
+  .trust .card h3 { display: flex; align-items: center; gap: 2mm; }
+  .trust .card h3::before { content: ''; width: 2.6mm; height: 2.6mm; border-radius: 50%; background: var(--green); }
+  .cta { position: absolute; left: 15mm; right: 15mm; bottom: 18mm; color: #fff; }
+  .cta h2 { color: #fff; font-size: 30pt; }
+  .cta p { color: rgba(255,255,255,.82); font-size: 11pt; max-width: 135mm; }
+  .cta .lockup { height: 12mm; margin-bottom: 10mm; }
+  .cta .btn { text-decoration: none; display: inline-block; margin-top: 7mm; background: var(--yellow); color: var(--deep); font-weight: 700; font-size: 11pt; padding: 3.2mm 6mm; border-radius: 2.5mm; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Cover -->
+<section class="page cover">
+  <svg class="court" viewBox="0 0 180 90" fill="none" stroke="#fff" stroke-width="1.4"><rect x="1" y="1" width="178" height="88"/><line x1="90" y1="1" x2="90" y2="89" stroke-width="3"/><line x1="60" y1="1" x2="60" y2="89"/><line x1="120" y1="1" x2="120" y2="89"/></svg>
+  <img class="lockup" src="../../src/assets/brand/volley-skills-lockup-on-navy.svg" alt="Volley Skills" />
+  <p class="eyebrow">The coaching app for volleyball clubs</p>
+  <h1>Players.<br/>Progress.<br/>Together.</h1>
+  <p class="lead">Volley Skills replaces the per-player spreadsheet with one app for the whole season: player cards and development plans, physical testing, a shared drill library, live match scouting, team stats and awards.</p>
+  <div class="shots">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/04-home.png" alt="" /></div>
+    <div class="phone"><img src="../screenshots/mobile/17-match-report.png" alt="" /></div>
+  </div>
+  <div class="tags"><span>Phone, tablet and PC</span><span>Nothing to install</span><span>Built for youth clubs</span><span>No ads, no tracking</span></div>
+</section>
+
+<!-- 2 · Overview -->
+<section class="page">
+  <p class="eyebrow">Overview</p>
+  <h2>The whole season in one place</h2>
+  <p class="lead">Coaches plan, train, test and play in separate tools today: a spreadsheet per player, drills in a notebook, stats on paper. Volley Skills joins it up, so every training, test and match feeds what you know about each player.</p>
+
+  <svg class="loop" viewBox="0 0 600 250" font-family="Inter, sans-serif">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2356A8"/></marker></defs>
+    <ellipse cx="300" cy="125" rx="250" ry="92" fill="none" stroke="#C7D5F0" stroke-width="2" stroke-dasharray="6 7"/>
+    <g font-size="15" font-weight="700" text-anchor="middle">
+      <g transform="translate(300,33)"><rect x="-62" y="-20" width="124" height="40" rx="20" fill="#2356A8"/><text y="5" fill="#fff">Plan</text></g>
+      <g transform="translate(510,78)"><rect x="-62" y="-20" width="124" height="40" rx="20" fill="#2356A8"/><text y="5" fill="#fff">Train</text></g>
+      <g transform="translate(510,172)"><rect x="-62" y="-20" width="124" height="40" rx="20" fill="#2356A8"/><text y="5" fill="#fff">Test</text></g>
+      <g transform="translate(300,217)"><rect x="-62" y="-20" width="124" height="40" rx="20" fill="#F97316"/><text y="5" fill="#fff">Play</text></g>
+      <g transform="translate(90,172)"><rect x="-62" y="-20" width="124" height="40" rx="20" fill="#2356A8"/><text y="5" fill="#fff">Review</text></g>
+      <g transform="translate(90,78)"><rect x="-62" y="-20" width="124" height="40" rx="20" fill="#109861"/><text y="5" fill="#fff">Develop</text></g>
+    </g>
+    <g font-size="11" fill="#475569" text-anchor="middle">
+      <text x="300" y="72">Trainings on the team calendar</text>
+      <text x="420" y="125">Exercises, diagrams, session PDF</text>
+      <text x="180" y="125">Objectives per player</text>
+      <text x="300" y="178">Live scouting · match report</text>
+    </g>
+    <g stroke="#2356A8" stroke-width="2" fill="none" marker-end="url(#ah)">
+      <path d="M366 40 Q 430 48 452 62"/><path d="M528 100 L 528 150"/><path d="M452 190 Q 420 206 366 212"/>
+      <path d="M234 212 Q 180 206 148 190"/><path d="M72 150 L 72 100"/><path d="M148 62 Q 180 48 234 40"/>
+    </g>
+  </svg>
+
+  <div class="grid3">
+    <div class="card"><span class="n">1</span><h3>Player cards</h3><p>Rosters, 9 skills scored 1–10 with coach notes, colour-coded levels and guardian contacts.</p></div>
+    <div class="card"><span class="n">2</span><h3>Development plans</h3><p>Short-term and season objectives per player and per team, with status and coach comments.</p></div>
+    <div class="card"><span class="n">3</span><h3>Physical testing</h3><p>Eight standard tests with history and trends, recorded live for a whole group from a phone.</p></div>
+    <div class="card"><span class="n">4</span><h3>Drills &amp; trainings</h3><p>A shared exercise library with court diagrams, trainings built from it and a team calendar.</p></div>
+    <div class="card"><span class="n">5</span><h3>Match scouting</h3><p>Two taps per action on a phone, live stats during the match and a report after it.</p></div>
+    <div class="card"><span class="n">6</span><h3>Stats &amp; awards</h3><p>Season KPIs, trends and leaderboards, and award cards to celebrate with the team.</p></div>
+  </div>
+
+  <div class="who">
+    <h3 style="margin:0;white-space:nowrap">Made for</h3>
+    <p>Head and assistant coaches who run training and matches, and the club staff who look after several teams, from youth squads to the first team.</p>
+  </div>
+  <div class="folio"><img src="../../src/assets/brand/volley-skills-lockup.svg" alt="" /><span>2</span></div>
+</section>
+
+<!-- 3 · Players -->
+<section class="page">
+  <div class="head">
+    <p class="eyebrow">Teams &amp; players</p>
+    <h2>Know every player, at a glance</h2>
+    <p class="lead">Each team has a roster in lineup order. Each player has a card that holds everything a coach needs, and nothing ends up lost in a spreadsheet tab again.</p>
+  </div>
+  <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/13-player-skills.png" alt="" /></div>
+  <p class="caption">A player card: average skill score, level, focus areas, open objectives and the latest physical test.</p>
+  <div class="split" style="margin-top:7mm">
+    <ul class="points">
+      <li><b>Nine skills scored 1–10</b>, from serve and reception to jump, speed and game IQ, each with a coach note and a priority flag.</li>
+      <li><b>One level, one colour.</b> The average maps to a level that reads the same everywhere in the app:
+        <div class="levels"><span class="chip lv-b">Beginner</span><span class="chip lv-d">Developing</span><span class="chip lv-a">Advanced</span><span class="chip lv-e">Elite</span></div></li>
+      <li><b>Shared scoring guides</b> describe what a 3 or a 7 means for each skill, so every coach in the club scores the same way.</li>
+    </ul>
+    <ul class="points">
+      <li><b>Rosters in lineup order</b> (setter, outside, opposite, middle, libero) with search, sorting and starters marked.</li>
+      <li><b>Contacts and guardians</b> in one place, with consent recorded per player.</li>
+      <li><b>Match history per player</b>: attack, serve and reception efficiency from every scouted match.</li>
+      <li><b>Bring your roster in</b> with a bulk import instead of retyping it.</li>
+    </ul>
+  </div>
+  <div class="folio"><img src="../../src/assets/brand/volley-skills-lockup.svg" alt="" /><span>3</span></div>
+</section>
+
+<!-- 4 · Development & testing -->
+<section class="page">
+  <div class="head">
+    <p class="eyebrow">Development &amp; physical testing</p>
+    <h2>Set goals. Measure progress.</h2>
+    <p class="lead">Turn what you see in training into objectives with dates, and back them up with physical tests that show how each player is growing.</p>
+  </div>
+  <div class="split">
+    <div class="stack">
+      <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/10-team-plan.png" alt="" /></div>
+      <ul class="points">
+        <li><b>Short-term objectives</b> with a target date, a status (active, in progress, attention, completed) and a coach comment.</li>
+        <li><b>Season objectives</b> for the bigger picture, for each player and for the team as a whole.</li>
+      </ul>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm">
+      <div class="phone"><img src="../screenshots/mobile/16-player-plan.png" alt="" /></div>
+      <div class="phone"><img src="../screenshots/mobile/15-player-physical.png" alt="" /></div>
+    </div>
+  </div>
+  <div class="band" style="margin-top:8mm">
+    <h3>Eight standard tests, with history and trends</h3>
+    <div class="tests"><span>Growth</span><span>Countermovement jump</span><span>Approach jump</span><span>Standing broad jump</span><span>10 m sprint</span><span>5-10-5 shuttle</span><span>Reaction time</span><span>Strength</span></div>
+    <p style="margin-top:4mm"><b style="color:var(--ink)">Live testing sessions.</b> Test a whole group in the gym from one phone: pick the players, pick the test, and record results with the built-in stopwatches. Every result lands on the right player card.</p>
+  </div>
+  <div class="folio"><img src="../../src/assets/brand/volley-skills-lockup.svg" alt="" /><span>4</span></div>
+</section>
+
+<!-- 5 · Trainings -->
+<section class="page">
+  <div class="head">
+    <p class="eyebrow">Exercises, diagrams &amp; trainings</p>
+    <h2>Build better trainings, faster</h2>
+    <p class="lead">The club keeps one shared library of exercises. Draw each drill on a court, combine drills into trainings, and put them on a team's calendar.</p>
+  </div>
+  <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/22-diagram-editor.png" alt="" /></div>
+  <p class="caption">The court diagram builder: players, balls, cones, ladders, lines, arrows and text.</p>
+  <div class="split" style="margin-top:6mm">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/24-training-view.png" alt="" /></div>
+    <ul class="points">
+      <li><b>Trainings from ordered exercises</b>, with durations and a running clock, each with its own ID (TR-0001).</li>
+      <li><b>A calendar per team.</b> Assign trainings to dates; the home page shows the next seven days.</li>
+      <li><b>Share as a PDF</b> from a phone: the session plan, then a page per exercise with its diagram. Add notes for the players expected that day.</li>
+      <li><b>Draft with AI</b> (optional): describe the session you want and review the drafted exercises before anything is saved.</li>
+    </ul>
+  </div>
+  <div class="folio"><img src="../../src/assets/brand/volley-skills-lockup.svg" alt="" /><span>5</span></div>
+</section>
+
+<!-- 6 · Scouting -->
+<section class="page">
+  <div class="head">
+    <p class="eyebrow">Match scouting</p>
+    <h2>Scout live. Decide in the moment.</h2>
+    <p class="lead">One person can scout a whole match from the bench, one-handed on a phone, and see who is struggling while there is still time to act.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:62mm 1fr;gap:8mm;align-items:start">
+    <div>
+      <div class="phone"><img src="../screenshots/mobile/18-live-scouting.png" alt="" /></div>
+      <p class="caption">Live scouting on a phone.</p>
+    </div>
+    <div class="stack">
+      <ul class="points">
+        <li><b>Tap the court.</b> Usually two taps per action: the player, then the grade. Rotations and the score follow on their own.</li>
+        <li><b>Live stats during the match</b>: side-out and break-point percentages, reception quality, and alerts when a player keeps making errors or the opponent goes on a run.</li>
+        <li><b>Fix mistakes in seconds</b> with undo, an editable rally-by-rally timeline and "insert a missed rally here".</li>
+        <li><b>Or just type it.</b> Describe the rallies in plain words and AI turns them into the same events. Player names are swapped for shirt numbers before anything leaves the device.</li>
+        <li><b>Bad gym Wi-Fi is fine.</b> Every action is saved on the device first and syncs when the connection comes back.</li>
+      </ul>
+      <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/17-match-report.png" alt="" /></div>
+      <p class="caption" style="margin-top:-4mm">After the match: a report per player and per fundamental, rotations included, ready to export.</p>
+    </div>
+  </div>
+  <div class="folio"><img src="../../src/assets/brand/volley-skills-lockup.svg" alt="" /><span>6</span></div>
+</section>
+
+<!-- 7 · Stats & awards -->
+<section class="page">
+  <div class="head">
+    <p class="eyebrow">Stats &amp; awards</p>
+    <h2>See the season. Celebrate it.</h2>
+    <p class="lead">Every scouted match adds up into team statistics. At the end of a match or a season, turn them into awards the players will want to share.</p>
+  </div>
+  <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../screenshots/desktop/09-team-stats.png" alt="" /></div>
+  <p class="caption">The team Stats tab: record, side-out, break point, attack efficiency and the trend over the season.</p>
+  <div style="display:grid;grid-template-columns:1fr 50mm 50mm;gap:6mm;margin-top:7mm;align-items:start">
+    <ul class="points">
+      <li><b>Filter by competition, date range and venue</b>, and compare rotations, leaderboards and per-player tables.</li>
+      <li><b>Export</b> the numbers as PDF or CSV.</li>
+      <li><b>Season and match awards</b> such as top scorer, best server and MVP, picked from the stats with the coach's final say.</li>
+      <li><b>Present them full screen</b> as a story with a reveal for each award, then share the cards as images or a video.</li>
+      <li><b>Photos never leave the device.</b> Background removal for player cut-outs runs on the device itself.</li>
+    </ul>
+    <div class="phone crop" style="height:84mm"><img src="../screenshots/mobile/20-match-awards.png" alt="" /></div>
+    <div class="phone crop" style="height:84mm"><img src="../screenshots/mobile/04-home.png" alt="" /></div>
+  </div>
+  <div class="folio"><img src="../../src/assets/brand/volley-skills-lockup.svg" alt="" /><span>7</span></div>
+</section>
+
+<!-- 8 · Trust + CTA -->
+<section class="page closing">
+  <div class="head">
+    <p class="eyebrow">Built for clubs</p>
+    <h2>Safe for minors. Simple for staff.</h2>
+    <p class="lead">Youth clubs hold data about children and their parents. Volley Skills is designed around that from the first line of code.</p>
+  </div>
+  <div class="trust">
+    <div class="card"><h3>Access per team and section</h3><p>Coaches only see the teams they work with. Library, trainings and guides each have their own editors. New people request access and an admin approves them.</p></div>
+    <div class="card"><h3>No passwords to leak</h3><p>Sign in with a one-time email link or a Google account.</p></div>
+    <div class="card"><h3>No ads, no tracking</h3><p>No analytics or third-party tracking scripts, ever. A plain-language privacy policy is public.</p></div>
+    <div class="card"><h3>Data rights built in</h3><p>Consent per player, data export for a player or a whole team, and deletion when someone leaves.</p></div>
+    <div class="card"><h3>AI only if you want it</h3><p>AI features are optional and use your club's own provider. Names are replaced by shirt numbers before sending.</p></div>
+    <div class="card"><h3>Made for the gym</h3><p>Works on phones, tablets and computers, in light or dark mode, and can be added to the home screen like an app.</p></div>
+  </div>
+  <div class="cta">
+    <img class="lockup" src="../../src/assets/brand/volley-skills-lockup-on-navy.svg" alt="Volley Skills" />
+    <h2>Bring your club's season into one place.</h2>
+    <p>Volley Skills is in early access. Ask for an invitation from the sign-in page, or write to us to get your club started.</p>
+    <a class="btn" href="mailto:alberto.valdes.rey.official@gmail.com">alberto.valdes.rey.official@gmail.com</a>
+  </div>
+</section>
+
+</body>
+</html>

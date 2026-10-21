@@ -31,6 +31,26 @@ own test suite. Players are minors, so privacy is a first-class requirement, not
   <img src="docs/readme/request-access.png" alt="Request early access page" width="49%" />
 </p>
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/desktop/04-home.png" alt="Home dashboard" width="49%" />
+  <img src="docs/screenshots/desktop/13-player-skills.png" alt="Player card" width="49%" />
+  <img src="docs/screenshots/desktop/09-team-stats.png" alt="Team stats" width="49%" />
+  <img src="docs/screenshots/desktop/22-diagram-editor.png" alt="Court diagram editor" width="49%" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/mobile/18-live-scouting.png" alt="Live scouting on a phone" width="19%" />
+  <img src="docs/screenshots/mobile/17-match-report.png" alt="Match report on a phone" width="19%" />
+  <img src="docs/screenshots/mobile/16-player-plan.png" alt="Development plan on a phone" width="19%" />
+  <img src="docs/screenshots/mobile/07-team-calendar.png" alt="Team calendar on a phone" width="19%" />
+  <img src="docs/screenshots/mobile/24-training-view.png" alt="Training on a phone" width="19%" />
+</p>
+
+Every page at desktop and phone size is in the [screenshot gallery](docs/screenshots/README.md).
+For a shareable overview of what the app does, see the
+[product overview PDF](docs/marketing/volley-skills-overview.pdf).
+
 ## Features
 
 <table>
@@ -56,8 +76,8 @@ own test suite. Players are minors, so privacy is a first-class requirement, not
     <td valign="top">
       <h3>Exercise &amp; training library</h3>
       A shared, paginated exercise library and trainings built from ordered exercises, each with a
-      sequential ID like <code>TR-0007</code>. Supports <b>bulk JSON import</b>, e.g. to paste in
-      AI-generated drills.
+      sequential ID like <code>TR-0007</code>. Supports <b>bulk JSON import</b> and optional
+      <b>AI drafting</b>, and a training <b>shares as a PDF</b> with one page per exercise.
     </td>
   </tr>
   <tr>
@@ -70,6 +90,31 @@ own test suite. Players are minors, so privacy is a first-class requirement, not
     <td valign="top">
       <h3>Team calendar</h3>
       A month view per team where coaches assign trainings from the shared library to dates.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Live match scouting</h3>
+      Scout a match from a phone in about two taps per action, with live stats and alerts during
+      the match and a per-player report after it. Or type rallies in plain text and let an AI model
+      turn them into events (names are swapped for shirt numbers first). Works offline.
+    </td>
+    <td valign="top">
+      <h3>Stats &amp; awards</h3>
+      A team Stats tab with filters, KPIs, trends, rotations and leaderboards (PDF/CSV export), plus
+      season and match awards presented as a full-screen story and shared as images or video.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Home dashboard</h3>
+      Live matches to resume, the next seven days of trainings and matches, recent results with
+      the MVP, and shortcuts to your teams.
+    </td>
+    <td valign="top">
+      <h3>Phone-first</h3>
+      Bottom navigation, touch-sized controls and a light and dark theme. Installable to the home
+      screen.
     </td>
   </tr>
   <tr>
@@ -98,14 +143,45 @@ everywhere a level appears.
 | ![Advanced](https://img.shields.io/badge/Advanced-2865F6?style=flat)     | 6 to below 8  |
 | ![Elite](https://img.shields.io/badge/Elite-109861?style=flat)           | 8 and above   |
 
+## How it fits together
+
+A season is a loop, and every part of the app feeds the player cards.
+
+```mermaid
+flowchart LR
+    Library["Exercise library<br/>+ court diagrams"] --> Trainings["Trainings<br/>TR-0001 · PDF"]
+    Trainings --> Calendar["Team calendar"]
+    Calendar --> Home["Home dashboard<br/>next 7 days"]
+
+    Calendar -. "train" .-> Testing["Physical testing<br/>live sessions"]
+    Calendar -. "play" .-> Scouting["Live scouting<br/>tap or text"]
+
+    Scouting --> Report["Match report"]
+    Report --> Stats["Team stats"]
+    Stats --> Awards["Season &amp; match<br/>awards"]
+
+    Testing --> Card(["Player card<br/>skills · tests · matches"])
+    Report --> Card
+    Card --> Plan["Development plan<br/>objectives"]
+    Plan -. "next block" .-> Library
+
+    classDef play fill:#F97316,stroke:#C2410C,color:#fff
+    classDef player fill:#2356A8,stroke:#12295A,color:#fff
+    class Scouting,Report play
+    class Card,Plan player
+```
+
 ## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Browser["Browser — React 18 SPA"]
-        UI["Feature folders<br/>teams · players · calendar<br/>exercises · trainings · diagrams"]
+    subgraph Browser["Browser — React 18 SPA (installable)"]
+        UI["Feature folders<br/>teams · players · matches · stats<br/>exercises · trainings · awards"]
         API["&lt;feature&gt;Api.ts<br/>data-access modules"]
-        UI --> API
+        Cache[("Persistent local cache<br/>offline writes survive reloads")]
+        Device["On-device only<br/>PDF build · award cards/video<br/>MediaPipe cut-outs"]
+        UI --> API --> Cache
+        UI --> Device
     end
 
     subgraph Firebase["Firebase (Spark plan)"]
@@ -115,9 +191,12 @@ flowchart LR
         Hosting["Hosting<br/>SPA rewrites"]
     end
 
+    AI["AI provider (optional)<br/>any OpenAI-compatible API<br/>coach's own key"]
+
     Browser -- "sign in" --> Auth
-    API -- "every read/write" --> Rules --> DB
+    Cache -- "every read/write" --> Rules --> DB
     Hosting -- "serves" --> Browser
+    UI -. "text scouting, drafting<br/>names → shirt numbers" .-> AI
 ```
 
 - **All authorization lives in [`firestore.rules`](firestore.rules).** Components never call
@@ -128,6 +207,10 @@ flowchart LR
   [`firestore.indexes.json`](firestore.indexes.json).
 - **Computed fields are saved on write, not calculated in the UI** (a player's average and level,
   a training's ID).
+- **Scouting is event-sourced.** A match stores an ordered list of events, and the score, rotations
+  and stats are rebuilt by replaying them (`src/matches/scoutEngine.ts`), so undo and edits are
+  just event changes.
+- **Photos never leave the device.** Award photos and background removal stay in memory.
 
 ### Data model
 
@@ -135,6 +218,8 @@ flowchart LR
 erDiagram
     TEAM ||--o{ PLAYER : "players/"
     TEAM ||--o{ CALENDAR_SESSION : "calendar/"
+    TEAM ||--o{ MATCH : "matches/"
+    MATCH ||--o{ EVENT : "events/ (ordered)"
     PLAYER ||--o{ PHYSICAL_TEST : "physicalTests/"
     EXERCISE ||--o{ DIAGRAM : "diagrams/ (ordered)"
     TRAINING }o--o{ EXERCISE : "ordered list"
@@ -158,6 +243,15 @@ erDiagram
     }
     CALENDAR_SESSION {
         string date "YYYY-MM-DD"
+    }
+    MATCH {
+        string opponent
+        string status "setup / live / finished"
+        map summary "written when finished"
+    }
+    EVENT {
+        number order
+        string source "tap / text / correction"
     }
     TRAINING {
         string businessId "TR-0007"
@@ -204,13 +298,17 @@ every restart. See [`scripts/seed/README.md`](scripts/seed/README.md) for the fu
 ```text
 src/
 ├── auth/            sign-in, guards (RequireAuth / RequireSection / RequireSuperAdmin)
-├── teams/           teams list, team page, roster
+├── home/            home dashboard
+├── teams/           teams list, team page, roster, stats tab
 ├── players/         player card, skills, development plan
 ├── physicalSessions/ live multi-player testing sessions
 ├── calendar/        team month view
+├── matches/         live scouting, replay engine, match report, text scouting
+├── awards/          season/match awards, story presentation, card + video export
 ├── exercises/       exercise library
 ├── diagrams/        court diagram editor + SVG renderer
-├── trainings/       training builder + library
+├── trainings/       training builder + library + PDF
+├── ai/ aiDraft/     provider-agnostic AI client, exercise/training drafting
 ├── bulkImport/      JSON bulk import
 ├── access/          access manager (superadmin)
 ├── components/      shared UI: Button, Input, SkillMeter, Logo, …
@@ -218,7 +316,10 @@ src/
 ├── types/           all Firestore document types
 └── firebase/        SDK init + emulator wiring (the only place)
 tests/rules/         security-rules test suite
+scripts/docs/        screenshot capture + product overview PDF build
 docs/superpowers/    design specs + implementation plans
+docs/screenshots/    every page, desktop + phone
+docs/marketing/      shareable product overview (PDF + HTML source)
 ```
 
 ## Testing

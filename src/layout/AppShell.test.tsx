@@ -36,10 +36,15 @@ describe('AppShell', () => {
       expect(screen.getAllByText(label)).toHaveLength(2);
     }
     // Admin destinations live in the sidebar only; phones reach them via the account menu.
-    for (const label of ['Guides', 'Access']) {
+    for (const label of ['Guides', 'Club']) {
       expect(screen.getAllByText(label)).toHaveLength(1);
     }
     expect(screen.getByText('Page content')).toBeInTheDocument();
+  });
+
+  it('shows Club for club admins', () => {
+    renderShell();
+    expect(screen.getByRole('link', { name: /Club/ })).toHaveAttribute('href', '/club');
   });
 
   it('keeps account actions in one account menu in the sidebar, showing who is signed in', () => {
@@ -65,7 +70,7 @@ describe('AppShell', () => {
     const aside = container.querySelector('aside') as HTMLElement;
     const admin = within(aside).getByRole('group', { name: 'Admin' });
     expect(within(admin).getByRole('link', { name: 'Guides' })).toBeInTheDocument();
-    expect(within(admin).getByRole('link', { name: /Access/ })).toBeInTheDocument();
+    expect(within(admin).getByRole('link', { name: /Club/ })).toBeInTheDocument();
     expect(within(admin).queryByRole('link', { name: 'Teams' })).not.toBeInTheDocument();
   });
 
@@ -78,7 +83,7 @@ describe('AppShell', () => {
     expect(screen.getAllByText('Exercises')).toHaveLength(2);
     expect(screen.queryByText('Trainings')).not.toBeInTheDocument();
     expect(screen.queryByText('Guides')).not.toBeInTheDocument();
-    expect(screen.queryByText('Access')).not.toBeInTheDocument();
+    expect(screen.queryByText('Club')).not.toBeInTheDocument();
   });
 
   it('signs out and clears local data when a sign-out button is clicked', async () => {
@@ -134,15 +139,15 @@ describe('AppShell', () => {
     const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
     expect(within(bottom).getAllByRole('link')).toHaveLength(5);
     expect(within(bottom).queryByText('Guides')).toBeNull();
-    expect(within(bottom).queryByText('Access')).toBeNull();
+    expect(within(bottom).queryByText('Club')).toBeNull();
   });
 
-  it('offers Guides and Access in the account menu for a club admin', () => {
+  it('offers Guides and Club in the account menu for a club admin', () => {
     renderShell();
     openAccountMenu();
     const menu = screen.getByRole('menu', { name: /^Account/ });
     expect(within(menu).getByRole('menuitem', { name: 'Guides' })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Access' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Club' })).toBeInTheDocument();
   });
 
   describe('club state', () => {

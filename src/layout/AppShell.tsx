@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
     { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides, admin: true },
     {
-      to: '/admin/access', label: 'Access', Icon: KeyRound, show: !!access?.isClubAdmin, admin: true,
+      to: '/club', label: 'Club', Icon: KeyRound, show: !!access?.isClubAdmin, admin: true,
       badge: pendingSignups > 0 ? pendingSignups : undefined,
     },
   ].filter((item) => item.show);
@@ -127,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             items={[
               { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
               ...(access?.sections.guides ? [{ kind: 'action' as const, label: 'Guides', icon: <BookOpen size={16} />, onSelect: () => navigate('/admin/guides') }] : []),
-              ...(access?.isClubAdmin ? [{ kind: 'action' as const, label: 'Access', icon: <KeyRound size={16} />, onSelect: () => navigate('/admin/access') }] : []),
+              ...(access?.isClubAdmin ? [{ kind: 'action' as const, label: 'Club', icon: <KeyRound size={16} />, onSelect: () => navigate('/club') }] : []),
               { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
               { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
               ...otherClubs.map((m) => ({
@@ -167,7 +167,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
-        {/* Phones reach the admin pages (Guides, Access) from Settings, so its tab carries their badge. */}
+        {/* Phones reach the admin pages (Guides, Club) from Settings, so its tab carries their badge. */}
         <NavLink to="/settings" className={bottomTabClass}>
           <span className="relative">
             <Settings size={22} strokeWidth={1.5} />

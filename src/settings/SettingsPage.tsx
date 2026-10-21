@@ -45,9 +45,9 @@ export function SettingsPage() {
                 </Link>
               )}
               {isClubAdmin && (
-                <Link to="/admin/access" className={ADMIN_LINK}>
+                <Link to="/club" className={ADMIN_LINK}>
                   <KeyRound size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
-                  <span className="flex-1">Access</span>
+                  <span className="flex-1">Club</span>
                   {pendingSignups > 0 && (
                     <span className="rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">
                       {pendingSignups}<span className="sr-only"> pending requests</span>

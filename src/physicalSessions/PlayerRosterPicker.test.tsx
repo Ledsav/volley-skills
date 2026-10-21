@@ -41,6 +41,13 @@ describe('PlayerRosterPicker', () => {
     expect(screen.getByRole('button', { name: /Jane Doe/ })).toHaveTextContent('1/7');
   });
 
+  it('does not count a legacy growth entry when growth tests are off', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ growthTestsEnabled: false }) }));
+    const entries = [buildEntry({}), buildEntry({ id: 'player-1__growth', testType: 'growth' })];
+    render(<PlayerRosterPicker players={players} entries={entries} selectedPlayerId={null} onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Jane Doe/ })).toHaveTextContent('1/7');
+  });
+
   it('shows the whole roster right away, each with a completed-quality count', () => {
     render(<PlayerRosterPicker players={players} entries={[buildEntry({})]} selectedPlayerId={null} onSelect={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Jane Doe/ })).toHaveTextContent('1/8');

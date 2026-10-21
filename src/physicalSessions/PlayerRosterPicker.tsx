@@ -20,11 +20,12 @@ interface PlayerRosterPickerProps {
 export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelect }: PlayerRosterPickerProps) {
   const [search, setSearch] = useState('');
   const { growthTestsEnabled } = useClubFeatures();
-  const testCount = visibleTestTypes(growthTestsEnabled).length;
+  const visible = visibleTestTypes(growthTestsEnabled);
+  const testCount = visible.length;
 
   const completedCountByPlayer = new Map<string, number>();
   for (const entry of entries) {
-    if (entry.status === 'complete') {
+    if (entry.status === 'complete' && visible.includes(entry.testType)) {
       completedCountByPlayer.set(entry.playerId, (completedCountByPlayer.get(entry.playerId) ?? 0) + 1);
     }
   }

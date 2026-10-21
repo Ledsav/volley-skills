@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { Button } from '../components/Button';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
-import { PHYSICAL_TEST_LABELS, visibleTestTypes } from '../types/physicalTest';
+import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER, visibleTestTypes } from '../types/physicalTest';
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
 import { formatPhysicalTestSummary } from './physicalTestFormat';
 import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
@@ -23,6 +23,7 @@ interface PhysicalTestingSectionProps {
 export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest, onLatestLoaded }: PhysicalTestingSectionProps) {
   const { firebaseUser } = useAuth();
   const { growthTestsEnabled } = useClubFeatures();
+  const visible = visibleTestTypes(growthTestsEnabled);
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [activeDialogType, setActiveDialogType] = useState<PhysicalTestType | null>(null);
   const [historyType, setHistoryType] = useState<PhysicalTestType | null>(null);
@@ -58,8 +59,9 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
       )}
       {!loadError && (
         <ul className="divide-y divide-border">
-          {visibleTestTypes(growthTestsEnabled).map((testType) => {
+          {PHYSICAL_TEST_ORDER.filter((t) => visible.includes(t) || !!latestByType[t]).map((testType) => {
             const latest = latestByType[testType];
+            const canAdd = isAdmin && visible.includes(testType);
             return (
               <li key={testType} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
                 <div className="min-w-0">
@@ -72,7 +74,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
                   <Button variant="ghost" size="sm" onClick={() => setHistoryType(testType)}>
                     View history
                   </Button>
-                  {isAdmin && (
+                  {canAdd && (
                     <Button variant="secondary" size="sm" onClick={() => setActiveDialogType(testType)}>
                       Add new
                     </Button>

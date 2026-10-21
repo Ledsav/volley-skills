@@ -32,10 +32,10 @@ beforeEach(() => {
   vi.mocked(readAll).mockReset();
   vi.mocked(readAll).mockImplementation(async (col) => {
     const path = col as unknown as string;
-    if (path === 'teams/t1/testingSessions') return [snap('s1', { date: '2026-09-20' }), snap('s2', { date: '2026-09-27' })] as never;
-    if (path === 'teams/t1/testingSessions/s1/entries') return [snap('p1__cmj', { playerId: 'p1', testType: 'cmj' })] as never;
-    if (path === 'teams/t1/testingSessions/s2/entries') return [] as never;
-    if (path === 'teams/t1/matches')
+    if (path === 'clubs/club-1/teams/t1/testingSessions') return [snap('s1', { date: '2026-09-20' }), snap('s2', { date: '2026-09-27' })] as never;
+    if (path === 'clubs/club-1/teams/t1/testingSessions/s1/entries') return [snap('p1__cmj', { playerId: 'p1', testType: 'cmj' })] as never;
+    if (path === 'clubs/club-1/teams/t1/testingSessions/s2/entries') return [] as never;
+    if (path === 'clubs/club-1/teams/t1/matches')
       return [
         snap('m1', { date: '2026-10-01', opponent: 'Rivals', roster, liberos: [], summary: null }),
         snap('m2', { date: '2026-10-08', opponent: 'Others', roster: [roster[1]], liberos: [], summary: null }),
@@ -61,12 +61,12 @@ describe('playerFootprintApi', () => {
   it('deletes entries, anonymizes rosters and drops the usage line', async () => {
     await erasePlayerFootprint('t1', 'p1');
 
-    expect(mockBatchDelete).toHaveBeenCalledWith('teams/t1/testingSessions/s1/entries/p1__cmj');
+    expect(mockBatchDelete).toHaveBeenCalledWith('clubs/club-1/teams/t1/testingSessions/s1/entries/p1__cmj');
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);
     expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
-    expect(mockUpdateDoc).toHaveBeenCalledWith('teams/t1/matches/m1', {
+    expect(mockUpdateDoc).toHaveBeenCalledWith('clubs/club-1/teams/t1/matches/m1', {
       roster: [{ playerId: 'p1', number: 0, name: 'Removed player', positionCategory: 'OH' }, roster[1]],
     });
-    expect(mockSetDoc).toHaveBeenCalledWith('teams/t1/scoutProfile/usage', { players: { p1: 'DELETE' } }, { merge: true });
+    expect(mockSetDoc).toHaveBeenCalledWith('clubs/club-1/teams/t1/scoutProfile/usage', { players: { p1: 'DELETE' } }, { merge: true });
   });
 });

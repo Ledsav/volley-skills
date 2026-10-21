@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { clubDoc } from '../firebase/clubPaths';
 import type { PhysicalTestGuideConfig, PhysicalTestGuideEntry } from '../types/physicalTestGuide';
 
 /**
@@ -58,12 +58,12 @@ export const DEFAULT_PHYSICAL_TEST_GUIDE: PhysicalTestGuideEntry[] = [
 ];
 
 export async function getPhysicalTestGuide(): Promise<PhysicalTestGuideConfig> {
-  const snapshot = await getDoc(doc(db, 'physicalTestGuide', 'config'));
+  const snapshot = await getDoc(clubDoc('config', 'physicalTestGuide'));
   return snapshot.exists()
     ? (snapshot.data() as PhysicalTestGuideConfig)
     : { tests: DEFAULT_PHYSICAL_TEST_GUIDE, updatedBy: '', updatedAt: null };
 }
 
 export async function updatePhysicalTestGuide(tests: PhysicalTestGuideEntry[], updatedBy: string): Promise<void> {
-  await setDoc(doc(db, 'physicalTestGuide', 'config'), { tests, updatedBy, updatedAt: serverTimestamp() });
+  await setDoc(clubDoc('config', 'physicalTestGuide'), { tests, updatedBy, updatedAt: serverTimestamp() });
 }

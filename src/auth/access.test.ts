@@ -14,7 +14,7 @@ describe('resolveAccess', () => {
   beforeEach(() => {
     mockGetDoc.mockReset();
     mockDoc.mockReset();
-    mockDoc.mockImplementation((_db: unknown, _c: unknown, id: unknown) => id);
+    mockDoc.mockImplementation((...a: unknown[]) => a[a.length - 1]);
   });
 
   it('gives a super-admin every section without any reads', async () => {

@@ -1,5 +1,5 @@
-import { collection, doc, getDoc, type CollectionReference } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, type CollectionReference } from 'firebase/firestore';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { readAll } from '../firebase/readAll';
 import type { TeamExportData, TeamExportOptions } from './teamExport';
 
@@ -13,8 +13,8 @@ async function docs(col: CollectionReference) {
  * event, hundreds per match, so they are opt-in.
  */
 export async function loadTeamExportData(teamId: string, options: TeamExportOptions): Promise<TeamExportData> {
-  const sub = (...path: string[]) => collection(db, 'teams', teamId, ...(path as [string]));
-  const teamSnap = await getDoc(doc(db, 'teams', teamId));
+  const sub = (...path: string[]) => clubCol('teams', teamId, ...path);
+  const teamSnap = await getDoc(clubDoc('teams', teamId));
   if (!teamSnap.exists()) throw new Error('team not found');
 
   const players = [];

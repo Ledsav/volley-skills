@@ -1,8 +1,6 @@
 import {
   addDoc,
-  collection,
   deleteDoc,
-  doc,
   getDoc,
   getDocs,
   limit,
@@ -11,7 +9,7 @@ import {
   serverTimestamp,
   where,
 } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import type { CalendarSession, NewCalendarSessionInput } from '../types/calendarSession';
 
 const CALENDAR_MONTH_CAP = 200;
@@ -21,7 +19,7 @@ export async function listCalendarSessions(
   startDate: string,
   endDate: string
 ): Promise<CalendarSession[]> {
-  const base = collection(db, 'teams', teamId, 'calendar');
+  const base = clubCol('teams', teamId, 'calendar');
   const snapshot = await getDocs(
     query(
       base,
@@ -35,7 +33,7 @@ export async function listCalendarSessions(
 }
 
 export async function getCalendarSession(teamId: string, sessionId: string): Promise<CalendarSession | null> {
-  const snapshot = await getDoc(doc(db, 'teams', teamId, 'calendar', sessionId));
+  const snapshot = await getDoc(clubDoc('teams', teamId, 'calendar', sessionId));
   if (!snapshot.exists()) return null;
   return { id: snapshot.id, ...snapshot.data() } as CalendarSession;
 }
@@ -45,7 +43,7 @@ export async function createCalendarSession(
   input: NewCalendarSessionInput,
   creatorUid: string
 ): Promise<string> {
-  const docRef = await addDoc(collection(db, 'teams', teamId, 'calendar'), {
+  const docRef = await addDoc(clubCol('teams', teamId, 'calendar'), {
     ...input,
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
@@ -54,5 +52,5 @@ export async function createCalendarSession(
 }
 
 export async function deleteCalendarSession(teamId: string, sessionId: string): Promise<void> {
-  await deleteDoc(doc(db, 'teams', teamId, 'calendar', sessionId));
+  await deleteDoc(clubDoc('teams', teamId, 'calendar', sessionId));
 }

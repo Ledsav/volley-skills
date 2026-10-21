@@ -177,7 +177,7 @@ describe('listSessionEntries', () => {
   it("reads a session's entries once", async () => {
     mockGetDocs.mockResolvedValueOnce({ docs: [{ id: 'p1__cmj', data: () => ({ playerId: 'p1', testType: 'cmj', status: 'complete' }) }] });
     const entries = await listSessionEntries('team-1', 'session-1');
-    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'testingSessions', 'session-1', 'entries');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'testingSessions', 'session-1', 'entries');
     expect(entries).toEqual([{ id: 'p1__cmj', playerId: 'p1', testType: 'cmj', status: 'complete' }]);
   });
 });
@@ -201,9 +201,9 @@ describe('deleteSession', () => {
     expect(deletePhysicalTest).toHaveBeenCalledWith('team-1', 'p1', 't1');
     const deleted = mockBatch.delete.mock.calls.map(([ref]) => ref.path);
     expect(deleted).toEqual([
-      'teams/team-1/testingSessions/session-1/entries/p1__cmj',
-      'teams/team-1/testingSessions/session-1/entries/p2__cmj',
-      'teams/team-1/testingSessions/session-1',
+      'clubs/club-1/teams/team-1/testingSessions/session-1/entries/p1__cmj',
+      'clubs/club-1/teams/team-1/testingSessions/session-1/entries/p2__cmj',
+      'clubs/club-1/teams/team-1/testingSessions/session-1',
     ]);
     expect(mockBatch.update).not.toHaveBeenCalled();
     expect(mockBatch.commit).toHaveBeenCalled();
@@ -212,6 +212,6 @@ describe('deleteSession', () => {
   it('clears the team pointer when deleting the open session', async () => {
     mockGetDoc.mockResolvedValue({ data: () => ({ activeTestingSessionId: 'session-1' }) });
     await deleteSession('team-1', 'session-1');
-    expect(mockBatch.update).toHaveBeenCalledWith(expect.objectContaining({ path: 'teams/team-1' }), { activeTestingSessionId: null });
+    expect(mockBatch.update).toHaveBeenCalledWith(expect.objectContaining({ path: 'clubs/club-1/teams/team-1' }), { activeTestingSessionId: null });
   });
 });

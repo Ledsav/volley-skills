@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Input } from '../components/Input';
-import { PHYSICAL_TEST_ORDER } from '../types/physicalTest';
+import { useClubFeatures } from '../clubs/useClubFeatures';
+import { visibleTestTypes } from '../types/physicalTest';
 import type { Player } from '../types/player';
 import type { TestingSessionEntry } from '../types/testingSession';
 
@@ -18,6 +19,8 @@ interface PlayerRosterPickerProps {
  */
 export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelect }: PlayerRosterPickerProps) {
   const [search, setSearch] = useState('');
+  const { growthTestsEnabled } = useClubFeatures();
+  const testCount = visibleTestTypes(growthTestsEnabled).length;
 
   const completedCountByPlayer = new Map<string, number>();
   for (const entry of entries) {
@@ -62,7 +65,7 @@ export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelec
                 {player.number > 0 && <span className="w-7 shrink-0 tabular-nums text-sm text-slate">#{player.number}</span>}
                 <span className="min-w-0 flex-1 truncate text-sm text-ink">{player.fullName}</span>
                 <span className="shrink-0 tabular-nums text-xs text-slate">
-                  {count}/{PHYSICAL_TEST_ORDER.length}
+                  {count}/{testCount}
                 </span>
               </button>
             </li>

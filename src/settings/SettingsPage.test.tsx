@@ -6,7 +6,10 @@ import { SettingsPage } from './SettingsPage';
 const mockSignOut = vi.fn();
 
 const mockAccess = vi.hoisted(() => ({ current: null as null | { isClubAdmin: boolean; sections: { guides: boolean } }, platform: false }));
-vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ access: mockAccess.current, isPlatformAdmin: mockAccess.platform }) }));
+const mockClub = vi.hoisted(() => ({ aiEnabled: true }));
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({ access: mockAccess.current, isPlatformAdmin: mockAccess.platform, club: { aiEnabled: mockClub.aiEnabled } }),
+}));
 vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(3) }));
 
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
@@ -24,6 +27,14 @@ describe('SettingsPage', () => {
     mockSignOut.mockReset();
     mockAccess.current = null;
     mockAccess.platform = false;
+    mockClub.aiEnabled = true;
+  });
+
+  it('hides the AI provider settings when the club has AI off', () => {
+    mockClub.aiEnabled = false;
+    renderSettings();
+    expect(screen.queryByRole('heading', { name: 'AI provider' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
   });
 
   it('hides the Admin section from members without admin access', () => {

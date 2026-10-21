@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PhysicalTestingSection } from './PhysicalTestingSection';
 import * as physicalTestsApi from './physicalTestsApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue } from '../test/authValue';
+import { authValue, testClub } from '../test/authValue';
 import type { PhysicalTest } from '../types/physicalTest';
 
 vi.mock('./physicalTestsApi');
@@ -34,6 +34,18 @@ describe('PhysicalTestingSection', () => {
     expect(await screen.findByText(/34 cm — 2026-09-01/)).toBeInTheDocument();
     expect(screen.getAllByText('No data yet').length).toBe(7);
     expect(physicalTestsApi.loadLatestTests).toHaveBeenCalledWith('team-1', 'player-1', stored, true);
+  });
+
+  it('offers no Growth tile when growth tests are off', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never, club: testClub({ growthTestsEnabled: false }) })
+    );
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+
+    render(<PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />);
+
+    await waitFor(() => expect(screen.getAllByText('No data yet').length).toBe(7));
+    expect(screen.queryByText('Growth')).not.toBeInTheDocument();
   });
 
   it('hides "Add new" when isAdmin is false', async () => {

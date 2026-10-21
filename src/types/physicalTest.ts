@@ -133,3 +133,7 @@ export const PHYSICAL_TEST_ORDER: PhysicalTestType[] = [
   'reaction',
   'strength',
 ];
+
+export function visibleTestTypes(growthTestsEnabled: boolean): PhysicalTestType[] {
+  return growthTestsEnabled ? PHYSICAL_TEST_ORDER : PHYSICAL_TEST_ORDER.filter((t) => t !== 'growth');
+}

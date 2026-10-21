@@ -3,6 +3,7 @@ import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { useClubFeatures } from '../clubs/useClubFeatures';
 import { ExerciseDraftDialog } from '../aiDraft/ExerciseDraftDialog';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
@@ -26,6 +27,7 @@ const USAGE_UNKNOWN = -1;
 export function ExercisesPage() {
   usePageMeta({ title: 'Exercises' });
   const { firebaseUser } = useAuth();
+  const { aiEnabled } = useClubFeatures();
   const [showImport, setShowImport] = useState(false);
   const [showDraft, setShowDraft] = useState(false);
   const notify = useNotify();
@@ -99,10 +101,12 @@ export function ExercisesPage() {
             >
               Import
             </Button>
-            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
-              <Sparkles size={16} aria-hidden="true" />
-              Draft with AI
-            </Button>
+            {aiEnabled && (
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
+                <Sparkles size={16} aria-hidden="true" />
+                Draft with AI
+              </Button>
+            )}
             <Button
               variant="primary"
               size="sm"
@@ -227,7 +231,7 @@ export function ExercisesPage() {
         />
       )}
 
-      {showDraft && (
+      {aiEnabled && showDraft && (
         <ExerciseDraftDialog
           onClose={() => setShowDraft(false)}
           onSaved={(n) => {

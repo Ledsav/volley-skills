@@ -24,7 +24,7 @@ export function testClub(over: Partial<Club> = {}): Club {
     ownerEmail: 'owner@example.com',
     aiEnabled: true,
     referenceOptOut: false,
-    growthTestsEnabled: false,
+    growthTestsEnabled: true,
     createdAt: { seconds: 0, nanoseconds: 0 } as Timestamp,
     status: 'active',
     statusReason: null,

@@ -26,14 +26,16 @@ vi.mock('../calendar/calendarApi', () => ({
   getCalendarSession: vi.fn().mockResolvedValue({ id: 's-1', date: '2026-10-24', notes: 'Gym B', trainingId: 't-1' }),
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+const clubOver = vi.hoisted(() => ({ aiEnabled: true }));
 vi.mock('../auth/AuthContext', async () => {
-  const { authValue, clubAdminAccess } = await import('../test/authValue');
+  const { authValue, clubAdminAccess, testClub } = await import('../test/authValue');
   return {
     useAuth: () =>
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
         appUser: { uid: 'coach-uid', email: 'coach@example.com' },
         access: clubAdminAccess,
+        club: testClub({ aiEnabled: clubOver.aiEnabled }),
       }),
   };
 });
@@ -63,6 +65,7 @@ function renderPage(initialEntry = '/trainings') {
 describe('TrainingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clubOver.aiEnabled = true;
     vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training], lastDoc: null, hasMore: false });
     vi.mocked(trainingsApi.findTrainingByBusinessId).mockResolvedValue(training);
   });
@@ -190,6 +193,13 @@ describe('TrainingsPage', () => {
     await flushDebounce();
     expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1);
     expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' });
+  });
+
+  it('hides Draft with AI when the club has AI off', async () => {
+    clubOver.aiEnabled = false;
+    renderPage();
+    await screen.findByText('Passing circuit');
+    expect(screen.queryByRole('button', { name: 'Draft with AI' })).not.toBeInTheDocument();
   });
 
   it('opens the builder prefilled from an AI draft', async () => {

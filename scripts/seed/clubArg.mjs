@@ -32,7 +32,7 @@ export function clubRoot(db, clubId) {
  * sectionAccess docs. Idempotent: set() replaces. `admins[0]` is the owner.
  * Emails are lowercased everywhere.
  */
-export async function writeClub(db, { id, name, status, admins, members = [], country = 'IT', locale = 'en' }) {
+export async function writeClub(db, { id, name, status, admins, members = [], country = 'IT', locale = 'en', aiEnabled = true, growthTestsEnabled = true }) {
   const require = createRequire(import.meta.url);
   const { FieldValue } = require('firebase-admin').firestore;
   const now = FieldValue.serverTimestamp();
@@ -47,9 +47,9 @@ export async function writeClub(db, { id, name, status, admins, members = [], co
     country,
     locale,
     ownerEmail: adminEmails[0],
-    aiEnabled: true,
+    aiEnabled,
     referenceOptOut: false,
-    growthTestsEnabled: true,
+    growthTestsEnabled,
     createdAt: now,
     status,
     statusReason: null,

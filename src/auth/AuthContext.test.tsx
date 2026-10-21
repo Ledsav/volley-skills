@@ -134,6 +134,46 @@ describe('AuthProvider', () => {
     expect(screen.getByText('club: club-a/suspended')).toBeInTheDocument();
   });
 
+  it('re-resolves section access when the club status becomes active', async () => {
+    h.resolveAccess.mockResolvedValue({
+      isClubAdmin: false, sections: { exercises: false, trainings: false, guides: false },
+    });
+    renderProvider();
+    await waitFor(() => expect(h.clubCallback).not.toBeNull());
+    act(() => h.clubCallback!(club('club-a', 'pending')));
+    expect(screen.getByText('access: member')).toBeInTheDocument();
+    expect(h.resolveAccess).toHaveBeenCalledTimes(1);
+
+    h.resolveAccess.mockResolvedValue({
+      isClubAdmin: false, sections: { exercises: true, trainings: false, guides: false },
+    });
+    act(() => h.clubCallback!(club('club-a', 'active')));
+
+    await waitFor(() => expect(screen.getByText('access: exercises')).toBeInTheDocument());
+    expect(h.resolveAccess).toHaveBeenCalledTimes(2);
+    expect(h.resolveAccess).toHaveBeenLastCalledWith('member');
+
+    act(() => h.clubCallback!(club('club-a', 'active')));
+    expect(h.resolveAccess).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the latest access when status changes overlap', async () => {
+    renderProvider();
+    await waitFor(() => expect(h.clubCallback).not.toBeNull());
+    act(() => h.clubCallback!(club('club-a', 'active')));
+
+    let resolveSlow: (a: unknown) => void = () => {};
+    h.resolveAccess
+      .mockImplementationOnce(() => new Promise((r) => { resolveSlow = r; }))
+      .mockResolvedValueOnce({ isClubAdmin: false, sections: { exercises: false, trainings: true, guides: false } });
+    act(() => h.clubCallback!(club('club-a', 'suspended')));
+    act(() => h.clubCallback!(club('club-a', 'active')));
+    await waitFor(() => expect(screen.getByText('access: trainings')).toBeInTheDocument());
+
+    await act(async () => resolveSlow({ isClubAdmin: false, sections: { exercises: false, trainings: false, guides: true } }));
+    expect(screen.getByText('access: trainings')).toBeInTheDocument();
+  });
+
   it('has no active club and no access when the person has no memberships', async () => {
     h.listMyMemberships.mockResolvedValue([]);
     renderProvider();

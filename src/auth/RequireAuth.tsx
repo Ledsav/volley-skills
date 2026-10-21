@@ -5,7 +5,8 @@ import { useAuth } from './AuthContext';
 import { AuthShell } from './AuthShell';
 import { rememberReturnTo } from './returnTo';
 
-export function RequireAuth({ children }: { children: ReactNode }) {
+/** Signed in, whatever the club: loading, sign-in errors and the redirect to /login. */
+export function RequireSignedIn({ children }: { children: ReactNode }) {
   const { firebaseUser, loading, authError } = useAuth();
   const location = useLocation();
 
@@ -35,5 +36,13 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     rememberReturnTo(`${location.pathname}${location.search}`);
     return <Navigate to="/login" replace />;
   }
-  return <ClubGate>{children}</ClubGate>;
+  return <>{children}</>;
+}
+
+export function RequireAuth({ children }: { children: ReactNode }) {
+  return (
+    <RequireSignedIn>
+      <ClubGate>{children}</ClubGate>
+    </RequireSignedIn>
+  );
 }

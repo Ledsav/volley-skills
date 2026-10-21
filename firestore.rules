@@ -288,6 +288,86 @@ service cloud.firestore {
           allow write: if activeMember() && teamAdmin();
         }
       }
+
+      // ---- Club library, guides and section access ------------------------------
+      // Same gating as the team subtree: reads need an active membership (or
+      // export-only access for a club admin), writes need an active membership.
+      match /config/{doc} {
+        allow read:  if doc in ['skillGuide', 'physicalTestGuide']
+                      && (activeMember() || exporter());
+        allow write: if activeMember() && canGuides()
+                      && doc in ['skillGuide', 'physicalTestGuide'];
+      }
+
+      match /sectionAccess/{section} {
+        allow read:  if (activeMember() && (isClubAdmin() || email() in resource.data.adminEmails))
+                      || exporter();
+        allow write: if activeAdmin()
+                      && request.resource.data.adminEmails is list
+                      && request.resource.data.keys().hasOnly(['adminEmails']);
+      }
+
+      match /exercises/{exerciseId} {
+        allow read: if (activeMember() && canReadExercises()) || exporter();
+        allow create: if activeMember() && canWriteExercises()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.category in
+             ['warmup','physical','service','setting','defense','reception','attack','compound','game']
+          && optIntIn(request.resource.data, 'minPlayers', 1, 30);
+        allow update: if activeMember() && canWriteExercises()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.category in
+             ['warmup','physical','service','setting','defense','reception','attack','compound','game']
+          && optIntIn(request.resource.data, 'minPlayers', 1, 30);
+        allow delete: if activeMember() && canWriteExercises();
+
+        match /diagrams/{diagramId} {
+          allow read: if (activeMember() && canReadExercises()) || exporter();
+          allow create, update: if activeMember() && canWriteExercises()
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.title is string
+            && request.resource.data.title.size() >= 1
+            && request.resource.data.title.size() <= 40
+            && request.resource.data.order is int
+            && request.resource.data.scene.v == 1
+            && request.resource.data.scene.court in ['full','half','blank']
+            && request.resource.data.scene.items is list
+            && request.resource.data.scene.items.size() <= 60;
+          allow delete: if activeMember() && canWriteExercises();
+        }
+      }
+
+      match /trainings/{trainingId} {
+        allow read: if (activeMember() && canTrainings()) || exporter();
+        allow create: if activeMember() && canTrainings()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.businessId is string
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.exercises is list
+          && request.resource.data.exerciseIds is list
+          && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
+          && optTargets(request.resource.data);
+        allow update: if activeMember() && canTrainings()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.exercises is list
+          && request.resource.data.exerciseIds is list
+          && request.resource.data.businessId == resource.data.businessId
+          && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
+          && optTargets(request.resource.data);
+        allow delete: if activeMember() && canTrainings();
+      }
+
+      match /counters/{counterId} {
+        allow read: if (activeMember() && canTrainings()) || exporter();
+        allow write: if activeMember() && canTrainings()
+          && request.resource.data.lastSequence is int
+          && request.resource.data.lastSequence >= 0;
+      }
     }
 
     // ---- Single-club rules (removed once the data lives under clubs/) ---------

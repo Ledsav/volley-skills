@@ -59,11 +59,21 @@ describe('ProfileTab', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not save/i);
   });
 
+  it('saves referenceOptOut when the customer switch is toggled', async () => {
+    render(<ProfileTab />);
+    fireEvent.click(screen.getByRole('checkbox', { name: "Don't name our club as a customer" }));
+    expect(screen.getByText("We won't list your club as a reference customer.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(clubAdminApi.updateClubProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ referenceOptOut: true })));
+  });
+
   it('is read-only when restricted', () => {
     render(<ProfileTab restricted />);
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Club name')).toBeDisabled();
     expect(screen.getByLabelText('Country')).toBeDisabled();
     expect(screen.getByRole('checkbox', { name: /AI features/ })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: /customer/ })).toBeDisabled();
   });
 });

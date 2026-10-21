@@ -136,6 +136,22 @@ describe('PeopleTab', () => {
     await waitFor(() => expect(clubAdminApi.transferOwnership).toHaveBeenCalledWith('second@example.com'));
   });
 
+  it('lets a non-owner admin make another admin the owner', async () => {
+    signInAs('owner@example.com');
+    vi.mocked(useAuth).mockReturnValue(authValue({
+      access: clubAdminAccess, role: 'admin',
+      appUser: { uid: 'u-2', email: 'second@example.com' },
+      club: testClub({ ownerEmail: 'owner@example.com' }),
+    }));
+    members = [...members, m('third@example.com', 'admin')];
+    render(<PeopleTab />);
+    await openPerson('third@example.com');
+    fireEvent.click(screen.getByRole('button', { name: 'Make owner' }));
+    const dialog = screen.getByRole('alertdialog', { name: 'Make third@example.com the club owner?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Make owner' }));
+    await waitFor(() => expect(clubAdminApi.transferOwnership).toHaveBeenCalledWith('third@example.com'));
+  });
+
   it('Remove from club removes grants and membership after confirmation', async () => {
     render(<PeopleTab />);
     await openPerson('coach@example.com');

@@ -370,111 +370,21 @@ service cloud.firestore {
       }
     }
 
-    // ---- Single-club rules (removed once the data lives under clubs/) ---------
-    function isSuperAdmin() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/adminAllowlist/$(request.auth.token.email));
-    }
-    function inSection(section) {
-      return request.auth != null && request.auth.token.email in
-        get(/databases/$(database)/documents/sectionAccess/$(section)).data.adminEmails;
-    }
-    function canReadExercises() { return isSuperAdmin() || inSection('exercises') || inSection('trainings'); }
-    function canWriteExercises() { return isSuperAdmin() || inSection('exercises'); }
-    function canTrainings()      { return isSuperAdmin() || inSection('trainings'); }
+    // ---- Platform-wide -------------------------------------------------------
+    // The single-club top-level collections (teams, exercises, trainings,
+    // counters, skillGuide, physicalTestGuide, sectionAccess, adminAllowlist)
+    // have no rules: the default deny covers them until they are deleted.
+
     // Optional fields: absent is "not set" (older docs); when present they must be valid.
     function optIntIn(d, k, lo, hi) { return !(k in d) || (d[k] is int && d[k] >= lo && d[k] <= hi); }
     function optTargets(d) {
       return !('targets' in d) || (d.targets is list && d.targets.size() >= 1 && d.targets.size() <= 9
         && d.targets.toSet().difference(['warmup','physical','service','setting','defense','reception','attack','compound','game'].toSet()).size() == 0);
     }
-    function canGuides()         { return isSuperAdmin() || inSection('guides'); }
 
-    match /adminAllowlist/{email} {
-      allow read, write: if false;
-    }
-
-    match /sectionAccess/{section} {
-      allow read: if isSuperAdmin()
-        || (request.auth != null && request.auth.token.email in resource.data.adminEmails);
-      allow write: if isSuperAdmin()
-        && request.resource.data.adminEmails is list;
-    }
-
-    match /skillGuide/config {
-      allow read: if request.auth != null;
-      allow write: if canGuides();
-    }
-
-    match /physicalTestGuide/config {
-      allow read: if request.auth != null;
-      allow write: if canGuides();
-    }
-
-    match /exercises/{exerciseId} {
-      allow read: if canReadExercises();
-      allow create: if canWriteExercises()
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.category in
-           ['warmup','physical','service','setting','defense','reception','attack','compound','game']
-        && optIntIn(request.resource.data, 'minPlayers', 1, 30);
-      allow update: if canWriteExercises()
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.category in
-           ['warmup','physical','service','setting','defense','reception','attack','compound','game']
-        && optIntIn(request.resource.data, 'minPlayers', 1, 30);
-      allow delete: if canWriteExercises();
-
-      match /diagrams/{diagramId} {
-        allow read: if canReadExercises();
-        allow create, update: if canWriteExercises()
-          && request.resource.data.updatedBy == request.auth.uid
-          && request.resource.data.title is string
-          && request.resource.data.title.size() >= 1
-          && request.resource.data.title.size() <= 40
-          && request.resource.data.order is int
-          && request.resource.data.scene.v == 1
-          && request.resource.data.scene.court in ['full','half','blank']
-          && request.resource.data.scene.items is list
-          && request.resource.data.scene.items.size() <= 60;
-        allow delete: if canWriteExercises();
-      }
-    }
-
-    match /trainings/{trainingId} {
-      allow read: if canTrainings();
-      allow create: if canTrainings()
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.businessId is string
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.exercises is list
-        && request.resource.data.exerciseIds is list
-        && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
-        && optTargets(request.resource.data);
-      allow update: if canTrainings()
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.exercises is list
-        && request.resource.data.exerciseIds is list
-        && request.resource.data.businessId == resource.data.businessId
-        && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
-        && optTargets(request.resource.data);
-      allow delete: if canTrainings();
-    }
-
-    match /counters/{counterId} {
-      allow read: if canTrainings();
-      allow write: if canTrainings()
-        && request.resource.data.lastSequence is int
-        && request.resource.data.lastSequence >= 0;
-    }
-
+    // The operator's lead list: anyone may leave interest, only the operator reads it.
     match /interestSignups/{signupId} {
-      allow read, update, delete: if isSuperAdmin();
+      allow read, update, delete: if isPlatformAdmin();
       allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'role', 'reviewed', 'createdAt'])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
@@ -486,169 +396,15 @@ service cloud.firestore {
         && request.resource.data.reviewed == false;
     }
 
+    // A bare sign-in record. Roles are per club (members), so there is none here.
     match /users/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow create: if request.auth != null
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.keys().hasOnly(['email', 'role'])
-        && (
-          request.resource.data.role == 'member' ||
-          (request.resource.data.role == 'superadmin' && isSuperAdmin())
-        );
+        && request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        && request.resource.data.email == email()
+        && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
-    }
-
-    match /teams/{teamId} {
-      // Cheapest check first: `||` short-circuits, and isSuperAdmin() is a billed
-      // exists() read, while adminEmails is on the doc being read (free).
-      allow read:   if (request.auth != null && request.auth.token.email in resource.data.adminEmails)
-                    || isSuperAdmin();
-      allow create: if isSuperAdmin()
-                    && request.resource.data.createdBy == request.auth.uid
-                    && request.resource.data.adminEmails is list;
-      allow update: if (request.auth != null
-                        && request.auth.token.email in resource.data.adminEmails
-                        && request.resource.data.adminEmails == resource.data.adminEmails)
-                    || isSuperAdmin();
-      allow delete: if isSuperAdmin();
-
-      match /players/{playerId} {
-        function isTeamAdmin() {
-          return request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin();
-        }
-
-        function validScore(score) {
-          return score == null || (score is number && score >= 1 && score <= 10);
-        }
-
-        function validSkills(skills) {
-          return validScore(skills.serve.score) &&
-            validScore(skills.attack.score) &&
-            validScore(skills.block.score) &&
-            validScore(skills.set.score) &&
-            validScore(skills.defence.score) &&
-            validScore(skills.reception.score) &&
-            validScore(skills.jump.score) &&
-            validScore(skills.speed.score) &&
-            validScore(skills.iq.score);
-        }
-
-        allow read: if request.auth != null && (
-          isTeamAdmin() || request.auth.token.email in resource.data.viewerEmails
-        );
-        allow create, update: if request.auth != null && isTeamAdmin() && validSkills(request.resource.data.skills);
-        allow delete: if request.auth != null && isTeamAdmin();
-
-        match /physicalTests/{testId} {
-          allow read: if request.auth != null && (
-            isTeamAdmin() ||
-            request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)/players/$(playerId)).data.viewerEmails
-          );
-          allow create, update: if request.auth != null && isTeamAdmin();
-          // Team admins can delete a single entry from the history view, and this
-          // also lets a player's own hard-delete clean up their test history
-          // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
-          allow delete: if request.auth != null && isTeamAdmin();
-        }
-      }
-
-      match /calendar/{sessionId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read: if isTeamAdmin() && canTrainings();
-        allow create: if isTeamAdmin() && canTrainings()
-          && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.date is string;
-        allow update: if false;
-        allow delete: if isTeamAdmin() && canTrainings();
-      }
-
-      match /testingSessions/{sessionId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read: if isTeamAdmin();
-        allow create, update: if isTeamAdmin();
-        // Team admins delete a session started by mistake (its entries and
-        // results go with it, client-side); team deletion also clears them.
-        allow delete: if isTeamAdmin();
-
-        match /entries/{entryId} {
-          function isTeamAdmin() {
-            return request.auth != null && (request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-          }
-          allow read: if isTeamAdmin();
-          allow create, update: if isTeamAdmin()
-            && get(/databases/$(database)/documents/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
-          // Team admins can delete in any session status: deleting a player
-          // erases their entries too (GDPR erasure, app design spec §10).
-          allow delete: if isTeamAdmin();
-        }
-      }
-
-      match /matches/{matchId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        function validStatus(d) {
-          return d.status in ['setup', 'live', 'finished'];
-        }
-        allow read, delete: if isTeamAdmin();
-        allow create: if isTeamAdmin()
-          && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.date is string
-          && validStatus(request.resource.data);
-        allow update: if isTeamAdmin()
-          && request.resource.data.date is string
-          && validStatus(request.resource.data);
-
-        match /events/{eventId} {
-          function isTeamAdmin() {
-            return request.auth != null && (request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-          }
-          function validEvent(d) {
-            return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
-              && d.order is number
-              && d.source in ['tap', 'text', 'correction']
-              && (d.type != 'action'
-                  || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
-                      && d.grade in ['#', '+', '!', '-', '/', '=']));
-          }
-          allow read, delete: if isTeamAdmin();
-          allow create, update: if isTeamAdmin() && validEvent(request.resource.data);
-        }
-      }
-
-      match /awards/{scope} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read, delete: if isTeamAdmin();
-        allow create, update: if isTeamAdmin()
-          && scope == 'season'
-          && request.resource.data.picks is map
-          && request.resource.data.custom is list
-          && request.resource.data.custom.size() <= 5
-          && request.resource.data.order is list;
-      }
-
-      match /scoutProfile/{docId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read, write: if isTeamAdmin();
-      }
     }
   }
 }

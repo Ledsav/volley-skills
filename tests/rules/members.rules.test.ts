@@ -119,6 +119,32 @@ describe('club members rules', () => {
     await assertSucceeds(db.doc(`clubs/club-a/members/${COACH}`).delete());
   });
 
+  it('keeps the owner an admin across a batched ownership transfer', async () => {
+    const env = await getTestEnv();
+    const ADMIN2 = 'admin2-a@example.com';
+    await seedClub(env, { ...CLUB_A, admins: [ADMIN, ADMIN2] });
+    const db = dbAs(env, ADMIN);
+    const club = db.doc('clubs/club-a');
+
+    // Transfer to admin2 and demote admin2 in the same batch.
+    let batch = db.batch();
+    batch.update(club, { ownerEmail: ADMIN2 });
+    batch.update(db.doc(`clubs/club-a/members/${ADMIN2}`), { role: 'member' });
+    await assertFails(batch.commit());
+
+    // Transfer to admin2 and remove admin2 in the same batch.
+    batch = db.batch();
+    batch.update(club, { ownerEmail: ADMIN2 });
+    batch.delete(db.doc(`clubs/club-a/members/${ADMIN2}`));
+    await assertFails(batch.commit());
+
+    // Promote coach and transfer ownership to them in the same batch.
+    batch = db.batch();
+    batch.update(db.doc(`clubs/club-a/members/${COACH}`), { role: 'admin' });
+    batch.update(club, { ownerEmail: COACH });
+    await assertSucceeds(batch.commit());
+  });
+
   it('refuses member writes when the club is not active', async () => {
     const env = await getTestEnv();
     for (const status of ['suspended', 'pending'] as const) {

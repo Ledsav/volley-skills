@@ -8,11 +8,13 @@ A **club-agnostic** web app for volleyball clubs that replaces a per-player spre
 (the original was `reference/VCB_U17_PlayerCards_2026-27.xlsx`, used only for seeding)
 with a tool to manage teams, player profiles (skills + development plans + physical
 testing), a club-wide exercise/training library (with a court-diagram builder per
-exercise), and per-team training calendars. **One deployment serves one club, not
-multi-tenant** — but no club name is hardcoded: UI, metadata and award cards stay
-generic, and a club's name only appears where it comes from data (`team.club`).
-Internal localStorage keys keep their historical `vcb.` prefix (renaming would wipe
-users' saved settings). Players are
+exercise), and per-team training calendars. **One Firebase project serves many clubs**
+(multi-club platform, branch `feature/club-platform`): all club data lives under
+`clubs/{clubId}`, and a person's role is per club. No club name is hardcoded: UI,
+metadata and award cards stay generic, and a club's name only appears where it comes
+from data (the club doc's `name`; `team.club` is gone). Internal localStorage keys keep
+their historical `vcb.` prefix (renaming would wipe users' saved settings); the active
+club id is stored in `vcb.activeClub`. Players are
 minors, and guardian contact data is stored — this drives the consent/privacy
 requirements.
 
@@ -61,8 +63,11 @@ because all files share one emulator project.
 
 - `npm run emulator` auto-locates a JDK 21+ (no `JAVA_HOME` needed) and starts Auth
   (:9099), Firestore (:8080), Emulator UI (:4000).
-- `npm run seed:emulator` writes one team, `skillGuide/config`, and 20 player docs
-  from the gitignored `.xlsx`. Emulator is in-memory — re-seed after every restart.
+- `npm run seed:emulator` writes the `demo` club (club doc, admin member, `sectionAccess`),
+  one team, `config/skillGuide`, and 20 player docs from the gitignored `.xlsx`, all under
+  `clubs/demo`. `npm run seed:clubs` adds a `rival` club and a pending `newclub` (sign in as
+  `rival@example.com` / `pending@example.com` to see each state). Every seed script takes
+  `--club <id>`. Emulator is in-memory — re-seed after every restart.
 - `npm run seed:match` adds a season of 10 finished matches, a finished demo match and a live one to the seeded team, then writes their summaries (`backfillSummaries.ts`, via vite-node) so the Stats tab and awards have data.
 - The Auth emulator prints the email sign-in link to its console (no email is sent).
 - Prod seeding (`node scripts/seed/seed.mjs --prod`) needs a gitignored
@@ -137,34 +142,49 @@ not a subcollection scan. **When adding a query, add the matching index.**
 ### Auth & routing
 
 `src/App.tsx` wraps everything in `AuthProvider`; `RequireAuth` gates the
-authenticated shell, `RequireSuperAdmin` gates `/admin/access`, and
+authenticated shell (with a `ClubGate` inside it, `src/clubs/ClubGate.tsx`, that shows the
+welcome page, pending, locked or ended screens from the active club's status and the
+person's role), `RequireClubAdmin` gates `/admin/access`, and
 `RequireSection` (given a `section` prop) gates `/exercises`,
 `/exercises/:exerciseId/diagram` (the lazy-loaded court-diagram editor),
 `/trainings`, `/admin/guides`. `/` is the home dashboard and the `*` catch-all is the 404 page. Match pages live at `/teams/:teamId/matches/:matchId`;
 the lazy-loaded full-screen scouting UI is `/teams/:teamId/matches/:matchId/scout`
 (outside `AppShell`); the lazy full-screen awards routes (`/teams/:teamId/awards`,
 `/teams/:teamId/matches/:matchId/awards`) are also outside `AppShell` and team-admin only.
-Two roles: `superadmin` (full access to
-everything) and `member` (read-only until granted access — invite flow for
-guardians/viewers is still TBD). A member's actual access is resolved per-team
-(email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
-`sectionAccess/{exercises,trainings,guides}.adminEmails`) via
-`useAuth().access` (`src/auth/access.ts`). A user's role is set on their
-`users/{uid}` doc on first sign-in; `role: 'superadmin'` is only accepted if
-their email is in `adminAllowlist/{email}` (enforced in rules; that collection
-is never client-readable). See
-`docs/superpowers/specs/2026-09-11-volley-skills-access-model.md` for the full
-model.
+Roles are per club: a person is `admin` or `member` of a club via
+`clubs/{clubId}/members/{email}` (doc id is the lowercased email). `AuthProvider` finds
+the person's clubs with one collection-group query on `members` (`email == me`), picks
+the active club (`vcb.activeClub` in localStorage if still usable, else the first by
+name; `switchClub` stores the choice and reloads) and subscribes to the club doc live,
+so a status change reaches open tabs. `useAuth()` exposes `memberships`, `club`, `role`,
+`activeClubId`, `isPlatformAdmin` and `access`. A member's actual access is resolved
+per-team (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
+`clubs/{clubId}/sectionAccess/{exercises,trainings,guides}.adminEmails`) via
+`useAuth().access` (`src/auth/access.ts`); a club admin has everything in their club.
+The platform operator is an email in `platformAdmins/{email}` (readable only by that
+email; written by script/console, never the client); the platform admin can read and
+status-update club docs but sees no club data. `users/{uid}` holds only email and
+timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
+(`pending | active | suspended | terminating | deleted`) drives `ClubGate`. See
+`docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
+`2026-09-11-volley-skills-access-model.md` is superseded in part.
 
 ### Firestore model shape (see spec §5 for the full contract)
 
-Team-scoped: `teams/{teamId}` → `players/{playerId}` → `physicalTests/{testId}`,
-plus `teams/{teamId}/calendar/{sessionId}`, `teams/{teamId}/matches/{matchId}` →
+Everything is under `clubs/{clubId}` (`clubs/{id}` is the club profile and lifecycle doc),
+and API modules build paths with `clubCol()` / `clubDoc()` from `src/firebase/clubPaths.ts`
+(active club id set by `AuthProvider`), never a hardcoded top-level path. Members:
+`clubs/{clubId}/members/{email}`. Team-scoped: `clubs/{clubId}/teams/{teamId}` →
+`players/{playerId}` → `physicalTests/{testId}`, plus `teams/{teamId}/calendar/{sessionId}`,
+`teams/{teamId}/matches/{matchId}` →
 `events/{eventId}` (ordered by `order`; all match state is derived by pure replay in
-`src/matches/scoutEngine.ts`) `teams/{teamId}/scoutProfile/usage`, `teams/{teamId}/awards/season` and `matches/{id}.awards` (coach award choices; photos are never stored). Club-global: `exercises/{id}`
+`src/matches/scoutEngine.ts`) `teams/{teamId}/scoutProfile/usage`, `teams/{teamId}/awards/season` and `matches/{id}.awards` (coach award choices; photos are never stored). Club-global (still inside the club): `exercises/{id}`
 (+ an ordered `exercises/{id}/diagrams/{diagramId}` subcollection of court
 diagrams — admin-only, no index), `trainings/{id}` (+ `counters/trainings` for
-transactional `businessId`), `skillGuide/config`, `physicalTestGuide/config`.
+transactional `businessId`), `config/skillGuide`, `config/physicalTestGuide`,
+`sectionAccess/{section}`. Only `clubs`, `users`, `platformAdmins` and `interestSignups`
+are top-level. Production data is still top-level until the Plan 4 migration, so this
+branch is not deployable on its own.
 Access is email-keyed (`adminEmails`, `viewerEmails`) rather than uid-keyed so
 granting access needs no uid lookup. Player docs denormalize
 `teamName`/`ageGroup`/`season` so a viewer never needs to read the team doc.

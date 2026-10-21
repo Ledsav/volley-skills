@@ -23,11 +23,12 @@ describe('dates', () => {
   });
 
   it.each([
-    ['spring-forward 2027-03-28', '2027-03-20', '2027-04-19', '2027-04-18'],
-    ['fall-back 2027-10-31', '2027-10-20', '2027-11-19', '2027-11-17'],  // fall-back adds an hour, so N+29 would just pass; use N+28
-  ])('straddling %s: day N to end of day N+30 is enough, to end of the day before the 29-day mark is not', (_n, start, plus30, plus29) => {
+    ['spring-forward 2027-03-28', 'N+29', '2027-03-20', '2027-04-19', '2027-04-18'],
+    // Fall-back adds an hour, so N+29 would just pass; the short case is N+28.
+    ['fall-back 2027-10-31', 'N+28', '2027-10-20', '2027-11-19', '2027-11-17'],
+  ])('straddling %s: day N to end of day N+30 is enough, to end of day %s is not', (_n, _label, start, plus30, short) => {
     expect(retrievalLongEnough(startOfLocalDay(start), endOfLocalDay(plus30))).toBe(true);
-    expect(retrievalLongEnough(startOfLocalDay(start), endOfLocalDay(plus29))).toBe(false);
+    expect(retrievalLongEnough(startOfLocalDay(start), endOfLocalDay(short))).toBe(false);
   });
 
   it('start of day N to start of day N+30 is short across spring-forward, so retrieval must use endOfLocalDay', () => {

@@ -27,21 +27,21 @@ export interface StatusChange {
   from: ClubStatus;
   to: ClubStatus;
   reason: string | null;
-  dates?: { effectiveAt: Date | null; retrievalEndsAt: Date | null };
+  /** A Timestamp is written as is, so a kept end date stays exactly the stored one. */
+  dates?: { effectiveAt: Date | Timestamp | null; retrievalEndsAt: Date | Timestamp | null };
 }
 
-const ts = (d: Date | null) => (d ? Timestamp.fromDate(d) : null);
+const ts = (d: Date | Timestamp | null) => (d instanceof Date ? Timestamp.fromDate(d) : d);
 
 // One batch: the club update plus the statusLog entry the rules require alongside it.
-// Reinstating (terminating -> active) clears the termination dates.
+// Reinstating (terminating -> active) clears the termination dates and the club's request.
 export async function changeClubStatus(change: StatusChange, operatorEmail: string): Promise<void> {
   const { clubId, from, to, reason } = change;
   const by = operatorEmail.toLowerCase();
   const clubRef = doc(db, 'clubs', clubId);
   const logRef = doc(collection(db, 'clubs', clubId, 'statusLog'));
-  const dates = change.dates ?? (from === 'terminating' && to === 'active'
-    ? { effectiveAt: null, retrievalEndsAt: null }
-    : undefined);
+  const reinstate = from === 'terminating' && to === 'active';
+  const dates = change.dates ?? (reinstate ? { effectiveAt: null, retrievalEndsAt: null } : undefined);
 
   const patch: Record<string, unknown> = {
     status: to,
@@ -53,6 +53,10 @@ export async function changeClubStatus(change: StatusChange, operatorEmail: stri
   if (dates) {
     patch['termination.effectiveAt'] = ts(dates.effectiveAt);
     patch['termination.retrievalEndsAt'] = ts(dates.retrievalEndsAt);
+  }
+  if (reinstate) {
+    patch['termination.requestedAt'] = null;
+    patch['termination.requestedBy'] = null;
   }
 
   const batch = writeBatch(db);

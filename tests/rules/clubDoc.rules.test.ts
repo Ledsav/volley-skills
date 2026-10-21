@@ -328,6 +328,123 @@ describe('club doc rules', () => {
     );
   });
 
+  it('keeps an end date that has passed when only the export date moves', async () => {
+    const env = await getTestEnv();
+    const pastEnd = inDays(-10);
+    await seedClubIn('terminating', { termination: { effectiveAt: pastEnd, retrievalEndsAt: inDays(20) } });
+    // Moving the end date to another past date is refused.
+    await assertFails(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        clubExtra: { 'termination.effectiveAt': inDays(-12), 'termination.retrievalEndsAt': inDays(40) },
+      })
+    );
+    // The kept end date still needs 30 days of export after it.
+    await assertFails(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        clubExtra: {
+          'termination.effectiveAt': pastEnd,
+          'termination.retrievalEndsAt': new Date(pastEnd.getTime() + 29 * DAY),
+        },
+      })
+    );
+    await assertSucceeds(
+      statusBatch({
+        from: 'terminating',
+        to: 'terminating',
+        clubExtra: { 'termination.effectiveAt': pastEnd, 'termination.retrievalEndsAt': inDays(40) },
+      })
+    );
+    const snap = await dbAs(env, OPERATOR).doc('clubs/club-a').get();
+    expect(snap.data()?.termination.effectiveAt.toMillis()).toBe(pastEnd.getTime());
+  });
+
+  it('refuses entering terminating with a stale past end date kept from before', async () => {
+    const pastEnd = inDays(-10);
+    await seedClubIn('suspended', { termination: { effectiveAt: pastEnd, retrievalEndsAt: inDays(40) } });
+    await assertFails(
+      statusBatch({
+        from: 'suspended',
+        to: 'terminating',
+        clubExtra: { 'termination.effectiveAt': pastEnd, 'termination.retrievalEndsAt': inDays(40) },
+      })
+    );
+  });
+
+  describe('the termination request on reinstate', () => {
+    const REQUESTED = { requestedAt: inDays(-5), requestedBy: ADMIN };
+    const CLEARED = {
+      'termination.effectiveAt': null,
+      'termination.retrievalEndsAt': null,
+      'termination.requestedAt': null,
+      'termination.requestedBy': null,
+    };
+
+    it('reinstating clears the dates and the request (the shape changeClubStatus sends)', async () => {
+      const env = await getTestEnv();
+      await seedClubIn('terminating', {
+        termination: { effectiveAt: inDays(30), retrievalEndsAt: inDays(60), ...REQUESTED },
+      });
+      await assertSucceeds(statusBatch({ from: 'terminating', to: 'active', clubExtra: CLEARED }));
+      const snap = await dbAs(env, OPERATOR).doc('clubs/club-a').get();
+      expect(snap.data()?.status).toBe('active');
+      expect(snap.data()?.termination).toEqual({
+        effectiveAt: null,
+        retrievalEndsAt: null,
+        requestedAt: null,
+        requestedBy: null,
+      });
+    });
+
+    it('refuses the operator setting the request to a value on reinstate', async () => {
+      await seedClubIn('terminating', {
+        termination: { effectiveAt: inDays(30), retrievalEndsAt: inDays(60), ...REQUESTED },
+      });
+      await assertFails(
+        statusBatch({
+          from: 'terminating',
+          to: 'active',
+          clubExtra: { ...CLEARED, 'termination.requestedAt': serverTimestamp(), 'termination.requestedBy': OPERATOR },
+        })
+      );
+      await assertFails(
+        statusBatch({
+          from: 'terminating',
+          to: 'active',
+          clubExtra: { ...CLEARED, 'termination.requestedBy': OPERATOR },
+        })
+      );
+      await assertFails(
+        statusBatch({
+          from: 'terminating',
+          to: 'active',
+          clubExtra: { ...CLEARED, 'termination.requestedAt': new Date() },
+        })
+      );
+    });
+
+    it('refuses nulling the request on any other transition', async () => {
+      const nullRequest = { 'termination.requestedAt': null, 'termination.requestedBy': null };
+      const cases: Array<{ from: ClubStatus; to: ClubStatus }> = [
+        { from: 'active', to: 'suspended' },
+        { from: 'active', to: 'terminating' },
+        { from: 'suspended', to: 'active' },
+        { from: 'suspended', to: 'terminating' },
+        { from: 'terminating', to: 'terminating' },
+      ];
+      for (const { from, to } of cases) {
+        const dates = from === 'terminating' ? { effectiveAt: inDays(30), retrievalEndsAt: inDays(60) } : {};
+        await seedClubIn(from, { termination: { effectiveAt: null, retrievalEndsAt: null, ...dates, ...REQUESTED } });
+        await assertFails(statusBatch({ from, to, clubExtra: nullRequest, logId: `bad-${from}-${to}` }));
+        // Control: the same transition leaving the request alone goes through.
+        await assertSucceeds(statusBatch({ from, to, logId: `ok-${from}-${to}` }));
+      }
+    });
+  });
+
   it("refuses a statusLog whose reason differs from the club's statusReason", async () => {
     await assertFails(
       statusBatch({ from: 'active', to: 'suspended', clubExtra: { statusReason: 'a' }, log: { reason: 'b' } })

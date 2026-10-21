@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Timestamp } from 'firebase/firestore';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClubActionDialog } from './ClubActionDialog';
@@ -68,6 +68,56 @@ describe('ClubActionDialog', () => {
     expect(screen.getByRole('button', { name: 'End contract' })).toBeDisabled();
   });
 
+  it('End contract on a paused club defaults the end date to today and says a later date restores full use', () => {
+    open('endContract', 'suspended');
+    expect(effective().value).toBe(iso(NOW));
+    expect(retrieval().value).toBe(iso(new Date(NOW.getTime() + 30 * 86_400_000)));
+    expect(screen.getByText('A later end date gives the club full use again until then.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'End contract' })).toBeEnabled();
+  });
+
+  it('End contract on an active club has no paused-club line', () => {
+    open('endContract');
+    expect(screen.queryByText('A later end date gives the club full use again until then.')).not.toBeInTheDocument();
+  });
+
+  it('End contract and Change dates explain what the two dates mean', () => {
+    const copy = 'The club keeps full use until the end date, then can only export its data until the export date.';
+    open('endContract');
+    expect(screen.getByText(copy)).toBeInTheDocument();
+    cleanup();
+    open('changeDates', 'terminating', {
+      termination: { requestedAt: null, requestedBy: null, effectiveAt: Timestamp.fromDate(NOW), retrievalEndsAt: Timestamp.fromDate(new Date(NOW.getTime() + 40 * 86_400_000)) },
+    });
+    expect(screen.getByText(copy)).toBeInTheDocument();
+  });
+
+  it('Change dates keeps an end date that has passed and moves only the export date', async () => {
+    const pastEnd = Timestamp.fromDate(new Date(NOW.getTime() - 10 * 86_400_000));
+    open('changeDates', 'terminating', {
+      termination: { requestedAt: null, requestedBy: null, effectiveAt: pastEnd, retrievalEndsAt: Timestamp.fromDate(new Date(NOW.getTime() + 20 * 86_400_000)) },
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.change(retrieval(), { target: { value: iso(new Date(NOW.getTime() + 40 * 86_400_000)) } });
+    const confirm = screen.getByRole('button', { name: 'Change dates' });
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(platformApi.changeClubStatus).toHaveBeenCalled());
+    const [change] = vi.mocked(platformApi.changeClubStatus).mock.calls[0];
+    expect(change.dates?.effectiveAt).toBe(pastEnd);
+    expect(change.dates?.retrievalEndsAt).toEqual(endOfLocalDay(retrieval().value));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Dates updated'));
+  });
+
+  it('Change dates still refuses moving the end date to another past date', () => {
+    open('changeDates', 'terminating', {
+      termination: { requestedAt: null, requestedBy: null, effectiveAt: Timestamp.fromDate(new Date(NOW.getTime() - 10 * 86_400_000)), retrievalEndsAt: Timestamp.fromDate(new Date(NOW.getTime() + 40 * 86_400_000)) },
+    });
+    fireEvent.change(effective(), { target: { value: iso(new Date(NOW.getTime() - 12 * 86_400_000)) } });
+    expect(screen.getByRole('alert')).toHaveTextContent("The end date can't be in the past.");
+    expect(screen.getByRole('button', { name: 'Change dates' })).toBeDisabled();
+  });
+
   it('End contract allows an effective date of today for a serious breach', () => {
     open('endContract');
     fireEvent.change(effective(), { target: { value: iso(NOW) } });
@@ -125,7 +175,7 @@ describe('ClubActionDialog', () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     const [change] = vi.mocked(platformApi.changeClubStatus).mock.calls[0];
     expect(change.dates).toBeUndefined();
-    expect(onChanged.mock.calls[0][0].termination).toMatchObject({ effectiveAt: null, retrievalEndsAt: null });
+    expect(onChanged.mock.calls[0][0].termination).toEqual({ requestedAt: null, requestedBy: null, effectiveAt: null, retrievalEndsAt: null });
   });
 
   it('shows an inline error and keeps the dialog open when the change fails', async () => {

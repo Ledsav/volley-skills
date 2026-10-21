@@ -41,4 +41,12 @@ describe('clubActions', () => {
     expect(effectiveAt.getTime()).toBe(now.getTime() + 30 * DAY_MS);
     expect(retrievalEndsAt.getTime()).toBe(effectiveAt.getTime() + 30 * DAY_MS);
   });
+
+  it('defaultTerminationDates ends a paused club today', () => {
+    const now = new Date(2027, 0, 10, 12);
+    const { effectiveAt, retrievalEndsAt } = defaultTerminationDates(now, 'suspended');
+    expect(effectiveAt.getTime()).toBe(now.getTime());
+    expect(retrievalEndsAt.getTime()).toBe(now.getTime() + 30 * DAY_MS);
+    expect(defaultTerminationDates(now, 'active').effectiveAt.getTime()).toBe(now.getTime() + 30 * DAY_MS);
+  });
 });

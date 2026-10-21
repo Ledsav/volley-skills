@@ -92,10 +92,28 @@ describe('changeClubStatus', () => {
     expect(Object.keys(batch.update.mock.calls[0][1]).some((k) => k.startsWith('termination'))).toBe(false);
   });
 
-  it('clears the termination dates when reinstating', async () => {
+  it('clears the termination dates and the request when reinstating', async () => {
     await changeClubStatus({ clubId: 'c1', from: 'terminating', to: 'active', reason: null }, 'op@x.io');
     const patch = batch.update.mock.calls[0][1];
     expect(patch['termination.effectiveAt']).toBeNull();
     expect(patch['termination.retrievalEndsAt']).toBeNull();
+    expect(patch['termination.requestedAt']).toBeNull();
+    expect(patch['termination.requestedBy']).toBeNull();
+  });
+
+  it('leaves the request alone on every other change', async () => {
+    await changeClubStatus({ clubId: 'c1', from: 'suspended', to: 'active', reason: null }, 'op@x.io');
+    await changeClubStatus({ clubId: 'c1', from: 'terminating', to: 'terminating', reason: null,
+      dates: { effectiveAt: new Date(2027, 1, 1), retrievalEndsAt: new Date(2027, 2, 5) } }, 'op@x.io');
+    for (const [, patch] of batch.update.mock.calls) {
+      expect(Object.keys(patch).some((k) => k.startsWith('termination.requested'))).toBe(false);
+    }
+  });
+
+  it('writes a Timestamp date as is', async () => {
+    const kept = { kept: true } as never;
+    await changeClubStatus({ clubId: 'c1', from: 'terminating', to: 'terminating', reason: null,
+      dates: { effectiveAt: kept, retrievalEndsAt: new Date(2027, 2, 5) } }, 'op@x.io');
+    expect(batch.update.mock.calls[0][1]['termination.effectiveAt']).toBe(kept);
   });
 });

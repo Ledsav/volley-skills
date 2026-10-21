@@ -1,0 +1,131 @@
+import { useRef, useState } from 'react';
+import { Timestamp } from 'firebase/firestore';
+import { Button } from '../components/Button';
+import { Dialog } from '../components/Dialog';
+import { Input, Textarea } from '../components/Input';
+import { useNotify } from '../components/Notice';
+import { CLUB_STATUS_LABEL } from '../clubs/statusLabels';
+import type { Club } from '../types/club';
+import { changeClubStatus, type StatusChange } from './platformApi';
+import { defaultTerminationDates, type ClubAction } from './clubActions';
+import { endOfLocalDay, retrievalLongEnough, startOfLocalDay } from './dates';
+
+const REASON_MAX = 300;
+
+const toIso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const INTRO: Record<ClubAction['kind'], string> = {
+  activate: 'The club will be able to use the app.',
+  deactivate: 'The club is paused: its people can no longer use the app. You can activate it again later.',
+  endContract: 'The club keeps read-only access to its data export until the date below, then its data is removed.',
+  changeDates: 'Move the end date or the date until which the club can export its data.',
+  reject: 'The club request is rejected.',
+  reinstate: 'The end of the contract is cancelled and the club becomes active again.',
+};
+
+interface Props {
+  club: Club;
+  action: ClubAction;
+  operatorEmail: string;
+  onClose: () => void;
+  /** The fields that changed on the club doc, for the caller to merge into its row. */
+  onChanged: (patch: Partial<Club>) => void;
+}
+
+export function ClubActionDialog({ club, action, operatorEmail, onClose, onChanged }: Props) {
+  const notify = useNotify();
+  const [initial] = useState(() => {
+    const current = club.termination;
+    if (action.kind === 'changeDates' && current?.effectiveAt && current.retrievalEndsAt) {
+      return { effective: toIso(current.effectiveAt.toDate()), retrieval: toIso(current.retrievalEndsAt.toDate()) };
+    }
+    const d = defaultTerminationDates(new Date());
+    return { effective: toIso(d.effectiveAt), retrieval: toIso(d.retrievalEndsAt) };
+  });
+  const [reason, setReason] = useState('');
+  const [effective, setEffective] = useState(initial.effective);
+  const [retrieval, setRetrieval] = useState(initial.retrieval);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
+
+  const trimmed = reason.trim();
+  let dateError: string | null = null;
+  if (action.needsDates) {
+    if (!effective || !retrieval) dateError = 'Choose both dates.';
+    else if (startOfLocalDay(effective) < startOfLocalDay(toIso(new Date()))) dateError = "The end date can't be in the past.";
+    else if (!retrievalLongEnough(startOfLocalDay(effective), endOfLocalDay(retrieval))) {
+      dateError = 'Data export must stay open at least 30 days after the end date.';
+    }
+  }
+  const canConfirm = !saving && !dateError && (!action.reasonRequired || trimmed.length > 0);
+
+  async function confirm() {
+    if (!canConfirm || inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true);
+    setError(null);
+    const change: StatusChange = { clubId: club.id, from: club.status, to: action.to, reason: trimmed || null };
+    const dates = action.needsDates
+      ? { effectiveAt: startOfLocalDay(effective), retrievalEndsAt: endOfLocalDay(retrieval) }
+      : null;
+    if (dates) change.dates = dates;
+    try {
+      await changeClubStatus(change, operatorEmail.toLowerCase());
+    } catch {
+      setError('Could not update the club. Please try again.');
+      setSaving(false);
+      inFlight.current = false;
+      return;
+    }
+    const patch: Partial<Club> = { status: action.to, statusReason: change.reason };
+    if (dates) {
+      patch.termination = {
+        ...club.termination,
+        effectiveAt: Timestamp.fromDate(dates.effectiveAt),
+        retrievalEndsAt: Timestamp.fromDate(dates.retrievalEndsAt),
+      };
+    } else if (club.status === 'terminating' && action.to === 'active') {
+      patch.termination = { ...club.termination, effectiveAt: null, retrievalEndsAt: null };
+    }
+    notify(`${club.name} is now ${CLUB_STATUS_LABEL[action.to]}`);
+    onChanged(patch);
+    onClose();
+  }
+
+  return (
+    <Dialog title={`${action.label}: ${club.name}`} onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant={action.kind === 'activate' || action.kind === 'reinstate' ? 'primary' : 'destructive'}
+            disabled={!canConfirm} onClick={() => void confirm()}>
+            {action.label}
+          </Button>
+        </>
+      }>
+      <div className="flex flex-col gap-4">
+        <p className="text-slate">{INTRO[action.kind]}</p>
+        {action.needsDates && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+              End date
+              <Input type="date" value={effective} onChange={(e) => setEffective(e.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+              Data export open until
+              <Input type="date" value={retrieval} onChange={(e) => setRetrieval(e.target.value)} />
+            </label>
+          </div>
+        )}
+        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+          {action.reasonRequired ? 'Reason' : 'Reason (optional)'}
+          <Textarea rows={3} maxLength={REASON_MAX} value={reason} onChange={(e) => setReason(e.target.value)} />
+          <span className="self-end text-xs font-normal tabular-nums text-slate">{reason.length}/{REASON_MAX}</span>
+        </label>
+        {(dateError || error) && <p role="alert" className="text-sm text-red">{dateError ?? error}</p>}
+      </div>
+    </Dialog>
+  );
+}

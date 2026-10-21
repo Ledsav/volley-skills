@@ -45,20 +45,32 @@ describe('SettingsPage', () => {
   it('does not show the pending-request count to a club admin who is not the platform operator', async () => {
     mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
     renderSettings();
-    const accessLink = within(screen.getByRole('navigation', { name: 'Admin' })).getByRole('link', { name: /Club/ });
+    const nav = screen.getByRole('navigation', { name: 'Admin' });
     await Promise.resolve();
-    expect(accessLink).not.toHaveTextContent('pending requests');
+    expect(within(nav).getByRole('link', { name: /Club/ })).not.toHaveTextContent('pending requests');
+    expect(within(nav).queryByRole('link', { name: /Platform/ })).not.toBeInTheDocument();
   });
 
-  it('links club admins to Guides and Club, with the pending-request count for the platform operator', async () => {
+  it('links the platform operator to Platform, with the pending-request count there and not on Club', async () => {
     mockAccess.current = { isClubAdmin: true, sections: { guides: true } };
     mockAccess.platform = true;
     renderSettings();
     const nav = screen.getByRole('navigation', { name: 'Admin' });
     expect(within(nav).getByRole('link', { name: /Guides/ })).toHaveAttribute('href', '/admin/guides');
-    const accessLink = within(nav).getByRole('link', { name: /Club/ });
-    expect(accessLink).toHaveAttribute('href', '/club');
-    await waitFor(() => expect(accessLink).toHaveTextContent('3 pending requests'));
+    const clubLink = within(nav).getByRole('link', { name: /Club/ });
+    expect(clubLink).toHaveAttribute('href', '/club');
+    const platformLink = within(nav).getByRole('link', { name: /Platform/ });
+    expect(platformLink).toHaveAttribute('href', '/platform');
+    await waitFor(() => expect(platformLink).toHaveTextContent('3 pending requests'));
+    expect(clubLink).not.toHaveTextContent('pending requests');
+  });
+
+  it('shows a platform operator with no club access only Platform', () => {
+    mockAccess.platform = true;
+    renderSettings();
+    const nav = screen.getByRole('navigation', { name: 'Admin' });
+    expect(within(nav).getByRole('link', { name: /Platform/ })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: /Club/ })).not.toBeInTheDocument();
   });
 
   it('shows only Guides to a guides-section admin', () => {

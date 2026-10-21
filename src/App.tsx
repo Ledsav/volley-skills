@@ -4,6 +4,9 @@ import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
 import { RequireAuth } from './auth/RequireAuth';
 import { RequireClubAdmin } from './auth/RequireClubAdmin';
+import { RequirePlatformAdmin } from './auth/RequirePlatformAdmin';
+import { MinimalShell } from './layout/MinimalShell';
+import { PlatformPage } from './platform/PlatformPage';
 import { RequireSection } from './auth/RequireSection';
 import { AppShell } from './layout/AppShell';
 import { LoginPage } from './auth/LoginPage';
@@ -49,6 +52,16 @@ export function App() {
             <Route path="/finish-sign-in" element={<FinishSignInPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/request-access" element={<RequestAccessPage />} />
+            <Route
+              path="/platform"
+              element={
+                <RequirePlatformAdmin>
+                  <MinimalShell title="Platform">
+                    <PlatformPage />
+                  </MinimalShell>
+                </RequirePlatformAdmin>
+              }
+            />
             <Route element={<AuthenticatedLayout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/teams" element={<TeamsListPage />} />

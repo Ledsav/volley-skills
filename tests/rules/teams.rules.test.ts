@@ -6,7 +6,7 @@ describe('teams rules', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
-    await seedClub(env, { id: 'club-a', admins: ['super@example.com'], members: ['coach@example.com', 'parent@example.com'] });
+    await seedClub(env, { id: 'club-a', admins: ['super@example.com'], members: ['coach@example.com', 'parent@example.com', 'plain@example.com'] });
     await env.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
       await db.doc('clubs/club-a/teams/team-1').set({ name: 'U17', adminEmails: ['coach@example.com'] });
@@ -87,5 +87,12 @@ describe('teams rules', () => {
     await assertSucceeds(
       db.doc('clubs/club-a/teams/team-1').update({ adminEmails: ['coach@example.com', 'assistant@example.com'] })
     );
+  });
+
+  it('denies a club member who is not a team admin from reading or renaming the team', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, 'plain@example.com');
+    await assertFails(db.doc('clubs/club-a/teams/team-1').get());
+    await assertFails(db.doc('clubs/club-a/teams/team-1').update({ name: 'Hijack' }));
   });
 });

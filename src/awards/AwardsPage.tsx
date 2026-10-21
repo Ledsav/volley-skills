@@ -79,7 +79,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(
 
 export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const { teamId = '', matchId = '' } = useParams();
-  const { firebaseUser, access, club } = useAuth();
+  const { firebaseUser, appUser, access, club } = useAuth();
   const navigate = useNavigate();
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [config, setConfig] = useState<AwardsInput>(EMPTY_AWARDS);
@@ -115,7 +115,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     void (async () => {
       try {
         const team = await getTeam(teamId);
-        if (!team || !isTeamAdmin(team, firebaseUser?.email, access)) {
+        if (!team || !isTeamAdmin(team, appUser?.email, access)) {
           if (!cancelled) setLoad({ state: 'notFound' });
           return;
         }
@@ -144,7 +144,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     return () => {
       cancelled = true;
     };
-  }, [teamId, matchId, scope, firebaseUser?.email, access, attempt]);
+  }, [teamId, matchId, scope, appUser?.email, access, attempt]);
 
   // Write the latest config now. `track` updates the indicator; a stale write never shows "Saved".
   const writeNow = useCallback((track: boolean) => {

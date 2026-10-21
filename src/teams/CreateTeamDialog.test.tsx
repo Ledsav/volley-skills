@@ -12,7 +12,7 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 describe('CreateTeamDialog', () => {
   it('submits the form fields to createTeam and calls onCreated', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
     );
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockResolvedValue('team-1');
     const onCreated = vi.fn();
@@ -34,7 +34,7 @@ describe('CreateTeamDialog', () => {
 
   it('shows an error message when createTeam is rejected', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
     );
     vi.spyOn(teamsApi, 'createTeam').mockRejectedValue({ code: 'permission-denied' });
     const onCreated = vi.fn();
@@ -52,7 +52,7 @@ describe('CreateTeamDialog', () => {
 
   it('creates the team once even when Create is clicked twice', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
     );
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockReturnValue(new Promise(() => undefined));
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={vi.fn()} />);
@@ -66,7 +66,7 @@ describe('CreateTeamDialog', () => {
   });
 
   it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
-    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } }));
     const onClose = vi.fn();
     const { unmount } = render(<CreateTeamDialog onClose={onClose} onCreated={vi.fn()} />);
     expect(await screen.findByRole('dialog', { name: 'Create team' })).toBeInTheDocument();

@@ -47,8 +47,9 @@ export interface SeedClubOptions {
     requestedAt?: Date | null;
     requestedBy?: string | null;
   };
-  // sectionAccess docs; all three are always written, default []
+  // sectionAccess docs; all three are written (default []) unless skipSections
   sections?: Partial<Record<'exercises' | 'trainings' | 'guides', string[]>>;
+  skipSections?: boolean; // write no sectionAccess docs at all
 }
 
 /** Writes a full club doc (Task 1's `Club` shape), its member docs and its three sectionAccess docs. */
@@ -96,7 +97,7 @@ export async function seedClub(env: RulesTestEnvironment, opts: SeedClubOptions)
         addedAt: new Date(),
       });
     }
-    for (const section of ['exercises', 'trainings', 'guides'] as const) {
+    for (const section of opts.skipSections ? [] : (['exercises', 'trainings', 'guides'] as const)) {
       await club
         .collection('sectionAccess')
         .doc(section)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SearchX } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from './Button';
+import { otherUsableClubs } from '../clubs/activeClub';
 
 interface NotFoundStateProps {
   title: string;
@@ -20,7 +21,7 @@ export function isNotFoundError(e: unknown): boolean {
 
 export function NotFoundState({ title, message, backTo, backLabel, illustration }: NotFoundStateProps) {
   const { memberships, activeClubId, switchClub } = useAuth();
-  const otherClubs = memberships.filter((m) => m.clubId !== activeClubId);
+  const otherClubs = otherUsableClubs(memberships, activeClubId);
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
       {illustration ?? <SearchX size={48} strokeWidth={1.5} className="text-slate" aria-hidden="true" />}

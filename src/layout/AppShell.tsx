@@ -9,6 +9,7 @@ import { usePendingSignups } from '../interest/usePendingSignups';
 import { Logo } from '../components/Logo';
 import { useNotify } from '../components/Notice';
 import { ContractEndingBanner } from '../clubs/ContractEndingBanner';
+import { otherUsableClubs } from '../clubs/activeClub';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
@@ -45,7 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     notify('You no longer have access to your previous club.');
   }, [droppedClub, notify]);
 
-  const otherClubs = memberships.length > 1 ? memberships.filter((m) => m.clubId !== activeClubId) : [];
+  const otherClubs = otherUsableClubs(memberships, activeClubId);
 
   // Move focus into the new page on route change (not on the initial load).
   useEffect(() => {

@@ -34,3 +34,8 @@ export function storeClub(id: string | null): void {
     // Storage blocked (private mode): the choice lasts for this page only.
   }
 }
+
+/** Clubs the person can switch to: usable memberships other than the active one. */
+export function otherUsableClubs(memberships: Membership[], activeClubId: string | null): Membership[] {
+  return memberships.filter((m) => m.status !== 'deleted' && m.clubId !== activeClubId);
+}

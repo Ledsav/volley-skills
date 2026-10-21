@@ -23,7 +23,7 @@ function emptyGuardian(): Guardian {
 }
 
 export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerDialogProps) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, appUser } = useAuth();
   const [number, setNumber] = useState('');
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');
@@ -53,9 +53,9 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!firebaseUser?.email || !consentGiven) return;
+    if (!firebaseUser || !appUser || !consentGiven) return;
     const { uid } = firebaseUser;
-    const email = firebaseUser.email;
+    const email = appUser.email;
     try {
       const done = await save(() => createPlayer(
         teamId,

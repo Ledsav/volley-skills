@@ -268,7 +268,7 @@ Builds on `src/teams/teamExportApi.ts`. Export is the one sanctioned "read every
 Firebase Auth accounts are not deleted (a person may belong to other clubs).
 
 **A person's own deletion request** (not in this increment's code): a person's member doc and grants are club data, so removing them is the club's act (People & access). The operator handles only what is the operator's: once the person has no memberships left, the operator deletes their Auth account and `users/{uid}` by hand in the console. Acceptance records and status logs keep the email as contract evidence (legal basis: legitimate interest / legal claims, stated in the privacy notice). A script can come later if volume demands it.
-Backups: the DPA states that Firestore backups / point-in-time recovery expire on their normal rotation (legal design §4). If scheduled backups are enabled later, their retention must be ≤ the DPA's stated window.
+Backups: the operator's encrypted backups are kept at most 35 days, the window the DPA states (legal design D8; `docs/superpowers/specs/2026-10-22-volley-skills-backup-and-operator-access-design.md`). If Google-managed backups are enabled later, their retention must be ≤ that window.
 
 ## 8. App changes
 

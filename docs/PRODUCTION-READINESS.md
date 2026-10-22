@@ -52,6 +52,10 @@ Last reviewed: 2026-10-14
 - [x] **Deploy Firestore rules + indexes to the live project** — done once from
       the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
 - [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.
+- [ ] **Production backups and operator security** — production has no backup until
+      the first `npm run backup -- --prod` (`scripts/ops/README.md`). Do the first-time
+      setup (encrypt and rotate the service-account key, backup key pair), take a backup
+      weekly and before every risky change, and work through `docs/SECURITY-OPERATIONS.md`.
 - [ ] **Club platform: migrate production before deploying this branch** — the
       `feature/club-platform` branch reads and writes only under `clubs/{clubId}`, so
       deploying it before the migration locks everyone out. Follow the runbook in

@@ -20,7 +20,7 @@ const clubId = flag(argv, '--club');
 if (!clubId) fail('Missing --club <id>.');
 
 if (prod) refuseEmulatorHost();
-const db = prod ? prodDb() : emulatorDb();
+const db = prod ? await prodDb() : await emulatorDb();
 
 const club = (await db.doc(`clubs/${clubId}`).get()).data() ?? null;
 const allowed = purgeAllowed(club, new Date());

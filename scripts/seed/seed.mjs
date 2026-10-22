@@ -6,7 +6,7 @@
 // Targets
 //   --emulator   (default) write to the local Firestore emulator. No credentials.
 //                Requires the emulator to be running: `npm run emulator`.
-//   --prod       write to the live project. Requires ./serviceAccountKey.json
+//   --prod       write to the live project. Requires the service-account key (scripts/ops/README.md)
 //                (gitignored), plus --admin <email> and --yes. Refuses to run if
 //                `clubs/<club>` already exists unless --force.
 //
@@ -28,13 +28,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { parseWorkbook, SKILL_KEYS } from './parseWorkbook.mjs';
 import { assertProdClub, clubRoot, parseClubArg, writeClub } from './clubArg.mjs';
+import { loadServiceAccount } from '../lib/serviceAccount.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
 const PROJECT_ID = 'volley-skills';
 const DEFAULT_FILE = 'reference/VCB_U17_PlayerCards_2026-27.xlsx';
-const KEY_PATH = 'serviceAccountKey.json';
 
 function parseArgs(argv) {
   const args = { target: 'emulator', file: DEFAULT_FILE, admin: '', club: 'demo', reset: false, force: false, yes: false };
@@ -98,15 +98,11 @@ async function main() {
 
   // --- Firebase Admin init -------------------------------------------------
   if (args.target === 'prod') {
-    if (!existsSync(KEY_PATH)) {
-      console.error(`--prod requires ${KEY_PATH} (gitignored service-account key). See scripts/seed/README.md.`);
-      process.exit(1);
-    }
     if (!args.admin) {
       console.error('--prod requires --admin <email> (the team admin who will sign in).');
       process.exit(1);
     }
-    const key = JSON.parse(readFileSync(KEY_PATH, 'utf8'));
+    const key = await loadServiceAccount();
     admin.initializeApp({ credential: admin.credential.cert(key), projectId: key.project_id });
     console.log(`Target: PROD project "${key.project_id}"`);
   } else {

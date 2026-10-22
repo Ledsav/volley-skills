@@ -1,23 +1,25 @@
-import { getDoc, type CollectionReference, type DocumentReference } from 'firebase/firestore';
+import { getDocFromServer, type CollectionReference, type DocumentReference } from 'firebase/firestore';
 import { clubCol, clubDoc } from '../../firebase/clubPaths';
-import { readAll } from '../../firebase/readAll';
+import { readAllFromServer } from '../../firebase/readAll';
 import { loadTeamExportData } from '../../teams/teamExportApi';
 import type { ClubExportData, ExportDoc } from './clubExport';
 
 async function docs(col: CollectionReference): Promise<ExportDoc[]> {
-  return (await readAll(col)).map((d) => ({ id: d.id, ...d.data() }));
+  return (await readAllFromServer(col)).map((d) => ({ id: d.id, ...d.data() }));
 }
 
 async function one(ref: DocumentReference): Promise<ExportDoc | null> {
-  const snap = await getDoc(ref);
+  const snap = await getDocFromServer(ref);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 /**
  * Reads everything the active club stores, for the club export (spec §7.2). The one
- * sanctioned "read everything": every collection is paged (`readAll`), never one
- * unbounded read. `config` is read by id because its rule names the doc ids, so a
- * list could not pass (tests/rules/export.rules.test.ts pins every read).
+ * sanctioned "read everything": every collection is paged, never one unbounded
+ * read, and read from the server only, so a dropped connection fails the export
+ * instead of zipping whatever the offline cache holds. `config` is read by id
+ * because its rule names the doc ids, so a list could not pass
+ * (tests/rules/export.rules.test.ts pins every read).
  */
 export async function loadClubExportData(onProgress: (label: string) => void): Promise<ClubExportData> {
   onProgress('Club and people');

@@ -8,6 +8,13 @@ import { db } from './config';
  * renders. `clearIndexedDbPersistence` is allowed on a Firestore instance that has
  * not started yet, so no terminate and no reload are needed (no reload loop, even
  * for a crawler with no storage).
+ *
+ * Other open tabs: the delete asks them to let go of the database, and their
+ * Firestore shuts down (they stop syncing until reloaded). A tab that does not
+ * answer (e.g. frozen in the background) holds the delete; after CLEAR_TIMEOUT_MS
+ * the app renders anyway, but its Firestore calls wait behind the delete, so the
+ * page keeps loading until that tab is closed. The key stays unset then, so a
+ * later load tries again.
  */
 export const SCHEMA_VERSION = '2';
 export const SCHEMA_KEY = 'vcb.schemaVersion';
@@ -38,7 +45,7 @@ export async function resetCacheIfSchemaChanged({
     ]);
     storage.setItem(SCHEMA_KEY, SCHEMA_VERSION);
   } catch {
-    // Another open tab keeps the cache in use, or the clear timed out: try again next load.
+    // The clear failed, or another tab has not let go yet (see above): try again next load.
   } finally {
     clearTimeout(timer);
   }

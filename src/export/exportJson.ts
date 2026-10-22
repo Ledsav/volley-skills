@@ -30,6 +30,8 @@ export function downloadText(fileName: string, text: string, mime: string): void
   downloadBlob(fileName, new Blob([text], { type: mime }));
 }
 
+const REVOKE_DELAY_MS = 60_000;
+
 /** Saves `blob` as a file download. */
 export function downloadBlob(fileName: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
@@ -39,7 +41,8 @@ export function downloadBlob(fileName: string, blob: Blob): void {
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+  // Revoking right after click() can abort a large download in some browsers (Safari).
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
 }
 
 /** Saves `payload` as a pretty-printed JSON download. */

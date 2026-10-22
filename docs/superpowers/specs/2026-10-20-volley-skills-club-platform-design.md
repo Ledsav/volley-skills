@@ -334,14 +334,16 @@ Seeds: `seed.mjs`, `seedLibrary.mjs`, `seedMatch.mjs`, `seedMen1.mjs`, `backfill
 
 **Resolved (Plan 4):**
 - **Script names.** The migration is `scripts/migrate/2026-10-club-platform.mjs`. Its modes:
-  - `--rehearse` reads production and writes only to the local emulator, which is the "rehearsed on the emulator with a production export" step;
+  - `--rehearse` reads production and writes only to the local emulator (its `--dry-run` needs no emulator), which is the "rehearsed on the emulator with a production export" step;
   - `--prod`;
   - `--dry-run`;
   - `--resume`.
 - **The checkpoint is the destination itself.** `--resume` skips docs that already exist, so no local checkpoint file is kept.
 - **Verification** counts the docs under each `clubs/<id>/<group>` against the plan. On a resume, a count may be higher than planned.
 - **Old top-level data.** `scripts/migrate/dropLegacy.mjs` deletes it once `clubs/<id>.createdAt` is 14 days old.
-- **Cache reset (step 7).** The app clears the persistent Firestore cache once, before the first render. Firestore has not started yet at that point, so neither terminate nor reload is needed. If another tab holds the cache, a later load retries.
+- **Cache reset (step 7).** The app clears the persistent Firestore cache once, before the first render. Firestore has not started yet at that point, so neither terminate nor reload is needed. Other open tabs are asked to let go of the cache and stop syncing until reloaded. A tab that does not answer (frozen in the background) holds the delete: after 3 s the app renders anyway but waits on Firestore until that tab is closed, and a later load retries.
+- **Read quota.** The scripts walk the known subcollections instead of listing each doc's subcollections, and verification counts leaf collections with `count()` aggregations, so a pass costs about one read per doc. The dry run prints the figure, and the runbook spreads passes over days when it is large.
+- **Export reads come from the server only** (`readAllFromServer`, `getDocFromServer`), so an export taken while offline fails instead of zipping the cache.
 - **Purge.** It also writes a "Data purged" `statusLog` entry, as evidence. A `deleted` club may always be purged: the lifecycle reaches `deleted` only by rejection while pending, or by an earlier purge.
 - **Export.**
   - `config` is read by document id, because its rule names the ids and a list would be denied. Every other collection is read in id-ordered pages of 200 (`readAll`).

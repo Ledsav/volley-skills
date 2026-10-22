@@ -8,7 +8,8 @@ import { countUnder, readTree, writeAll } from './firestoreTree.mjs';
 
 export async function runMigration({ source, target, options, resume = false, dryRun = false, log = console.log }) {
   const clubPath = `clubs/${options.clubId}`;
-  if ((await target.doc(clubPath).get()).exists && !resume) {
+  // A dry run only reads the source; `target` may be null (no emulator needed).
+  if (!dryRun && !resume && (await target.doc(clubPath).get()).exists) {
     throw new Error(`${clubPath} already exists; pass --resume to continue a stopped run`);
   }
 
@@ -17,6 +18,8 @@ export async function runMigration({ source, target, options, resume = false, dr
   log(`Read ${legacy.length} legacy docs. Plan for ${clubPath} ("${plan.club.data.name}"):`);
   for (const [group, n] of Object.entries(plan.expected)) log(`  ${group}: ${n}`);
   log(`  estimated writes: ${plan.writes.length + 1}`);
+  // Spark allows 50,000 reads and 20,000 writes a day, shared with everyone using the app.
+  log(`  reads this pass: ~${legacy.length} (the verification after writing adds a few per team and match)`);
   if (dryRun) return { plan, written: 0, skipped: 0, counts: {}, ok: true };
 
   const club = await writeAll(target, [plan.club], { resume });

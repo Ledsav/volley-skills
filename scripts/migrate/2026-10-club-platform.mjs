@@ -12,16 +12,17 @@
 //   --owner      the club officer who will accept the DPA — never the operator.
 //   --operator   the platform operator's email (gets platformAdmins/<email>).
 //   --name       club name; default: the most common team.club.
-//   --dry-run    read and plan only: prints the counts and the estimated writes.
+//   --dry-run    read and plan only: prints the counts, estimated writes and reads.
 //   --resume     continue a stopped run: docs that already exist are skipped.
 //
 // Both modes need ./serviceAccountKey.json (gitignored) and refuse to run while
 // FIRESTORE_EMULATOR_HOST is set. The old top-level collections are left in place
 // (grace period); scripts/migrate/dropLegacy.mjs removes them later.
 //
-// Spark quota: 20,000 writes a day. If a run stops on quota, re-run the next day
-// with --resume, and do not use the app in between (a doc changed after it was
-// copied is not copied again).
+// Spark quota: 50,000 reads and 20,000 writes a day, shared with the live app. Each
+// pass (dry run, rehearsal, prod) costs about one read per legacy doc; the dry run
+// prints the figure. If a run stops on quota, re-run the next day with --resume, and
+// do not use the app in between (a doc changed after it was copied is not copied again).
 //
 // Logs ids and counts only — never player or guardian field values.
 
@@ -49,8 +50,9 @@ const resume = argv.includes('--resume');
 
 refuseEmulatorHost();
 const source = prodDb();
-const target = rehearse ? emulatorDb({ withKey: true }) : source;
-if (rehearse) await assertReachable(target);
+// A dry run reads production only, so a rehearsal dry run needs no emulator.
+const target = rehearse ? (dryRun ? null : emulatorDb({ withKey: true })) : source;
+if (rehearse && target) await assertReachable(target);
 if (prod && !dryRun) {
   await confirmTyped(`This writes clubs/${options.clubId} and its data to PRODUCTION.`, options.clubId);
 }

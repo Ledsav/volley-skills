@@ -81,6 +81,13 @@ describe('club-platform migration', () => {
     expect(await exists('clubs/vcb/teams/t1/matches/m1/events/e1')).toBe(true);
   });
 
+  it('a dry run needs no target and reports its read cost', async () => {
+    const lines = [];
+    const result = await runMigration({ source: db, target: null, options: OPTIONS, dryRun: true, log: (l) => lines.push(l) });
+    expect(result.ok).toBe(true);
+    expect(lines.join('\n')).toMatch(/reads this pass: ~12\b/);
+  });
+
   it('a dry run writes nothing', async () => {
     const result = await migrate({ dryRun: true });
     expect(result.written).toBe(0);

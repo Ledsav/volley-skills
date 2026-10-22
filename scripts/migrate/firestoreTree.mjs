@@ -1,6 +1,22 @@
 // Admin SDK helpers shared by the migration and ops scripts: read a whole tree in
 // id-ordered pages, count docs under a collection, write a list of docs in batches.
+// Read cost matters: one pass over the tree costs about one read per doc.
 import { FieldPath } from 'firebase-admin/firestore';
+
+/**
+ * The subcollections each collection's docs can have (the app's data model; the rules
+ * deny any other path). Walking these names instead of calling listCollections() on
+ * every doc saves one billed read per doc — Spark allows 50,000 reads a day.
+ */
+export const SUBCOLLECTIONS = {
+  teams: ['players', 'calendar', 'testingSessions', 'matches', 'awards', 'scoutProfile'],
+  players: ['physicalTests'],
+  testingSessions: ['entries'],
+  matches: ['events'],
+  exercises: ['diagrams'],
+};
+
+const nameOf = (path) => path.split('/').pop();
 
 /** Every doc of `col` in id order, one bounded page at a time. `select()` with no fields skips the data. */
 async function pages(col, { pageSize, withData }) {
@@ -17,27 +33,36 @@ async function pages(col, { pageSize, withData }) {
   }
 }
 
-async function walk(col, visit, opts) {
-  for (const doc of await pages(col, opts)) {
-    visit(doc);
-    for (const sub of await doc.ref.listCollections()) await walk(sub, visit, opts);
-  }
-}
-
 /** `{ path, data }` for every doc under the named top-level collections, at any depth. */
 export async function readTree(db, collectionNames, { pageSize = 500 } = {}) {
   const docs = [];
-  for (const name of collectionNames) {
-    await walk(db.collection(name), (d) => docs.push({ path: d.ref.path, data: d.data() }), { pageSize, withData: true });
+  async function walk(col, name) {
+    for (const doc of await pages(col, { pageSize, withData: true })) {
+      docs.push({ path: doc.ref.path, data: doc.data() });
+      for (const sub of SUBCOLLECTIONS[name] ?? []) await walk(doc.ref.collection(sub), sub);
+    }
   }
+  for (const name of collectionNames) await walk(db.collection(name), name);
   return docs;
 }
 
-/** Number of docs in the collection at `path`, at all depths. */
+/**
+ * Number of docs in the collection at `path`, at all depths. A collection without
+ * subcollections is counted with one count() aggregation (one read per 1,000 docs);
+ * only parents (teams, players, matches...) are fetched, without their data.
+ */
 export async function countUnder(db, path, { pageSize = 500 } = {}) {
-  let n = 0;
-  await walk(db.collection(path), () => { n += 1; }, { pageSize, withData: false });
-  return n;
+  async function count(col, name) {
+    const subs = SUBCOLLECTIONS[name] ?? [];
+    if (subs.length === 0) return (await col.count().get()).data().count;
+    let n = 0;
+    for (const doc of await pages(col, { pageSize, withData: false })) {
+      n += 1;
+      for (const sub of subs) n += await count(doc.ref.collection(sub), sub);
+    }
+    return n;
+  }
+  return count(db.collection(path), nameOf(path));
 }
 
 /**

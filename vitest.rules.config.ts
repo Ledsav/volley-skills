@@ -3,7 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/rules/**/*.test.ts'],
+    // .mjs: emulator tests of the Admin SDK scripts (scripts/**/*.mjs), kept out of tsc.
+    include: ['tests/rules/**/*.test.{ts,mjs}'],
     testTimeout: 20000,
     hookTimeout: 30000,
     // All rules test files share a single Firestore emulator project/instance.

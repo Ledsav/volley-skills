@@ -57,6 +57,12 @@ const HEADER =
   'Number,Name,Date of birth,Nationality,Licence,Position,Shirt size,Starting,Player phone,Guardians,' +
   'Viewer emails,Average,Level,Serve,Attack,Block,Set,Defence,Reception,Jump,Speed,IQ,Consent given,Consent date,Left club';
 
+/** players.csv starts with a BOM (for Excel); assert it, then drop it. */
+function withoutBom(csv: string): string {
+  expect(csv.charCodeAt(0)).toBe(0xfeff);
+  return csv.slice(1);
+}
+
 describe('buildClubExportFiles', () => {
   it('builds exactly the spec file set', () => {
     expect(Object.keys(buildClubExportFiles(fixture())).sort()).toEqual(
@@ -140,7 +146,7 @@ describe('playersCsv', () => {
         physicalTests: [],
       },
     ]);
-    const [header, row] = csv.replace(/^﻿/, '').split('\r\n');
+    const [header, row] = withoutBom(csv).split('\r\n');
     expect(header).toBe(HEADER);
     expect(row).toContain(`"'=HYPERLINK(""x"")"`);
     expect(row).toContain('"mother: Ana, 600, ana@x.com"');
@@ -156,7 +162,7 @@ describe('playersCsv', () => {
       { player: { id: 'b', number: 9, fullName: 'B', skills, starting: true, positionCategory: 'OH', consent: { given: true, date: '2026-09-01', confirmedBy: 'x' } }, physicalTests: [] },
       { player: { id: 'a', number: 2, fullName: 'A' }, physicalTests: [] },
     ]);
-    const rows = csv.replace(/^﻿/, '').trimEnd().split('\r\n');
+    const rows = withoutBom(csv).trimEnd().split('\r\n');
     expect(rows[1].startsWith('2,A,')).toBe(true);
     expect(rows[2]).toContain(',Outside,');
     expect(rows[2]).toContain(',yes,');

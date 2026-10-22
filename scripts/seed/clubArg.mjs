@@ -28,6 +28,31 @@ export function clubRoot(db, clubId) {
 }
 
 /**
+ * A new club doc (spec §3.1) with nothing requested, accepted or billed yet.
+ * `now` is the createdAt value (a serverTimestamp sentinel in scripts).
+ */
+export function newClubDoc({ name, country, locale, ownerEmail, status, aiEnabled, growthTestsEnabled }, now) {
+  return {
+    name,
+    country,
+    locale,
+    ownerEmail,
+    aiEnabled,
+    referenceOptOut: false,
+    growthTestsEnabled,
+    createdAt: now,
+    status,
+    statusReason: null,
+    statusChangedAt: null,
+    statusChangedBy: null,
+    lastStatusLogId: null,
+    legal: null,
+    termination: { requestedAt: null, requestedBy: null, effectiveAt: null, retrievalEndsAt: null },
+    billing: null,
+  };
+}
+
+/**
  * Writes a club doc, its member docs (doc id = lowercased email) and the three
  * sectionAccess docs. Idempotent: set() replaces. `admins[0]` is the owner.
  * Emails are lowercased everywhere.
@@ -42,24 +67,7 @@ export async function writeClub(db, { id, name, status, admins, members = [], co
   const root = clubRoot(db, id);
   const batch = db.batch();
 
-  batch.set(root, {
-    name,
-    country,
-    locale,
-    ownerEmail: adminEmails[0],
-    aiEnabled,
-    referenceOptOut: false,
-    growthTestsEnabled,
-    createdAt: now,
-    status,
-    statusReason: null,
-    statusChangedAt: null,
-    statusChangedBy: null,
-    lastStatusLogId: null,
-    legal: null,
-    termination: { requestedAt: null, requestedBy: null, effectiveAt: null, retrievalEndsAt: null },
-    billing: null,
-  });
+  batch.set(root, newClubDoc({ name, country, locale, ownerEmail: adminEmails[0], status, aiEnabled, growthTestsEnabled }, now));
 
   for (const [emails, role] of [[adminEmails, 'admin'], [memberEmails, 'member']]) {
     for (const email of emails) {

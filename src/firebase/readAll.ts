@@ -1,6 +1,7 @@
 import {
   documentId,
   getDocs,
+  getDocsFromServer,
   limit,
   orderBy,
   query,
@@ -24,6 +25,26 @@ export async function readAll(
   col: CollectionReference,
   ...constraints: QueryConstraint[]
 ): Promise<QueryDocumentSnapshot[]> {
+  return paged(getDocs, col, constraints);
+}
+
+/**
+ * `readAll` that never answers from the offline cache: with persistence on, an
+ * offline `getDocs` resolves from whatever is cached, so an export taken while the
+ * connection drops would silently miss documents. This one fails instead.
+ */
+export async function readAllFromServer(
+  col: CollectionReference,
+  ...constraints: QueryConstraint[]
+): Promise<QueryDocumentSnapshot[]> {
+  return paged(getDocsFromServer, col, constraints);
+}
+
+async function paged(
+  fetchPage: (q: Query) => Promise<QuerySnapshot>,
+  col: CollectionReference,
+  constraints: QueryConstraint[],
+): Promise<QueryDocumentSnapshot[]> {
   const docs: QueryDocumentSnapshot[] = [];
   let last: QueryDocumentSnapshot | null = null;
   for (;;) {
@@ -34,7 +55,7 @@ export async function readAll(
       ...(last ? [startAfter(last)] : []),
       limit(PAGE_SIZE),
     );
-    const snapshot: QuerySnapshot = await getDocs(page);
+    const snapshot: QuerySnapshot = await fetchPage(page);
     docs.push(...snapshot.docs);
     if (snapshot.docs.length < PAGE_SIZE) return docs;
     last = snapshot.docs[snapshot.docs.length - 1];

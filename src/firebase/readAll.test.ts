@@ -1,14 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { readAll } from './readAll';
+import { readAll, readAllFromServer } from './readAll';
 
-const { mockGetDocs, mockStartAfter } = vi.hoisted(() => ({
+const { mockGetDocs, mockGetDocsFromServer, mockStartAfter } = vi.hoisted(() => ({
   mockGetDocs: vi.fn(),
+  mockGetDocsFromServer: vi.fn(),
   mockStartAfter: vi.fn((d: unknown) => ({ type: 'startAfter', d })),
 }));
 
 vi.mock('firebase/firestore', () => ({
   documentId: () => '__name__',
   getDocs: mockGetDocs,
+  getDocsFromServer: mockGetDocsFromServer,
   limit: (n: number) => ({ type: 'limit', n }),
   orderBy: (f: unknown) => ({ type: 'orderBy', f }),
   query: (...args: unknown[]) => args,
@@ -20,6 +22,7 @@ const page = (n: number, offset = 0) => ({ docs: Array.from({ length: n }, (_, i
 describe('readAll', () => {
   beforeEach(() => {
     mockGetDocs.mockReset();
+    mockGetDocsFromServer.mockReset();
     mockStartAfter.mockClear();
   });
 
@@ -37,5 +40,18 @@ describe('readAll', () => {
     expect(docs).toHaveLength(205);
     expect(mockGetDocs).toHaveBeenCalledTimes(2);
     expect(mockStartAfter).toHaveBeenCalledWith({ id: 'd199' });
+  });
+
+  it('readAllFromServer never answers from the offline cache', async () => {
+    mockGetDocsFromServer.mockResolvedValueOnce(page(200)).mockResolvedValueOnce(page(1, 200));
+    const docs = await readAllFromServer('col' as never);
+    expect(docs).toHaveLength(201);
+    expect(mockGetDocsFromServer).toHaveBeenCalledTimes(2);
+    expect(mockGetDocs).not.toHaveBeenCalled();
+  });
+
+  it('readAllFromServer fails when the server cannot be reached', async () => {
+    mockGetDocsFromServer.mockRejectedValueOnce(new Error('Failed to get documents from server.'));
+    await expect(readAllFromServer('col' as never)).rejects.toThrow(/from server/);
   });
 });

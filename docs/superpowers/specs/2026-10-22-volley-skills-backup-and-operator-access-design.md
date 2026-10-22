@@ -25,7 +25,8 @@ Art. 32), not impossible (operator's decision, 2026-10-22; field-level encryptio
 3. Backups that only the operator's private key can open. The backup command needs only the
    public key, so taking a backup never needs the passphrase.
 4. The service-account key encrypted at rest; every production script asks for its passphrase.
-5. Retention that matches the DPA: backups older than 35 days are deleted.
+5. Retention that matches the DPA: no backup lives past 35 days (pruned at 28 days by the
+   weekly routine; see §3.4).
 6. An operator security checklist and corrected legal-design text, so the DPA says what the
    system really does.
 
@@ -61,7 +62,9 @@ Every document in the database, found generically:
   every document ref, recursively.
 
 Cost is about 3 reads per document: about 700 reads for today's 235 documents, inside Spark's
-50,000 a day.
+50,000 a day. Scouting events grow this fast, so the walk stops, writing nothing, before it
+spends more than `--max-reads` (default 20,000), leaving the rest of the day's quota to the
+app. It is not a point-in-time snapshot: take it when the app is quiet.
 
 ### 3.2 Types
 Data is encoded so a restore writes back the same Firestore types. A value with a special type
@@ -87,10 +90,11 @@ recurse.
 
 ### 3.4 Files and retention
 - `--out <dir>` is required. The file name is `volley-skills-YYYY-MM-DDTHH-MM-SSZ.vsbackup`.
-- After a backup is written and read back (the envelope parses, `keyId` matches), files in
-  `<dir>` matching that name pattern whose date in the name is more than 35 days old are
-  deleted. Other files are never touched. The external-drive copies are the operator's to
-  prune by the same rule.
+- After a backup is written and read back, files in `<dir>` matching that name pattern whose
+  date in the name is more than 28 days old are deleted. Other files are never touched.
+  `backup:prune --dir` applies the same rule to the external drive. Pruning runs weekly, so
+  28 + 7 keeps every copy within the DPA's 35 days (review of 2026-10-22: 35-day retention
+  with weekly pruning let files live about 42 days).
 - `.gitignore` gets `*.vsbackup`, `serviceAccountKey.json.enc` and `*private-key*.pem`.
 
 ### 3.5 Logs
@@ -99,13 +103,16 @@ SHA-256. No document ids. No field values.
 
 ## 4. Restore design
 
-- `restore.mjs --file <f> --check` decrypts (asks for the private key path and passphrase)
-  and prints the counts. It writes nothing. This is the regular "can I still open it" test.
+- `restore.mjs --file <f> --key <private key file> --check` decrypts (asks for the
+  passphrase) and prints the counts. It writes nothing. This is the regular "can I still open it" test.
 - `restore.mjs --file <f>` writes every document into the emulator at 127.0.0.1:8080.
 - `restore.mjs --file <f> --prod` writes into production. It refuses while
   `FIRESTORE_EMULATOR_HOST` is set and asks you to type the project id. It uses `set`, so it
   restores every backed-up document but does not delete documents created after the backup.
-  The runbook says so. Write cost is one write per document (Spark: 20,000 a day).
+  The runbook says so. Write cost is one write per document (Spark: 20,000 a day), so a
+  production restore stops after `--max-writes` (default 15,000) and continues the next day
+  with `--from <n>`; an error mid-way prints the `--from` to resume at (documents are
+  path-sorted, so the index is stable).
 - The restore drill (backup, then restore into a fresh emulator database, then compare) runs
   as an emulator test in `tests/rules/`.
 
@@ -119,7 +126,9 @@ SHA-256. No document ids. No field values.
    the console.
 4. Firestore Data Access audit logs on (IAM & Admin, then Audit Logs, then Cloud Datastore API,
    with Data Read and Data Write). They record who read what, including the operator. Check in
-   the console that Spark allows it; if it needs billing, write the gap down.
+   the console that Spark allows it; if it needs billing, write the gap down. The DPA names
+   them only once they are on. Their entries hold document paths (member ids are emails), so
+   they are personal data kept 30 days.
 5. BitLocker on the laptop; the external drive encrypted too.
 6. No plain copies of production on disk: scripts log counts only, and recon output stays
    counts only.
@@ -131,8 +140,8 @@ SHA-256. No document ids. No field values.
 
 `2026-10-20-volley-skills-legal-documents-design.md`:
 - D4 changes "backups as Google provides" to: weekly encrypted backups (AES-256-GCM, operator's
-  key), held on the operator's encrypted devices in the EU, kept at most 35 days; data access
-  audit logs; the operator access policy.
+  key), held on the operator's encrypted devices in the EU, deleted within 35 days of being
+  taken; the operator access policy; data access audit logs only once verified on (§5 item 4).
 - D8 changes the backup expiry text to: backups expire within 35 days of the end of processing.
 
 `2026-10-20-volley-skills-club-platform-design.md`: the backups note points here.

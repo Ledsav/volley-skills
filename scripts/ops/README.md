@@ -3,9 +3,10 @@
 Design: `docs/superpowers/specs/2026-10-22-volley-skills-backup-and-operator-access-design.md`.
 The operator's security checklist is in `docs/SECURITY-OPERATIONS.md`.
 
-Run these from the repo root **in your own terminal**. They ask for passphrases and
-fail when they get no keyboard input. They print counts, file names, sizes and hashes
-only, never personal data.
+Run these from the repo root **in your own terminal** (PowerShell or Windows Terminal). They
+ask for passphrases and fail when they get no keyboard input. Check that a passphrase is
+not echoed as you type the first time: some Git Bash windows cannot hide it. They print
+counts, file names, sizes and hashes only, never personal data.
 
 ## First-time setup (once)
 
@@ -50,14 +51,24 @@ Risky changes include the migration, a rules deploy and a bulk script.
 ```bash
 npm run backup -- --prod --out <backup folder>
 npm run backup:restore -- --file <backup folder>/<new file> --key <private key> --check
+npm run backup:prune -- --dir <external drive folder>
 ```
 
 - **The backup** reads every document (about 3 reads each, so about 700 for today's
   production) and writes `volley-skills-<time>.vsbackup`. It reads the file back, then
-  deletes backups in that folder older than **35 days**, the window the DPA states.
-- **The check** opens the file and prints the counts, which should match the backup's.
-  It writes nothing.
-- **Copy the new file to the external drive.** Delete copies older than 35 days there too.
+  deletes backups in that folder older than **28 days**. With a weekly routine, no copy
+  lives past the 35 days the DPA states.
+- **Take it when the app is quiet** (evening). It is not a point-in-time snapshot: a
+  match scouted during the backup can be caught half-way.
+- **Read budget.** The backup stops, writing nothing, before it spends more than
+  `--max-reads` (default 20,000 of Spark's 50,000 a day, which the live app shares). It
+  prints the reads it used; watch that figure grow as matches are scouted (hundreds of
+  events each). When it nears the budget, raise `--max-reads` on a quiet day, or move to
+  Google's managed backups (billing) for good.
+- **The check** opens the file and prints the counts and the key id, which should match
+  the backup's. It writes nothing.
+- **Copy the new file to the external drive, then prune it** (the third command), so the
+  copies there expire on the same rule.
 
 The backup folder must be outside the repo. Keep it on the laptop's encrypted disk
 (BitLocker), not in a synced cloud folder: a cloud drive would be a new sub-processor
@@ -73,9 +84,12 @@ npm run backup:restore -- --file <f> --key <private key>
 npm run backup:restore -- --file <f> --key <private key> --prod
 ```
 
-- A restore writes every backed-up document with `set`, one write each (Spark allows
-  20,000 a day). Documents created after the backup are left in place. Documents
-  deleted after the backup come back.
+- A restore writes every backed-up document with `set`, one write each. Documents
+  created after the backup are left in place. Documents deleted after the backup come back.
+- **Write quota.** Spark allows 20,000 writes a day, shared with the app. A production
+  restore stops after `--max-writes` (default 15,000) and prints `--from <n>`: run the same
+  command with that flag the next day. If it stops on an error, it prints the `--from` to
+  continue with too. Keep the app frozen until the restore is complete.
 - `--prod` accepts only a production backup. It refuses while `FIRESTORE_EMULATOR_HOST`
   is set, and asks you to type `volley-skills`.
 - An emulator restore holds production personal data. Stop the emulator when you are
@@ -84,4 +98,5 @@ npm run backup:restore -- --file <f> --key <private key> --prod
 ## Purging an ended club
 
 See `scripts/migrate/README.md`, Purging an ended club. Backups taken before the purge
-expire within 35 days, as the DPA says.
+expire within 35 days, as the DPA says, provided the weekly routine (backup and prune)
+keeps running. If you stop taking backups, delete the old files by hand.

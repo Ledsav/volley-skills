@@ -48,4 +48,21 @@ describe('encodeData / decodeData', () => {
     const json = encodeData({ at: new Timestamp(10, 0) });
     expect(json).toEqual({ at: { __fs: 'timestamp', seconds: 10, nanoseconds: 0 } });
   });
+
+  it('keeps NaN and infinities, which JSON would turn into null', () => {
+    const back = roundTrip({ a: Number.NaN, b: Number.POSITIVE_INFINITY, c: Number.NEGATIVE_INFINITY, d: 1.5 });
+    expect(Number.isNaN(back.a)).toBe(true);
+    expect(back.b).toBe(Number.POSITIVE_INFINITY);
+    expect(back.c).toBe(Number.NEGATIVE_INFINITY);
+    expect(back.d).toBe(1.5);
+  });
+
+  it('refuses a value of a type it does not know, instead of saving it as a map', () => {
+    class Unknown {
+      constructor() {
+        this.x = 1;
+      }
+    }
+    expect(() => encodeData({ v: new Unknown() })).toThrow(/Unsupported Firestore value/);
+  });
 });

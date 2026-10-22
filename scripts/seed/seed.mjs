@@ -29,6 +29,7 @@ import { createRequire } from 'node:module';
 import { parseWorkbook, SKILL_KEYS } from './parseWorkbook.mjs';
 import { assertProdClub, clubRoot, parseClubArg, writeClub } from './clubArg.mjs';
 import { loadServiceAccount } from '../lib/serviceAccount.mjs';
+import { askTyped } from '../lib/prompt.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -71,14 +72,11 @@ function computeLevel(avg) {
 }
 
 async function confirm(question) {
-  process.stdout.write(question);
-  return new Promise((resolve) => {
-    process.stdin.setEncoding('utf8');
-    process.stdin.once('data', (d) => {
-      process.stdin.pause();
-      resolve(d.trim());
-    });
-  });
+  try {
+    return await askTyped(question);
+  } catch {
+    return '';
+  }
 }
 
 async function main() {

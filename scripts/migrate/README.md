@@ -1,0 +1,90 @@
+# Migrations and club operations
+
+Admin SDK scripts. They need the gitignored `serviceAccountKey.json` at the repo root
+for anything that touches production. They log ids and counts only, never player or
+guardian data.
+
+## Club platform migration (one-off)
+
+`2026-10-club-platform.mjs` moves the single-club production data (top-level `teams`,
+`exercises`, `trainings`, `counters`, `skillGuide`, `physicalTestGuide`, `sectionAccess`,
+`adminAllowlist`) under `clubs/<id>`. Ids are preserved and emails are lowercased.
+Spec: `docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` §9.
+
+It creates:
+- the club doc (active, AI and growth tests on, `legal: null`);
+- the member docs: allowlist emails and the owner become admins, and everyone in a
+  team's `adminEmails`, a player's `viewerEmails` or `sectionAccess` becomes a member;
+- `platformAdmins/<operator>`.
+
+It also drops `role` from `users` docs.
+
+The arguments used below:
+- `<id>` is a lowercase slug (for example `vcb`).
+- `<officer>` is the person the club authorises to accept the DPA: president,
+  secretary or technical director. Never the operator.
+- `<you>` is your own operator email.
+
+### Runbook
+
+1. **Dry run.** It reads production and writes nothing:
+
+   ```bash
+   node scripts/migrate/2026-10-club-platform.mjs --rehearse --dry-run \
+     --club <id> --owner <officer> --operator <you> --country <XX>
+   ```
+
+   Check the counts and the club name (pass `--name "..."` to override it).
+
+2. **Rehearse into the local emulator.** Start it with `npm run emulator`, then run the
+   same command without `--dry-run`. Start the app with `VITE_USE_EMULATOR=true npm run dev`.
+   Sign in as the owner and as a coach, and check teams, players, matches, the library
+   and `/club`. The emulator now holds production personal data, so stop it when you
+   are done (it is in-memory).
+3. **Freeze.** Tell the club not to use the app until step 5 is done. Docs changed
+   after they are copied are not copied again.
+4. **Migrate production.** Run with `--prod --dry-run`, then with `--prod`. It asks you
+   to type the club id, and exits non-zero if the verified counts fall short.
+   - The Spark plan allows 20,000 writes a day. If the run stops on quota, run it
+     again the next day with `--resume` added, which skips docs that already exist.
+     Keep the freeze until it finishes.
+5. **Deploy.** Merge the branch to `main`: `deploy.yml` deploys the rules and the app
+   together. On their first load, devices clear their old offline cache once
+   (`vcb.schemaVersion`, `src/firebase/schemaVersion.ts`).
+6. **Check.** Sign in to production as the owner and as a coach.
+7. **After 14 days, drop the old collections:**
+
+   ```bash
+   node scripts/migrate/dropLegacy.mjs --prod --club <id>
+   ```
+
+   It refuses before the grace period ends. It prints the counts and asks you to type
+   `delete legacy`. It never touches `users`, `interestSignups`, `platformAdmins` or
+   `clubs`.
+
+`legal` stays `null` until Plan 3 ships the review screen. The owner accepts the Terms
+and DPA then.
+
+## Purging an ended club
+
+```bash
+node scripts/ops/purgeClub.mjs --club <id> --prod   # or --emulator (default)
+```
+
+It runs only when one of these is true:
+- the club is `terminating` and its export window (`retrievalEndsAt`) has passed;
+- the club is `deleted`, that is rejected while pending.
+
+It asks you to type the club id. It then deletes every subcollection (members, teams,
+players, matches, library, config, section access) except `acceptances` and
+`statusLog`. The club doc becomes a tombstone: `name`, `country`, `ownerEmail`,
+`createdAt`, `status: 'deleted'`, `statusChangedAt` and `legal`. A "Data purged" entry
+is added to `statusLog`.
+
+Firebase Auth accounts are not touched, because a person may belong to other clubs.
+Keep the printed summary for your records.
+
+## Older scripts
+
+`2026-09-11-section-access.mjs` is superseded by the club platform migration, which
+reads `adminAllowlist`, team `adminEmails` and `sectionAccess` directly.

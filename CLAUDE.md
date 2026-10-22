@@ -170,8 +170,18 @@ timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club 
 `docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
 `2026-09-11-volley-skills-access-model.md` is superseded in part.
 
+**Club export, migration and purge.** The club area's Export tab (`src/clubs/area/ExportTab.tsx`)
+builds one ZIP in the browser (`fflate`): `src/clubs/export/clubExportApi.ts` reads every club
+collection through `readAll` (config docs by id), and the pure `clubExport.ts` turns it into the
+spec §7.2 file map with a `README.txt`. `src/firebase/schemaVersion.ts` clears a pre-migration
+offline cache once (`vcb.schemaVersion`) before the app renders. Admin SDK scripts:
+`scripts/migrate/2026-10-club-platform.mjs` (rehearsable, resumable migration),
+`scripts/migrate/dropLegacy.mjs` (old top-level data, after 14 days) and
+`scripts/ops/purgeClub.mjs` (an ended club down to a tombstone). Each is a thin CLI around a
+pure, unit-tested planner and an I/O core tested on the emulator (`tests/rules/*.test.mjs`).
+
 **Club area and platform page.** `/club` (inside `ClubGate`/`AppShell`) is the club area with
-Profile, People & access and Contract tabs. A club whose status is paused (suspended, or
+Profile, People & access, Export and Contract tabs. A club whose status is paused (suspended, or
 terminating after `effectiveAt`) gets a restricted club area for admins instead of the app.
 Membership is explicit: People & access *adds* members (a `members/{email}` doc) and
 "Remove from club" deletes it. `/platform` sits **outside** `ClubGate` behind
@@ -203,8 +213,8 @@ and API modules build paths with `clubCol()` / `clubDoc()` from `src/firebase/cl
 diagrams — admin-only, no index), `trainings/{id}` (+ `counters/trainings` for
 transactional `businessId`), `config/skillGuide`, `config/physicalTestGuide`,
 `sectionAccess/{section}`. Only `clubs`, `users`, `platformAdmins` and `interestSignups`
-are top-level. Production data is still top-level until the Plan 4 migration, so this
-branch is not deployable on its own.
+are top-level. Production moves here with the one-off migration in `scripts/migrate/`
+(runbook: `scripts/migrate/README.md`), before this branch is merged and deployed.
 Access is email-keyed (`adminEmails`, `viewerEmails`) rather than uid-keyed so
 granting access needs no uid lookup. Player docs denormalize
 `teamName`/`ageGroup`/`season` so a viewer never needs to read the team doc.

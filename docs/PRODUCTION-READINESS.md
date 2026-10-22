@@ -53,9 +53,10 @@ Last reviewed: 2026-10-14
       the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
 - [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.
 - [ ] **Club platform: migrate production before deploying this branch** — the
-      `feature/club-platform` branch is not deployable on its own: production data is
-      still top-level (`teams`, `exercises`, ...) until the Plan 4 migration moves it
-      under `clubs/{clubId}`. Deploying the new rules/client first locks everyone out.
+      `feature/club-platform` branch reads and writes only under `clubs/{clubId}`, so
+      deploying it before the migration locks everyone out. Follow the runbook in
+      `scripts/migrate/README.md`: dry run → rehearse on the emulator → freeze → migrate
+      prod → merge (deploys rules + app) → check → drop the old collections after 14 days.
 - [x] **Firestore region verified: `eur3`** (club platform spec §11) —
       `firebase firestore:databases:get "(default)" --project volley-skills` reported
       `eur3`, verified 2026-10-20.
@@ -65,20 +66,11 @@ Last reviewed: 2026-10-14
       emails); before enabling ANY other provider (e.g. email/password), add
       `request.auth.token.email_verified == true` to the rules' email helper and a
       rules test. Note: Google sign-in is currently enabled (see section A).
-- [ ] **Prod seed (one-time)** — `node scripts/seed/seed.mjs --prod --admin
-      alberto.valdes.rey.official@gmail.com`. Needs a gitignored
-      `serviceAccountKey.json` at the repo root (console → Project Settings →
-      Service Accounts → Generate new private key). Seeds one team,
-      `skillGuide/config`, `adminAllowlist/<email>`, and the 20 player docs.
-- [ ] **Run `node scripts/migrate/2026-09-11-section-access.mjs --prod` BEFORE
-      deploying the new `firestore.rules`** (creates `sectionAccess/*`,
-      back-fills existing admins, relabels `users.role`). Order matters: run
-      the migration script first — it uses the Admin SDK and works fine under
-      the *old* rules — THEN deploy the new `firestore.rules`, THEN ship the
-      new client build. Deploying the rules before the migration breaks new
-      user sign-in (the `users` create rule denies both the old `role:
-      'admin'` and `role: 'viewer'` writes) until the migration creates the
-      `sectionAccess/*` docs and relabels existing users.
+- [x] ~~**Prod seed (one-time)**~~ — obsolete: production already holds the club's data
+      and is migrated (above), not seeded.
+- [x] ~~**Run `scripts/migrate/2026-09-11-section-access.mjs --prod`**~~ — obsolete:
+      superseded by the club platform migration, which reads `adminAllowlist`, team
+      `adminEmails` and `sectionAccess` directly.
 - [x] **Verify no analytics/tracking slipped in** — grepped source on 2026-09-09:
       no gtag / GA / GTM / Sentry / posthog / segment / `firebase/analytics`.
       Re-grep the built `dist/` before shipping a bundle with new deps.

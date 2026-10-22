@@ -332,6 +332,22 @@ Free-tier write quota: if document count × 2 exceeds the daily write quota, the
 
 Seeds: `seed.mjs`, `seedLibrary.mjs`, `seedMatch.mjs`, `seedMen1.mjs`, `backfillSummaries.ts`, `applyNumbers`, `import/exportPlayers` take `--club` (default `demo`). `npm run seed:emulator` creates: club `demo` (active, operator as admin, today's seed data), club `rival` (active, a different admin, a little data) so isolation can be seen by hand, one `pending` club, and `platformAdmins/<operator>`. `scripts/seed/README.md` updated.
 
+**Resolved (Plan 4):**
+- **Script names.** The migration is `scripts/migrate/2026-10-club-platform.mjs`. Its modes:
+  - `--rehearse` reads production and writes only to the local emulator, which is the "rehearsed on the emulator with a production export" step;
+  - `--prod`;
+  - `--dry-run`;
+  - `--resume`.
+- **The checkpoint is the destination itself.** `--resume` skips docs that already exist, so no local checkpoint file is kept.
+- **Verification** counts the docs under each `clubs/<id>/<group>` against the plan. On a resume, a count may be higher than planned.
+- **Old top-level data.** `scripts/migrate/dropLegacy.mjs` deletes it once `clubs/<id>.createdAt` is 14 days old.
+- **Cache reset (step 7).** The app clears the persistent Firestore cache once, before the first render. Firestore has not started yet at that point, so neither terminate nor reload is needed. If another tab holds the cache, a later load retries.
+- **Purge.** It also writes a "Data purged" `statusLog` entry, as evidence. A `deleted` club may always be purged: the lifecycle reaches `deleted` only by rejection while pending, or by an earlier purge.
+- **Export.**
+  - `config` is read by document id, because its rule names the ids and a list would be denied. Every other collection is read in id-ordered pages of 200 (`readAll`).
+  - The ZIP also carries `players.csv` per team. Its README lists every file and the key fields.
+- **Rehearsal tests.** The emulator tests of the scripts live in `tests/rules/*.test.mjs`.
+
 ## 10. Testing
 
 Rules tests are the real verification (CLAUDE.md). All 18 existing files move to club paths using one fixture `seedClub(env, { id, status, admins, members, teams })` in `tests/rules/testEnv.ts`. New files:

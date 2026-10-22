@@ -9,6 +9,7 @@ vi.mock('../../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('./ProfileTab', () => ({ ProfileTab: () => <div>profile-body</div> }));
 vi.mock('./PeopleTab', () => ({ PeopleTab: () => <div>people-body</div> }));
 vi.mock('./ContractTab', () => ({ ContractTab: () => <div>contract-body</div> }));
+vi.mock('./ExportTab', () => ({ ExportTab: () => <div>export-body</div> }));
 
 beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, role: 'admin' }));
@@ -42,7 +43,21 @@ describe('ClubAreaPage', () => {
     expect(screen.getByRole('tab', { name: 'Contract' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('offers only Profile and Contract when restricted', () => {
+  it('shows Export in the full and restricted club area', () => {
+    const tabNames = () => screen.getAllByRole('tab').map((t) => t.textContent);
+    const { unmount } = renderAt('/club');
+    expect(tabNames()).toEqual(['Profile', 'People & access', 'Export', 'Contract']);
+    unmount();
+    renderAt('/club', true);
+    expect(tabNames()).toEqual(['Profile', 'Export', 'Contract']);
+  });
+
+  it('opens the Export tab', () => {
+    renderAt('/club?tab=export', true);
+    expect(screen.getByText('export-body')).toBeInTheDocument();
+  });
+
+  it('offers no People & access when restricted', () => {
     renderAt('/club?tab=people', true);
     expect(screen.queryByText('people-body')).not.toBeInTheDocument();
     expect(screen.getByRole('tablist')).not.toHaveTextContent('People & access');

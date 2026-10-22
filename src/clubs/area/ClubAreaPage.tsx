@@ -6,18 +6,20 @@ import { useAuth } from '../../auth/AuthContext';
 import { ProfileTab } from './ProfileTab';
 import { PeopleTab } from './PeopleTab';
 import { ContractTab } from './ContractTab';
+import { ExportTab } from './ExportTab';
 
-type ClubTab = 'profile' | 'people' | 'contract';
+type ClubTab = 'profile' | 'people' | 'export' | 'contract';
 
 const ALL_TABS: { id: ClubTab; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'people', label: 'People & access' },
+  { id: 'export', label: 'Export' },
   { id: 'contract', label: 'Contract' },
 ];
 
 /**
- * `restricted` (a paused club, or one whose contract has ended) keeps Profile read-only and
- * Contract only, and opens on Contract, where the export-window dates are.
+ * `restricted` (a paused club, or one whose contract has ended) keeps Profile read-only,
+ * Export and Contract, and opens on Contract, where the export-window dates are.
  */
 export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
   usePageMeta({ title: 'Club' });
@@ -34,6 +36,7 @@ export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
         onChange={(id) => setParams({ tab: id }, { replace: true })} />
       {active === 'profile' && <ProfileTab restricted={restricted} />}
       {active === 'people' && <PeopleTab />}
+      {active === 'export' && <ExportTab />}
       {active === 'contract' && <ContractTab />}
     </div>
   );

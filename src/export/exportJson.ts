@@ -27,7 +27,11 @@ export function fileSlug(text: string): string {
 
 /** Saves `text` as a file download. */
 export function downloadText(fileName: string, text: string, mime: string): void {
-  const blob = new Blob([text], { type: mime });
+  downloadBlob(fileName, new Blob([text], { type: mime }));
+}
+
+/** Saves `blob` as a file download. */
+export function downloadBlob(fileName: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

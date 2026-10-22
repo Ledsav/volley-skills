@@ -6,10 +6,14 @@ import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import { App } from './App';
+import { resetCacheIfSchemaChanged } from './firebase/schemaVersion';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Clear a pre-migration offline cache before Firestore is first used (spec §9.7).
+void resetCacheIfSchemaChanged().finally(() => {
+  ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+});

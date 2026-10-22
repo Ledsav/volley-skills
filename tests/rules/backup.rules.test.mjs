@@ -60,6 +60,15 @@ describe('readEverything', () => {
   });
 });
 
+describe('read budget', () => {
+  it('stops before going over the read budget, so the app keeps its daily quota', async () => {
+    await seed();
+    await expect(readEverything(db, { maxReads: 5 })).rejects.toThrow(/read budget of 5/);
+    const { reads } = await readEverything(db);
+    await expect(readEverything(db, { maxReads: reads })).resolves.toMatchObject({ reads });
+  });
+});
+
 describe('backup and restore', () => {
   it('restores every doc with the same values and types', async () => {
     await seed();
@@ -93,5 +102,30 @@ describe('backup and restore', () => {
     await seed();
     const envelope = packBackup((await readEverything(db)).docs, { ...META, publicKeyPem: keys.publicKeyPem });
     expect(() => unpackBackup(envelope, keys.privateKeyPem, 'not the passphrase', db)).toThrow();
+  });
+
+  it('resumes a restore from a given document', async () => {
+    await seed();
+    const { docs } = await readEverything(db);
+    const env = await getTestEnv();
+    await env.clearFirestore();
+    const { written, nextFrom } = await restoreDocs(db, docs, { from: 2, log: quiet });
+    expect(written).toBe(docs.length - 2);
+    expect(nextFrom).toBe(docs.length);
+    const after = (await readEverything(db)).docs.map((d) => d.path);
+    expect(after).toEqual(docs.slice(2).map((d) => d.path));
+  });
+
+  it('stops at a given document and reports where to continue', async () => {
+    await seed();
+    const { docs } = await readEverything(db);
+    const env = await getTestEnv();
+    await env.clearFirestore();
+    const lines = [];
+    const { written, nextFrom } = await restoreDocs(db, docs, { from: 1, until: 3, log: (l) => lines.push(l) });
+    expect(written).toBe(2);
+    expect(nextFrom).toBe(3);
+    expect(lines.at(-1)).toBe(`  3/${docs.length} written`);
+    expect((await readEverything(db)).docs.map((d) => d.path)).toEqual(docs.slice(1, 3).map((d) => d.path));
   });
 });

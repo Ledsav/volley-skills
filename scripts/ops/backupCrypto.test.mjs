@@ -63,6 +63,15 @@ describe('sealBackup / openBackup', () => {
     expect(() => openBackup({ ...env, ciphertext: flip(env.ciphertext) }, keys.privateKeyPem, PASS)).toThrow();
   });
 
+  it('refuses a shortened authentication tag', () => {
+    const env = sealBackup(Buffer.from('x'), keys.publicKeyPem, META);
+    const short = Buffer.from(env.tag, 'base64').subarray(0, 4).toString('base64');
+    expect(() => openBackup({ ...env, tag: short }, keys.privateKeyPem, PASS)).toThrow();
+    const secret = sealSecret(Buffer.from('x'), PASS);
+    const shortSecret = Buffer.from(secret.tag, 'base64').subarray(0, 4).toString('base64');
+    expect(() => openSecret({ ...secret, tag: shortSecret }, PASS)).toThrow();
+  });
+
   it('gives each key pair its own fingerprint', () => {
     expect(keyFingerprint(keys.publicKeyPem)).toMatch(/^[0-9a-f]{64}$/);
     expect(keyFingerprint(keys.publicKeyPem)).not.toBe(keyFingerprint(otherKeys.publicKeyPem));

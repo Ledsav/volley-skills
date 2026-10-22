@@ -18,10 +18,10 @@ describe('backup file names', () => {
 });
 
 describe('backupsToPrune', () => {
-  it('keeps 35 days and prunes older backups', () => {
-    expect(RETENTION_DAYS).toBe(35);
-    const keep = backupFileName(daysAgo(35));
-    const old = backupFileName(daysAgo(36));
+  it('keeps 28 days and prunes older backups, so a weekly run never keeps one past 35 days', () => {
+    expect(RETENTION_DAYS).toBe(28);
+    const keep = backupFileName(daysAgo(28));
+    const old = backupFileName(daysAgo(29));
     expect(backupsToPrune([keep, old], NOW)).toEqual([old]);
   });
 

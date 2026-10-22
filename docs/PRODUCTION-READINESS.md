@@ -56,6 +56,8 @@ Last reviewed: 2026-10-14
       the first `npm run backup -- --prod` (`scripts/ops/README.md`). Do the first-time
       setup (encrypt and rotate the service-account key, backup key pair), take a backup
       weekly and before every risky change, and work through `docs/SECURITY-OPERATIONS.md`.
+      Watch the reads each backup prints: once scouting events push it near the 20,000
+      budget, move to Google's managed backups (billing) or a quiet-day budget.
 - [ ] **Club platform: migrate production before deploying this branch** — the
       `feature/club-platform` branch reads and writes only under `clubs/{clubId}`, so
       deploying it before the migration locks everyone out. Follow the runbook in

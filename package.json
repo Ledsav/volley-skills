@@ -25,6 +25,7 @@
     "backup": "node scripts/ops/backup.mjs",
     "backup:keygen": "node scripts/ops/backupKeygen.mjs",
     "backup:restore": "node scripts/ops/restore.mjs",
+    "backup:prune": "node scripts/ops/prune.mjs",
     "key:encrypt": "node scripts/ops/encryptKey.mjs"
   },
   "dependencies": {

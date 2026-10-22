@@ -4,7 +4,11 @@ import { DocumentReference, GeoPoint, Timestamp } from 'firebase-admin/firestore
 
 const TAG = '__fs';
 
-const isPlainObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isPlainObject = (v) => {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
+  const proto = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
+};
 
 /** `data` as JSON-safe values with Timestamp, GeoPoint, DocumentReference and bytes tagged. */
 export function encodeData(value) {
@@ -12,12 +16,15 @@ export function encodeData(value) {
   if (value instanceof GeoPoint) return { [TAG]: 'geopoint', latitude: value.latitude, longitude: value.longitude };
   if (value instanceof DocumentReference) return { [TAG]: 'ref', path: value.path };
   if (ArrayBuffer.isView(value)) return { [TAG]: 'bytes', base64: Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString('base64') };
+  if (typeof value === 'number' && !Number.isFinite(value)) return { [TAG]: 'double', value: String(value) };
   if (Array.isArray(value)) return value.map(encodeData);
   if (isPlainObject(value)) {
     const out = {};
     for (const [k, v] of Object.entries(value)) out[k] = encodeData(v);
     return TAG in value ? { [TAG]: 'map', value: out } : out;
   }
+  // A class this file does not know (e.g. a vector value) would come back as a plain map.
+  if (typeof value === 'object' && value !== null) throw new Error(`Unsupported Firestore value: ${value.constructor?.name ?? 'object'}.`);
   return value;
 }
 
@@ -32,6 +39,8 @@ export function decodeData(value, db) {
       return new GeoPoint(value.latitude, value.longitude);
     case 'ref':
       return db.doc(value.path);
+    case 'double':
+      return Number(value.value);
     case 'bytes':
       return Buffer.from(value.base64, 'base64');
     case 'map':

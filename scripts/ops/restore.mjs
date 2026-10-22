@@ -4,6 +4,9 @@
 //   npm run backup:restore -- --file <f> --key <private key> --check   # open it, print counts, write nothing
 //   npm run backup:restore -- --file <f> --key <private key>           # restore into the local emulator
 //   npm run backup:restore -- --file <f> --key <private key> --prod    # restore into PRODUCTION
+//     [--from <n>]         continue a stopped restore at document n (it prints the number)
+//     [--max-writes <n>]   production only: stop after n writes (default 15,000 of Spark's
+//                          20,000 a day); continue the next day with the --from it prints
 //
 // Asks for the private key's passphrase. A restore writes every backed-up document with
 // `set` (one write each); documents created after the backup are left in place. --prod
@@ -14,6 +17,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { countsByCollection, restoreDocs, unpackBackup } from './backupCore.mjs';
 import { assertReachable, confirmTyped, emulatorDb, fail, flag, PROJECT_ID, prodDb, refuseEmulatorHost } from '../migrate/cli.mjs';
 import { askSecret } from '../lib/prompt.mjs';
+import { safeMessage } from './opsPaths.mjs';
 
 const argv = process.argv.slice(2);
 const file = flag(argv, '--file');
@@ -23,6 +27,10 @@ const prod = argv.includes('--prod');
 if (!file || !keyFile) fail('Missing --file <backup> or --key <private key file>.');
 for (const f of [file, keyFile]) if (!existsSync(f)) fail(`${f} does not exist.`);
 if (check && prod) fail('--check writes nothing; drop --prod.');
+const from = Number(flag(argv, '--from') ?? 0);
+const maxWrites = Number(flag(argv, '--max-writes') ?? (prod ? 15000 : Infinity));
+if (!Number.isInteger(from) || from < 0) fail('--from must be a whole number of 0 or more.');
+if (!(maxWrites >= 1)) fail('--max-writes must be a positive number.');
 
 let envelope;
 try {
@@ -62,11 +70,17 @@ if (check) {
   process.exit(0);
 }
 
-if (prod) await confirmTyped(`This writes ${docs.length} documents to PRODUCTION, replacing the ones with the same path.`, PROJECT_ID);
+if (from >= docs.length) fail(`--from ${from} is past the last document (${docs.length}).`);
+const until = Math.min(docs.length, from + maxWrites);
+if (prod) {
+  await confirmTyped(`This writes documents ${from} to ${until - 1} (of ${docs.length}) to PRODUCTION, replacing the ones with the same path.`, PROJECT_ID);
+}
 try {
-  const { written } = await restoreDocs(db, docs, { log: console.log });
+  const { written, nextFrom } = await restoreDocs(db, docs, { from, until, log: console.log });
   console.log(`Restored ${written} documents${prod ? ' to PRODUCTION' : ' to the emulator'}.`);
+  if (nextFrom < docs.length) console.log(`Not finished: continue (the next day, for the write quota) with --from ${nextFrom}.`);
   process.exit(0);
 } catch (e) {
-  fail(e.message);
+  fail(`${safeMessage(e)}
+Stopped. Continue with --from ${e.nextFrom ?? from} once the cause is fixed (for the daily write quota: the next day).`);
 }

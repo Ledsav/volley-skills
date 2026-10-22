@@ -21,6 +21,8 @@ const SECRET_FORMAT = 'volley-skills-secret';
 const VERSION = 1;
 const SCRYPT = { N: 2 ** 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 const OAEP = { padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' };
+// Full 16-byte tags only: a shortened tag is easier to forge.
+const GCM = { authTagLength: 16 };
 
 function checkPassphrase(passphrase) {
   if (typeof passphrase !== 'string' || passphrase.length < MIN_PASSPHRASE) {
@@ -72,7 +74,7 @@ export function sealBackup(plain, publicKeyPem, { projectId, createdAt }) {
 export function openBackup(envelope, privateKeyPem, passphrase) {
   if (envelope?.format !== BACKUP_FORMAT || envelope.version !== VERSION) throw new Error('Not a volley-skills backup (version 1).');
   const dataKey = privateDecrypt({ key: privateKeyPem, passphrase, ...OAEP }, unb64(envelope.wrappedKey));
-  const decipher = createDecipheriv('aes-256-gcm', dataKey, unb64(envelope.iv));
+  const decipher = createDecipheriv('aes-256-gcm', dataKey, unb64(envelope.iv), GCM);
   decipher.setAAD(backupAad(envelope));
   decipher.setAuthTag(unb64(envelope.tag));
   return Buffer.concat([decipher.update(unb64(envelope.ciphertext)), decipher.final()]);
@@ -92,7 +94,7 @@ export function sealSecret(plain, passphrase) {
 /** The content of a sealed secret. Throws on a wrong passphrase or a changed file. */
 export function openSecret(envelope, passphrase) {
   if (envelope?.format !== SECRET_FORMAT || envelope.version !== VERSION) throw new Error('Not a volley-skills secret file (version 1).');
-  const decipher = createDecipheriv('aes-256-gcm', scryptSync(passphrase, unb64(envelope.salt), 32, SCRYPT), unb64(envelope.iv));
+  const decipher = createDecipheriv('aes-256-gcm', scryptSync(passphrase, unb64(envelope.salt), 32, SCRYPT), unb64(envelope.iv), GCM);
   decipher.setAAD(Buffer.from(SECRET_FORMAT));
   decipher.setAuthTag(unb64(envelope.tag));
   return Buffer.concat([decipher.update(unb64(envelope.ciphertext)), decipher.final()]);

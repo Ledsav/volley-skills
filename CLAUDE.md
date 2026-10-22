@@ -182,7 +182,7 @@ pure, unit-tested planner and an I/O core tested on the emulator (`tests/rules/*
 
 **Backups and the service-account key.** Production is backed up by `scripts/ops/backup.mjs`:
 a generic walk of every collection, sealed with the operator's public key
-(`scripts/ops/backup-public-key.pem`; AES-256-GCM, RSA-OAEP), kept 35 days, restored or checked
+(`scripts/ops/backup-public-key.pem`; AES-256-GCM, RSA-OAEP), pruned at 28 days so none outlives the DPA's 35, restored or checked
 with `scripts/ops/restore.mjs`. Every production script loads the service-account key through
 `scripts/lib/serviceAccount.mjs` (the encrypted `serviceAccountKey.json.enc` plus a passphrase).
 Runbook: `scripts/ops/README.md`; operator controls: `docs/SECURITY-OPERATIONS.md`.

@@ -1,8 +1,12 @@
 // Backup file names and retention (backup design §3.4). Pruning goes by the date in
 // the name, so copying a file (which changes its mtime) never changes when it expires.
 
-/** Days a backup is kept: the DPA's backup window. */
-export const RETENTION_DAYS = 35;
+/**
+ * Days a backup is kept. The DPA promises deletion within 35 days; pruning runs with the
+ * weekly backup (and `npm run backup:prune` for the external drive), so a file can live up
+ * to a week past this before a run removes it: 28 + 7 = 35.
+ */
+export const RETENTION_DAYS = 28;
 
 const NAME = /^volley-skills-(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})Z\.vsbackup$/;
 

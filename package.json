@@ -21,7 +21,11 @@
     "seed:men1": "node scripts/seed/seedMen1.mjs && node scripts/seed/seedMatch.mjs --team seed-men-1 && vite-node scripts/seed/backfillSummaries.ts",
     "seed:prod": "node scripts/seed/seed.mjs --prod",
     "seed:export-prod-players": "node scripts/seed/exportProdPlayers.mjs",
-    "seed:import-players": "node scripts/seed/importPlayers.mjs"
+    "seed:import-players": "node scripts/seed/importPlayers.mjs",
+    "backup": "node scripts/ops/backup.mjs",
+    "backup:keygen": "node scripts/ops/backupKeygen.mjs",
+    "backup:restore": "node scripts/ops/restore.mjs",
+    "key:encrypt": "node scripts/ops/encryptKey.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

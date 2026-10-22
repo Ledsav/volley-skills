@@ -15,7 +15,8 @@
 //   --dry-run    read and plan only: prints the counts, estimated writes and reads.
 //   --resume     continue a stopped run: docs that already exist are skipped.
 //
-// Both modes need ./serviceAccountKey.json (gitignored) and refuse to run while
+// Both modes need the service-account key (serviceAccountKey.json.enc, see
+// scripts/ops/README.md) and refuse to run while
 // FIRESTORE_EMULATOR_HOST is set. The old top-level collections are left in place
 // (grace period); scripts/migrate/dropLegacy.mjs removes them later.
 //
@@ -49,9 +50,9 @@ const dryRun = argv.includes('--dry-run');
 const resume = argv.includes('--resume');
 
 refuseEmulatorHost();
-const source = prodDb();
+const source = await prodDb();
 // A dry run reads production only, so a rehearsal dry run needs no emulator.
-const target = rehearse ? (dryRun ? null : emulatorDb({ withKey: true })) : source;
+const target = rehearse ? (dryRun ? null : await emulatorDb({ withKey: true })) : source;
 if (rehearse && target) await assertReachable(target);
 if (prod && !dryRun) {
   await confirmTyped(`This writes clubs/${options.clubId} and its data to PRODUCTION.`, options.clubId);

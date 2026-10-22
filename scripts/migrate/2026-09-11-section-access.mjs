@@ -1,14 +1,14 @@
 // One-time: create sectionAccess/* docs, back-fill from existing admins,
 // relabel user roles. Safe to re-run (idempotent set/merge).
 // Usage: node scripts/migrate/2026-09-11-section-access.mjs --prod
-import { readFileSync } from 'node:fs';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { loadServiceAccount } from '../lib/serviceAccount.mjs';
 
 const isProd = process.argv.includes('--prod');
 if (!isProd) { console.error('Pass --prod to run.'); process.exit(1); }
 
-const key = JSON.parse(readFileSync('serviceAccountKey.json', 'utf8'));
+const key = await loadServiceAccount();
 initializeApp({ credential: cert(key) });
 console.log(`Target: PROD project "${key.project_id}"`);
 const db = getFirestore();

@@ -25,16 +25,25 @@ The arguments used below:
   secretary or technical director. Never the operator.
 - `<you>` is your own operator email.
 
+### Read and write quotas
+
+The Spark plan allows 50,000 reads and 20,000 writes a day, and that budget is shared
+with everyone using the live app. Each pass over production (the dry run, the
+rehearsal and the production run) costs about one read per legacy doc; the dry run
+prints the figure. If that figure is large (more than about 10,000), do the dry run
+and the rehearsal on one day and the production run on another, so the app never
+runs out of reads.
+
 ### Runbook
 
-1. **Dry run.** It reads production and writes nothing:
+1. **Dry run.** It reads production and writes nothing; no emulator is needed:
 
    ```bash
    node scripts/migrate/2026-10-club-platform.mjs --rehearse --dry-run \
      --club <id> --owner <officer> --operator <you> --country <XX>
    ```
 
-   Check the counts and the club name (pass `--name "..."` to override it).
+   Check the counts, the club name (pass `--name "..."` to override it) and the reads.
 
 2. **Rehearse into the local emulator.** Start it with `npm run emulator`, then run the
    same command without `--dry-run`. Start the app with `VITE_USE_EMULATOR=true npm run dev`.
@@ -42,10 +51,18 @@ The arguments used below:
    and `/club`. The emulator now holds production personal data, so stop it when you
    are done (it is in-memory).
 3. **Freeze.** Tell the club not to use the app until step 5 is done. Docs changed
-   after they are copied are not copied again.
+   after they are copied are not copied again. During the freeze, deploy the indexes
+   first, so the new "find my clubs" index is built before the new app needs it
+   (indexes only add; the old app is unaffected):
+
+   ```bash
+   npx firebase deploy --only firestore:indexes --project volley-skills
+   ```
+
+   Wait until the console shows every index as enabled.
 4. **Migrate production.** Run with `--prod --dry-run`, then with `--prod`. It asks you
    to type the club id, and exits non-zero if the verified counts fall short.
-   - The Spark plan allows 20,000 writes a day. If the run stops on quota, run it
+   - If the run stops on the write quota (20,000 a day), run it
      again the next day with `--resume` added, which skips docs that already exist.
      Keep the freeze until it finishes.
 5. **Deploy.** Merge the branch to `main`: `deploy.yml` deploys the rules and the app

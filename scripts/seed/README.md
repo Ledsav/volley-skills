@@ -17,8 +17,8 @@ import. Skill scores / notes / development-plan fields import as empty unless th
 workbook has them filled.
 
 Everything is club-scoped: every script takes `--club <id>` (default `demo` on the emulator; **`--prod` requires an explicit `--club`** in `seed.mjs`, `backfillPlayers.mjs` and `snapshotSkills.mjs`) and writes
-under `clubs/<id>/...`. `exportProdPlayers.mjs` still reads top-level `teams` (prod is not
-migrated yet) unless you pass `--club <id>`. Collection-group scripts
+under `clubs/<id>/...`. `exportProdPlayers.mjs` reads top-level `teams` unless you pass `--club <id>`:
+once production is migrated (`scripts/migrate/README.md`), always pass `--club <id>`. Collection-group scripts
 (`backfillSummaries`, `backfillPlayers`, `snapshotSkills`) only touch docs under the chosen club and exit non-zero (writing nothing, never an empty `skillsSnapshot.json`) when no docs match.
 
 The script logs **counts only** — never player or guardian field values.

@@ -1,7 +1,8 @@
 # Migrations and club operations
 
-Admin SDK scripts. They need the gitignored `serviceAccountKey.json` at the repo root
-for anything that touches production. They log ids and counts only, never player or
+Admin SDK scripts. Anything that touches production needs the encrypted service-account
+key (`serviceAccountKey.json.enc`, see `scripts/ops/README.md`) and asks for its passphrase,
+so run them in your own terminal. They log ids and counts only, never player or
 guardian data.
 
 ## Club platform migration (one-off)
@@ -50,8 +51,10 @@ runs out of reads.
    Sign in as the owner and as a coach, and check teams, players, matches, the library
    and `/club`. The emulator now holds production personal data, so stop it when you
    are done (it is in-memory).
-3. **Freeze.** Tell the club not to use the app until step 5 is done. Docs changed
-   after they are copied are not copied again. During the freeze, deploy the indexes
+3. **Freeze and back up.** Tell the club not to use the app until step 5 is done. Take a
+   backup and check that it opens (`scripts/ops/README.md`): it is the way back if the
+   migration goes wrong. Docs changed after they are copied are not copied again.
+   During the freeze, deploy the indexes
    first, so the new "find my clubs" index is built before the new app needs it
    (indexes only add; the old app is unaffected):
 

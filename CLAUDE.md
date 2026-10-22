@@ -180,6 +180,13 @@ offline cache once (`vcb.schemaVersion`) before the app renders. Admin SDK scrip
 `scripts/ops/purgeClub.mjs` (an ended club down to a tombstone). Each is a thin CLI around a
 pure, unit-tested planner and an I/O core tested on the emulator (`tests/rules/*.test.mjs`).
 
+**Backups and the service-account key.** Production is backed up by `scripts/ops/backup.mjs`:
+a generic walk of every collection, sealed with the operator's public key
+(`scripts/ops/backup-public-key.pem`; AES-256-GCM, RSA-OAEP), kept 35 days, restored or checked
+with `scripts/ops/restore.mjs`. Every production script loads the service-account key through
+`scripts/lib/serviceAccount.mjs` (the encrypted `serviceAccountKey.json.enc` plus a passphrase).
+Runbook: `scripts/ops/README.md`; operator controls: `docs/SECURITY-OPERATIONS.md`.
+
 **Club area and platform page.** `/club` (inside `ClubGate`/`AppShell`) is the club area with
 Profile, People & access, Export and Contract tabs. A club whose status is paused (suspended, or
 terminating after `effectiveAt`) gets a restricted club area for admins instead of the app.
@@ -244,4 +251,4 @@ Dark mode ships: tokens are CSS variables per theme in `src/index.css`, so compo
   (skill math, `businessId` sequencing, physical-test computations), then component
   tests for the critical forms (player card edit, skill guide edit, training builder).
 - No third-party analytics or tracking scripts — minors' data.
-- Never commit `serviceAccountKey.json`, `.env.local`, or `reference/` (all gitignored).
+- Never commit `serviceAccountKey.json` (or its `.enc`), backups (`*.vsbackup`), private keys, `.env.local`, or `reference/` (all gitignored).

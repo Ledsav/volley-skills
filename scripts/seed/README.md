@@ -33,9 +33,9 @@ The script logs **counts only** — never player or guardian field values.
   then the usual install dirs (Adoptium, Microsoft, Corretto, Zulu, `/usr/lib/jvm`,
   …), then `java` on `PATH` — so you do **not** need `JAVA_HOME` set. If none is
   found it prints a Temurin download link.
-- Prod target: `serviceAccountKey.json` at the repo root (**gitignored**) —
-  download it from the Firebase console → Project settings → Service accounts →
-  "Generate new private key".
+- Prod target: the service-account key, kept encrypted as `serviceAccountKey.json.enc`
+  at the repo root (**gitignored**); scripts ask for its passphrase. Setup and rotation:
+  `scripts/ops/README.md`.
 
 ## Seed the emulator
 
@@ -79,7 +79,7 @@ npm run seed:import-players                 # replaces the seeded team's players
 npm run seed:match                          # demo matches on those players
 ```
 
-- `exportProdPlayers.mjs` needs `serviceAccountKey.json` and **only reads** prod
+- `exportProdPlayers.mjs` needs the service-account key and **only reads** prod
   (`teams/*/players/*`, paged 500 at a time; no physical tests or other data).
   Limit it to one team with `-- --team <prodTeamId>`. It refuses to run if
   `FIRESTORE_EMULATOR_HOST` is set — that variable redirects every firebase-admin
@@ -183,7 +183,7 @@ node scripts/seed/seed.mjs --prod --admin coach@realclub.example --yes
 
 Guards (all must pass):
 
-1. `serviceAccountKey.json` exists at the repo root.
+1. The service-account key opens (`serviceAccountKey.json.enc` and its passphrase).
 2. `--club <id>` is given (no default in prod) and `--admin <email>` is given (the real team admin who will sign in). No default.
 3. `--yes` is given, or you type `seed` at the confirmation prompt.
 4. Top-level `teams` is **empty** (prod is not migrated to clubs yet; otherwise seeding is refused) and
@@ -191,7 +191,7 @@ Guards (all must pass):
    team and players (and `config/skillGuide` only if it is missing), never touching the club, member or sectionAccess docs.
    `platformAdmins/<admin>` is written on the emulator only.
 
-The script prints the target project id (from the key file) before writing. Run it
+The script prints the target project id (from the key) before writing. Run it
 **once**.
 
 ## What gets written

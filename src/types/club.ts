@@ -1,4 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
+import type { LegalLang } from '../legal/versions';
 
 export type ClubStatus = 'pending' | 'active' | 'suspended' | 'terminating' | 'deleted';
 export type MemberRole = 'admin' | 'member';
@@ -16,6 +17,25 @@ export interface ClubLegal {
   /** Null while a serverTimestamp() write is still pending locally. */
   acceptedAt: Timestamp | null;
   acceptedBy: string;
+}
+
+/** What a club admin signed: versions, language, hashes of the exact texts shown, and the re-auth evidence. */
+export interface Acceptance {
+  versionKey: string;
+  termsVersion: string;
+  dpaVersion: string;
+  subprocessorsVersion: string;
+  language: LegalLang;
+  termsSha256: string;
+  dpaSha256: string;
+  clausesSha256: string;
+  specificClauses: string[];
+  acceptedBy: string;
+  acceptedByName: string;
+  authorityConfirmed: true;
+  acceptedAt: Timestamp | null;
+  authTime: number;
+  userAgent: string;
 }
 
 export interface Club {

@@ -114,9 +114,19 @@ export async function seedPlatformAdmin(env: RulesTestEnvironment, email: string
   });
 }
 
-/** A signed-in client whose token carries `email` exactly as given (no lowercasing). */
-export function dbAs(env: RulesTestEnvironment, email: string): Firestore {
-  return env.authenticatedContext(`uid-${email}`, { email }).firestore();
+/**
+ * A signed-in client whose token carries `email` exactly as given (no lowercasing).
+ * `authTime` (seconds) sets the token's `auth_time`; without it the mock token's
+ * auth_time is 0 (1970), i.e. a long-stale sign-in.
+ */
+export function dbAs(env: RulesTestEnvironment, email: string, opts: { authTime?: number } = {}): Firestore {
+  const token = opts.authTime === undefined ? { email } : { email, auth_time: opts.authTime };
+  return env.authenticatedContext(`uid-${email}`, token).firestore();
+}
+
+/** Seconds since the epoch, `secondsAgo` before now: a token `auth_time`. */
+export function authTimeAgo(secondsAgo: number): number {
+  return Math.floor(Date.now() / 1000) - secondsAgo;
 }
 
 /** `serverTimestamp()` for compat-API writes in rules tests. */
@@ -174,7 +184,17 @@ export async function seedClubTree(
     const c = `clubs/${clubId}`;
     const team = `${c}/teams/${teamId}`;
     const writes: Array<[string, Record<string, unknown>]> = [
-      [`${c}/acceptances/v1`, { versionKey: 'v1', acceptedBy: 'seed@example.com', acceptedAt: new Date() }],
+      [
+        `${c}/acceptances/v1`,
+        {
+          versionKey: 'v1',
+          subprocessorsVersion: 'v1',
+          acceptedBy: 'seed@example.com',
+          acceptedAt: new Date(),
+          authTime: 0,
+          userAgent: 'seed',
+        },
+      ],
       [`${c}/statusLog/l1`, { from: 'pending', to: 'active', reason: null, by: OPERATOR, at: new Date() }],
       [team, { name: `Team ${teamId}`, adminEmails: emails, createdBy: 'seed' }],
       [

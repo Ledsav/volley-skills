@@ -6,6 +6,7 @@ import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'fire
 import { auth } from '../firebase/config';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { LegalLinks } from '../legal/LegalLinks';
 import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
 import { saveEmailForSignIn } from './emailLinkStorage';
@@ -50,11 +51,7 @@ export function LoginPage() {
         <p className="text-center text-slate">
           We sent a sign-in link to <span className="font-medium text-ink">{email}</span>.
         </p>
-        <p className="mt-6 text-center text-sm">
-          <Link to="/privacy" className="text-slate hover:underline">
-            Privacy
-          </Link>
-        </p>
+        <LegalLinks />
       </AuthShell>
     );
   }
@@ -108,11 +105,7 @@ export function LoginPage() {
         </Link>
       </p>
 
-      <p className="mt-3 text-center text-sm">
-        <Link to="/privacy" className="text-slate hover:underline">
-          Privacy
-        </Link>
-      </p>
+      <LegalLinks />
     </AuthShell>
   );
 }

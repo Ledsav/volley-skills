@@ -221,7 +221,7 @@ reading `auth.currentUser` (a same-uid re-sign-in fires no auth-state event, so 
 at `/` (P8, P9). The rules accept an acceptance only after
 a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`), so Email/Password sign-in
 must stay disabled in the console. `ClubGate` shows the blocking review screen to club admins with an outdated accepted
-version, except a platform admin or a club already terminating, who get a non-blocking notice (P10). Award photos of minors
+version, except a platform admin or a club that asked to end the contract, who get a non-blocking notice (P10). Award photos of minors
 need `player.photoConsent`; adults need none; a missing date of birth counts as a minor (`src/awards/photoGate.ts`, P12).
 Seed sign-ins: `president@example.com` (demo owner, accepted), `review@example.com` (blocking review screen), plus those
 in `scripts/seed/README.md`.

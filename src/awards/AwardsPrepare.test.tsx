@@ -110,6 +110,11 @@ describe('AwardsPrepare', () => {
     expect(prefs.selectedId).toBe(prefs.custom[0].id);
   });
 
+  it('warns not to use photos of players as the background image', () => {
+    setup();
+    expect(screen.getByText("Don't use photos that show players.")).toBeInTheDocument();
+  });
+
   it('disables photo controls for a winner without consent and says why', () => {
     setup({ photoAllowed: () => false });
     expect(screen.getAllByText('No photo consent on file — the card shows the jersey number.').length).toBeGreaterThan(0);

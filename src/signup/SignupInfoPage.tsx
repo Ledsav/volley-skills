@@ -5,7 +5,12 @@ import { LegalLinks } from '../legal/LegalLinks';
 
 /** /signup: what creating a club involves, before asking anyone to sign in. */
 export function SignupInfoPage() {
-  usePageMeta({ title: 'Create your club', description: 'Set up your volleyball club on Volley Skills.' });
+  usePageMeta({
+    title: 'Create your club',
+    description: 'Set up your volleyball club on Volley Skills.',
+    robots: 'index',
+    canonicalPath: '/signup',
+  });
   return (
     <AuthShell title="Create your club" navAction={{ to: '/login', label: 'Sign in' }}>
       <ol className="list-decimal space-y-2 pl-5 text-sm text-ink">

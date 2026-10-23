@@ -74,6 +74,8 @@ export function currentLegalVersions() {
 /**
  * An acceptance doc (clubs/{id}/acceptances/{versionKey}) as the rules shape it, with
  * placeholder hashes and no re-auth evidence: for local seeds only. `now` is acceptedAt.
+ * The rules would refuse these placeholder values from a client (empty specificClauses,
+ * authTime 0, all-zero hashes); the Admin SDK seed bypasses rules. Never use it in production.
  */
 export function seedAcceptance({ versionKey, termsVersion, dpaVersion, subprocessorsVersion, email, name }, now = null) {
   const zero = '0'.repeat(64);

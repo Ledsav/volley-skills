@@ -177,6 +177,7 @@ async function main() {
 
   // --- Write ---------------------------------------------------------
   const now = FieldValue.serverTimestamp();
+  const PRESIDENT = 'president@example.com';
 
   // Club doc + members + sectionAccess (admin owns the club and every section).
   // --force on an existing prod club: never rewrite the club, member or sectionAccess docs.
@@ -186,7 +187,10 @@ async function main() {
       id: args.club,
       name: args.club === 'demo' ? 'Volley Demo' : args.club,
       status: 'active',
-      admins: [args.admin],
+      // Emulator: the demo club is accepted by a seeded officer (not the operator, who is the
+      // demo admin), so the operator sees neither the review screen nor the notice (P15).
+      admins: args.target === 'emulator' ? [args.admin, PRESIDENT] : [args.admin],
+      ...(args.target === 'emulator' ? { ownerEmail: PRESIDENT, accepted: PRESIDENT } : {}),
     });
   }
   const batch = db.batch();

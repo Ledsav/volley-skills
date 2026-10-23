@@ -61,7 +61,7 @@ Each club that signs up becomes the data controller for its players, guardians a
 | T19 | Force majeure | Standard. | — |
 | T20 | No set-off / exceptions | The club may not withhold fees against claims (operator-favourable). | **yes** (limits on raising exceptions) |
 | T21 | Law and courts | §2 above. | **yes** (forum clause) |
-| T22 | Language | English and Italian versions; the version the club accepted prevails for that club (lawyer to confirm). | — |
+| T22 | Language | **Superseded (Plan 3):** the texts exist in five languages (en, it, fr, de, es); English prevails in case of conflict, and the acceptance record stores the language signed. | — |
 | T23 | Entire agreement, severability, notices (email to the club's owner email and in-app) | Standard. | — |
 
 ## 4. DPA — required content (Art. 28(3)) and choices
@@ -123,9 +123,19 @@ The clauses marked "yes" in §3 (T2, T8, T9, T11, T12, T13, T14, T15, T20, T21) 
 **For the lawyer to settle** (collected, so the review is one sitting):
 - Is fresh email-link re-authentication a sufficient "specific written approval" after Cass. ord. 20945/2026, or is a qualified/advanced e-signature needed?
 - Is the T12 cap amount and the free-use floor acceptable; is T20 enforceable against amateur associations; Data Act Art. 13 (unfair data terms) exposure for any clause.
-- Which language prevails (T22).
+- ~~Which language prevails (T22).~~ Resolved: English (see Resolved, Plan 3).
 - Whether non-business ASDs can be treated as consumers in any scenario.
 - Governing law/forum choice while in Luxembourg for Italian clubs.
+
+## Resolved (Plan 3, 2026-10-23)
+
+- **Languages:** the Terms, DPA, sub-processor list, privacy notice and DPIA pack exist in en, it, fr, de and es (`src/legal/content/<lang>/<doc>-2026-10-22.md`). **English prevails**; this replaces T22 above. The signer picks the language on the signing screens (P13) and it is stored in the acceptance.
+- **P1** version ids are ISO dates (first version `2026-10-22`); privacy and DPIA pack are single files, not versioned for acceptance. **P2** `versionKey = terms-<terms>_dpa-<dpa>`.
+- **P3** each clause is a level-2 heading `## T12. <Heading>` (`## D5.` in the DPA), ids identical in every language; the specific-approval texts are extracted from the documents, never duplicated. **P4** the specific-approval ids are T2, T8, T9, T11, T12, T13, T14, T15, T20, T21 and D5, D9, D11, each ending with a fixed "approved specifically at signature" sentence per language. **P5** `clausesSha256` hashes the clauses in id order as `<id>. <heading>` + blank line + `<text>`, joined by `---` lines.
+- **Email-link provider requirement:** the rules accept an acceptance only after a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`). Email/Password sign-in must stay disabled in the Firebase console, because it reports the same provider.
+- **P12** award photos of minors need a per-player photo consent; adults need no toggle (the texts say photos of adults rely on the club's own basis).
+- **P14** the operator is an individual: the texts say so in their own words, and the registration and VAT lines are omitted when empty (placeholders in `src/legal/operator.ts`; the address is still to be filled in).
+- The open lawyer questions are tracked as one checklist item in `docs/PRODUCTION-READINESS.md` ("Lawyer review").
 
 ## 9. Storage, rendering, versioning
 

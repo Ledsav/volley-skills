@@ -234,6 +234,17 @@ Each published version in `src/legal/versions.ts` carries `{ version, announcedA
 - If not `material` (typos, clarifications): no re-acceptance; the version in force is recorded by date.
 - The **sub-processor list is versioned separately** (`subprocessors` version with its own `announcedAt`/`effectiveFrom`) and is **not** part of the hashed DPA, so adding a sub-processor triggers the 30-day notice banner and the objection route, not a re-signature. The acceptance record stores the sub-processor list version in force at signing (`subprocessorsVersion`).
 
+> **Resolved (Plan 3, 2026-10-23).** Sign-up and legal acceptance are built as §6 describes, with these decisions:
+> version ids are ISO dates and `versionKey = terms-<terms>_dpa-<dpa>` (P1, P2); the signer re-authenticates by a fresh
+> email-link sign-in (`auth_time` at most 15 minutes old and `firebase.sign_in_provider == 'password'`, which is how the Auth
+> SDK reports an email-link sign-in; keep Email/Password sign-in disabled in the console) and the client commits within
+> 14 minutes (P6, P8); the new club id is a 20-character auto id kept in the draft (P7, P11); new clubs start with AI,
+> growth tests and reference opt-out off; after the commit the app reloads at `/` (P9); club admins with an outdated accepted
+> version get the blocking review screen, except a platform admin (non-blocking notice naming `ownerEmail`) and a club that
+> already asked to terminate (non-blocking notice) (P10); the signing language is chosen on the signing screens and stored in
+> the acceptance (P13); award photos of minors need `player.photoConsent` (P12). The acceptance record gained
+> `authTime`, `userAgent`, `acceptedByName`, `authorityConfirmed` and `clausesSha256`.
+
 ## 7. Club administration, export, deletion
 
 ### 7.1 Club area (club admins)

@@ -2,7 +2,10 @@
 // Seeds two more clubs next to the demo club, to try the multi-club app locally:
 //
 //   clubs/rival     "Rival Volley"  active   admin rival@example.com   (one team, two players, one exercise; AI and growth tests off)
-//   clubs/newclub   "New Club"      pending  admin pending@example.com (nothing else)
+//   clubs/newclub   "New Club"      pending  admin pending@example.com (nothing else; legal accepted)
+//   clubs/review    "Review Club"   active   admin review@example.com  (legal: null -> blocking review screen)
+//
+// rival and newclub carry an acceptance of the current legal texts (placeholder hashes).
 //
 // platformAdmins/operator@example.com is written with no membership in any club: it reaches
 // /platform only and never sees club data.
@@ -29,11 +32,12 @@ const now = admin.firestore.FieldValue.serverTimestamp();
 
 const RIVAL_ADMIN = 'rival@example.com';
 const PENDING_ADMIN = 'pending@example.com';
+const REVIEW_ADMIN = 'review@example.com';
 const OPERATOR = 'operator@example.com';
 
 // --- clubs/rival ----------------------------------------------------------
 await db.recursiveDelete(clubRoot(db, 'rival'));
-await writeClub(db, { id: 'rival', name: 'Rival Volley', status: 'active', admins: [RIVAL_ADMIN], aiEnabled: false, growthTestsEnabled: false });
+await writeClub(db, { id: 'rival', name: 'Rival Volley', status: 'active', admins: [RIVAL_ADMIN], accepted: RIVAL_ADMIN, aiEnabled: false, growthTestsEnabled: false });
 
 const rival = clubRoot(db, 'rival');
 const team = { name: 'Rival U17', ageGroup: 'U17', season: '2026-27' };
@@ -91,10 +95,14 @@ await batch.commit();
 
 // --- clubs/newclub (pending: club doc + admin member only) ------------------
 await db.recursiveDelete(clubRoot(db, 'newclub'));
-await writeClub(db, { id: 'newclub', name: 'New Club', status: 'pending', admins: [PENDING_ADMIN] });
+await writeClub(db, { id: 'newclub', name: 'New Club', status: 'pending', admins: [PENDING_ADMIN], accepted: PENDING_ADMIN });
+
+// --- clubs/review (active, never accepted: its admin sees the blocking review screen) ---
+await db.recursiveDelete(clubRoot(db, 'review'));
+await writeClub(db, { id: 'review', name: 'Review Club', status: 'active', admins: [REVIEW_ADMIN] });
 
 await db.doc(`platformAdmins/${OPERATOR}`).set({ addedBy: 'seed-script', addedAt: now });
 
-console.log('Done. clubs/rival (active: 1 team, 2 players, 1 exercise) and clubs/newclub (pending); platformAdmins/' + OPERATOR + ' (no club).');
-console.log(`Sign in as ${RIVAL_ADMIN} (Rival Volley), ${PENDING_ADMIN} (pending screen) or nobody@example.com (welcome page).`);
+console.log('Done. clubs/rival (active: 1 team, 2 players, 1 exercise) clubs/newclub (pending) and clubs/review (active, legal not accepted); platformAdmins/' + OPERATOR + ' (no club).');
+console.log(`Sign in as ${RIVAL_ADMIN} (Rival Volley), ${PENDING_ADMIN} (pending screen) ${REVIEW_ADMIN} (blocking review screen) or nobody@example.com (welcome page).`);
 process.exit(0);

@@ -15,8 +15,9 @@ const sendSigningLink = vi.fn().mockResolvedValue(undefined);
 vi.mock('../auth/reauth', () => ({ sendSigningLink: (...a: unknown[]) => sendSigningLink(...a) }));
 
 const assign = vi.fn();
-const renderPage = (strict = false) => {
-  const page = <MemoryRouter><SignCompletePage /></MemoryRouter>;
+const NONCE = '0123456789abcdef0123456789abcdef';
+const renderPage = (strict = false, path = `/sign/complete?sign=${NONCE}`) => {
+  const page = <MemoryRouter initialEntries={[path]}><SignCompletePage /></MemoryRouter>;
   return render(strict ? <StrictMode>{page}</StrictMode> : page);
 };
 
@@ -34,24 +35,38 @@ describe('SignCompletePage', () => {
     commitSignDraft.mockResolvedValue(outcome);
     renderPage();
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/'));
+    expect(commitSignDraft).toHaveBeenCalledWith(NONCE);
+  });
+
+  it('passes no nonce when the link has none', async () => {
+    commitSignDraft.mockResolvedValue('wrongLink');
+    renderPage(false, '/sign/complete');
+    await waitFor(() => expect(commitSignDraft).toHaveBeenCalledWith(null));
+  });
+
+  it('says the link does not match the signing in this browser', async () => {
+    commitSignDraft.mockResolvedValue('wrongLink');
+    renderPage();
+    expect(await screen.findByText(/doesn.t match the signing in progress in this browser/)).toBeInTheDocument();
   });
 
   it('offers a new link when it expired', async () => {
     commitSignDraft.mockResolvedValue('linkExpired');
     saveSignDraft({
       kind: 'reaccept', clubId: 'c', email: 'user@example.com', personName: 'A', termsVersion: '1', dpaVersion: '1',
-      subprocessorsVersion: '1', language: 'en', savedAt: Date.now(),
+      subprocessorsVersion: '1', language: 'en', savedAt: Date.now(), nonce: NONCE,
     });
     renderPage();
     expect(await screen.findByText(/The link is older than 15 minutes/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Send a new link' }));
-    await waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('user@example.com'));
+    await waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('user@example.com', NONCE));
   });
 
-  it('asks to open the link in the original browser without a draft', async () => {
+  it('says there is no signing in this browser without a draft (also true after success)', async () => {
     commitSignDraft.mockResolvedValue('noDraft');
     renderPage();
-    expect(await screen.findByText(/Open the link in the browser where you started/)).toBeInTheDocument();
+    expect(await screen.findByText(/There is no signing in progress in this browser/)).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing was saved/)).not.toBeInTheDocument();
   });
 
   it('says it is another account', async () => {

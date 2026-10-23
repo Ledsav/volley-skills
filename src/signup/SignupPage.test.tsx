@@ -79,8 +79,10 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Data Processing Agreement/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Approve these clauses specifically' }));
-    await waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('user@example.com'));
+    await waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('user@example.com', expect.any(String)));
     const draft = readSignDraft(Date.now());
+    // The link carries the draft's nonce, so only this link can commit it.
+    expect(sendSigningLink.mock.calls[0][1]).toBe(draft?.nonce);
     expect(draft).toMatchObject({
       kind: 'signup', clubId: 'abcdefghij0123456789', email: 'user@example.com', personName: 'Ann Coach',
       club: { name: 'Test VC', country: 'BE', locale: 'en' }, language: 'en',

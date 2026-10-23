@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { sendSigningLink } from '../auth/reauth';
 import { Button } from '../components/Button';
@@ -10,7 +10,7 @@ import { otherUsableClubs } from '../clubs/activeClub';
 import { MinimalShell } from '../layout/MinimalShell';
 import { DocumentsStep } from '../signup/DocumentsStep';
 import { SpecificApprovalStep } from '../signup/SpecificApprovalStep';
-import { saveSignDraft } from './signDraft';
+import { newSignNonce, saveSignDraft } from './signDraft';
 import { defaultLegalLang, inForce, type LegalLang } from './versions';
 
 type Errors = Partial<Record<'person' | 'authority', string>>;
@@ -31,6 +31,8 @@ export function LegalReviewScreen() {
     };
   });
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  // One nonce per visit, so every link sent from here commits the same draft.
+  const nonceRef = useRef<string | null>(null);
   const [person, setPerson] = useState('');
   const [authority, setAuthority] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -55,6 +57,7 @@ export function LegalReviewScreen() {
 
   async function send() {
     if (!activeClubId) throw new Error('No active club');
+    nonceRef.current ??= newSignNonce();
     saveSignDraft({
       kind: 'reaccept',
       clubId: activeClubId,
@@ -65,8 +68,9 @@ export function LegalReviewScreen() {
       subprocessorsVersion: versions.subprocessors.version,
       language: lang,
       savedAt: Date.now(),
+      nonce: nonceRef.current,
     });
-    await sendSigningLink(email);
+    await sendSigningLink(email, nonceRef.current);
   }
 
   async function endContract() {

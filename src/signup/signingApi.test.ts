@@ -29,6 +29,7 @@ vi.mock('../legal/acceptance', () => ({
 }));
 
 const NOW = 5_000_000_000;
+const NONCE = '0123456789abcdef0123456789abcdef';
 const KEY = 'terms-2026-10-22_dpa-2026-10-22';
 const ID = 'n'.repeat(20);
 const common = {
@@ -39,6 +40,7 @@ const common = {
   subprocessorsVersion: '2026-10-22',
   language: 'en' as const,
   savedAt: NOW - 1000,
+  nonce: NONCE,
 };
 const signup: SignDraft = { kind: 'signup', clubId: ID, club: { name: 'VC', country: 'LU', locale: 'en' }, ...common };
 const reaccept: SignDraft = { kind: 'reaccept', clubId: ID, ...common };
@@ -49,7 +51,7 @@ const fresh = () => userAt(NOW / 1000 - 60);
 /** Signs `user` in as the SDK's current user, then commits. */
 const commitAs = (user: unknown) => {
   m.auth.currentUser = user;
-  return commitSignDraft(NOW);
+  return commitSignDraft(NONCE, NOW);
 };
 
 beforeEach(() => {
@@ -71,10 +73,20 @@ describe('commitSignDraft', () => {
     const current = userAt(NOW / 1000 - 30) as unknown as { getIdTokenResult: ReturnType<typeof vi.fn> };
     m.auth.currentUser = stale;
     m.auth.currentUser = current;
-    expect(await commitSignDraft(NOW)).toBe('done');
+    expect(await commitSignDraft(NONCE, NOW)).toBe('done');
     expect(current.getIdTokenResult).toHaveBeenCalledWith(true);
     expect(stale.getIdTokenResult).not.toHaveBeenCalled();
     expect(vi.mocked(buildAcceptance).mock.lastCall?.[0]).toMatchObject({ authTime: NOW / 1000 - 30 });
+  });
+  it.each([
+    ['another', 'ffffffffffffffffffffffffffffffff'],
+    ['no', null],
+  ])('returns wrongLink for %s nonce, writes nothing and keeps the draft', async (_label, nonce) => {
+    saveSignDraft(signup);
+    m.auth.currentUser = fresh();
+    expect(await commitSignDraft(nonce, NOW)).toBe('wrongLink');
+    expect(m.writeBatch).not.toHaveBeenCalled();
+    expect(readSignDraft(NOW)).not.toBeNull();
   });
   it('fails without a signed-in user and writes nothing', async () => {
     saveSignDraft(signup);

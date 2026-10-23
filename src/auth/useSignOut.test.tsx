@@ -33,6 +33,14 @@ describe('useSignOut', () => {
     expect(localStorage.getItem(ACTIVE_CLUB_KEY)).toBeNull();
   });
 
+  it('forgets a signing draft in the pre-sign-out step', async () => {
+    localStorage.setItem('vcb.signDraft', '{"kind":"signup"}');
+    render(<Harness />);
+    await act(async () => screen.getByText('go').click());
+    vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
+    expect(localStorage.getItem('vcb.signDraft')).toBeNull();
+  });
+
   it('shows the unsynced dialog when the helper reports unsynced writes', async () => {
     vi.mocked(signOutAndClearLocalData).mockResolvedValueOnce('unsynced');
     render(<Harness />);

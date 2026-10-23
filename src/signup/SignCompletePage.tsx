@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AuthShell } from '../auth/AuthShell';
 import { sendSigningLink } from '../auth/reauth';
 import { useSignOut } from '../auth/useSignOut';
@@ -7,12 +8,13 @@ import { usePageMeta } from '../layout/usePageMeta';
 import { readSignDraft } from '../legal/signDraft';
 import { commitSignDraft } from './signingApi';
 
-type View = 'working' | 'linkExpired' | 'noDraft' | 'wrongAccount' | 'error' | 'linkSent';
+type View = 'working' | 'linkExpired' | 'noDraft' | 'wrongLink' | 'wrongAccount' | 'error' | 'linkSent';
 
 /** /sign/complete: the landing page of the signing link; commits the saved draft once. */
 export function SignCompletePage() {
   usePageMeta({ title: 'Completing sign-up' });
   const { signOut, unsyncedDialog } = useSignOut();
+  const nonce = useSearchParams()[0].get('sign');
   const [view, setView] = useState<View>('working');
   const [busy, setBusy] = useState(false);
   const [resendError, setResendError] = useState(false);
@@ -22,7 +24,7 @@ export function SignCompletePage() {
   const run = useCallback(async () => {
     setView('working');
     try {
-      const outcome = await commitSignDraft();
+      const outcome = await commitSignDraft(nonce);
       if (outcome === 'done' || outcome === 'alreadyDone') {
         // Same-uid re-sign-in fires no auth event: a reload refreshes memberships and the club.
         window.location.assign('/');
@@ -32,7 +34,7 @@ export function SignCompletePage() {
     } catch {
       setView('error');
     }
-  }, []);
+  }, [nonce]);
 
   useEffect(() => {
     if (started.current) return;
@@ -49,7 +51,7 @@ export function SignCompletePage() {
     setBusy(true);
     setResendError(false);
     try {
-      await sendSigningLink(draft.email);
+      await sendSigningLink(draft.email, draft.nonce);
       setView('linkSent');
     } catch {
       setResendError(true);
@@ -77,7 +79,13 @@ export function SignCompletePage() {
 
       {view === 'noDraft' && (
         <p className="text-center text-slate">
-          Open the link in the browser where you started. Nothing was saved in this one.
+          There is no signing in progress in this browser. If you started in another browser, open the link there.
+        </p>
+      )}
+
+      {view === 'wrongLink' && (
+        <p className="text-center text-slate">
+          This link doesn&apos;t match the signing in progress in this browser. Open the latest link we sent you.
         </p>
       )}
 

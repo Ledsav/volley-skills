@@ -4,7 +4,9 @@ import type { LegalDocId, LegalLang } from './versions';
 const FILES = import.meta.glob('./content/*/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 export function rawLegalText(doc: LegalDocId, version: string, lang: LegalLang): string | null {
-  return FILES[`./content/${lang}/${doc}-${version}.md`] ?? null;
+  const raw = FILES[`./content/${lang}/${doc}-${version}.md`];
+  // CRLF checkouts must not change hashes or clause parsing.
+  return raw === undefined ? null : raw.replace(/\r\n/g, '\n');
 }
 
 const ADDRESS_MARKER = '[to be completed: operator address]';

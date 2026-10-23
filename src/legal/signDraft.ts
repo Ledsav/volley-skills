@@ -1,5 +1,5 @@
 import type { ClubLocale } from '../types/club';
-import type { LegalLang } from './versions';
+import { LEGAL_LANGS, type LegalLang } from './versions';
 
 type Common = {
   email: string;
@@ -36,7 +36,13 @@ export function readSignDraft(now: number, storage: Storage = localStorage): Sig
     if (!d || typeof d !== 'object') return null;
     if (d.kind !== 'signup' && d.kind !== 'reaccept') return null;
     if (typeof d.clubId !== 'string' || typeof d.email !== 'string' || typeof d.savedAt !== 'number') return null;
-    if (d.kind === 'signup' && (!d.club || typeof d.club.name !== 'string')) return null;
+    const strings = [d.personName, d.termsVersion, d.dpaVersion, d.subprocessorsVersion];
+    if (strings.some((v) => typeof v !== 'string')) return null;
+    if (!LEGAL_LANGS.includes(d.language)) return null;
+    if (d.kind === 'signup') {
+      const c = d.club;
+      if (!c || typeof c.name !== 'string' || typeof c.country !== 'string' || typeof c.locale !== 'string') return null;
+    }
     if (now - d.savedAt > DRAFT_TTL_MS) return null;
     return d;
   } catch {

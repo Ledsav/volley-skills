@@ -39,6 +39,17 @@ export function ClubGate({ children }: { children: ReactNode }) {
     }
     default: {
       if (role === 'admin' && needsReview(club?.legal ?? null, now)) {
+        // The club chose to end the contract instead: it keeps full use under the terms it accepted.
+        if (club?.termination?.requestedAt) {
+          return (
+            <>
+              <div role="status" className="border-b border-orange bg-orange/10 px-4 py-2 text-sm text-ink">
+                Your club ended the contract instead of accepting the updated terms. The terms you accepted apply until it ends.
+              </div>
+              {children}
+            </>
+          );
+        }
         // P10: the operator cannot accept for a club, so they get a notice instead of the blocking screen.
         if (!isPlatformAdmin) return <LegalReviewScreen />;
         return (

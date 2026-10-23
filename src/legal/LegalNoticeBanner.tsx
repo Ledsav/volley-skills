@@ -14,6 +14,11 @@ function isDismissed(key: string): boolean {
   }
 }
 
+const DOC_NAME: Record<'terms' | 'dpa', { title: string; verb: string }> = {
+  terms: { title: 'Terms of Service', verb: 'take' },
+  dpa: { title: 'Data Processing Agreement', verb: 'takes' },
+};
+
 const fmt = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -32,8 +37,10 @@ export function LegalNoticeBanner() {
       key: keyOf(doc, v.version),
       node: (
         <>
-          Updated terms take effect on {fmt(v.effectiveFrom)} —{' '}
-          <Link className="text-blue underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>review</Link>
+          Updated {DOC_NAME[doc].title} {DOC_NAME[doc].verb} effect on {fmt(v.effectiveFrom)} —{' '}
+          <Link className="text-blue underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>
+            review<span className="sr-only"> the {DOC_NAME[doc].title}</span>
+          </Link>
         </>
       ),
     });

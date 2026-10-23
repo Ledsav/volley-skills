@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { clauseIds, extractClause, rawLegalText, substitutePlaceholders } from './legalDocs';
 import { OPERATOR } from './operator';
 import { DRAFT_BANNER, LEGAL_LANGS, type LegalDocId } from './versions';
@@ -10,8 +10,20 @@ describe('substitutePlaceholders', () => {
     expect(substitutePlaceholders('{{OPERATOR_NAME}}, {{OPERATOR_ADDRESS}}, {{OPERATOR_COUNTRY}}.{{OPERATOR_VAT}}', 'en', op))
       .toBe('Alberto Valdes Rey, [to be completed: operator address], Luxembourg.');
   });
-  it('localizes the country', () => {
-    expect(substitutePlaceholders('{{OPERATOR_COUNTRY}}', 'it', op)).toBe('Lussemburgo');
+  it('localizes the country from a fixed map, not the browser', () => {
+    // Signed texts must not depend on the browser's Intl data.
+    const spy = vi.spyOn(Intl, 'DisplayNames').mockImplementation(() => {
+      throw new Error('Intl.DisplayNames must not be used for legal texts');
+    });
+    try {
+      const names = LEGAL_LANGS.map((lang) => substitutePlaceholders('{{OPERATOR_COUNTRY}}', lang, op));
+      expect(names).toEqual(['Luxembourg', 'Lussemburgo', 'Luxembourg', 'Luxemburg', 'Luxemburgo']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+  it('refuses an operator country without fixed names', () => {
+    expect(() => substitutePlaceholders('{{OPERATOR_COUNTRY}}', 'en', { ...op, country: 'BE' })).toThrow(/BE/);
   });
   it('renders the vat and registration sentences', () => {
     expect(substitutePlaceholders('{{OPERATOR_VAT}}', 'en', { ...op, vat: 'LU123' })).toContain('VAT: LU123.');

@@ -251,6 +251,13 @@ From the bulk-import and quota-protection reviews:
 - [ ] **Fill the operator address in `src/legal/operator.ts`** — the legal texts
       show a marker while `address` is null. Registration and VAT stay empty (the
       operator is an individual) and their lines are omitted.
+- [ ] **Fill the address and pass the lawyer gate BEFORE the first production
+      acceptance** — the migrated club's owner accepts on first visit, and from then on
+      a signed version must never change (its hash is stored with the acceptance). A
+      version id covers the file, the `operator.ts` values and the fixed country names
+      in `legalDocs.ts`; `src/legal/published.test.ts` pins the SHA-256 of every
+      published text. Before the first acceptance, update the pins in place; after it,
+      ship any change (address, lawyer edits) as a new version id in `versions.json`.
 - [ ] **Lawyer review of each language a club signs in, before any outside club is
       activated (launch gate).** Questions collected while building:
   - Is fresh email-link re-authentication enough as "specific written approval"
@@ -273,7 +280,10 @@ From the bulk-import and quota-protection reviews:
 - [ ] **Verify in the Auth emulator that `auth_time` is fresh after the signing link**
       (club-platform spec §11); record the result here. Do the same check once in
       production (decode the ID token after a signing link; read `auth_time` and
-      `firebase.sign_in_provider`).
+      `firebase.sign_in_provider`). Do the production check while already signed in
+      as the same account: the emulator derives `auth_time` from the user's last
+      login on every refresh, production keeps it per session, so a stale `User`
+      object only shows its old `auth_time` in production.
 - [ ] **Keep Email/Password sign-in DISABLED in the Firebase console** — it reports the
       same `password` provider as email-link sign-in and would count as a signature.
 - [ ] **Tick SECURITY-OPERATIONS rows 6-8** (BitLocker, external drive, weekly backup)

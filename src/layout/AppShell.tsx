@@ -9,6 +9,7 @@ import { usePendingSignups } from '../interest/usePendingSignups';
 import { Logo } from '../components/Logo';
 import { useNotify } from '../components/Notice';
 import { ContractEndingBanner } from '../clubs/ContractEndingBanner';
+import { LegalNoticeBanner } from '../legal/LegalNoticeBanner';
 import { otherUsableClubs } from '../clubs/activeClub';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
@@ -150,6 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           would otherwise stretch the whole page past the viewport. */}
       <div className="min-w-0 flex-1 pb-16 lg:pb-0">
         <ContractEndingBanner />
+        <LegalNoticeBanner />
         {/* One content width for every page: long lines on a wide monitor are hard to scan. */}
         <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto w-full max-w-screen-xl focus:outline-none">
           {children}

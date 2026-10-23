@@ -1,4 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { Timestamp } from 'firebase/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContractTab } from './ContractTab';
@@ -7,6 +9,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { authValue, clubAdminAccess, testClub } from '../../test/authValue';
 import type { Club } from '../../types/club';
 
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 const notify = vi.hoisted(() => vi.fn());
 const operator = vi.hoisted(() => ({ OPERATOR_CONTACT_EMAIL: null as string | null }));
 
@@ -117,5 +120,13 @@ describe('ContractTab', () => {
     operator.OPERATOR_CONTACT_EMAIL = 'ops@example.com';
     render(<ContractTab />);
     expect(screen.getByText(/ops@example\.com/)).toBeInTheDocument();
+  });
+
+  it('links the accepted Terms and DPA versions and the sub-processors list', () => {
+    signIn({ legal: { versionKey: 'terms-2026-10-22_dpa-2026-10-22', acceptedAt: Timestamp.fromDate(T1), acceptedBy: 'owner@example.com' } });
+    render(<ContractTab />);
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/legal/terms?v=2026-10-22');
+    expect(screen.getByRole('link', { name: 'DPA' })).toHaveAttribute('href', '/legal/dpa?v=2026-10-22');
+    expect(screen.getByRole('link', { name: 'Sub-processors' })).toHaveAttribute('href', '/legal/subprocessors');
   });
 });

@@ -101,4 +101,56 @@ describe('ClubGate', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Profile' }));
     for (const input of screen.getAllByRole('textbox')) expect(input).toBeDisabled();
   });
+
+  describe('legal review', () => {
+    const current = { versionKey: 'terms-2026-10-22_dpa-2026-10-22', acceptedAt: null, acceptedBy: 'owner@example.com' };
+    const renderGate = () =>
+      render(
+        <MemoryRouter>
+          <ClubGate>
+            <p>Protected content</p>
+          </ClubGate>
+        </MemoryRouter>
+      );
+
+    it('blocks an admin whose club has not accepted with the accept screen', () => {
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ legal: null }), role: 'admin', access: clubAdminAccess }));
+      renderGate();
+      expect(screen.getByRole('heading', { name: 'Accept the Terms and DPA' })).toBeInTheDocument();
+      expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
+    });
+
+    it('shows a member the app even when the club has not accepted', () => {
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ legal: null }), role: 'member' }));
+      renderGate();
+      expect(screen.getByText('Protected content')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Accept the Terms and DPA' })).not.toBeInTheDocument();
+    });
+
+    it('shows a platform admin who is a club admin the app plus a notice naming the owner', () => {
+      vi.mocked(useAuth).mockReturnValue(
+        authValue({ club: testClub({ legal: null }), role: 'admin', access: clubAdminAccess, isPlatformAdmin: true })
+      );
+      renderGate();
+      expect(screen.getByText('Protected content')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'This club has not accepted the current Terms and DPA. Only owner@example.com or another club admin can accept them; the platform operator cannot.'
+      );
+      expect(screen.queryByRole('heading', { name: 'Accept the Terms and DPA' })).not.toBeInTheDocument();
+    });
+
+    it('shows an admin with the current key the app', () => {
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ legal: current }), role: 'admin', access: clubAdminAccess }));
+      renderGate();
+      expect(screen.getByText('Protected content')).toBeInTheDocument();
+    });
+
+    it('titles the screen as a review when an older version was accepted', () => {
+      vi.mocked(useAuth).mockReturnValue(
+        authValue({ club: testClub({ legal: { ...current, versionKey: 'terms-2026-01-01_dpa-2026-01-01' } }), role: 'admin', access: clubAdminAccess })
+      );
+      renderGate();
+      expect(screen.getByRole('heading', { name: 'Review the updated Terms and DPA' })).toBeInTheDocument();
+    });
+  });
 });

@@ -3,7 +3,9 @@ import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useNotify } from '../../components/Notice';
+import { Link } from 'react-router-dom';
 import { OPERATOR_CONTACT_EMAIL } from '../../legal/operator';
+import { parseVersionKey } from '../../legal/versions';
 import { CLUB_STATUS_LABEL } from '../statusLabels';
 import { requestTermination } from '../clubAdminApi';
 
@@ -26,6 +28,7 @@ export function ContractTab() {
   if (!club) return null;
 
   const { termination, legal } = club;
+  const accepted = legal ? parseVersionKey(legal.versionKey) : null;
   const effective = termination.effectiveAt?.toDate();
   const retrieval = termination.retrievalEndsAt?.toDate();
   const requestedAt = termination.requestedAt?.toDate();
@@ -57,6 +60,15 @@ export function ContractTab() {
           {legal
             ? `${legal.versionKey}, accepted ${legal.acceptedAt ? `${fmt(legal.acceptedAt.toDate())} ` : ''}by ${legal.acceptedBy}`
             : 'Not yet accepted'}
+          <span className="mt-1 flex flex-wrap gap-x-4">
+            {accepted && (
+              <>
+                <Link className="text-blue underline" to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>Terms</Link>
+                <Link className="text-blue underline" to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>DPA</Link>
+              </>
+            )}
+            <Link className="text-blue underline" to="/legal/subprocessors">Sub-processors</Link>
+          </span>
         </Row>
       </dl>
 

@@ -10,6 +10,12 @@ vi.mock('../auth/AuthContext');
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: vi.fn() }));
 const sendSigningLink = vi.fn().mockResolvedValue(undefined);
 vi.mock('../auth/reauth', () => ({ sendSigningLink: (...a: unknown[]) => sendSigningLink(...a) }));
+const inForceSpy = vi.hoisted(() => vi.fn());
+vi.mock('../legal/versions', async (orig) => {
+  const real = await orig<typeof import('../legal/versions')>();
+  inForceSpy.mockImplementation(real.inForce);
+  return { ...real, inForce: (...a: Parameters<typeof real.inForce>) => inForceSpy(...a) };
+});
 vi.mock('./newClubId', () => ({ newClubId: () => 'abcdefghij0123456789' }));
 
 const renderPage = () => render(<MemoryRouter><SignupPage /></MemoryRouter>);
@@ -79,5 +85,25 @@ describe('SignupPage', () => {
       kind: 'signup', clubId: 'abcdefghij0123456789', email: 'user@example.com', personName: 'Ann Coach',
       club: { name: 'Test VC', country: 'BE', locale: 'en' }, language: 'en',
     });
+  });
+});
+
+describe('SignupPage versions', () => {
+  it('keeps the versions it had on mount after the clock passes a new effective date', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-23T10:00:00Z'));
+    try {
+      vi.mocked(useAuth).mockReturnValue(authValue({ memberships: [], activeClubId: null, club: null }));
+      inForceSpy.mockClear();
+      const { rerender } = renderPage();
+      const calls = inForceSpy.mock.calls.length;
+      expect(calls).toBeGreaterThan(0);
+      vi.setSystemTime(new Date('2027-03-01T10:00:00Z'));
+      rerender(<MemoryRouter><SignupPage /></MemoryRouter>);
+      fireEvent.change(screen.getByLabelText('Club name'), { target: { value: 'Test VC' } });
+      expect(inForceSpy.mock.calls.length).toBe(calls);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

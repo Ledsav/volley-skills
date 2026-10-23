@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { clauseIds, extractClause, legalText, rawLegalText } from './legalDocs';
-import { SPECIFIC_CLAUSE_IDS } from './specificClauses';
+import { SPECIFIC_CLAUSE_IDS, specificClauses } from './specificClauses';
 import { DRAFT_BANNER, SPECIFIC_SENTENCE } from './versions';
 
 /** Terms clause ids in legal design §3 table order (T24 sits after T13). */
@@ -34,5 +34,65 @@ describe('terms en', () => {
     expect(raw).toContain('{{OPERATOR_ADDRESS}}');
     expect(raw).toContain('{{FREE_USE_LIABILITY_CAP}}');
     expect(raw).toContain('English version prevails');
+  });
+});
+
+/** DPA clause ids in legal design §4 order; the annexes follow D12. */
+export const DPA_IDS = ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12'];
+
+describe('other docs en', () => {
+  const dpa = rawLegalText('dpa', '2026-10-22', 'en') ?? '';
+  const subprocessors = rawLegalText('subprocessors', '2026-10-22', 'en') ?? '';
+  const privacy = rawLegalText('privacy', '2026-10-22', 'en') ?? '';
+  const dpiaPack = rawLegalText('dpia-pack', '2026-10-22', 'en') ?? '';
+
+  it('DPA has every clause in order and the three annexes after D12', () => {
+    expect(clauseIds(dpa)).toEqual(DPA_IDS);
+    const d12 = dpa.indexOf('\n## D12.');
+    for (const annex of ['## Annex I.', '## Annex II.', '## Annex III.']) {
+      expect(dpa).toContain(`\n${annex}`);
+      expect(dpa.indexOf(`\n${annex}`)).toBeGreaterThan(d12);
+    }
+  });
+
+  it('DPA states the breach window, backup expiry and support rate, and names no audit logs', () => {
+    expect(dpa).toContain('48 hours');
+    expect(dpa).toContain('35 days');
+    expect(dpa).toContain('{{SUPPORT_HOURLY_RATE}}');
+    expect(dpa.toLowerCase()).not.toContain('audit log');
+  });
+
+  it('extracts the specific clauses in P4 order, each ending with the specific sentence', () => {
+    const clauses = specificClauses('2026-10-22', '2026-10-22', 'en');
+    expect(clauses.map((c) => c.id)).toEqual([...SPECIFIC_CLAUSE_IDS.terms, ...SPECIFIC_CLAUSE_IDS.dpa]);
+    for (const c of clauses) expect(c.text.endsWith(SPECIFIC_SENTENCE.en), c.id).toBe(true);
+  });
+
+  it('sub-processor list names Google, Firebase Authentication, reCAPTCHA and the AI provider exclusion', () => {
+    expect(subprocessors).toContain('Google Ireland');
+    expect(subprocessors).toContain('Firebase Authentication');
+    expect(subprocessors).toContain('reCAPTCHA');
+    expect(subprocessors).toMatch(/^## .*not sub-processors/im);
+    expect(subprocessors).toMatch(/AI provider/);
+  });
+
+  it('privacy notice states both roles, the CNPD, the privacy contact and the storage keys', () => {
+    for (const s of ['controller', 'processor', 'CNPD', '{{OPERATOR_PRIVACY_EMAIL}}', 'vcb.activeClub', 'vcb.signDraft', 'emailForSignIn']) {
+      expect(privacy, s).toContain(s);
+    }
+  });
+
+  it('DPIA pack covers minors, profiling, photos, AI and a checklist', () => {
+    for (const s of ['minors', 'profiling', 'photos', 'AI', 'checklist']) expect(dpiaPack, s).toContain(s);
+  });
+
+  it('every document carries the banner after its title and renders', () => {
+    for (const doc of ['dpa', 'subprocessors', 'privacy', 'dpia-pack'] as const) {
+      const raw = rawLegalText(doc, '2026-10-22', 'en') ?? '';
+      const lines = raw.split('\n');
+      expect(lines[0], doc).toMatch(/^# \S/);
+      expect(raw, doc).toContain(`> **${DRAFT_BANNER.en}.**`);
+      expect(() => legalText(doc, '2026-10-22', 'en'), doc).not.toThrow();
+    }
   });
 });

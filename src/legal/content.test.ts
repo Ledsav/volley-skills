@@ -96,3 +96,43 @@ describe('other docs en', () => {
     }
   });
 });
+
+const placeholders = (s: string): string[] => [...new Set(s.match(/\{\{[A-Z_]+\}\}/g) ?? [])].sort();
+const DOCS = ['terms', 'dpa', 'subprocessors', 'privacy', 'dpia-pack'] as const;
+
+describe.each(['it'] as const)('translations %s', (lang) => {
+  const raw = (doc: (typeof DOCS)[number]) => rawLegalText(doc, '2026-10-22', lang) ?? '';
+  const en = (doc: (typeof DOCS)[number]) => rawLegalText(doc, '2026-10-22', 'en') ?? '';
+
+  it('keeps the clause ids of the English texts', () => {
+    expect(clauseIds(raw('terms'))).toEqual(TERMS_IDS);
+    expect(clauseIds(raw('dpa'))).toEqual(DPA_IDS);
+  });
+
+  it('carries the draft banner in all five documents', () => {
+    for (const doc of DOCS) expect(raw(doc), doc).toContain(DRAFT_BANNER[lang]);
+  });
+
+  it('ends every specific-approval clause with the specific sentence', () => {
+    for (const doc of ['terms', 'dpa'] as const) {
+      for (const id of SPECIFIC_CLAUSE_IDS[doc]) {
+        const clause = extractClause(raw(doc), id);
+        expect(clause?.text, `${doc} ${id}`).toBeTruthy();
+        expect(clause!.text.endsWith(SPECIFIC_SENTENCE[lang]), `${doc} ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('renders all five documents', () => {
+    for (const doc of DOCS) expect(() => legalText(doc, '2026-10-22', lang), doc).not.toThrow();
+  });
+
+  it('uses the same placeholders as the English texts', () => {
+    for (const doc of DOCS) expect(placeholders(raw(doc)), doc).toEqual(placeholders(en(doc)));
+  });
+
+  it('has three annex headings in the DPA', () => {
+    expect(raw('dpa').match(/^## (?!D\d)/gm)?.length).toBe(en('dpa').match(/^## (?!D\d)/gm)?.length);
+    expect(raw('dpa').match(/^## \S+ (I|II|III)\./gm)?.length).toBe(3);
+  });
+});

@@ -42,4 +42,20 @@ describe('signDraft', () => {
     expect(readSignDraft(2000, bad)).toBeNull();
     expect(() => clearSignDraft(bad)).not.toThrow();
   });
+  it.each([
+    ['personName', undefined],
+    ['termsVersion', 5],
+    ['dpaVersion', undefined],
+    ['subprocessorsVersion', null],
+    ['language', 'xx'],
+    ['language', undefined],
+  ])('returns null when %s is invalid', (field, value) => {
+    localStorage.setItem(SIGN_DRAFT_KEY, JSON.stringify({ ...draft, [field]: value }));
+    expect(readSignDraft(2000)).toBeNull();
+  });
+  it.each(['name', 'country', 'locale'])('returns null for a sign-up draft missing club.%s', (field) => {
+    const club = { name: 'VC', country: 'LU', locale: 'en', [field]: undefined };
+    localStorage.setItem(SIGN_DRAFT_KEY, JSON.stringify({ ...draft, kind: 'signup', club }));
+    expect(readSignDraft(2000)).toBeNull();
+  });
 });

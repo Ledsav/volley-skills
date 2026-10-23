@@ -57,10 +57,15 @@ export async function commitSignDraft(user: User, now: number = Date.now()): Pro
   } catch (e) {
     if ((e as { code?: string }).code !== 'permission-denied') throw e;
     // A retry is refused (club or acceptance exists); if our acceptance is there, it already worked.
-    const snap = await getDoc(acceptanceRef);
-    if (snap.exists() && (snap.data() as { acceptedBy?: string } | undefined)?.acceptedBy === email) {
-      return finish('alreadyDone');
+    let ours = false;
+    try {
+      const snap = await getDoc(acceptanceRef);
+      ours = snap.exists() && (snap.data() as { acceptedBy?: string } | undefined)?.acceptedBy === email;
+    } catch {
+      /* the check itself failed (denied, offline): report the original error below */
     }
+    // For a sign-up, make sure the new club is the active one when the earlier attempt already created it.
+    if (ours) return finish('alreadyDone');
     throw e;
   }
   return finish('done');

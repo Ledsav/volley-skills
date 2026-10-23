@@ -109,4 +109,37 @@ describe('commitSignDraft', () => {
     await expect(commitSignDraft(fresh(), NOW)).rejects.toBeDefined();
     expect(m.getDoc).not.toHaveBeenCalled();
   });
+  it('keeps the original error when the already-done read fails, and the draft', async () => {
+    saveSignDraft(signup);
+    m.batch.commit.mockRejectedValue({ code: 'permission-denied' });
+    m.getDoc.mockRejectedValue({ code: 'permission-denied', note: 'read' });
+    await expect(commitSignDraft(fresh(), NOW)).rejects.toEqual({ code: 'permission-denied' });
+    expect(readSignDraft(NOW)).not.toBeNull();
+  });
+  it('rethrows the original error when the acceptance belongs to someone else', async () => {
+    saveSignDraft(signup);
+    m.batch.commit.mockRejectedValue({ code: 'permission-denied' });
+    m.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ acceptedBy: 'other@b.c' }) });
+    await expect(commitSignDraft(fresh(), NOW)).rejects.toEqual({ code: 'permission-denied' });
+    expect(readSignDraft(NOW)).not.toBeNull();
+  });
+  it('passes lowercased, well-formed data to the batch', async () => {
+    saveSignDraft({ ...signup, email: 'A@B.C' });
+    expect(await commitSignDraft(fresh(), NOW)).toBe('done');
+    const [club, member, acc] = m.batch.set.mock.calls;
+    expect(club[1]).toMatchObject({ name: 'VC', country: 'LU', ownerEmail: 'a@b.c', status: 'pending', legal: { versionKey: KEY, acceptedBy: 'a@b.c' } });
+    expect(member[0]).toBe(`clubs/${ID}/members/a@b.c`);
+    expect(member[1]).toMatchObject({ email: 'a@b.c', clubId: ID, role: 'admin' });
+    expect(acc[1]).toMatchObject({ versionKey: KEY, acceptedBy: 'a@b.c', acceptedAt: 'TS' });
+  });
+  it('passes the acceptance and legal update for a re-acceptance', async () => {
+    saveSignDraft(reaccept);
+    await commitSignDraft(fresh(), NOW);
+    expect(m.batch.set.mock.calls[0][1]).toMatchObject({ versionKey: KEY, acceptedBy: 'a@b.c', acceptedAt: 'TS' });
+    expect(m.batch.update.mock.calls[0][1]).toEqual({ legal: { versionKey: KEY, acceptedAt: 'TS', acceptedBy: 'a@b.c' } });
+  });
+  it('accepts an uppercase draft email for a lowercase user email', async () => {
+    saveSignDraft({ ...reaccept, email: 'A@B.C' });
+    expect(await commitSignDraft(fresh(), NOW)).toBe('done');
+  });
 });

@@ -73,7 +73,7 @@ describe('App', () => {
   it('renders the public privacy page without authentication', async () => {
     window.history.pushState({}, '', '/privacy');
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'Privacy Policy' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Privacy notice' })).toBeInTheDocument();
   });
 
   it('renders the 404 page for an unknown URL', async () => {

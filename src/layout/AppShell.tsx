@@ -132,6 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               ...(isPlatformAdmin ? [{ kind: 'action' as const, label: 'Platform', icon: <Building2 size={16} />, onSelect: () => navigate('/platform') }] : []),
               { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
               { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
+              { kind: 'action', label: 'Legal', onSelect: () => navigate('/legal/terms') },
               ...otherClubs.map((m) => ({
                 kind: 'action' as const,
                 label: `Switch to ${m.clubName}`,

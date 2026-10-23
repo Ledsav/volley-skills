@@ -18,6 +18,7 @@ import { GuidesPage } from './admin/GuidesPage';
 import { ExercisesPage } from './exercises/ExercisesPage';
 import { TrainingsPage } from './trainings/TrainingsPage';
 import { PrivacyPage } from './legal/PrivacyPage';
+import { LegalDocPage } from './legal/LegalDocPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { ClubAreaPage } from './clubs/area/ClubAreaPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
@@ -51,6 +52,7 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/finish-sign-in" element={<FinishSignInPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/legal/:doc" element={<LegalDocPage />} />
             <Route path="/request-access" element={<RequestAccessPage />} />
             <Route
               path="/platform"

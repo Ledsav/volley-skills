@@ -1,8 +1,17 @@
 /** The only routes search engines may index (spec D3). */
-export const PUBLIC_ROUTES = ['/login', '/privacy', '/request-access'] as const;
+export const PUBLIC_ROUTES = [
+  '/login', '/privacy', '/request-access', '/signup',
+  '/legal/terms', '/legal/dpa', '/legal/subprocessors', '/legal/dpia-pack',
+] as const;
 
-/** Private areas: path prefixes only, never IDs (robots.txt is public). */
-const PRIVATE_PREFIXES = ['/teams', '/exercises', '/trainings', '/admin', '/settings', '/finish-sign-in'] as const;
+/**
+ * Private areas: path prefixes only, never IDs (robots.txt is public). A prefix
+ * ending in '/' covers only what is below it, so the public '/signup' stays indexable.
+ */
+export const PRIVATE_PREFIXES = [
+  '/teams', '/exercises', '/trainings', '/admin', '/settings', '/finish-sign-in',
+  '/club', '/platform', '/signup/', '/sign/', '/welcome',
+] as const;
 
 export function robotsTxt(origin: string): string {
   return [
@@ -21,5 +30,5 @@ export function sitemapXml(origin: string): string {
 
 /** Firebase Hosting `source` globs that must carry `X-Robots-Tag: noindex, nofollow`. */
 export function noindexHeaderSources(): string[] {
-  return ['/', ...PRIVATE_PREFIXES.flatMap((p) => [p, `${p}/**`])];
+  return ['/', ...PRIVATE_PREFIXES.flatMap((p) => (p.endsWith('/') ? [`${p}**`] : [p, `${p}/**`]))];
 }

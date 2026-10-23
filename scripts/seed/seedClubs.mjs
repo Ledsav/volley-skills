@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seeds two more clubs next to the demo club, to try the multi-club app locally:
+// Seeds three more clubs next to the demo club, to try the multi-club app locally:
 //
 //   clubs/rival     "Rival Volley"  active   admin rival@example.com   (one team, two players, one exercise; AI and growth tests off)
 //   clubs/newclub   "New Club"      pending  admin pending@example.com (nothing else; legal accepted)
@@ -103,6 +103,6 @@ await writeClub(db, { id: 'review', name: 'Review Club', status: 'active', admin
 
 await db.doc(`platformAdmins/${OPERATOR}`).set({ addedBy: 'seed-script', addedAt: now });
 
-console.log('Done. clubs/rival (active: 1 team, 2 players, 1 exercise) clubs/newclub (pending) and clubs/review (active, legal not accepted); platformAdmins/' + OPERATOR + ' (no club).');
-console.log(`Sign in as ${RIVAL_ADMIN} (Rival Volley), ${PENDING_ADMIN} (pending screen) ${REVIEW_ADMIN} (blocking review screen) or nobody@example.com (welcome page).`);
+console.log('Done. clubs/rival (active: 1 team, 2 players, 1 exercise), clubs/newclub (pending) and clubs/review (active, legal not accepted); platformAdmins/' + OPERATOR + ' (no club).');
+console.log(`Sign in as ${RIVAL_ADMIN} (Rival Volley), ${PENDING_ADMIN} (pending screen), ${REVIEW_ADMIN} (blocking review screen) or nobody@example.com (welcome page).`);
 process.exit(0);

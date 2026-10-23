@@ -123,7 +123,9 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           {props.storyLabel}
         </label>
         <label className="text-sm text-slate">Background image
-          <input type="file" accept="image/*" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
+          <input type="file" accept="image/*" aria-describedby="awards-background-hint" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
+          {/* Photos of minors are used only with recorded consent (Terms T7); a background has none. */}
+          <span id="awards-background-hint" className="block text-xs">Don&apos;t use photos that show players.</span>
         </label>
         {props.hasBackground && <Button variant="ghost" size="sm" onClick={() => props.onBackground(null)}>Remove background</Button>}
         <label className="text-sm text-slate">Names on cards

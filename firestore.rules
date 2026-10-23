@@ -102,7 +102,7 @@ service cloud.firestore {
       }
 
       // Club admins edit the profile of an active (or still pending) club.
-      // `legal` is not editable until Plan 3 (re-acceptance).
+      // `legal` changes only through legalReaccept() below.
       function clubAdminProfileChange() {
         let next = request.resource.data;
         return isClubAdmin()
@@ -132,11 +132,75 @@ service cloud.firestore {
           && next.requestedBy == email();
       }
 
+      function acceptancePath(v) { return /databases/$(database)/documents/clubs/$(clubId)/acceptances/$(v); }
+
+      // The club's `legal` field as the signer writes it: their own email, now.
+      function validLegal(legal) {
+        return legal is map
+          && legal.keys().hasOnly(['versionKey','acceptedAt','acceptedBy'])
+          && legal.keys().hasAll(['versionKey','acceptedAt','acceptedBy'])
+          && legal.versionKey is string
+          && legal.acceptedAt == request.time
+          && legal.acceptedBy == email();
+      }
+
+      // Self sign-up (spec §6.3): the pending club, the signer's admin member doc and
+      // the acceptance in one batch. The club doc does not exist yet, so nothing here
+      // may read it with get(): only request.resource and getAfter/existsAfter.
+      // The operator cannot sign up: the acceptance create refuses platform admins.
+      function signUpCreate() {
+        let next = request.resource.data;
+        let fields = ['name','country','locale','ownerEmail','aiEnabled','referenceOptOut','growthTestsEnabled',
+                      'createdAt','status','statusReason','statusChangedAt','statusChangedBy','lastStatusLogId',
+                      'legal','termination','billing'];
+        let member = /databases/$(database)/documents/clubs/$(clubId)/members/$(email());
+        return signedIn()
+          && next.keys().hasOnly(fields) && next.keys().hasAll(fields)
+          && next.status == 'pending'
+          && next.ownerEmail == email()
+          && next.createdAt == request.time
+          // New clubs start with every opt-in off (spec §3.1, decision P11).
+          && next.aiEnabled == false
+          && next.referenceOptOut == false
+          && next.growthTestsEnabled == false
+          && next.statusReason == null
+          && next.statusChangedAt == null
+          && next.statusChangedBy == null
+          && next.lastStatusLogId == null
+          && next.billing == null
+          && next.termination == {'requestedAt': null, 'requestedBy': null, 'effectiveAt': null, 'retrievalEndsAt': null}
+          && next.name is string && next.name.size() >= 2 && next.name.size() <= 80
+          && next.country is string && next.country.matches('^[A-Z]{2}$')
+          && next.locale in ['en','it']
+          && validLegal(next.legal)
+          && existsAfter(member)
+          && getAfter(member).data.role == 'admin'
+          && existsAfter(acceptancePath(next.legal.versionKey))
+          && getAfter(acceptancePath(next.legal.versionKey)).data.acceptedBy == email();
+      }
+
+      // A club admin re-accepts new legal versions (spec §6.4): the club's `legal`
+      // points at a fresh acceptance written by the same person in the same batch.
+      // The operator (a club admin of their home club) cannot: the acceptance create
+      // refuses platform admins.
+      function legalReaccept() {
+        let legal = request.resource.data.legal;
+        return isClubAdmin()
+          && (isActive() || resource.data.status == 'pending')
+          && changed().hasOnly(['legal'])
+          && validLegal(legal)
+          // Written in this batch, not an older record (as with lastStatusLogId).
+          && !exists(acceptancePath(legal.versionKey))
+          && existsAfter(acceptancePath(legal.versionKey))
+          && getAfter(acceptancePath(legal.versionKey)).data.acceptedBy == email();
+      }
+
       allow get:  if isMember() || isPlatformAdmin();
       allow list: if isPlatformAdmin();
-      // The sign-up create (pending club + owner member + acceptance in one batch) arrives in Plan 3.
-      allow create, delete: if false;
-      allow update: if platformStatusChange() || clubAdminProfileChange() || terminationRequest();
+      // A set on an existing id is an update, so signUpCreate() only ever sees a new club.
+      allow create: if signUpCreate();
+      allow delete: if false;
+      allow update: if platformStatusChange() || clubAdminProfileChange() || terminationRequest() || legalReaccept();
 
       match /members/{e} {
         function validMember() {
@@ -147,7 +211,18 @@ service cloud.firestore {
             && d.role in ['admin','member'];
         }
         allow read: if activeMember() || exporter() || (isMember() && club().status == 'pending');
-        allow create: if activeAdmin()
+        // The sign-up batch's owner member: only for a club that does not exist yet
+        // and is created, pending and owned by the signer, in the same batch.
+        function signUpMember() {
+          let club = getAfter(clubPath()).data;
+          return signedIn()
+            && !exists(clubPath())
+            && club.status == 'pending'
+            && club.ownerEmail == email()
+            && e == email()
+            && request.resource.data.role == 'admin';
+        }
+        allow create: if (activeAdmin() || signUpMember())
           && validMember()
           && request.resource.data.addedBy == email()
           && request.resource.data.addedAt == request.time;
@@ -178,10 +253,55 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
-      // Immutable legal acceptance records. The sign-up / re-accept create arrives in Plan 3.
+      // Immutable legal acceptance records (spec §6.2), written by the signer in the
+      // sign-up batch or in a re-acceptance batch, never by the operator.
       match /acceptances/{v} {
+        function validAcceptance() {
+          let a = request.resource.data;
+          let fields = ['versionKey','termsVersion','dpaVersion','subprocessorsVersion','language',
+                        'termsSha256','dpaSha256','clausesSha256','specificClauses','acceptedBy',
+                        'acceptedByName','authorityConfirmed','acceptedAt','authTime','userAgent'];
+          return signedIn()
+            && a.keys().hasOnly(fields) && a.keys().hasAll(fields)
+            && a.termsVersion is string && a.dpaVersion is string && a.subprocessorsVersion is string
+            && v == a.versionKey
+            && a.versionKey == 'terms-' + a.termsVersion + '_dpa-' + a.dpaVersion
+            && a.acceptedBy == email()
+            && a.acceptedAt == request.time
+            // Signed within 15 minutes of a fresh sign-in (the signing email link).
+            && a.authTime is int
+            && a.authTime == request.auth.token.auth_time
+            && request.time.toMillis() - a.authTime * 1000 <= 900000
+            && a.authorityConfirmed == true
+            && a.language in ['en','it','fr','de','es']
+            && a.termsSha256 is string && a.termsSha256.matches('^[0-9a-f]{64}$')
+            && a.dpaSha256 is string && a.dpaSha256.matches('^[0-9a-f]{64}$')
+            && a.clausesSha256 is string && a.clausesSha256.matches('^[0-9a-f]{64}$')
+            && a.specificClauses is list
+            && a.acceptedByName is string && a.acceptedByName.size() >= 1 && a.acceptedByName.size() <= 100
+            && a.userAgent is string && a.userAgent.size() <= 300
+            // The operator never signs for a club, not even their home club (spec §6.2).
+            && !isPlatformAdmin();
+        }
+        // Sign-up: the club does not exist yet and is created pending, owned by the
+        // signer, pointing at this record. No get() of the club here.
+        function signUpAcceptance() {
+          let club = getAfter(clubPath()).data;
+          return !exists(clubPath())
+            && club.status == 'pending'
+            && club.ownerEmail == email()
+            && club.legal.versionKey == v;
+        }
+        // Re-acceptance: a club admin of an active or pending club, with the club's
+        // legal pointing at this record after the batch.
+        function reaccept() {
+          return isClubAdmin()
+            && (isActive() || club().status == 'pending')
+            && getAfter(clubPath()).data.legal.versionKey == v;
+        }
         allow read: if isClubAdmin() || isPlatformAdmin();
-        allow write: if false;
+        allow create: if validAcceptance() && (signUpAcceptance() || reaccept());
+        allow update, delete: if false;
       }
 
       // ---- Team subtree --------------------------------------------------------

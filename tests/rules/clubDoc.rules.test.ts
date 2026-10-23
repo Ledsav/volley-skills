@@ -1,7 +1,11 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { buildAcceptance } from '../../src/legal/acceptance';
+import { inForce } from '../../src/legal/versions';
+import { acceptanceDoc, legalUpdate } from '../../src/signup/signupDocs';
 import type { ClubStatus } from '../../src/types/club';
 import {
+  authTimeAgo,
   dbAs,
   getTestEnv,
   OPERATOR,
@@ -555,6 +559,51 @@ describe('club doc rules', () => {
     await assertFails(club.update({ ownerEmail: COACH }));
     await assertFails(club.update({ ownerEmail: 'nobody@example.com' }));
     await assertSucceeds(club.update({ ownerEmail: 'admin2-a@example.com' }));
+  });
+
+  it('refuses a legal update without a matching acceptance', async () => {
+    const env = await getTestEnv();
+    const now = new Date();
+    const authTime = authTimeAgo(60);
+    const a = await buildAcceptance({
+      termsVersion: inForce('terms', now).version,
+      dpaVersion: inForce('dpa', now).version,
+      subprocessorsVersion: inForce('subprocessors', now).version,
+      language: 'en',
+      email: ADMIN,
+      personName: 'Club Officer',
+      authTime,
+      userAgent: 'Mozilla/5.0 (rules test)',
+    });
+    const db = dbAs(env, ADMIN, { authTime });
+    const club = db.doc('clubs/club-a');
+    const withAcceptance = (legal: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+      const batch = db.batch();
+      batch.set(db.doc(`clubs/club-a/acceptances/${a.versionKey}`), acceptanceDoc(a));
+      batch.update(club, { legal, ...extra });
+      return batch.commit();
+    };
+    const { legal } = legalUpdate(a.versionKey, ADMIN);
+
+    // No acceptance at all.
+    await assertFails(club.update({ legal }));
+    // An older acceptance by the same admin, not written in this batch.
+    const OLD = 'terms-2000-01-01_dpa-2000-01-01';
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`clubs/club-a/acceptances/${OLD}`).set({ versionKey: OLD, acceptedBy: ADMIN });
+      await context.firestore().doc('clubs/club-a/acceptances/terms-y_dpa-y').set({ acceptedBy: COACH });
+    });
+    await assertFails(club.update(legalUpdate(OLD, ADMIN)));
+    // An acceptance signed by someone else.
+    await assertFails(club.update(legalUpdate('terms-y_dpa-y', ADMIN)));
+    // With a valid acceptance, the legal field must still be the signer's, now, and nothing else.
+    await assertFails(withAcceptance({ ...legal, acceptedBy: COACH }));
+    await assertFails(withAcceptance({ ...legal, acceptedAt: new Date() }));
+    await assertFails(withAcceptance({ ...legal, extra: 1 }));
+    await assertFails(withAcceptance(legal, { name: 'Renamed in the same write' }));
+    await assertFails(withAcceptance(legal, { status: 'active', statusReason: 'x' }));
+    // Control: the matching batch goes through.
+    await assertSucceeds(withAcceptance(legal));
   });
 
   it('lets a club admin request termination while active or suspended', async () => {

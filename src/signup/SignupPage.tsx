@@ -44,11 +44,15 @@ export function SignupPage() {
   // One id per sign-up attempt, so re-sending the link never produces a second club.
   const clubIdRef = useRef<string | null>(null);
 
-  const versions = {
-    terms: inForce('terms', new Date()).version,
-    dpa: inForce('dpa', new Date()).version,
-    subprocessors: inForce('subprocessors', new Date()).version,
-  };
+  // Frozen on mount so the draft always matches the texts shown, even across an effective date.
+  const [versions] = useState(() => {
+    const now = new Date();
+    return {
+      terms: inForce('terms', now).version,
+      dpa: inForce('dpa', now).version,
+      subprocessors: inForce('subprocessors', now).version,
+    };
+  });
 
   if (memberships.some((m) => m.status === 'pending')) {
     return (

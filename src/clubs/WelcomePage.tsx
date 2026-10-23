@@ -27,6 +27,14 @@ export function WelcomePage() {
             Open the platform page
           </Link>
         )}
+        {!isPlatformAdmin && (
+          <Link
+            to="/signup/club"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-4 py-2 font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          >
+            Create a club
+          </Link>
+        )}
         {others.map((m) => (
           <Button key={m.clubId} variant="primary" onClick={() => switchClub(m.clubId)}>
             Switch to {m.clubName}

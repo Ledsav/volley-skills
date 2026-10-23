@@ -53,3 +53,11 @@ describe('WelcomePage for a platform admin', () => {
     expect(screen.queryByRole('link', { name: 'Open the platform page' })).not.toBeInTheDocument();
   });
 });
+
+describe('WelcomePage create a club', () => {
+  it('offers to create a club', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ memberships: [], activeClubId: null, club: null }));
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Create a club' })).toHaveAttribute('href', '/signup/club');
+  });
+});

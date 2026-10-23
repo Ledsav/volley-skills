@@ -26,7 +26,9 @@ Design: `docs/superpowers/specs/2026-10-22-volley-skills-backup-and-operator-acc
   - on the club's documented request, such as a support case or a restore;
   - when the law requires it.
 - The operator notes each such access in the club's status log, with the date, the
-  reason and who asked. The audit logs (row 5), once on, record it too.
+  reason and who asked, unless it is part of the service's routine automated processing
+  (such as the weekly backup, or the deletion of an ended club's data after its
+  retrieval period). The audit logs (row 5), once on, record it too.
 - Backups are opened only to check that they open, or to restore. A restore of
   production data into the emulator is stopped as soon as the work is done.
 

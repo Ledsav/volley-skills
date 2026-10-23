@@ -139,6 +139,20 @@ describe('ClubGate', () => {
       expect(screen.queryByRole('heading', { name: 'Accept the Terms and DPA' })).not.toBeInTheDocument();
     });
 
+    it('lets an admin through with a notice once the club has ended the contract', () => {
+      const club = testClub({
+        legal: null,
+        termination: { requestedAt: Timestamp.fromMillis(NOW - 1000), requestedBy: 'a@example.com', effectiveAt: null, retrievalEndsAt: null },
+      });
+      vi.mocked(useAuth).mockReturnValue(authValue({ club, role: 'admin', access: clubAdminAccess }));
+      renderGate();
+      expect(screen.getByText('Protected content')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Your club ended the contract instead of accepting the updated terms. The terms you accepted apply until it ends.'
+      );
+      expect(screen.queryByRole('heading', { name: 'Accept the Terms and DPA' })).not.toBeInTheDocument();
+    });
+
     it('shows an admin with the current key the app', () => {
       vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ legal: current }), role: 'admin', access: clubAdminAccess }));
       renderGate();

@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Input } from '../components/Input';
 import { useNotify } from '../components/Notice';
 import { requestTermination } from '../clubs/clubAdminApi';
+import { otherUsableClubs } from '../clubs/activeClub';
 import { MinimalShell } from '../layout/MinimalShell';
 import { DocumentsStep } from '../signup/DocumentsStep';
 import { SpecificApprovalStep } from '../signup/SpecificApprovalStep';
@@ -16,7 +17,8 @@ type Errors = Partial<Record<'person' | 'authority', string>>;
 
 /** Blocks a club admin until they accept the Terms and DPA versions now in force. */
 export function LegalReviewScreen() {
-  const { club, activeClubId, firebaseUser, appUser, isPlatformAdmin } = useAuth();
+  const { club, activeClubId, firebaseUser, appUser, isPlatformAdmin, memberships, switchClub } = useAuth();
+  const others = otherUsableClubs(memberships, activeClubId);
   const notify = useNotify();
   const email = (appUser?.email ?? firebaseUser?.email ?? '').trim().toLowerCase();
   // Frozen on mount so the draft always matches the texts shown, even across an effective date.
@@ -134,6 +136,16 @@ export function LegalReviewScreen() {
               onSend={send}
             />
             <div><Button variant="ghost" onClick={() => setStep(2)}>Back</Button></div>
+          </div>
+        )}
+
+        {others.length > 0 && (
+          <div className="mt-6 flex flex-wrap gap-2">
+            {others.map((m) => (
+              <Button key={m.clubId} variant="secondary" onClick={() => switchClub(m.clubId)}>
+                Switch to {m.clubName}
+              </Button>
+            ))}
           </div>
         )}
 

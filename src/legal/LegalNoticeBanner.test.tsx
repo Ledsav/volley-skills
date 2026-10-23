@@ -22,8 +22,16 @@ describe('LegalNoticeBanner', () => {
 
   it('shows the effective date and a link to the new version', () => {
     renderBanner();
-    expect(screen.getByRole('status')).toHaveTextContent(/Updated terms take effect on .*2026.* — review/);
-    expect(screen.getByRole('link', { name: 'review' })).toHaveAttribute('href', '/legal/terms?v=2026-12-01');
+    const date = new Date('2026-12-01T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    expect(screen.getByRole('status')).toHaveTextContent(`Updated Terms of Service take effect on ${date} — review`);
+    expect(screen.getByRole('link', { name: 'review the Terms of Service' })).toHaveAttribute('href', '/legal/terms?v=2026-12-01');
+  });
+
+  it('names the DPA separately', () => {
+    upcomingMock.mockImplementation((doc: string) => (doc === 'dpa' ? next : null));
+    renderBanner();
+    expect(screen.getByRole('status')).toHaveTextContent(/Updated Data Processing Agreement takes effect on .* — review/);
+    expect(screen.getByRole('link', { name: 'review the Data Processing Agreement' })).toHaveAttribute('href', '/legal/dpa?v=2026-12-01');
   });
 
   it('announces a sub-processor change with the objection window and the operator contact', () => {

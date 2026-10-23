@@ -177,5 +177,37 @@ describe('player rules', () => {
       await assertFails(coach.doc(path).update({ photoConsent: false, photoConsentAt: null, photoConsentBy: 'coach@example.com' }));
       await assertSucceeds(coach.doc(path).update({ photoConsent: false, photoConsentAt: null, photoConsentBy: null }));
     });
+    it('refuses photoConsentBy or photoConsentAt written without photoConsent', async () => {
+      const env = await getTestEnv();
+      const coach = dbAs(env, 'coach@example.com');
+      await assertFails(coach.doc(path).update({ photoConsentBy: 'coach@example.com' }));
+      await assertFails(coach.doc(path).update({ photoConsentAt: now() }));
+      await assertSucceeds(coach.doc(path).update({ fullName: 'Still fine' }));
+    });
+
+    it('refuses photo consent from a viewer and from a club member who is not a team admin', async () => {
+      const env = await getTestEnv();
+      const data = { photoConsent: true, photoConsentAt: now(), photoConsentBy: 'parent@example.com' };
+      await assertFails(dbAs(env, 'parent@example.com').doc(path).update(data));
+      await assertFails(dbAs(env, 'coach-a@example.com').doc(path).update({ ...data, photoConsentAt: now(), photoConsentBy: 'coach-a@example.com' }));
+    });
+
+    it('checks photo consent on create too', async () => {
+      const env = await getTestEnv();
+      const coach = dbAs(env, 'coach@example.com');
+      const base = {
+        fullName: 'New', viewerEmails: [],
+        skills: {
+          serve: { score: null }, attack: { score: null }, block: { score: null }, set: { score: null }, defence: { score: null },
+          reception: { score: null }, jump: { score: null }, speed: { score: null }, iq: { score: null },
+        },
+      };
+      const col = 'clubs/club-a/teams/team-1/players';
+      await assertFails(coach.doc(`${col}/n1`).set({ ...base, photoConsent: true, photoConsentAt: now(), photoConsentBy: 'someone@example.com' }));
+      await assertFails(coach.doc(`${col}/n2`).set({ ...base, photoConsent: true, photoConsentAt: firebase.firestore.Timestamp.fromDate(new Date('2020-01-01')), photoConsentBy: 'coach@example.com' }));
+      await assertFails(coach.doc(`${col}/n3`).set({ ...base, photoConsentBy: 'coach@example.com' }));
+      await assertSucceeds(coach.doc(`${col}/n4`).set({ ...base, photoConsent: true, photoConsentAt: now(), photoConsentBy: 'coach@example.com' }));
+      await assertSucceeds(coach.doc(`${col}/n5`).set(base));
+    });
   });
 });

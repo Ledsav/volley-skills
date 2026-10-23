@@ -356,8 +356,11 @@ service cloud.firestore {
           // the request time, withdrawing clears both. An untouched record stays valid.
           function photoConsentOk(isCreate) {
             let d = request.resource.data;
-            return !('photoConsent' in d)
-              || (d.photoConsent is bool && (
+            // Without photoConsent, the recorder and date may not appear (or change).
+            return (!('photoConsent' in d)
+                && d.get('photoConsentAt', null) == (isCreate ? null : resource.data.get('photoConsentAt', null))
+                && d.get('photoConsentBy', null) == (isCreate ? null : resource.data.get('photoConsentBy', null)))
+              || ('photoConsent' in d && d.photoConsent is bool && (
                     (!isCreate
                       && d.photoConsent == resource.data.get('photoConsent', null)
                       && d.get('photoConsentAt', null) == resource.data.get('photoConsentAt', null)

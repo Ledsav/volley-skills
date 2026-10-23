@@ -209,7 +209,8 @@ termination request. Seed sign-ins: `operator@example.com` (`/platform` only) an
 **Legal texts and sign-up.** `src/legal/` holds the Terms, DPA, sub-processor list, privacy notice and DPIA pack in
 five languages (`content/<en|it|fr|de|es>/<doc>-2026-10-22.md`; English prevails), `content/versions.json` +
 `versions.ts` (ISO-date versions, `versionKey = terms-<t>_dpa-<d>`), `legalDocs.ts` (operator placeholder substitution from
-`operator.ts`, clause extraction), `specificClauses.ts`, `hash.ts`, `LegalDocPage` at `/legal/:doc` (`?v`, `?lang`),
+`operator.ts` and fixed country names, never the browser's `Intl`; clause extraction; `published.test.ts` pins the SHA-256 of
+every published text, so a changed text ships as a new version id), `specificClauses.ts`, `hash.ts`, `LegalDocPage` at `/legal/:doc` (`?v`, `?lang`),
 `LegalReviewScreen`, `LegalNoticeBanner` and `acceptance.ts`. Clauses are level-2 headings `## T12. Heading` (`## D5.` in the
 DPA) with the same ids in every language (P3); the specific-approval texts are extracted, never copied. Sign-up is
 `src/signup/` (`/signup`, `/signup/club`, `/sign/complete`): the draft (`vcb.signDraft`, 24 h, removed when expired,

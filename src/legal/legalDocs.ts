@@ -19,11 +19,25 @@ const REGISTRATION_LABEL: Record<LegalLang, string> = {
   en: 'Registration:', it: 'Iscrizione:', fr: 'Immatriculation :', de: 'Registrierung:', es: 'Registro:',
 };
 
+/**
+ * The operator's country in each language. Fixed here, not taken from the browser's
+ * Intl data, so a signed text is the same string (and hash) in every browser.
+ */
+const COUNTRY_NAMES: Record<string, Record<LegalLang, string>> = {
+  LU: { en: 'Luxembourg', it: 'Lussemburgo', fr: 'Luxembourg', de: 'Luxemburg', es: 'Luxemburgo' },
+};
+
+function countryName(code: string, lang: LegalLang): string {
+  const names = COUNTRY_NAMES[code];
+  if (!names) throw new Error(`No fixed legal country names for ${code}`);
+  return names[lang];
+}
+
 export function substitutePlaceholders(text: string, lang: LegalLang, operator: typeof OPERATOR = OPERATOR): string {
   const values: Record<string, string> = {
     OPERATOR_NAME: operator.name,
     OPERATOR_ADDRESS: operator.address ?? ADDRESS_MARKER,
-    OPERATOR_COUNTRY: new Intl.DisplayNames([lang], { type: 'region' }).of(operator.country) ?? operator.country,
+    OPERATOR_COUNTRY: countryName(operator.country, lang),
     OPERATOR_REGISTRATION: operator.registration ? ` ${REGISTRATION_LABEL[lang]} ${operator.registration}.` : '',
     OPERATOR_VAT: operator.vat ? ` ${VAT_LABEL[lang]} ${operator.vat}.` : '',
     OPERATOR_CONTACT_EMAIL: operator.contactEmail,

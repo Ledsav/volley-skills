@@ -2,7 +2,7 @@ import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildAcceptance } from '../../src/legal/acceptance';
 import { inForce } from '../../src/legal/versions';
-import { acceptanceDoc, legalUpdate } from '../../src/signup/signupDocs';
+import { acceptanceDoc, legalUpdate, signupClubDoc } from '../../src/signup/signupDocs';
 import type { ClubStatus } from '../../src/types/club';
 import {
   authTimeAgo,
@@ -594,7 +594,7 @@ describe('club doc rules', () => {
       await context.firestore().doc('clubs/club-a/acceptances/terms-y_dpa-y').set({ acceptedBy: COACH });
     });
     await assertFails(club.update(legalUpdate(OLD, ADMIN)));
-    // An acceptance signed by someone else.
+    // Another person's older acceptance (refused as not written in this batch).
     await assertFails(club.update(legalUpdate('terms-y_dpa-y', ADMIN)));
     // With a valid acceptance, the legal field must still be the signer's, now, and nothing else.
     await assertFails(withAcceptance({ ...legal, acceptedBy: COACH }));
@@ -631,17 +631,15 @@ describe('club doc rules', () => {
     await assertFails(club.update({ status: 'suspended' }));
   });
 
-  it('refuses creating or deleting a club doc from the client', async () => {
+  it('refuses a club doc created alone (without its member and acceptance), and any client delete', async () => {
     const env = await getTestEnv();
-    const newClub = {
-      name: 'New club',
-      country: 'ES',
-      locale: 'en',
-      ownerEmail: 'founder@example.com',
-      status: 'pending',
-    };
-    await assertFails(dbAs(env, 'founder@example.com').doc('clubs/club-new').set(newClub));
-    await assertFails(dbAs(env, OPERATOR).doc('clubs/club-new').set(newClub));
+    const authTime = authTimeAgo(60);
+    const key = 'terms-2026-10-22_dpa-2026-10-22';
+    const id = 'NewClubAutoId0000001';
+    for (const who of ['founder@example.com', OPERATOR]) {
+      const newClub = signupClubDoc({ name: 'New club', country: 'ES', locale: 'en' }, who, key);
+      await assertFails(dbAs(env, who, { authTime }).doc(`clubs/${id}`).set(newClub));
+    }
     await assertFails(dbAs(env, ADMIN).doc('clubs/club-a').delete());
     await assertFails(dbAs(env, OPERATOR).doc('clubs/club-a').delete());
   });

@@ -21,7 +21,8 @@ Same steps, same scripts, every time. The scripts reuse the app's own validators
 3. **Design.** Copy `proposal.example.mjs` to the work folder and edit it:
    - `plan.expectedPlayers` = the players listed; every step must run with `expectedPlayers - playerSlack`.
    - Work time stays below the slot (about 80 of 90): leave setup time.
-   - Library exercises first; a new one only where nothing fits. New names follow "Focus: what it trains", descriptions use Purpose / Setup / How it runs / Coaching points / Easier / Harder, and each new exercise has a minimum players value and a diagram (conventions in `scripts/scene.mjs`).
+   - Variety: recon lists the team's last sessions and their exercises. Don't reuse those drills; where the library has nothing fresh, write a new exercise. The validator warns on every repeat — fix them unless the coach asked for a repeat.
+   - Library exercises first (fresh ones); a new one where nothing fits. New names follow "Focus: what it trains", descriptions use Purpose / Setup / How it runs / Coaching points / Easier / Harder, and each new exercise has a minimum players value and a diagram (conventions in `scripts/scene.mjs`).
    - Pitch to the roster's level mix (from recon). Describe levels ("2 advanced, 4 developing, 3 beginner"), never names. Advanced players get the Harder options and serve or feed; beginners get the Easier ones.
    - The training name is "Focus + focus: objective". The description has Purpose, a numbered session flow (`#1…#N` in plan order), Levels, Group size (how to run it at both ends of the range) and What success looks like.
 4. **Validate and preview.**

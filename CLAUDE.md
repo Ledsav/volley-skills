@@ -206,6 +206,22 @@ now, unless a date change keeps the stored one. Reinstating clears the dates and
 termination request. Seed sign-ins: `operator@example.com` (`/platform` only) and
 `rival@example.com` (AI and growth tests off); see `scripts/seed/README.md`.
 
+**Legal texts and sign-up.** `src/legal/` holds the Terms, DPA, sub-processor list, privacy notice and DPIA pack in
+five languages (`content/<en|it|fr|de|es>/<doc>-2026-10-22.md`; English prevails), `content/versions.json` +
+`versions.ts` (ISO-date versions, `versionKey = terms-<t>_dpa-<d>`), `legalDocs.ts` (operator placeholder substitution from
+`operator.ts`, clause extraction), `specificClauses.ts`, `hash.ts`, `LegalDocPage` at `/legal/:doc` (`?v`, `?lang`),
+`LegalReviewScreen`, `LegalNoticeBanner` and `acceptance.ts`. Clauses are level-2 headings `## T12. Heading` (`## D5.` in the
+DPA) with the same ids in every language (P3); the specific-approval texts are extracted, never copied. Sign-up is
+`src/signup/` (`/signup`, `/signup/club`, `/sign/complete`): the draft is saved, a signing link is sent
+(`src/auth/reauth.ts`, P6), the link lands on `/finish-sign-in` and `/sign/complete` commits the club, member and
+acceptance in one batch within 14 minutes of `auth_time`, then reloads at `/` (P8, P9). The rules accept an acceptance only after
+a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`), so Email/Password sign-in
+must stay disabled in the console. `ClubGate` shows the blocking review screen to club admins with an outdated accepted
+version, except a platform admin or a club already terminating, who get a non-blocking notice (P10). Award photos of minors
+need `player.photoConsent`; adults need none; a missing date of birth counts as a minor (`src/awards/photoGate.ts`, P12).
+Seed sign-ins: `president@example.com` (demo owner, accepted), `review@example.com` (blocking review screen), plus those
+in `scripts/seed/README.md`.
+
 ### Firestore model shape (see spec §5 for the full contract)
 
 Everything is under `clubs/{clubId}` (`clubs/{id}` is the club profile and lifecycle doc),

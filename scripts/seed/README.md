@@ -142,14 +142,16 @@ admin of `demo` on first sign-in.
 
 ### Demo, rival and pending clubs
 
-`npm run seed:clubs` (run by `dev:emulator` right after the demo seed) adds two more clubs so
+`npm run seed:clubs` (run by `dev:emulator` right after the demo seed) adds three more clubs so
 you can try each state of the multi-club app. Sign in with the emulator link as:
 
 | Email | Sees |
 |---|---|
-| `coach@example.com` | Volley Demo (club admin, owner and platform admin): teams, library, matches, stats |
+| `coach@example.com` | Volley Demo (club admin and platform admin; the legal texts are accepted by `president@example.com`, so neither the review screen nor a notice shows): teams, library, matches, stats |
+| `president@example.com` | Volley Demo as club admin and owner (`ownerEmail`): accepted the current legal texts |
 | `rival@example.com` | Rival Volley: only `Rival U17` (2 players, 1 exercise); this club has AI and growth tests turned off, so those features are hidden |
-| `pending@example.com` | New Club: the pending screen |
+| `pending@example.com` | New Club: the pending screen (legal accepted) |
+| `review@example.com` | Review Club (active, `legal: null`): the blocking legal review screen; accept it to continue |
 | `operator@example.com` | `/platform` only (platform admin with no club membership): clubs table and lifecycle actions, never any club data |
 | `nobody@example.com` (any other) | the welcome page (no club) |
 
@@ -200,7 +202,7 @@ The script prints the target project id (from the key) before writing. Run it
 
 | Path | Contents |
 |---|---|
-| `clubs/<club>` | `name` ("Volley Demo" for `demo`), `country`, `locale`, `ownerEmail: <--admin>`, `status: "active"`, `aiEnabled`/`growthTestsEnabled: true`, `referenceOptOut: false`, `legal: null`, `termination` (all null), `billing: null`, `createdAt` |
+| `clubs/<club>` | `name` ("Volley Demo" for `demo`), `country`, `locale`, `ownerEmail` (`<--admin>`; `president@example.com` on the emulator), `status: "active"`, `aiEnabled`/`growthTestsEnabled: true`, `referenceOptOut: false`, `legal` (`null` in prod; on the emulator the current version accepted by `president@example.com`, with an `acceptances/{versionKey}` doc with placeholder hashes), `termination` (all null), `billing: null`, `createdAt` |
 | `clubs/<club>/members/{<--admin>}` | `{ email, clubId, role: "admin", addedBy: "seed-script", addedAt }` (doc id = lowercased email) |
 | `clubs/<club>/sectionAccess/{exercises,trainings,guides}` | `{ adminEmails: [<--admin>] }` and nothing else (the rules only allow that key) |
 | `platformAdmins/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` (emulator only) |
@@ -209,8 +211,8 @@ The script prints the target project id (from the key) before writing. Run it
 | `clubs/<club>/teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |
 
 `seedClubs.mjs`: `clubs/rival` (`Rival Volley`, active, `aiEnabled`/`growthTestsEnabled: false`, admin `rival@example.com`, team
-`Rival U17` with two players, one exercise) and `clubs/newclub` (`New Club`, pending, admin
-`pending@example.com`), each with the same club/member/sectionAccess docs, plus `platformAdmins/operator@example.com` (no membership in any club).
+`Rival U17` with two players, one exercise) `clubs/newclub` (`New Club`, pending, admin
+`pending@example.com`) and `clubs/review` (`Review Club`, active, admin `review@example.com`, `legal: null`), each with the same club/member/sectionAccess docs, plus `platformAdmins/operator@example.com` (no membership in any club).
 
 Other scripts (`seedLibrary`, `seedMatch`, `seedMen1`, `applyNumbers`, `importPlayers`) write
 under the same `clubs/<club>/` root.
@@ -223,3 +225,14 @@ recorded as given — use it to try awards photos and background removal. It als
 seeds a season of matches for the team (`seedMatch.mjs --team seed-men-1`) and their summaries. Admin
 and season are copied from the team `seed.mjs` created (`--admin <email>` overrides).
 `npm run dev:emulator` runs it automatically.
+
+## Try the sign-up flow
+
+Not run by the agent that wrote this (the operator's emulator holds the ports). With `npm run dev:emulator` running:
+
+1. Sign in as a new email (for example `new@example.com`); the link is printed in the Auth emulator console.
+2. Welcome page, then Create a club: fill the club details, switch the texts to Italian, go through the three steps (documents, specific approval, send the signing link). Open the signing link from the Auth emulator console.
+3. `/sign/complete` commits and lands on the pending screen. If it says the link is too old, send a new one.
+4. Sign in as `operator@example.com`, open `/platform` and Activate the new club.
+5. Sign in as `review@example.com`: the review screen blocks the app. Accept it and the club opens.
+6. Sign in as `coach@example.com` (operator and demo admin): no review screen and no notice.

@@ -245,3 +245,40 @@ From the bulk-import and quota-protection reviews:
       usable on a phone today.
       *Trigger: pick up opportunistically, or when a coach reports it's hard to
       use one-handed in the gym.*
+
+## E. Club platform: legal launch gate and operator actions
+
+- [ ] **Fill the operator address in `src/legal/operator.ts`** — the legal texts
+      show a marker while `address` is null. Registration and VAT stay empty (the
+      operator is an individual) and their lines are omitted.
+- [ ] **Lawyer review of each language a club signs in, before any outside club is
+      activated (launch gate).** Questions collected while building:
+  - Is fresh email-link re-authentication enough as "specific written approval"
+    (Cass. ord. 20945/2026), or is an advanced/qualified e-signature needed?
+  - T4: the Italian B2B late-interest rate under Luxembourg law.
+  - DSA Art. 11-12 contact languages and the Art. 14 moderation/complaints description
+    (not decided by the spec); the "Report content" mailto in `LegalLinks`.
+  - T9: no refund when a club terminates over an assignment (T14).
+  - T21: law tied to the "place of establishment"; governing law/forum for Italian clubs.
+  - T12 cap and free-use floor, T20 enforceability against amateur associations, Data Act
+    Art. 13 exposure, and whether non-business ASDs can be consumers.
+  - Italian texts carry no explicit "artt. 1341-1342 c.c." reference beyond the sentence
+    that closes each specifically approved clause.
+  - German: "Kündigungsfrist" vs "Frist" in T10; "Salvatorische Klausel" as the T23 heading.
+  - reCAPTCHA v3 as a sub-processor vs Google as controller; which Google entity
+    contracts Auth and reCAPTCHA.
+  - The EUR 80/h assistance rate against Art. 28(3)(e).
+  - A fixed retention period for acceptance records.
+  - Whether the cookie-banner exemption covers the preference keys in localStorage.
+- [ ] **Verify in the Auth emulator that `auth_time` is fresh after the signing link**
+      (club-platform spec §11); record the result here. Do the same check once in
+      production (decode the ID token after a signing link; read `auth_time` and
+      `firebase.sign_in_provider`).
+- [ ] **Keep Email/Password sign-in DISABLED in the Firebase console** — it reports the
+      same `password` provider as email-link sign-in and would count as a signature.
+- [ ] **Tick SECURITY-OPERATIONS rows 6-8** (BitLocker, external drive, weekly backup)
+      before publishing: Annex II of the DPA states them. Two promises are manual:
+      leads are deleted within 12 months, and accounts are deleted on request.
+- [ ] **Production: the migrated club's owner (`--owner`) accepts on first visit** — the
+      migrated club has `legal: null`, so its owner sees the review screen once. The
+      operator (a platform admin) cannot accept for the club.

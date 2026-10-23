@@ -26,6 +26,6 @@ I seguenti soggetti non sono sub-responsabili dell'Operatore:
 
 ## Modifiche a questo elenco
 
-Prima di aggiungere o sostituire un sub-responsabile, l'Operatore pubblica una nuova versione di questo elenco e dà ai Club un preavviso di 30 giorni, mediante un avviso nel servizio mostrato agli Amministratori del Club e una email all'email di riferimento del Club di ciascun Club. Un Club può opporsi entro 15 giorni dal preavviso, come previsto in D5 del DPA.
+Prima di aggiungere o sostituire un sub-responsabile, l'Operatore pubblica una nuova versione di questo elenco e dà ai Club un preavviso di 30 giorni, mediante un avviso nel servizio mostrato agli Amministratori del Club e una email all'email di riferimento di ciascun Club. Un Club può opporsi entro 15 giorni dal preavviso, come previsto in D5 del DPA.
 
 Domande su questo elenco: {{OPERATOR_PRIVACY_EMAIL}}.

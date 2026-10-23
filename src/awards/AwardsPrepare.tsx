@@ -13,6 +13,7 @@ import { PhotoCropDialog } from './PhotoCropDialog';
 import { revealable, type ResolvedAward } from './resolveAwards';
 import { LogoThumb } from './LogoThumb';
 import { MAX_SPONSORS } from './card/branding';
+import { HealthHint } from '../components/HealthHint';
 
 export type PrepareAction =
   | { type: 'pick'; key: string; playerId: string | null }
@@ -253,8 +254,9 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
               </select>
             </label>
             <label className="text-sm text-slate">Note
-              <input className="ml-2 rounded-md border border-border px-2 py-1 text-ink" maxLength={CUSTOM_NOTE_MAX} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
+              <input aria-describedby="award-note-hint" className="ml-2 rounded-md border border-border px-2 py-1 text-ink" maxLength={CUSTOM_NOTE_MAX} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
             </label>
+            <HealthHint id="award-note-hint" />
             <Button type="submit" variant="primary">Add award</Button>
             <Button type="button" variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
           </form>

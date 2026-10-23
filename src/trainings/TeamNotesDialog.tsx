@@ -8,6 +8,7 @@ import { sortRoster } from '../players/rosterSort';
 import { getTeam } from '../teams/teamsApi';
 import { POSITION_CATEGORIES, type Player } from '../types/player';
 import type { TeamNotes } from './pdf/buildTrainingPdf';
+import { HealthHint } from '../components/HealthHint';
 
 const POSITION_LABEL = Object.fromEntries(POSITION_CATEGORIES.map((p) => [p.value, p.label]));
 
@@ -117,7 +118,8 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
           <label htmlFor="team-notes-general" className="mb-1 block text-sm font-medium text-ink">
             General notes
           </label>
-          <Textarea id="team-notes-general" value={general} onChange={(e) => setGeneral(e.target.value)} rows={2} />
+          <Textarea id="team-notes-general" aria-describedby="team-notes-general-hint" value={general} onChange={(e) => setGeneral(e.target.value)} rows={2} />
+          <HealthHint id="team-notes-general-hint" />
         </div>
 
         {error && (
@@ -153,6 +155,7 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
                     {expected && (
                       <Textarea
                         aria-label={`What to look at for ${p.fullName}`}
+                        aria-describedby="team-notes-player-hint"
                         placeholder="What to look at"
                         value={notes[p.id] ?? ''}
                         onChange={(e) => setNotes((current) => ({ ...current, [p.id]: e.target.value }))}
@@ -164,6 +167,7 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
                 );
               })}
             </ul>
+            <HealthHint id="team-notes-player-hint" />
           </div>
         )}
       </div>

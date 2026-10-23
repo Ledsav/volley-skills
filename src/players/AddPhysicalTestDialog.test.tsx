@@ -7,6 +7,11 @@ vi.mock('./physicalTestsApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 
 describe('AddPhysicalTestDialog', () => {
+  it('shows the health hint under the notes field', () => {
+    render(<AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="growth" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />);
+    expect(screen.getByLabelText('Notes')).toHaveAccessibleDescription("Don't record health, injury or medical information.");
+  });
+
   it('submits a growth entry', async () => {
     const spy = vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockResolvedValue('test-1');
     const onSaved = vi.fn();

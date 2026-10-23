@@ -352,9 +352,24 @@ service cloud.firestore {
               validScore(skills.iq.score);
           }
 
+          // Photo consent (minors' award photos): a bool; giving it names the recorder and
+          // the request time, withdrawing clears both. An untouched record stays valid.
+          function photoConsentOk(isCreate) {
+            let d = request.resource.data;
+            return !('photoConsent' in d)
+              || (d.photoConsent is bool && (
+                    (!isCreate
+                      && d.photoConsent == resource.data.get('photoConsent', null)
+                      && d.get('photoConsentAt', null) == resource.data.get('photoConsentAt', null)
+                      && d.get('photoConsentBy', null) == resource.data.get('photoConsentBy', null))
+                    || (d.photoConsent == true && d.get('photoConsentBy', null) == email() && d.get('photoConsentAt', null) == request.time)
+                    || (d.photoConsent == false && d.get('photoConsentAt', null) == null && d.get('photoConsentBy', null) == null)));
+          }
+
           allow read: if (activeMember() && (teamAdmin() || email() in resource.data.viewerEmails))
                       || exporter();
-          allow create, update: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills);
+          allow create: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(true);
+          allow update: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(false);
           allow delete: if activeMember() && teamAdmin();
 
           match /physicalTests/{testId} {

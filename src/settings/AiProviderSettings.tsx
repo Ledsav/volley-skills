@@ -196,6 +196,9 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
         </p>
       )}
       <p className="text-xs text-slate">
+        With your own key, the AI provider you choose works for your club, not for us.
+      </p>
+      <p className="text-xs text-slate">
         Player names never leave this device — only jersey numbers, roles and the match situation are sent.{' '}
         <Link to="/privacy" className="text-blue hover:underline">
           What&apos;s sent

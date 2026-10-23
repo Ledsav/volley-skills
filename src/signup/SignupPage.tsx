@@ -6,7 +6,7 @@ import { FIELD_CLASS, Input } from '../components/Input';
 import { CLUB_COUNTRY_CODES } from '../clubs/clubAdminApi';
 import { MinimalShell } from '../layout/MinimalShell';
 import { usePageMeta } from '../layout/usePageMeta';
-import { saveSignDraft } from '../legal/signDraft';
+import { newSignNonce, saveSignDraft } from '../legal/signDraft';
 import { defaultLegalLang, inForce, type LegalLang } from '../legal/versions';
 import type { ClubLocale } from '../types/club';
 import { DocumentsStep } from './DocumentsStep';
@@ -43,6 +43,8 @@ export function SignupPage() {
   );
   // One id per sign-up attempt, so re-sending the link never produces a second club.
   const clubIdRef = useRef<string | null>(null);
+  // One nonce per page visit, so every link sent from here commits the same draft.
+  const nonceRef = useRef<string | null>(null);
 
   // Frozen on mount so the draft always matches the texts shown, even across an effective date.
   const [versions] = useState(() => {
@@ -85,6 +87,7 @@ export function SignupPage() {
 
   async function send() {
     clubIdRef.current ??= newClubId();
+    nonceRef.current ??= newSignNonce();
     saveSignDraft({
       kind: 'signup',
       clubId: clubIdRef.current,
@@ -96,8 +99,9 @@ export function SignupPage() {
       subprocessorsVersion: versions.subprocessors,
       language: lang,
       savedAt: Date.now(),
+      nonce: nonceRef.current,
     });
-    await sendSigningLink(email);
+    await sendSigningLink(email, nonceRef.current);
   }
 
   const describe = (key: keyof Errors, base?: string) =>

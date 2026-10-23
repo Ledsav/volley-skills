@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearSignDraft, DRAFT_TTL_MS, readSignDraft, saveSignDraft, SIGN_DRAFT_KEY, type SignDraft } from './signDraft';
+import {
+  clearSignDraft, DRAFT_TTL_MS, isSignNonce, newSignNonce, readSignDraft, saveSignDraft, SIGN_DRAFT_KEY, type SignDraft,
+} from './signDraft';
 
 const draft: SignDraft = {
   kind: 'reaccept',
@@ -11,6 +13,7 @@ const draft: SignDraft = {
   subprocessorsVersion: '2026-10-22',
   language: 'en',
   savedAt: 1000,
+  nonce: '0123456789abcdef0123456789abcdef',
 };
 
 beforeEach(() => localStorage.clear());
@@ -26,6 +29,27 @@ describe('signDraft', () => {
     saveSignDraft(draft);
     expect(readSignDraft(1000 + DRAFT_TTL_MS)).toEqual(draft);
     expect(readSignDraft(1000 + DRAFT_TTL_MS + 1)).toBeNull();
+  });
+  it('removes an expired draft when reading it', () => {
+    saveSignDraft(draft);
+    expect(readSignDraft(1000 + DRAFT_TTL_MS + 1)).toBeNull();
+    expect(localStorage.getItem(SIGN_DRAFT_KEY)).toBeNull();
+  });
+  it('removes a malformed draft when reading it', () => {
+    localStorage.setItem(SIGN_DRAFT_KEY, '{nope');
+    expect(readSignDraft(2000)).toBeNull();
+    expect(localStorage.getItem(SIGN_DRAFT_KEY)).toBeNull();
+    localStorage.setItem(SIGN_DRAFT_KEY, JSON.stringify({ ...draft, personName: 5 }));
+    expect(readSignDraft(2000)).toBeNull();
+    expect(localStorage.getItem(SIGN_DRAFT_KEY)).toBeNull();
+  });
+  it('makes random 32-hex nonces and recognises only that shape', () => {
+    const a = newSignNonce();
+    expect(isSignNonce(a)).toBe(true);
+    expect(newSignNonce()).not.toBe(a);
+    expect(isSignNonce('abc')).toBe(false);
+    expect(isSignNonce(`${'a'.repeat(31)}/`)).toBe(false);
+    expect(isSignNonce(null)).toBe(false);
   });
   it('returns null for malformed JSON or shape', () => {
     localStorage.setItem(SIGN_DRAFT_KEY, '{nope');
@@ -49,6 +73,8 @@ describe('signDraft', () => {
     ['subprocessorsVersion', null],
     ['language', 'xx'],
     ['language', undefined],
+    ['nonce', undefined],
+    ['nonce', 'short'],
   ])('returns null when %s is invalid', (field, value) => {
     localStorage.setItem(SIGN_DRAFT_KEY, JSON.stringify({ ...draft, [field]: value }));
     expect(readSignDraft(2000)).toBeNull();

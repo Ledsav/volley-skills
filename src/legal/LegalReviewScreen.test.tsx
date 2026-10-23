@@ -91,7 +91,8 @@ describe('LegalReviewScreen', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Data Processing Agreement/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Approve these clauses specifically' }));
-    await vi.waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('admin@example.com'));
+    await vi.waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('admin@example.com', expect.any(String)));
+    expect(vi.mocked(sendSigningLink).mock.calls[0][1]).toBe(readSignDraft(Date.now())?.nonce);
     expect(readSignDraft(Date.now())).toMatchObject({
       kind: 'reaccept', clubId: 'club-1', email: 'admin@example.com', personName: 'Ann Coach',
       termsVersion: '2026-10-22', dpaVersion: '2026-10-22', subprocessorsVersion: '2026-10-22', language: 'en',

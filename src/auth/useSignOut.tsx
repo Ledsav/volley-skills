@@ -3,10 +3,12 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { signOutAndClearLocalData } from '../firebase/signOut';
 import { clearAiLocalData } from '../ai/aiSettings';
 import { storeClub } from '../clubs/activeClub';
+import { clearSignDraft } from '../legal/signDraft';
 
 function clearLocalState() {
   clearAiLocalData();
   storeClub(null);
+  clearSignDraft();
 }
 
 /**

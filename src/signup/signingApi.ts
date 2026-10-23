@@ -7,19 +7,21 @@ import { clearSignDraft, readSignDraft } from '../legal/signDraft';
 import { versionKey } from '../legal/versions';
 import { acceptanceDoc, legalUpdate, signupClubDoc, signupMemberDoc } from './signupDocs';
 
-export type CommitOutcome = 'done' | 'alreadyDone' | 'linkExpired' | 'noDraft' | 'wrongAccount';
+export type CommitOutcome = 'done' | 'alreadyDone' | 'linkExpired' | 'noDraft' | 'wrongLink' | 'wrongAccount';
 
 /**
  * Commits the saved signing draft (a new club or a re-acceptance) in one batch.
- * Rules require a fresh email-link sign-in; the client checks the window first.
+ * Rules require a fresh email-link sign-in; the client checks the window first. Only the signing
+ * link carries the draft's nonce, so any other arrival on /sign/complete writes nothing.
  *
  * It reads `auth.currentUser` at commit time, never a user captured earlier: opening the signing
  * link while already signed in replaces `auth.currentUser` with a new object (new token and
  * auth_time) without an auth-state event, so a React context user would be stale.
  */
-export async function commitSignDraft(now: number = Date.now()): Promise<CommitOutcome> {
+export async function commitSignDraft(nonce: string | null, now: number = Date.now()): Promise<CommitOutcome> {
   const draft = readSignDraft(now);
   if (!draft) return 'noDraft';
+  if (nonce !== draft.nonce) return 'wrongLink';
   const user = auth.currentUser;
   if (!user) throw new Error('Not signed in');
   const email = draft.email.trim().toLowerCase();

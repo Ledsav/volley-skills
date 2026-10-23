@@ -212,9 +212,12 @@ five languages (`content/<en|it|fr|de|es>/<doc>-2026-10-22.md`; English prevails
 `operator.ts`, clause extraction), `specificClauses.ts`, `hash.ts`, `LegalDocPage` at `/legal/:doc` (`?v`, `?lang`),
 `LegalReviewScreen`, `LegalNoticeBanner` and `acceptance.ts`. Clauses are level-2 headings `## T12. Heading` (`## D5.` in the
 DPA) with the same ids in every language (P3); the specific-approval texts are extracted, never copied. Sign-up is
-`src/signup/` (`/signup`, `/signup/club`, `/sign/complete`): the draft is saved, a signing link is sent
-(`src/auth/reauth.ts`, P6), the link lands on `/finish-sign-in` and `/sign/complete` commits the club, member and
-acceptance in one batch within 14 minutes of `auth_time`, then reloads at `/` (P8, P9). The rules accept an acceptance only after
+`src/signup/` (`/signup`, `/signup/club`, `/sign/complete`): the draft (`vcb.signDraft`, 24 h, removed when expired,
+on sign-out and once committed) is saved with a random nonce, a signing link to `/finish-sign-in?sign=<nonce>` is sent
+(`src/auth/reauth.ts`, P6; no return path is stored, so an ordinary sign-in is never redirected), and `/sign/complete?sign=`
+commits the club, member and acceptance in one batch, only when the nonce matches and within 14 minutes of `auth_time`,
+reading `auth.currentUser` (a same-uid re-sign-in fires no auth-state event, so the context user is stale), then reloads
+at `/` (P8, P9). The rules accept an acceptance only after
 a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`), so Email/Password sign-in
 must stay disabled in the console. `ClubGate` shows the blocking review screen to club admins with an outdated accepted
 version, except a platform admin or a club already terminating, who get a non-blocking notice (P10). Award photos of minors

@@ -28,6 +28,7 @@ Same steps, same scripts, every time. The scripts reuse the app's own validators
 4. **Validate and preview.**
    `npx vite-node .claude/skills/plan-team-training/scripts/validate.ts <proposal.mjs> --recon <recon.json> --out <dir>/preview.pdf`
    Fix every `ERROR` until it prints `RESULT: OK`. Then **Read the preview PDF** and look at every new diagram: overlaps, arrows through tokens, text off the court. Fix and re-render.
+   Then read each new drill's "How it runs" as the coach running it: can it physically run as written (ball flow, who moves when, a count that can't be kept while players rotate)? The validators can't catch this.
 5. **Ask for approval.** Show the plan table (#, exercise, minutes, min players, new or library), the new exercises and the preview path. Writing waits for an explicit yes.
 6. **Apply.** Run it as a dry run first, then again with `--apply`:
    `node .claude/skills/plan-team-training/scripts/apply.mjs <proposal.mjs> --owner <coach email> [--club <id>] [--emulator] [--calendar YYYY-MM-DD]`

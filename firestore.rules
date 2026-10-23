@@ -155,6 +155,8 @@ service cloud.firestore {
                       'legal','termination','billing'];
         let member = /databases/$(database)/documents/clubs/$(clubId)/members/$(email());
         return signedIn()
+          // A Firestore auto-id (decision P11): no hand-picked or squatted club ids.
+          && clubId.matches('^[A-Za-z0-9]{20}$')
           && next.keys().hasOnly(fields) && next.keys().hasAll(fields)
           && next.status == 'pending'
           && next.ownerEmail == email()
@@ -214,11 +216,11 @@ service cloud.firestore {
         // The sign-up batch's owner member: only for a club that does not exist yet
         // and is created, pending and owned by the signer, in the same batch.
         function signUpMember() {
-          let club = getAfter(clubPath()).data;
+          let after = getAfter(clubPath()).data;
           return signedIn()
             && !exists(clubPath())
-            && club.status == 'pending'
-            && club.ownerEmail == email()
+            && after.status == 'pending'
+            && after.ownerEmail == email()
             && e == email()
             && request.resource.data.role == 'admin';
         }
@@ -261,9 +263,16 @@ service cloud.firestore {
           let fields = ['versionKey','termsVersion','dpaVersion','subprocessorsVersion','language',
                         'termsSha256','dpaSha256','clausesSha256','specificClauses','acceptedBy',
                         'acceptedByName','authorityConfirmed','acceptedAt','authTime','userAgent'];
+          let isoDate = '^[0-9]{4}-[0-9]{2}-[0-9]{2}$';
           return signedIn()
+            // The e-signature step: a fresh email-link sign-in ('password' provider,
+            // verified on the Auth emulator), not Google or any other provider.
+            && request.auth.token.firebase.sign_in_provider == 'password'
             && a.keys().hasOnly(fields) && a.keys().hasAll(fields)
-            && a.termsVersion is string && a.dpaVersion is string && a.subprocessorsVersion is string
+            // ISO-date versions (decision P1), so 'terms-<t>_dpa-<d>' names one pair only.
+            && a.termsVersion is string && a.termsVersion.matches(isoDate)
+            && a.dpaVersion is string && a.dpaVersion.matches(isoDate)
+            && a.subprocessorsVersion is string && a.subprocessorsVersion.matches(isoDate)
             && v == a.versionKey
             && a.versionKey == 'terms-' + a.termsVersion + '_dpa-' + a.dpaVersion
             && a.acceptedBy == email()
@@ -277,7 +286,7 @@ service cloud.firestore {
             && a.termsSha256 is string && a.termsSha256.matches('^[0-9a-f]{64}$')
             && a.dpaSha256 is string && a.dpaSha256.matches('^[0-9a-f]{64}$')
             && a.clausesSha256 is string && a.clausesSha256.matches('^[0-9a-f]{64}$')
-            && a.specificClauses is list
+            && a.specificClauses is list && a.specificClauses.size() >= 1 && a.specificClauses.size() <= 50
             && a.acceptedByName is string && a.acceptedByName.size() >= 1 && a.acceptedByName.size() <= 100
             && a.userAgent is string && a.userAgent.size() <= 300
             // The operator never signs for a club, not even their home club (spec §6.2).
@@ -286,11 +295,11 @@ service cloud.firestore {
         // Sign-up: the club does not exist yet and is created pending, owned by the
         // signer, pointing at this record. No get() of the club here.
         function signUpAcceptance() {
-          let club = getAfter(clubPath()).data;
+          let after = getAfter(clubPath()).data;
           return !exists(clubPath())
-            && club.status == 'pending'
-            && club.ownerEmail == email()
-            && club.legal.versionKey == v;
+            && after.status == 'pending'
+            && after.ownerEmail == email()
+            && after.legal.versionKey == v;
         }
         // Re-acceptance: a club admin of an active or pending club, with the club's
         // legal pointing at this record after the batch.

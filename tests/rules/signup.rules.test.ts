@@ -18,7 +18,9 @@ import {
 // member doc and the acceptance. Every doc comes from the app's own builders.
 const FOUNDER = 'founder@example.com';
 const ADMIN_A = 'admin-a@example.com';
-const NEW_CLUB = 'club-new';
+// Club ids are Firestore auto-ids (20 letters and digits); the rules refuse any other.
+const NEW_CLUB = 'NewClubAutoId0000001';
+const EXISTING = 'ExistingClubAutoId01';
 
 interface Parts {
   key: string;
@@ -84,6 +86,7 @@ describe('self sign-up rules', () => {
     const env = await getTestEnv();
     await env.clearFirestore();
     await seedClub(env, { id: 'club-a', admins: [ADMIN_A] });
+    await seedClub(env, { id: EXISTING, admins: [ADMIN_A] });
     await seedPlatformAdmin(env, OPERATOR);
   });
 
@@ -208,8 +211,45 @@ describe('self sign-up rules', () => {
     const p = await parts();
     const db = dbAs(env, FOUNDER, { authTime: p.acceptance.authTime });
     await assertFails(
-      commit(db, { ...p, member: { ...p.member, clubId: 'club-a' } }, { clubId: 'club-a' }),
+      commit(db, { ...p, member: { ...p.member, clubId: EXISTING } }, { clubId: EXISTING }),
     );
+  });
+
+  it('refuses a hand-picked club id', async () => {
+    const env = await getTestEnv();
+    const p = await parts();
+    const db = dbAs(env, FOUNDER, { authTime: p.acceptance.authTime });
+    for (const id of [
+      'my-volley-club',
+      'NewClubAutoId000001',
+      'NewClubAutoId00000012',
+      'NewClub_AutoId000001',
+    ]) {
+      await assertFails(commit(db, { ...p, member: { ...p.member, clubId: id } }, { clubId: id }));
+    }
+  });
+
+  it('refuses an admin re-running the sign-up batch over their own suspended or pending club', async () => {
+    const env = await getTestEnv();
+    for (const [id, status] of [
+      ['OwnSuspendedClubId01', 'suspended'],
+      ['OwnPendingClubIdX001', 'pending'],
+    ] as const) {
+      await seedClub(env, { id, status, admins: [FOUNDER], ownerEmail: FOUNDER });
+      const p = await parts();
+      const db = dbAs(env, FOUNDER, { authTime: p.acceptance.authTime });
+      await assertFails(commit(db, { ...p, member: { ...p.member, clubId: id } }, { clubId: id }));
+    }
+  });
+
+  it('refuses an acceptance created from a google.com sign-in', async () => {
+    const env = await getTestEnv();
+    const p = await parts();
+    const authTime = p.acceptance.authTime;
+    await assertFails(commit(dbAs(env, FOUNDER, { authTime, provider: 'google.com' }), p));
+    await assertFails(commit(dbAs(env, FOUNDER, { authTime, provider: 'custom' }), p));
+    // Control: the same batch from an email-link sign-in.
+    await assertSucceeds(commit(dbAs(env, FOUNDER, { authTime }), p));
   });
 
   it('refuses adding yourself to an existing club through the sign-up branch', async () => {
@@ -270,6 +310,8 @@ describe('self sign-up rules', () => {
       { dpaSha256: 'a'.repeat(63) },
       { clausesSha256: 'not-a-hash' },
       { specificClauses: 'T2' },
+      { specificClauses: [] },
+      { specificClauses: Array.from({ length: 51 }, (_, i) => `T${i}`) },
       { acceptedAt: new Date() },
       { subprocessorsVersion: 1 },
     ];
@@ -309,6 +351,32 @@ describe('self sign-up rules', () => {
     // The club points at another version than the acceptance written.
     await assertFails(
       commit(db, { ...p, club: { ...p.club, legal: { ...p.club.legal, versionKey: wrong } } }),
+    );
+  });
+
+  it('refuses versions that are not ISO dates', async () => {
+    const env = await getTestEnv();
+    const p = await parts();
+    const db = dbAs(env, FOUNDER, { authTime: p.acceptance.authTime });
+    // Each record is self-consistent (doc id == versionKey == the versions, club pointing at it).
+    const variants: Array<[string, string]> = [
+      ['v1', 'v1'],
+      // The `_dpa-` ambiguity: terms 'a_dpa-b' + dpa 'c' and terms 'a' + dpa 'b_dpa-c' share a key.
+      ['2026-10-22_dpa-2026-10-22', '2026-10-22'],
+    ];
+    for (const [termsVersion, dpaVersion] of variants) {
+      const key = `terms-${termsVersion}_dpa-${dpaVersion}`;
+      await assertFails(
+        commit(db, {
+          ...p,
+          key,
+          club: { ...p.club, legal: { ...p.club.legal, versionKey: key } },
+          acceptance: { ...p.acceptance, versionKey: key, termsVersion, dpaVersion },
+        }),
+      );
+    }
+    await assertFails(
+      commit(db, { ...p, acceptance: { ...p.acceptance, subprocessorsVersion: 'latest' } }),
     );
   });
 

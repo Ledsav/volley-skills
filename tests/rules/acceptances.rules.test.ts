@@ -113,6 +113,35 @@ describe('club acceptances rules', () => {
     }
   });
 
+  it('lets a terminating club re-accept before termination takes effect, not after', async () => {
+    const env = await getTestEnv();
+    const DAY = 24 * 60 * 60 * 1000;
+    const at = (days: number) => new Date(Date.now() + days * DAY);
+    const p = await reacceptParts(ADMIN);
+    const db = dbAs(env, ADMIN, { authTime: p.authTime });
+    await seedClub(env, {
+      ...CLUB_A,
+      status: 'terminating',
+      termination: { effectiveAt: at(30), retrievalEndsAt: at(60) },
+    });
+    await assertSucceeds(reaccept(db, p));
+    await env.clearFirestore();
+    await seedClub(env, {
+      ...CLUB_A,
+      status: 'terminating',
+      termination: { effectiveAt: at(-1), retrievalEndsAt: at(29) },
+    });
+    await assertFails(reaccept(db, p));
+  });
+
+  it('refuses re-acceptance from a google.com sign-in', async () => {
+    const env = await getTestEnv();
+    const p = await reacceptParts(ADMIN);
+    await assertFails(reaccept(dbAs(env, ADMIN, { authTime: p.authTime, provider: 'google.com' }), p));
+    // Control: the same batch from an email-link sign-in.
+    await assertSucceeds(reaccept(dbAs(env, ADMIN, { authTime: p.authTime }), p));
+  });
+
   it('refuses re-acceptance by a member', async () => {
     const env = await getTestEnv();
     const p = await reacceptParts(COACH);

@@ -118,9 +118,23 @@ export async function seedPlatformAdmin(env: RulesTestEnvironment, email: string
  * A signed-in client whose token carries `email` exactly as given (no lowercasing).
  * `authTime` (seconds) sets the token's `auth_time`; without it the mock token's
  * auth_time is 0 (1970), i.e. a long-stale sign-in.
+ * A signing token (`authTime` or `provider` given) also carries
+ * `firebase.sign_in_provider`: `provider`, default 'password' — what an email-link
+ * sign-in yields (verified on the Auth emulator). The mock default is 'custom'.
  */
-export function dbAs(env: RulesTestEnvironment, email: string, opts: { authTime?: number } = {}): Firestore {
-  const token = opts.authTime === undefined ? { email } : { email, auth_time: opts.authTime };
+export function dbAs(
+  env: RulesTestEnvironment,
+  email: string,
+  opts: { authTime?: number; provider?: 'password' | 'email' | 'google.com' | 'custom' } = {}
+): Firestore {
+  const signing = opts.authTime !== undefined || opts.provider !== undefined;
+  const token = signing
+    ? {
+        email,
+        ...(opts.authTime === undefined ? {} : { auth_time: opts.authTime }),
+        firebase: { sign_in_provider: opts.provider ?? 'password', identities: {} },
+      }
+    : { email };
   return env.authenticatedContext(`uid-${email}`, token).firestore();
 }
 

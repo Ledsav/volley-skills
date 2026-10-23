@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAuth } from '../auth/AuthContext';
 import { AuthShell } from '../auth/AuthShell';
 import { sendSigningLink } from '../auth/reauth';
 import { useSignOut } from '../auth/useSignOut';
@@ -13,7 +12,6 @@ type View = 'working' | 'linkExpired' | 'noDraft' | 'wrongAccount' | 'error' | '
 /** /sign/complete: the landing page of the signing link; commits the saved draft once. */
 export function SignCompletePage() {
   usePageMeta({ title: 'Completing sign-up' });
-  const { firebaseUser } = useAuth();
   const { signOut, unsyncedDialog } = useSignOut();
   const [view, setView] = useState<View>('working');
   const [busy, setBusy] = useState(false);
@@ -22,10 +20,9 @@ export function SignCompletePage() {
   const started = useRef(false);
 
   const run = useCallback(async () => {
-    if (!firebaseUser) return;
     setView('working');
     try {
-      const outcome = await commitSignDraft(firebaseUser);
+      const outcome = await commitSignDraft();
       if (outcome === 'done' || outcome === 'alreadyDone') {
         // Same-uid re-sign-in fires no auth event: a reload refreshes memberships and the club.
         window.location.assign('/');
@@ -35,7 +32,7 @@ export function SignCompletePage() {
     } catch {
       setView('error');
     }
-  }, [firebaseUser]);
+  }, []);
 
   useEffect(() => {
     if (started.current) return;

@@ -1,6 +1,5 @@
-import type { User } from 'firebase/auth';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { auth, db } from '../firebase/config';
 import { currentAuthTime, signingWindowOpen } from '../auth/reauth';
 import { storeClub } from '../clubs/activeClub';
 import { buildAcceptance } from '../legal/acceptance';
@@ -13,10 +12,16 @@ export type CommitOutcome = 'done' | 'alreadyDone' | 'linkExpired' | 'noDraft' |
 /**
  * Commits the saved signing draft (a new club or a re-acceptance) in one batch.
  * Rules require a fresh email-link sign-in; the client checks the window first.
+ *
+ * It reads `auth.currentUser` at commit time, never a user captured earlier: opening the signing
+ * link while already signed in replaces `auth.currentUser` with a new object (new token and
+ * auth_time) without an auth-state event, so a React context user would be stale.
  */
-export async function commitSignDraft(user: User, now: number = Date.now()): Promise<CommitOutcome> {
+export async function commitSignDraft(now: number = Date.now()): Promise<CommitOutcome> {
   const draft = readSignDraft(now);
   if (!draft) return 'noDraft';
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
   const email = draft.email.trim().toLowerCase();
   if ((user.email ?? '').trim().toLowerCase() !== email) return 'wrongAccount';
 

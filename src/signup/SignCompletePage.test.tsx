@@ -66,6 +66,14 @@ describe('SignCompletePage', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
   });
 
+  it('commits without relying on the context user (it can be stale after a re-sign-in)', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: null }));
+    commitSignDraft.mockResolvedValue('done');
+    renderPage();
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/'));
+    expect(commitSignDraft).toHaveBeenCalledTimes(1);
+  });
+
   it('commits once under StrictMode', async () => {
     commitSignDraft.mockResolvedValue('done');
     renderPage(true);

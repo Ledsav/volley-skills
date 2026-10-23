@@ -100,7 +100,7 @@ describe('other docs en', () => {
 const placeholders = (s: string): string[] => [...new Set(s.match(/\{\{[A-Z_]+\}\}/g) ?? [])].sort();
 const DOCS = ['terms', 'dpa', 'subprocessors', 'privacy', 'dpia-pack'] as const;
 
-describe.each(['it', 'fr', 'de'] as const)('translations %s', (lang) => {
+describe.each(['it', 'fr', 'de', 'es'] as const)('translations %s', (lang) => {
   const raw = (doc: (typeof DOCS)[number]) => rawLegalText(doc, '2026-10-22', lang) ?? '';
   const en = (doc: (typeof DOCS)[number]) => rawLegalText(doc, '2026-10-22', 'en') ?? '';
 

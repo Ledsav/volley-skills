@@ -234,6 +234,14 @@ export async function recordPlayerConsent(teamId: string, playerId: string, conf
   return consent;
 }
 
+/** Records or withdraws the guardian's consent to use a minor's photo in award cards. Withdrawing clears the date and the email. */
+export async function setPhotoConsent(teamId: string, playerId: string, given: boolean, byEmail: string): Promise<void> {
+  const fields = given
+    ? { photoConsent: true, photoConsentAt: serverTimestamp(), photoConsentBy: byEmail }
+    : { photoConsent: false, photoConsentAt: null, photoConsentBy: null };
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { ...fields, updatedAt: serverTimestamp() });
+}
+
 export async function updatePlayerDevelopmentPlan(teamId: string, playerId: string, plan: DevelopmentPlan): Promise<void> {
   await updateDoc(clubDoc('teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
 }

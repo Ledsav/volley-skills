@@ -51,6 +51,7 @@ describe('ExerciseDraftDialog', () => {
     await generate();
     expect(ask.mock.calls[0][0][1].content).toContain('serve receive for U15');
     expect(screen.getByRole('button', { name: 'Diagram for Alpha' })).toBeInTheDocument();
+    expect(screen.getAllByText('AI draft')).toHaveLength(2);
     fireEvent.click(screen.getByLabelText('Keep Beta'));
     fireEvent.click(screen.getByRole('button', { name: 'Save 1 kept' }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(1));

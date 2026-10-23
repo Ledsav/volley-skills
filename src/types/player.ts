@@ -84,6 +84,10 @@ export interface Player {
   developmentPlan: DevelopmentPlan;
   latestTests?: LatestTests;
   consent: { given: boolean; date: string | null; confirmedBy: string | null };
+  /** Guardian consent to use a minor's photo in award cards. Adults need no toggle; absent = not given. */
+  photoConsent?: boolean;
+  photoConsentAt?: unknown;
+  photoConsentBy?: string | null;
   /** "YYYY-MM-DD" the player left the club; null/absent while still a member. Starts the retention clock. */
   leftClubAt?: string | null;
   createdBy: string;

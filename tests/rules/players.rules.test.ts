@@ -1,6 +1,9 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
+import firebase from 'firebase/compat/app';
 import { dbAs, getTestEnv, seedClub } from './testEnv';
+
+const now = () => firebase.firestore.FieldValue.serverTimestamp();
 
 async function seedTeamAndPlayer(env: Awaited<ReturnType<typeof getTestEnv>>) {
   await seedClub(env, {
@@ -141,5 +144,38 @@ describe('player rules', () => {
     await assertFails(
       stranger.collection('clubs/club-a/teams/team-1/players').where('leftClubAt', '<=', '2025-10-14').orderBy('leftClubAt').limit(50).get()
     );
+  });
+  describe('photo consent', () => {
+    const path = 'clubs/club-a/teams/team-1/players/player-1';
+
+    it('lets a team admin record photo consent with their own email and request time', async () => {
+      const env = await getTestEnv();
+      const coach = dbAs(env, 'coach@example.com');
+      await assertSucceeds(coach.doc(path).update({ photoConsent: true, photoConsentAt: now(), photoConsentBy: 'coach@example.com' }));
+      // An unrelated edit afterwards does not need to restate the consent.
+      await assertSucceeds(coach.doc(path).update({ fullName: 'Renamed' }));
+    });
+
+    it("refuses photo consent recorded in someone else's name", async () => {
+      const env = await getTestEnv();
+      const coach = dbAs(env, 'coach@example.com');
+      await assertFails(coach.doc(path).update({ photoConsent: true, photoConsentAt: now(), photoConsentBy: 'parent@example.com' }));
+      await assertFails(coach.doc(path).update({ photoConsent: true, photoConsentAt: firebase.firestore.Timestamp.fromDate(new Date('2020-01-01')), photoConsentBy: 'coach@example.com' }));
+    });
+
+    it('refuses a non-boolean photoConsent', async () => {
+      const env = await getTestEnv();
+      const coach = dbAs(env, 'coach@example.com');
+      await assertFails(coach.doc(path).update({ photoConsent: 'yes', photoConsentAt: now(), photoConsentBy: 'coach@example.com' }));
+    });
+
+    it('withdrawing clears the date and the email', async () => {
+      const env = await getTestEnv();
+      const coach = dbAs(env, 'coach@example.com');
+      await assertSucceeds(coach.doc(path).update({ photoConsent: true, photoConsentAt: now(), photoConsentBy: 'coach@example.com' }));
+      await assertFails(coach.doc(path).update({ photoConsent: false }));
+      await assertFails(coach.doc(path).update({ photoConsent: false, photoConsentAt: null, photoConsentBy: 'coach@example.com' }));
+      await assertSucceeds(coach.doc(path).update({ photoConsent: false, photoConsentAt: null, photoConsentBy: null }));
+    });
   });
 });

@@ -26,6 +26,11 @@ describe('AiProviderSettings', () => {
     expect(readAiSettings().apiKey).toBe('gsk_test');
   });
 
+  it('says the chosen provider works for the club, not for us', () => {
+    renderAi();
+    expect(screen.getByText('With your own key, the AI provider you choose works for your club, not for us.')).toBeInTheDocument();
+  });
+
   it('switching to Local fills its URL and model and hides the key', () => {
     renderAi();
     fireEvent.change(screen.getByLabelText('AI provider'), { target: { value: 'local' } });

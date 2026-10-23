@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
+import { HealthHint } from '../components/HealthHint';
 import { Stopwatch } from './Stopwatch';
 import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from '../players/physicalTestFieldLogic';
 import { getLatestByType } from '../players/physicalTestsApi';
@@ -314,7 +315,8 @@ export function SessionQualityPanel({
 
         <div className="mb-4">
           <label htmlFor="notes" className="mb-1 block text-sm font-medium text-ink">Notes</label>
-          <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => persist(fields)} />
+          <Textarea id="notes" aria-describedby="notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => persist(fields)} />
+          <HealthHint id="notes-hint" />
         </div>
 
         <div className="flex justify-between gap-3">

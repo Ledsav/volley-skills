@@ -31,6 +31,7 @@ import { fitSize, loadImageFile, loadLogoFile } from './photo';
 import { knockOutBackground, MAX_SPONSORS } from './card/branding';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
 import { ageFromDob } from '../players/age';
+import { photoAllowed } from './photoGate';
 
 type Load =
   | { state: 'loading' }
@@ -135,7 +136,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         const initial = (scope === 'match' ? match!.awards : saved) ?? EMPTY_AWARDS;
         configRef.current = initial;
         setConfig(initial);
-        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster), consented: new Set(roster.filter((p) => p.consent?.given).map((p) => p.id)),
+        setLoad({ state: 'ready', team, matches: all, match, people: withCurrentRoster(latestRosterIndex(all), roster), consented: new Set(roster.filter((p) => photoAllowed(p, new Date())).map((p) => p.id)),
           adults: new Set(roster.filter((p) => (ageFromDob(p.dob ?? '') ?? 0) >= 18).map((p) => p.id)) });
       } catch (e) {
         if (!cancelled) setLoad({ state: isNotFoundError(e) ? 'notFound' : 'error' });

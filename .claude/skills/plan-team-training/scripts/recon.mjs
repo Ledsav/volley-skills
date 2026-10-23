@@ -65,7 +65,17 @@ const trainings = (await root.collection('trainings').get()).docs.map((d) => {
 });
 const calendar = (await team.ref.collection('calendar').where('date', '>=', today()).orderBy('date').limit(10).get()).docs.map((c) => ({ id: c.id, ...c.data() }));
 
-const recon = { generatedAt: new Date().toISOString(), target, layout, club: args.club ?? null, team: { id: team.id, ...team.data() }, roster, matches, exercises, trainings, calendar };
+// The team's last sessions and the exercises they used, so a new plan can avoid repeating them.
+const exerciseName = new Map(exercises.map((e) => [e.id, e.name]));
+const recent = [];
+for (const c of (await team.ref.collection('calendar').where('date', '<', today()).orderBy('date', 'desc').limit(Number(args.recent ?? 5)).get()).docs) {
+  const s = c.data();
+  const tr = await root.collection('trainings').doc(s.trainingId).get();
+  const steps = tr.exists ? (tr.data().exercises ?? []).map((e) => exerciseName.get(e.exerciseId)).filter(Boolean) : [];
+  recent.push({ date: s.date, businessId: s.trainingBusinessId, name: s.trainingName, exercises: [...new Set(steps)] });
+}
+
+const recon = { generatedAt: new Date().toISOString(), target, layout, club: args.club ?? null, team: { id: team.id, ...team.data() }, roster, matches, exercises, trainings, calendar, recent };
 writeFileSync(join(out, 'recon.json'), JSON.stringify(recon, null, 2));
 
 const fmt = (p) => `${p.fullName} | ${p.position} | ${p.level ?? 'not rated'}${p.avgScore != null ? ` ${p.avgScore.toFixed(1)}` : ''}${p.unscored ? ' | NO SCORES' : ''}${p.priorities.length ? ` | priorities: ${p.priorities.join(', ')}` : ''}`;
@@ -77,5 +87,8 @@ for (const m of matches) {
 }
 console.log(`\nLibrary: ${exercises.length} exercises (${exercises.filter((e) => e.minPlayers == null).length} without minPlayers), ${trainings.length} trainings`);
 console.log(`Upcoming calendar: ${calendar.map((c) => `${c.date} ${c.trainingBusinessId}`).join(', ') || 'none'}`);
+console.log(`Recent sessions (avoid repeating their exercises):`);
+for (const r of recent) console.log(`  ${r.date} ${r.businessId} ${r.name}: ${r.exercises.join(' | ') || '(training not found)'}`);
+if (!recent.length) console.log('  none');
 console.log(`\nWrote ${join(out, 'recon.json')}`);
 process.exit(0);

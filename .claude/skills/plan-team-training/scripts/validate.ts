@@ -73,6 +73,11 @@ for (const s of training.steps) {
   else if (ex.minPlayers > floor) errors.push(`"${s.name}" needs ${ex.minPlayers} players but the session must run with ${floor} (${plan.expectedPlayers} - ${plan.playerSlack})`);
   if (!Number.isInteger(s.minutes) || s.minutes < 1 || s.minutes > 60) errors.push(`"${s.name}": minutes must be 1-60`);
 }
+// Variety: flag steps the team did in its recent sessions (recon.recent).
+for (const s of training.steps) {
+  const seen = (recon.recent ?? []).filter((r: { exercises: string[] }) => r.exercises.includes(s.name));
+  if (seen.length) warnings.push(`"${s.name}" repeats the team's recent session${seen.length > 1 ? 's' : ''} ${seen.map((r: { date: string; businessId: string }) => `${r.date} ${r.businessId}`).join(', ')}`);
+}
 const total = training.steps.reduce((a: number, s: { minutes: number }) => a + s.minutes, 0);
 if (total > plan.slotMinutes) errors.push(`steps total ${total} min, over the ${plan.slotMinutes}-min slot`);
 else if (total > plan.slotMinutes - 5) warnings.push(`steps total ${total} min leave under 5 min of the ${plan.slotMinutes}-min slot for setup`);

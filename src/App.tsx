@@ -2,7 +2,10 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
-import { RequireAuth } from './auth/RequireAuth';
+import { RequireAuth, RequireSignedIn } from './auth/RequireAuth';
+import { SignupInfoPage } from './signup/SignupInfoPage';
+import { SignupPage } from './signup/SignupPage';
+import { SignCompletePage } from './signup/SignCompletePage';
 import { RequireClubAdmin } from './auth/RequireClubAdmin';
 import { RequirePlatformAdmin } from './auth/RequirePlatformAdmin';
 import { MinimalShell } from './layout/MinimalShell';
@@ -54,6 +57,9 @@ export function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/legal/:doc" element={<LegalDocPage />} />
             <Route path="/request-access" element={<RequestAccessPage />} />
+            <Route path="/signup" element={<SignupInfoPage />} />
+            <Route path="/signup/club" element={<RequireSignedIn><SignupPage /></RequireSignedIn>} />
+            <Route path="/sign/complete" element={<RequireSignedIn><SignCompletePage /></RequireSignedIn>} />
             <Route
               path="/platform"
               element={

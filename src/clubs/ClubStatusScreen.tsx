@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom';
 import { AuthShell } from '../auth/AuthShell';
+import { parseVersionKey } from '../legal/versions';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
@@ -27,10 +29,28 @@ export function ClubStatusScreen({ kind }: { kind: ClubStatusKind }) {
     },
   };
   const { title, body } = copy[kind];
+  const accepted = kind === 'pending' && club?.legal ? parseVersionKey(club.legal.versionKey) : null;
 
   return (
     <AuthShell title={title}>
       <p className="text-center text-slate">{body}</p>
+      {kind === 'pending' && (
+        <>
+          <p className="mt-3 text-center text-slate">We&apos;ll email you when it&apos;s active.</p>
+          {accepted && (
+            <p className="mt-3 text-center text-sm text-slate">
+              Accepted:{' '}
+              <Link to={`/legal/terms?v=${accepted.terms}`} className="text-blue hover:underline">
+                Terms of Service {accepted.terms}
+              </Link>
+              {' and '}
+              <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-blue hover:underline">
+                Data Processing Agreement {accepted.dpa}
+              </Link>
+            </p>
+          )}
+        </>
+      )}
       <div className="mt-6 flex flex-col items-center gap-2">
         {others.map((m) => (
           <Button key={m.clubId} variant="primary" onClick={() => switchClub(m.clubId)}>

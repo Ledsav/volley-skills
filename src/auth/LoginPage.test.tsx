@@ -89,3 +89,10 @@ describe('LoginPage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   });
 });
+
+describe('LoginPage sign-up link', () => {
+  it('links to the club sign-up', () => {
+    renderLoginPage();
+    expect(screen.getByRole('link', { name: 'Create your club' })).toHaveAttribute('href', '/signup');
+  });
+});

@@ -20,8 +20,14 @@ function day(value: unknown): string {
   return '—';
 }
 
-const TH = 'whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate';
-const TD = 'whitespace-nowrap px-3 py-2 text-sm text-ink tabular-nums';
+/** "terms-2026-10-22_dpa-…" → "2026-10-22"; any other key is shown as stored. */
+function termsVersion(versionKey: string): string {
+  return /^terms-(\d{4}-\d{2}-\d{2})_/.exec(versionKey)?.[1] ?? versionKey;
+}
+
+const TH = 'px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate';
+const TD = 'px-3 py-2 align-top text-sm text-ink';
+const SUB = 'mt-0.5 text-xs text-slate tabular-nums';
 
 /** Club-doc fields only: the operator never sees club data, so no row links anywhere. */
 export function ClubsTable() {
@@ -77,10 +83,10 @@ export function ClubsTable() {
 
       {/* pb-24: room for the row menu to open below the last row inside the scroller. */}
       <div className="overflow-x-auto rounded-lg border border-border bg-surface pb-24 shadow-card">
-        <table className="w-full min-w-max border-collapse">
+        <table className="w-full border-collapse">
           <thead className="border-b border-border">
             <tr>
-              {['Club', 'Country', 'Owner', 'Status', 'Created', 'Legal version', 'Ends', 'Export until', 'Actions']
+              {['Club', 'Owner', 'Status', 'Terms', 'Actions']
                 .map((h) => <th key={h} scope="col" className={TH}>{h}</th>)}
             </tr>
           </thead>
@@ -91,16 +97,22 @@ export function ClubsTable() {
               const secondary = actions.filter((a) => a.secondary);
               return (
                 <tr key={club.id}>
-                  <th scope="row" className={`${TD} text-left font-medium`}>{club.name}</th>
-                  <td className={TD}>{club.country}</td>
-                  <td className={TD}>{club.ownerEmail}</td>
-                  <td className={TD}>{CLUB_STATUS_LABEL[club.status]}</td>
-                  <td className={TD}>{day(club.createdAt)}</td>
-                  <td className={TD}>{club.legal?.versionKey ?? '—'}</td>
-                  <td className={TD}>{day(club.termination?.effectiveAt)}</td>
-                  <td className={TD}>{day(club.termination?.retrievalEndsAt)}</td>
-                  <td className="px-3 py-1">
-                    <div className="flex items-center gap-1">
+                  <th scope="row" className={`${TD} text-left font-medium`}>
+                    {club.name}
+                    <p className={`${SUB} font-normal`}>{club.country} · created {day(club.createdAt)}</p>
+                  </th>
+                  <td className={`${TD} break-all`}>{club.ownerEmail}</td>
+                  <td className={TD}>
+                    {CLUB_STATUS_LABEL[club.status]}
+                    {club.status === 'terminating' && (
+                      <p className={SUB}>Ends {day(club.termination?.effectiveAt)} · export until {day(club.termination?.retrievalEndsAt)}</p>
+                    )}
+                  </td>
+                  <td className={`${TD} tabular-nums`}>
+                    {club.legal ? `Accepted ${termsVersion(club.legal.versionKey)}` : <span className="text-slate">Not accepted</span>}
+                  </td>
+                  <td className="px-3 py-1 align-top">
+                    <div className="flex flex-wrap items-center gap-1">
                       {primary.map((a) => (
                         <Button key={a.kind} variant="ghost" size="sm" onClick={() => setActive({ club, action: a })}>
                           {a.label}

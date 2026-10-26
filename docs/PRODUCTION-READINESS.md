@@ -52,13 +52,18 @@ Last reviewed: 2026-10-26
 - [x] **Deploy Firestore rules + indexes to the live project** — done once from
       the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
 - [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.
-- [ ] **Production backups and operator security** — production has no backup until
+- [~] **Production backups and operator security** (2026-10-26: key rotated, backup key pair made, two
+      production backups taken and checked; the service-account key is still unencrypted at the repo root) — production has no backup until
       the first `npm run backup -- --prod` (`scripts/ops/README.md`). Do the first-time
       setup (encrypt and rotate the service-account key, backup key pair), take a backup
       weekly and before every risky change, and work through `docs/SECURITY-OPERATIONS.md`.
       Watch the reads each backup prints: once scouting events push it near the 20,000
       budget, move to Google's managed backups (billing) or a quiet-day budget.
-- [ ] **Club platform: migrate production before deploying this branch** — the
+- [x] **Club platform: migrate production before deploying this branch** — DONE 2026-10-26:
+      backup `volley-skills-2026-10-26T14-26-17Z.vsbackup` (265 docs, checked), indexes deployed and
+      READY, 268 docs migrated to `clubs/7lxvfD8x4INAx2E0i9wN` ("Volley Club Belair", owner and operator
+      the operator's gmail: one account with roles), merged and deployed (`6279480`). **Drop the old
+      collections on or after 2026-11-09** (`dropLegacy.mjs --prod --club 7lxvfD8x4INAx2E0i9wN`). — the
       `feature/club-platform` branch reads and writes only under `clubs/{clubId}`, so
       deploying it before the migration locks everyone out. Follow the runbook in
       `scripts/migrate/README.md`: dry run → rehearse on the emulator → freeze → migrate

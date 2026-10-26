@@ -133,7 +133,7 @@ describe('parseDvw: errors and edge cases', () => {
   });
 
   it('uses an empty generator when the line is missing', () => {
-    const result = parseDvw(three.replace(/GENERATOR-PRG:.*\n/, ''));
+    const result = parseDvw(three.replace(/GENERATOR-PRG:.*\r?\n/, ''));
     expect(result).toMatchObject({ generator: '' });
   });
 

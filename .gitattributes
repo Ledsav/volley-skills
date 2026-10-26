@@ -1,0 +1,2 @@
+# DataVolley test fixtures: keep the committed bytes (tests pin their exact line endings).
+*.dvw -text

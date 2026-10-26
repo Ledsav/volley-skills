@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
-import { Plus } from 'lucide-react';
+import { FileUp, Plus } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { useAuth } from '../auth/AuthContext';
 import type { Match, MatchStatus } from '../types/match';
 import { todayIso } from '../calendar/monthGrid';
 import { createMatch, listMatches } from './matchesApi';
+import { DvwImportDialog } from './dvw/DvwImportDialog';
 import { MatchSetupForm } from './MatchSetupForm';
 
 const STATUS_LABEL: Record<MatchStatus, string> = { setup: 'Setup', live: 'Live', finished: 'Finished' };
@@ -19,11 +20,12 @@ const STATUS_CLASS: Record<MatchStatus, string> = {
 
 interface TeamMatchesTabProps {
   teamId: string;
+  teamName: string;
   newMatchDate?: string | null;
   onNewMatchHandled?: () => void;
 }
 
-export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled }: TeamMatchesTabProps) {
+export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMatchHandled }: TeamMatchesTabProps) {
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();
   const [matches, setMatches] = useState<Match[]>([]);
@@ -31,6 +33,19 @@ export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled 
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingDate, setCreatingDate] = useState<string | null>(newMatchDate);
+  const [importing, setImporting] = useState(false);
+  const [online, setOnline] = useState(() => navigator.onLine);
+
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
 
   const loadPage = useCallback(
     async (after: QueryDocumentSnapshot | null) => {
@@ -57,7 +72,12 @@ export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled 
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        {!online && <span className="text-xs text-slate">Connect to the internet to import.</span>}
+        <Button variant="secondary" size="sm" disabled={!online} onClick={() => setImporting(true)}>
+          <FileUp size={16} aria-hidden="true" className="mr-1" />
+          Import from DataVolley (.dvw)
+        </Button>
         <Button variant="primary" size="sm" onClick={() => setCreatingDate(todayIso())}>
           <Plus size={16} aria-hidden="true" className="mr-1" />
           New match
@@ -91,6 +111,17 @@ export function TeamMatchesTab({ teamId, newMatchDate = null, onNewMatchHandled 
         <div className="mt-3 flex justify-center">
           <Button variant="secondary" size="sm" onClick={() => void loadPage(cursor)}>Load more</Button>
         </div>
+      )}
+      {importing && (
+        <DvwImportDialog
+          teamId={teamId}
+          teamName={teamName}
+          onClose={() => setImporting(false)}
+          onImported={(matchId) => {
+            setImporting(false);
+            navigate(`/teams/${teamId}/matches/${matchId}`);
+          }}
+        />
       )}
       {creatingDate && firebaseUser && (
         <Dialog title="New match" onClose={closeCreate} size="lg" mobileSheet guardUnsaved>

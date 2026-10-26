@@ -8,6 +8,7 @@ import * as matchesApi from './matchesApi';
 vi.mock('./matchesApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ firebaseUser: { uid: 'u1' } }) }));
+vi.mock('./dvw/DvwImportDialog', () => ({ DvwImportDialog: () => <p>dvw-dialog</p> }));
 vi.mock('./MatchSetupForm', () => ({
   MatchSetupForm: ({ defaultDate, onSubmit }: { defaultDate?: string; onSubmit: (input: unknown) => Promise<void> | void }) => (
     <div>
@@ -34,19 +35,19 @@ describe('TeamMatchesTab', () => {
   });
 
   it('lists matches with result and status', async () => {
-    render(<MemoryRouter><TeamMatchesTab teamId="t1" /></MemoryRouter>);
+    render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
     expect(await screen.findByText('Rivals')).toBeInTheDocument();
     expect(screen.getByText('3–1')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /resume/i })).toHaveAttribute('href', '/teams/t1/matches/m2/scout');
   });
 
   it('opens the setup form, pre-filled from the calendar date', async () => {
-    render(<MemoryRouter><TeamMatchesTab teamId="t1" newMatchDate="2026-11-02" /></MemoryRouter>);
+    render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" newMatchDate="2026-11-02" /></MemoryRouter>);
     expect(await screen.findByText('setup-form 2026-11-02')).toBeInTheDocument();
   });
 
   it('opens the setup form from the button', async () => {
-    render(<MemoryRouter><TeamMatchesTab teamId="t1" /></MemoryRouter>);
+    render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
     expect(screen.getByText(/setup-form/)).toBeInTheDocument();
   });
@@ -56,7 +57,7 @@ describe('TeamMatchesTab', () => {
     render(
       <MemoryRouter initialEntries={['/teams/t1']}>
         <Routes>
-          <Route path="/teams/:teamId" element={<TeamMatchesTab teamId="t1" />} />
+          <Route path="/teams/:teamId" element={<TeamMatchesTab teamId="t1" teamName="Team" />} />
           <Route path="/teams/:teamId/matches/:matchId" element={<p>match page</p>} />
         </Routes>
       </MemoryRouter>,
@@ -67,13 +68,30 @@ describe('TeamMatchesTab', () => {
     expect(matchesApi.createMatch).toHaveBeenCalledWith('t1', { opponent: 'New FC' }, 'u1');
   });
 
+  describe('DataVolley import', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('opens the import dialog online', async () => {
+      render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+      fireEvent.click(await screen.findByRole('button', { name: /import from datavolley/i }));
+      expect(screen.getByText('dvw-dialog')).toBeInTheDocument();
+    });
+
+    it('disables the DataVolley import offline', async () => {
+      vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+      render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+      expect(await screen.findByRole('button', { name: /import from datavolley/i })).toBeDisabled();
+      expect(screen.getByText('Connect to the internet to import.')).toBeInTheDocument();
+    });
+  });
+
   describe('new-match default date', () => {
     afterEach(() => vi.useRealTimers());
 
     it("uses the local calendar date, not the UTC one", async () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(2026, 9, 14, 0, 30));
-      render(<MemoryRouter><TeamMatchesTab teamId="t1" /></MemoryRouter>);
+      render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
       fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
       expect(screen.getByText('setup-form 2026-10-14')).toBeInTheDocument();
     });

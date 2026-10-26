@@ -9,7 +9,7 @@ const base = { termsVersion: '2026-10-22', dpaVersion: '2026-10-22', email: 'ann
 const renderStep = (props: Partial<Parameters<typeof SpecificApprovalStep>[0]> = {}) =>
   render(
     <MemoryRouter>
-      <SpecificApprovalStep {...base} lang="en" isOperator={false} onSend={vi.fn().mockResolvedValue(undefined)} {...props} />
+      <SpecificApprovalStep {...base} lang="en" onSend={vi.fn().mockResolvedValue(undefined)} {...props} />
     </MemoryRouter>,
   );
 
@@ -39,11 +39,5 @@ describe('SpecificApprovalStep', () => {
     renderStep({ onSend: vi.fn().mockRejectedValue(new Error('x')) });
     fireEvent.click(screen.getByRole('button', { name: 'Approve these clauses specifically' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-  });
-
-  it('explains to the operator instead of offering the button', () => {
-    renderStep({ isOperator: true });
-    expect(screen.queryByRole('button', { name: /Approve/ })).not.toBeInTheDocument();
-    expect(screen.getByText("The platform operator's account cannot sign for a club.")).toBeInTheDocument();
   });
 });

@@ -150,7 +150,6 @@ service cloud.firestore {
       // Self sign-up (spec §6.3): the pending club, the signer's admin member doc and
       // the acceptance in one batch. The club doc does not exist yet, so nothing here
       // may read it with get(): only request.resource and getAfter/existsAfter.
-      // The operator cannot sign up: the acceptance create refuses platform admins.
       function signUpCreate() {
         let next = request.resource.data;
         let fields = ['name','country','locale','ownerEmail','aiEnabled','referenceOptOut','growthTestsEnabled',
@@ -186,8 +185,6 @@ service cloud.firestore {
 
       // A club admin re-accepts new legal versions (spec §6.4): the club's `legal`
       // points at a fresh acceptance written by the same person in the same batch.
-      // The operator (a club admin of their home club) cannot: the acceptance create
-      // refuses platform admins.
       function legalReaccept() {
         let legal = request.resource.data.legal;
         return isClubAdmin()
@@ -259,7 +256,8 @@ service cloud.firestore {
       }
 
       // Immutable legal acceptance records (spec §6.2), written by the signer in the
-      // sign-up batch or in a re-acceptance batch, never by the operator.
+      // sign-up batch or in a re-acceptance batch. Only the club's own admin signs: the
+      // operator signs only for a club they are an admin of, like anyone else.
       match /acceptances/{v} {
         function validAcceptance() {
           let a = request.resource.data;
@@ -291,9 +289,7 @@ service cloud.firestore {
             && a.clausesSha256 is string && a.clausesSha256.matches('^[0-9a-f]{64}$')
             && a.specificClauses is list && a.specificClauses.size() >= 1 && a.specificClauses.size() <= 50
             && a.acceptedByName is string && a.acceptedByName.size() >= 1 && a.acceptedByName.size() <= 100
-            && a.userAgent is string && a.userAgent.size() <= 300
-            // The operator never signs for a club, not even their home club (spec §6.2).
-            && !isPlatformAdmin();
+            && a.userAgent is string && a.userAgent.size() <= 300;
         }
         // Sign-up: the club does not exist yet and is created pending, owned by the
         // signer, pointing at this record. No get() of the club here.

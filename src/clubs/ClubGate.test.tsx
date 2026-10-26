@@ -127,16 +127,13 @@ describe('ClubGate', () => {
       expect(screen.queryByRole('heading', { name: 'Accept the Terms and DPA' })).not.toBeInTheDocument();
     });
 
-    it('shows a platform admin who is a club admin the app plus a notice naming the owner', () => {
+    it('gives a club admin who is also the platform admin the same accept screen', () => {
       vi.mocked(useAuth).mockReturnValue(
         authValue({ club: testClub({ legal: null }), role: 'admin', access: clubAdminAccess, isPlatformAdmin: true })
       );
       renderGate();
-      expect(screen.getByText('Protected content')).toBeInTheDocument();
-      expect(screen.getByRole('status')).toHaveTextContent(
-        'This club has not accepted the current Terms and DPA. Only owner@example.com or another club admin can accept them; the platform operator cannot.'
-      );
-      expect(screen.queryByRole('heading', { name: 'Accept the Terms and DPA' })).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Accept the Terms and DPA' })).toBeInTheDocument();
+      expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
     });
 
     it('lets an admin through with a notice once the club has ended the contract', () => {

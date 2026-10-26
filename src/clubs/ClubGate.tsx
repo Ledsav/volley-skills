@@ -11,7 +11,7 @@ import { needsReview } from '../legal/versions';
 
 /** Decides from the active club's live status and the person's role what they get to see. */
 export function ClubGate({ children }: { children: ReactNode }) {
-  const { club, role, isPlatformAdmin } = useAuth();
+  const { club, role } = useAuth();
   const [tick, forceRender] = useReducer((n: number) => n + 1, 0);
   // Re-render as a contract boundary passes; a clamped timer just fires early and reschedules.
   useEffect(() => {
@@ -50,16 +50,7 @@ export function ClubGate({ children }: { children: ReactNode }) {
             </>
           );
         }
-        // P10: the operator cannot accept for a club, so they get a notice instead of the blocking screen.
-        if (!isPlatformAdmin) return <LegalReviewScreen />;
-        return (
-          <>
-            <div role="status" className="border-b border-orange bg-orange/10 px-4 py-2 text-sm text-ink">
-              {`This club has not accepted the current Terms and DPA. Only ${club?.ownerEmail ?? 'the club owner'} or another club admin can accept them; the platform operator cannot.`}
-            </div>
-            {children}
-          </>
-        );
+        return <LegalReviewScreen />;
       }
       return <>{children}</>;
     }

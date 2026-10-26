@@ -17,7 +17,7 @@ type Errors = Partial<Record<'person' | 'authority', string>>;
 
 /** Blocks a club admin until they accept the Terms and DPA versions now in force. */
 export function LegalReviewScreen() {
-  const { club, activeClubId, firebaseUser, appUser, isPlatformAdmin, memberships, switchClub } = useAuth();
+  const { club, activeClubId, firebaseUser, appUser, memberships, switchClub } = useAuth();
   const others = otherUsableClubs(memberships, activeClubId);
   const notify = useNotify();
   const email = (appUser?.email ?? firebaseUser?.email ?? '').trim().toLowerCase();
@@ -136,7 +136,6 @@ export function LegalReviewScreen() {
               dpaVersion={versions.dpa.version}
               lang={lang}
               email={email}
-              isOperator={isPlatformAdmin}
               onSend={send}
             />
             <div><Button variant="ghost" onClick={() => setStep(2)}>Back</Button></div>

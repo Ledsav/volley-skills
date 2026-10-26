@@ -326,10 +326,10 @@ describe('self sign-up rules', () => {
     }
   });
 
-  it('refuses the platform admin signing up', async () => {
+  it('lets the platform admin sign up a club of their own', async () => {
     const env = await getTestEnv();
     const p = await parts({ email: OPERATOR });
-    await assertFails(commit(dbAs(env, OPERATOR, { authTime: p.acceptance.authTime }), p));
+    await assertSucceeds(commit(dbAs(env, OPERATOR, { authTime: p.acceptance.authTime }), p));
   });
 
   it('refuses a versionKey that does not match the versions', async () => {

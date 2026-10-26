@@ -28,7 +28,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 /** /signup/club: club details, then the documents, then the specific approval and the signing link. */
 export function SignupPage() {
   usePageMeta({ title: 'Create your club' });
-  const { firebaseUser, appUser, memberships, isPlatformAdmin } = useAuth();
+  const { firebaseUser, appUser, memberships } = useAuth();
   const email = (appUser?.email ?? firebaseUser?.email ?? '').trim().toLowerCase();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -181,7 +181,6 @@ export function SignupPage() {
               dpaVersion={versions.dpa}
               lang={lang}
               email={email}
-              isOperator={isPlatformAdmin}
               onSend={send}
             />
             <div><Button variant="ghost" onClick={() => setStep(2)}>Back</Button></div>

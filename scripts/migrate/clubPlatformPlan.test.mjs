@@ -42,12 +42,8 @@ describe('planMigration', () => {
     });
   });
 
-  it('refuses the operator as owner', () => {
-    expect(() => planMigration(source(), { ...OPTS, owner: 'Boss@X.com' })).toThrow('owner must not be the operator');
-  });
-
-  it('accepts the operator as owner only in test mode (the rules still never let the operator sign)', () => {
-    const plan = planMigration(source(), { ...OPTS, owner: 'Boss@X.com', operatorOwnerTestMode: true });
+  it('accepts the operator as owner (one account with roles)', () => {
+    const plan = planMigration(source(), { ...OPTS, owner: 'Boss@X.com' });
     expect(plan.club.data.ownerEmail).toBe('boss@x.com');
     expect(write(plan, 'clubs/VcbMigratedClub00001/members/boss@x.com').data.role).toBe('admin');
   });

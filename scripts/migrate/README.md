@@ -27,13 +27,10 @@ The arguments used below:
   ```bash
   node -e "const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',b=require('crypto').randomBytes(20);console.log([...b].map(x=>c[x%62]).join(''))"
   ```
-- `<officer>` is the person the club authorises to accept the DPA: president,
-  secretary or technical director. Never the operator.
+- `<officer>` is the club admin who accepts the Terms and DPA for the club (president,
+  secretary or technical director). It may be the operator for the operator's own club:
+  one account with roles.
 - `<you>` is your own operator email.
-- While no outside club uses the app (test mode), the operator may own the club: add
-  `--operator-owner-test-mode` and pass your own email as `<officer>` too. Nobody can then
-  accept the Terms for the club (the rules never let the operator sign) until a club admin
-  makes a club officer the owner in People & access.
 
 ### Read and write quotas
 

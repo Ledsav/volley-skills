@@ -9,14 +9,12 @@ export interface SpecificApprovalStepProps {
   dpaVersion: string;
   lang: LegalLang;
   email: string;
-  /** The platform operator's account cannot sign for a club. */
-  isOperator: boolean;
   /** Saves the draft and sends the signing link; rejects when sending fails. */
   onSend: () => Promise<void>;
 }
 
 /** The clauses that need a separate, specific approval, and the button that sends the signing link. */
-export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, isOperator, onSend }: SpecificApprovalStepProps) {
+export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, onSend }: SpecificApprovalStepProps) {
   const clauses = useMemo(() => specificClauses(termsVersion, dpaVersion, lang), [termsVersion, dpaVersion, lang]);
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +45,7 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, is
         ))}
       </div>
 
-      {isOperator ? (
-        <p className="text-sm text-slate">The platform operator&apos;s account cannot sign for a club.</p>
-      ) : state === 'sent' ? (
+      {state === 'sent' ? (
         <p role="status" className="text-sm text-ink">
           We&apos;ve sent a confirmation link to {email}. Open it in this browser to sign.
         </p>

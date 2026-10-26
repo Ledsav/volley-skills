@@ -151,18 +151,22 @@ describe('club acceptances rules', () => {
     await assertFails(reaccept(dbAs(env, COACH, { authTime: asAdmin.authTime }), asAdmin));
   });
 
-  it('refuses re-acceptance by a club admin who is the platform admin', async () => {
+  it('lets a club admin who is also the platform admin accept for that club', async () => {
     const env = await getTestEnv();
+    // One account with roles: the operator accepts for a club only as its own admin.
     await seedClub(env, { ...CLUB_A, admins: [ADMIN, OPERATOR] });
     const p = await reacceptParts(OPERATOR);
+    await assertSucceeds(reaccept(dbAs(env, OPERATOR, { authTime: p.authTime }), p));
+  });
+
+  it('refuses acceptance by the platform admin for a club they are not an admin of', async () => {
+    const env = await getTestEnv();
+    await seedClub(env, CLUB_A);
+    const p = await reacceptParts(OPERATOR);
     await assertFails(reaccept(dbAs(env, OPERATOR, { authTime: p.authTime }), p));
-    // The acceptance alone, too.
     await assertFails(
       dbAs(env, OPERATOR, { authTime: p.authTime }).doc(`clubs/club-a/acceptances/${p.key}`).set(p.acceptance)
     );
-    // Control: the other admin of the same club can.
-    const q = await reacceptParts(ADMIN);
-    await assertSucceeds(reaccept(dbAs(env, ADMIN, { authTime: q.authTime }), q));
   });
 
   it('refuses updating or deleting an acceptance', async () => {

@@ -194,7 +194,7 @@ export function mapDvw(
   const warn = (message: string, lines: number[]) => issues.push({ kind: 'warning', message, lines });
   const setup = buildSetup(file, us, mapping, players, issues);
   for (const [jersey, lineNo] of unlistedJerseys(file, us)) {
-    if (mapping[keyOf(us, jersey)]) warn(`#${jersey} is not in the file's player list.`, [lineNo]);
+    if (mapping[keyOf(us, jersey)]) warn(`#${jersey} is not in the file's player list (first seen on line ${lineNo}).`, [lineNo]);
   }
   const engine: EngineMatch = { format: setup.format, roster: setup.roster, liberos: setup.liberos };
   const rosterIds = new Set(setup.roster.map((r) => r.playerId));

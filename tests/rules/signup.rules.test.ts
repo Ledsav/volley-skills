@@ -127,6 +127,12 @@ describe('self sign-up rules', () => {
     );
   });
 
+  it('refuses a sign-in whose email is not verified (a password account for an address)', async () => {
+    const env = await getTestEnv();
+    const p = await parts();
+    await assertFails(commit(dbAs(env, FOUNDER, { authTime: p.acceptance.authTime, verified: false }), p));
+  });
+
   it('refuses a batch without the acceptance', async () => {
     const env = await getTestEnv();
     const p = await parts();

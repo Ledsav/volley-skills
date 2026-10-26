@@ -111,7 +111,8 @@ player data the PDF carries, by club decision. Roboto lacks arrow glyphs, so
 `fontSafe` swaps them for ›/‹ in every printed string.
 
 **DataVolley import** (`src/matches/dvw/`): `decodeDvw` → `parseDvw` → `parseScoutCode` is a
-pure in-browser parser; the file is never uploaded or stored. The format is read from the MIT
+pure in-browser parser; the file's contents are never uploaded or stored. The match keeps only a
+create-only `import` field: file name, SHA-256, format, generator, import time and the importer's uid. The format is read from the MIT
 openvolley `datavolley` docs, with no code copied. `mapDvw` turns the file plus the coach's side
 and roster choices into normal match events with `source: 'import'` and one `chunkId`. It replays
 through `scoutEngine` and, where the file's point lines disagree with the replayed score, adds

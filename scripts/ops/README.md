@@ -74,6 +74,29 @@ The backup folder must be outside the repo. Keep it on the laptop's encrypted di
 (BitLocker), not in a synced cloud folder: a cloud drive would be a new sub-processor
 in the DPA.
 
+### The routine in one command, and the scheduled task
+
+```bash
+npm run backup:weekly
+```
+
+Asks for the key passphrase, backs up into `%USERPROFILE%\volley-backups`, then copies the
+new file to every other drive with a `\volley-backups` folder at its root (create that
+folder once on the BitLocker external drive) and prunes the copies there. Run the
+`--check` above by hand now and then: it needs the private key.
+
+A Windows scheduled task can open that window every Sunday at 21:00 (or at the next
+sign-in if the laptop was off). It is registered **disabled**:
+
+```bash
+npm run backup:task                 # state
+npm run backup:task -- -Enable      # switch it on
+npm run backup:task -- -Disable     # switch it off
+npm run backup:task -- -Register    # recreate it (disabled), e.g. on a new laptop
+```
+
+It runs only while you are signed in, because the passphrase is typed, never stored.
+
 ## Restore
 
 ```bash

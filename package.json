@@ -26,6 +26,8 @@
     "backup:keygen": "node scripts/ops/backupKeygen.mjs",
     "backup:restore": "node scripts/ops/restore.mjs",
     "backup:prune": "node scripts/ops/prune.mjs",
+    "backup:weekly": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ops/weekly-backup.ps1",
+    "backup:task": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ops/backup-task.ps1",
     "key:encrypt": "node scripts/ops/encryptKey.mjs"
   },
   "dependencies": {

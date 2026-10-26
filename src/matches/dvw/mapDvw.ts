@@ -1,0 +1,275 @@
+import {
+  DEFAULT_FORMAT,
+  type Grade,
+  type LiberoConfig,
+  type MatchEvent,
+  type MatchEventPayload,
+  type MatchSetupInput,
+  type NewMatchEvent,
+  type PointReason,
+  type RosterEntry,
+  type SetScore,
+  type Side,
+  type Skill,
+} from '../../types/match';
+import type { Player, PositionCategory } from '../../types/player';
+import { replay, type EngineMatch } from '../scoutEngine';
+import { POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
+import type { DvwFile, DvwPlayer, DvwSide, ScoutLine } from './types';
+
+/** Key `${side}${jersey}`, value an app playerId, or null = Skip. */
+export type PlayerMapping = Record<string, string | null>;
+
+export interface DvwIssue {
+  kind: 'blocking' | 'warning';
+  message: string;
+  lines: number[];
+}
+
+export interface DvwChecks {
+  fileSets: SetScore[];
+  pointLineSets: SetScore[];
+  replaySets: SetScore[];
+  /** Line numbers of the point lines that needed a score correction. */
+  corrections: number[];
+  eventCounts: Record<MatchEventPayload['type'], number>;
+  ignoredLines: number;
+}
+
+export interface DvwPlan {
+  setup: MatchSetupInput;
+  events: NewMatchEvent[];
+  checks: DvwChecks;
+  issues: DvwIssue[];
+}
+
+export const MAX_IMPORT_EVENTS = 1900;
+
+const ROLE_BY_CODE: Partial<Record<DvwPlayer['roleCode'], PositionCategory>> = { 5: 'S', 2: 'OH', 3: 'O', 4: 'MB', 1: 'L' };
+
+const keyOf = (side: DvwSide, jersey: number) => `${side}${jersey}`;
+const courtOf = (line: ScoutLine, side: DvwSide) => (side === '*' ? line.homeCourt : line.visitingCourt);
+
+/** A file score (home:visiting) seen from our side. */
+function orient(us: DvwSide, home: number, visiting: number): SetScore {
+  return us === '*' ? { us: home, them: visiting } : { us: visiting, them: home };
+}
+
+/** Our players who appear in the scout: on court in any line, in a skill line or in a sub line. */
+export function ourFilePlayers(file: DvwFile, us: DvwSide): DvwPlayer[] {
+  const seen = new Set<number>();
+  for (const line of file.scout) {
+    for (const j of courtOf(line, us)) if (j !== null) seen.add(j);
+    const c = line.code;
+    if (c.kind === 'skill' && c.side === us && c.jersey !== null) seen.add(c.jersey);
+    if (c.kind === 'sub' && c.side === us) seen.add(c.outJersey).add(c.inJersey);
+  }
+  return file.players.filter((p) => p.side === us && seen.has(p.jersey));
+}
+
+/** Each of our file players → the app player with the same jersey, or null. */
+export function autoMapPlayers(file: DvwFile, us: DvwSide, players: Player[]): PlayerMapping {
+  return Object.fromEntries(
+    ourFilePlayers(file, us).map((p) => [keyOf(us, p.jersey), players.find((a) => a.number === p.jersey)?.id ?? null]),
+  );
+}
+
+/** What the opponent's last skill line says about the point; `unknown` when it does not fit the winner. */
+function pointReason(winner: Side, opp: { skill: Skill; grade: Grade } | null): PointReason {
+  let reason: PointReason = 'unknown';
+  if (opp?.grade === '#') {
+    reason = opp.skill === 'S' ? 'oppAce' : opp.skill === 'A' ? 'oppKill' : opp.skill === 'B' ? 'oppBlock' : 'unknown';
+  } else if (opp && (opp.grade === '=' || (opp.grade === '/' && (opp.skill === 'A' || opp.skill === 'B')))) {
+    reason = 'oppError';
+  }
+  return POINT_REASONS[winner].includes(reason) ? reason : 'unknown';
+}
+
+function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players: Player[], issues: DvwIssue[]): MatchSetupInput {
+  const roster: RosterEntry[] = [];
+  const liberoIds: string[] = [];
+  for (const fp of ourFilePlayers(file, us)) {
+    const app = players.find((p) => p.id === mapping[keyOf(us, fp.jersey)]);
+    if (!app || roster.some((r) => r.playerId === app.id)) continue;
+    roster.push({
+      playerId: app.id,
+      number: app.number,
+      name: app.fullName,
+      positionCategory: ROLE_BY_CODE[fp.roleCode] ?? app.positionCategory,
+    });
+    if (fp.specialRole === 'L' || fp.roleCode === 1) liberoIds.push(app.id);
+  }
+  if (liberoIds.length > 2) {
+    issues.push({ kind: 'blocking', message: 'The app takes at most two liberos: skip the others or map them to other players.', lines: [] });
+  }
+  const liberos: LiberoConfig[] = liberoIds.slice(0, 2).map((playerId) => ({ playerId, mode: 'receiving', replaces: [] }));
+  const them = us === '*' ? 'a' : '*';
+  return {
+    date: file.date ?? '',
+    opponent: file.teams[them].name,
+    competition: 'league',
+    homeAway: us === '*' ? 'home' : 'away',
+    format: { ...DEFAULT_FORMAT, ...(Math.max(file.teams['*'].setsWon, file.teams.a.setsWon) === 2 ? { bestOf: 3 } : {}) },
+    roster,
+    liberos,
+  };
+}
+
+interface Rally {
+  /** Our emitted action that decided this file rally (the engine has already closed it). */
+  decided: { winner: Side; index: number; lineNo: number } | null;
+  lastOpp: { skill: Skill; grade: Grade } | null;
+}
+
+const newRally = (): Rally => ({ decided: null, lastOpp: null });
+
+export function mapDvw(
+  file: DvwFile,
+  opts: { us: DvwSide; mapping: PlayerMapping; players: Player[]; importId: string },
+): DvwPlan {
+  const { us, mapping, players, importId } = opts;
+  const issues: DvwIssue[] = [];
+  const warn = (message: string, lines: number[]) => issues.push({ kind: 'warning', message, lines });
+  const setup = buildSetup(file, us, mapping, players, issues);
+  const engine: EngineMatch = { format: setup.format, roster: setup.roster, liberos: setup.liberos };
+  const rosterIds = new Set(setup.roster.map((r) => r.playerId));
+  const idOf = (jersey: number): string | null => {
+    const id = mapping[keyOf(us, jersey)];
+    return id && rosterIds.has(id) ? id : null;
+  };
+  const roles = Object.fromEntries(setup.roster.map((r) => [r.playerId, r.positionCategory]));
+
+  const firstServe = new Map<number, DvwSide>();
+  for (const line of file.scout) {
+    if (line.code.kind === 'skill' && line.code.skill === 'S' && !firstServe.has(line.set)) firstServe.set(line.set, line.code.side);
+  }
+
+  const payloads: MatchEventPayload[] = [];
+  const toEvents = (list: MatchEventPayload[]): NewMatchEvent[] =>
+    list.map((p, i) => ({ ...p, order: i + 1, source: 'import', chunkId: importId }) as NewMatchEvent);
+  /** For the in-memory replays only; Firestore assigns the real ids on write. */
+  const withMeta = (list: MatchEventPayload[]): MatchEvent[] => toEvents(list).map((e) => ({ ...e, id: `e${e.order}` }));
+  const corrections: number[] = [];
+  const pointLineSets = new Map<number, SetScore>();
+  let ignoredLines = 0;
+  let set = 0;
+  let setStartIndex = 0;
+  let rally = newRally();
+
+  const startSet = (line: ScoutLine) => {
+    set = line.set;
+    setStartIndex = payloads.length;
+    rally = newRally();
+    const court = courtOf(line, us);
+    const lineup = court.map((j) => (j === null ? null : idOf(j)));
+    if (lineup.length !== 6 || lineup.some((id) => id === null)) {
+      issues.push({
+        kind: 'blocking',
+        message: `Map or keep every starter: the app needs six players on court in set ${set}.`,
+        lines: [line.lineNo],
+      });
+    }
+    const serve = firstServe.get(set) ?? us;
+    payloads.push({ type: 'setStart', set, lineup: lineup.map((id) => id ?? ''), serving: serve === us ? 'us' : 'them', roles });
+  };
+
+  const onPoint = (line: ScoutLine, side: DvwSide, home: number, visiting: number) => {
+    const winner: Side = side === us ? 'us' : 'them';
+    const decided = rally.decided;
+    if (decided && decided.winner !== winner) {
+      payloads.splice(decided.index, 1);
+      const team = winner === 'us' ? 'us' : 'the opponent';
+      warn(
+        `Line ${decided.lineNo}: this action ended the rally the other way; line ${line.lineNo} gives the point to ${team} — action dropped.`,
+        [decided.lineNo],
+      );
+    }
+    if (!decided || decided.winner !== winner) payloads.push({ type: 'point', winner, reason: pointReason(winner, rally.lastOpp) });
+    // §4.7: re-sync the score whenever the replay drifts from the file.
+    const fileScore = orient(us, home, visiting);
+    const now = replay(engine, withMeta(payloads.slice(setStartIndex))).score;
+    if (now.us !== fileScore.us || now.them !== fileScore.them) {
+      payloads.push({ type: 'correction', score: fileScore, rotation: null, serving: null });
+      corrections.push(line.lineNo);
+    }
+    pointLineSets.set(set, fileScore);
+    rally = newRally();
+  };
+
+  for (const line of file.scout) {
+    const c = line.code;
+    if (line.set !== set && c.kind !== 'setEnd') startSet(line);
+    switch (c.kind) {
+      case 'skill': {
+        if (c.side !== us) {
+          rally.lastOpp = { skill: c.skill, grade: c.grade };
+          break;
+        }
+        const id = c.jersey === null ? null : idOf(c.jersey);
+        if (c.jersey === null) warn(`Line ${line.lineNo}: unknown player ($$) — action dropped.`, [line.lineNo]);
+        else if (!id) warn(`Line ${line.lineNo}: #${c.jersey} is not mapped to a player — action dropped.`, [line.lineNo]);
+        else if (!validGrades(c.skill).includes(c.grade)) {
+          warn(`Line ${line.lineNo}: grade ${c.grade} is not offered for ${SKILL_LABELS[c.skill]} — action dropped.`, [line.lineNo]);
+        } else if (rally.decided) {
+          warn(`Line ${line.lineNo}: the rally was already decided — action dropped.`, [line.lineNo]);
+        } else {
+          payloads.push({ type: 'action', playerId: id, skill: c.skill, grade: c.grade });
+          const winner = rallyOutcome(c.skill, c.grade);
+          if (winner) rally.decided = { winner, index: payloads.length - 1, lineNo: line.lineNo };
+        }
+        break;
+      }
+      case 'point':
+        onPoint(line, c.side, c.home, c.visiting);
+        break;
+      case 'sub': {
+        if (c.side !== us) break;
+        const outId = idOf(c.outJersey);
+        const inId = idOf(c.inJersey);
+        if (outId && inId) payloads.push({ type: 'sub', outPlayerId: outId, inPlayerId: inId });
+        else warn(`Line ${line.lineNo}: substitution #${c.outJersey} → #${c.inJersey} has an unmapped player — skipped.`, [line.lineNo]);
+        break;
+      }
+      case 'timeout':
+        payloads.push({ type: 'timeout', team: c.side === us ? 'us' : 'them' });
+        break;
+      case 'setEnd':
+        payloads.push({ type: 'setEnd', set: c.set });
+        rally = newRally();
+        break;
+      case 'other':
+        ignoredLines += 1;
+        break;
+      case 'rotation':
+        break;
+    }
+  }
+
+  if (payloads.length > MAX_IMPORT_EVENTS) {
+    issues.push({ kind: 'blocking', message: 'This match is too long to import (more than 1,900 events).', lines: [] });
+  }
+
+  const events = toEvents(payloads);
+  const fileSets = file.sets.filter((s) => s.played).map((s) => orient(us, s.home, s.visiting));
+  const replaySets = replay(engine, withMeta(payloads)).setScores;
+  const sameSets =
+    replaySets.length === fileSets.length && replaySets.every((s, i) => s.us === fileSets[i].us && s.them === fileSets[i].them);
+  if (!sameSets) warn("The replayed score differs from the file's set scores.", []);
+
+  const eventCounts: DvwChecks['eventCounts'] = { setStart: 0, action: 0, point: 0, sub: 0, timeout: 0, correction: 0, setEnd: 0 };
+  for (const e of payloads) eventCounts[e.type] += 1;
+
+  return {
+    setup,
+    events,
+    checks: {
+      fileSets,
+      pointLineSets: [...pointLineSets.entries()].sort(([a], [b]) => a - b).map(([, score]) => score),
+      replaySets,
+      corrections,
+      eventCounts,
+      ignoredLines,
+    },
+    issues,
+  };
+}

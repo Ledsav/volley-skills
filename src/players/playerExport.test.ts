@@ -82,7 +82,8 @@ describe('buildPlayerExport', () => {
 });
 
 describe('downloadPlayerExport', () => {
-  it('creates a blob URL and clicks an anchor', () => {
+  it('creates a blob URL, clicks an anchor and revokes the URL later', () => {
+    vi.useFakeTimers();
     let capturedBlob: unknown;
     const createObjectURL = vi.fn((blob: unknown) => {
       capturedBlob = blob;
@@ -98,6 +99,9 @@ describe('downloadPlayerExport', () => {
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(capturedBlob).toBeInstanceOf(Blob);
     expect(clickSpy).toHaveBeenCalledTimes(1);
+    vi.runAllTimers();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
+    clickSpy.mockRestore();
+    vi.useRealTimers();
   });
 });

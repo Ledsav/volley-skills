@@ -9,7 +9,7 @@ export type StatsRange = { kind: 'season' } | { kind: 'last'; count: 5 | 10 } | 
 export interface StatsFilter { competition: Competition | 'all'; range: StatsRange; homeAway: HomeAway | 'all' }
 export const DEFAULT_FILTER: StatsFilter = { competition: 'all', range: { kind: 'season' }, homeAway: 'all' };
 
-export interface Coverage { scouted: number; scoreOnly: number; skipped: number; capped: boolean }
+interface Coverage { scouted: number; scoreOnly: number; skipped: number; capped: boolean }
 
 export function seasonCoverage(all: Match[]): Coverage {
   let scouted = 0, scoreOnly = 0, skipped = 0;

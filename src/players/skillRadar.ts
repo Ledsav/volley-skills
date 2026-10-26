@@ -1,18 +1,18 @@
 /** Pure geometry for an 8-axis skill radar/spider chart, laid out on a 320×320 viewBox. */
 
-export interface RadarPoint {
+interface RadarPoint {
   x: number;
   y: number;
 }
 
-export interface RadarAxisLabel {
+interface RadarAxisLabel {
   label: string;
   x: number;
   y: number;
   textAnchor: 'start' | 'middle' | 'end';
 }
 
-export interface RadarGeometry {
+interface RadarGeometry {
   size: number;
   center: number;
   maxRadius: number;

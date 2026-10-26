@@ -71,7 +71,7 @@ describe('AwardsPage', () => {
     vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([m]);
     vi.mocked(matchesApi.getMatch).mockResolvedValue(m);
     vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([
-      { id: 'a', fullName: 'Player a', number: 1, consent: { given: true, date: null, confirmedBy: null } },
+      { id: 'a', fullName: 'Player a', number: 1, photoConsent: true, consent: { given: true, date: null, confirmedBy: null } },
       { id: 'b', fullName: 'Player b', number: 2, consent: { given: false, date: null, confirmedBy: null } },
     ] as unknown as Player[]);
     sessionStorage.clear();
@@ -194,6 +194,24 @@ describe('AwardsPage', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Winner cards/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not export');
     expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('a minor with guardian data consent but no photo consent gets no photo slot', async () => {
+    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([
+      { id: 'a', fullName: 'Player a', number: 1, dob: '2012-05-05', consent: { given: true, date: null, confirmedBy: null } },
+    ] as unknown as Player[]);
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    expect(screen.getAllByText('No photo consent on file — the card shows the jersey number.').length).toBeGreaterThan(0);
+  });
+
+  it('an adult winner gets the photo slot without any photo consent', async () => {
+    vi.mocked(matchesApi.loadTeamRoster).mockResolvedValue([
+      { id: 'a', fullName: 'Player a', number: 1, dob: '1990-05-05', consent: { given: false, date: null, confirmedBy: null } },
+    ] as unknown as Player[]);
+    renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    expect(screen.queryByText('No photo consent on file — the card shows the jersey number.')).toBeNull();
   });
 
   it('a logo the browser cannot read shows a message and adds nothing', async () => {

@@ -1,8 +1,10 @@
 import {
-  arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy,
-  query, startAfter, writeBatch, type DocumentData, type Query, type QueryDocumentSnapshot,
+  arrayRemove, arrayUnion, getDoc, getDocs, limit, orderBy,
+  query, startAfter, writeBatch,
+  type DocumentData, type Query, type QueryDocumentSnapshot, type WriteBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { SECTION_KEYS, type SectionKey } from '../auth/access';
 
 const TEAMS_PAGE = 50;
@@ -21,7 +23,7 @@ export function emptyGrantSet(): GrantSet {
 export async function listAllTeams(
   afterDoc: QueryDocumentSnapshot | null = null,
 ): Promise<{ teams: TeamRow[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
-  const base = collection(db, 'teams');
+  const base = clubCol('teams');
   const q = afterDoc
     ? query(base, orderBy('name'), startAfter(afterDoc), limit(TEAMS_PAGE))
     : query(base, orderBy('name'), limit(TEAMS_PAGE));
@@ -43,7 +45,7 @@ export async function listGrantHolders(): Promise<GrantHolder[]> {
   // all teams (paged to completion)
   let cursor: QueryDocumentSnapshot | null = null;
   do {
-    const base = collection(db, 'teams');
+    const base = clubCol('teams');
     const q: Query<DocumentData> = cursor
       ? query(base, orderBy('name'), startAfter(cursor), limit(TEAMS_PAGE))
       : query(base, orderBy('name'), limit(TEAMS_PAGE));
@@ -58,7 +60,7 @@ export async function listGrantHolders(): Promise<GrantHolder[]> {
 
   // sections
   for (const section of SECTION_KEYS) {
-    const snap = await getDoc(doc(db, 'sectionAccess', section));
+    const snap = await getDoc(clubDoc('sectionAccess', section));
     for (const email of (snap.data()?.adminEmails as string[] | undefined) ?? []) {
       ensure(email).sections[section] = true;
     }
@@ -69,29 +71,29 @@ export async function listGrantHolders(): Promise<GrantHolder[]> {
     .sort((a, b) => a.email.localeCompare(b.email));
 }
 
-export async function saveGrants(email: string, next: GrantSet, prev: GrantSet): Promise<void> {
-  const batch = writeBatch(db);
+export function addGrantOps(batch: WriteBatch, email: string, next: GrantSet, prev: GrantSet): void {
   const prevTeams = new Set(prev.teamIds);
   const nextTeams = new Set(next.teamIds);
   for (const id of nextTeams) {
-    if (!prevTeams.has(id)) batch.update(doc(db, 'teams', id), { adminEmails: arrayUnion(email) });
+    if (!prevTeams.has(id)) batch.update(clubDoc('teams', id), { adminEmails: arrayUnion(email) });
   }
   for (const id of prevTeams) {
-    if (!nextTeams.has(id)) batch.update(doc(db, 'teams', id), { adminEmails: arrayRemove(email) });
+    if (!nextTeams.has(id)) batch.update(clubDoc('teams', id), { adminEmails: arrayRemove(email) });
   }
   for (const section of SECTION_KEYS) {
     if (next.sections[section] && !prev.sections[section]) {
-      batch.set(doc(db, 'sectionAccess', section), { adminEmails: arrayUnion(email) }, { merge: true });
+      batch.set(clubDoc('sectionAccess', section), { adminEmails: arrayUnion(email) }, { merge: true });
     }
     if (!next.sections[section] && prev.sections[section]) {
-      batch.set(doc(db, 'sectionAccess', section), { adminEmails: arrayRemove(email) }, { merge: true });
+      batch.set(clubDoc('sectionAccess', section), { adminEmails: arrayRemove(email) }, { merge: true });
     }
   }
-  await batch.commit();
 }
 
-export async function removeAllGrants(email: string): Promise<void> {
-  const holder = (await listGrantHolders()).find((h) => h.email === email);
-  if (!holder) return;
-  await saveGrants(email, emptyGrantSet(), holder.grants);
+// Membership is explicit (membersApi); this only edits team/section grants.
+export async function saveGrants(rawEmail: string, next: GrantSet, prev: GrantSet): Promise<void> {
+  const email = rawEmail.trim().toLowerCase();
+  const batch = writeBatch(db);
+  addGrantOps(batch, email, next, prev);
+  await batch.commit();
 }

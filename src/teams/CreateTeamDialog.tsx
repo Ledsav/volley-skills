@@ -15,9 +15,8 @@ const labelClass = 'mb-1 block text-sm font-medium text-ink';
 const fieldClass = 'mb-4';
 
 export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, appUser } = useAuth();
   const [name, setName] = useState('');
-  const [club, setClub] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [season, setSeason] = useState('');
   const [description, setDescription] = useState('');
@@ -28,11 +27,11 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!firebaseUser?.email) return;
+    if (!firebaseUser || !appUser) return;
     const { uid } = firebaseUser;
-    const email = firebaseUser.email;
+    const email = appUser.email;
     try {
-      const done = await save(() => createTeam({ name, club, ageGroup, season, description }, uid, email));
+      const done = await save(() => createTeam({ name, ageGroup, season, description }, uid, email));
       if (!done) return;
     } catch {
       setError('Could not create the team. Please try again.');
@@ -50,13 +49,6 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
             Name
           </label>
           <Input id="team-name" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-
-        <div className={fieldClass}>
-          <label htmlFor="team-club" className={labelClass}>
-            Club
-          </label>
-          <Input id="team-club" value={club} onChange={(e) => setClub(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>

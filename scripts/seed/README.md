@@ -2,7 +2,7 @@
 
 Implements app design spec §9: a one-time script that imports the club's
 `VCB_U17_PlayerCards_2026-27.xlsx` spreadsheet into Firestore as one team,
-the `skillGuide/config` doc, and 20 player docs.
+the `config/skillGuide` doc and 20 player docs, all under a club (`clubs/{clubId}`, default `demo`).
 
 - `parseWorkbook.mjs` — pure parser: `.xlsx` → `{ team, skillGuide, players }` shaped
   to the data model in spec §5. No Firebase, no network.
@@ -16,6 +16,11 @@ app's consent flow, so an admin must confirm consent per player in the app after
 import. Skill scores / notes / development-plan fields import as empty unless the
 workbook has them filled.
 
+Everything is club-scoped: every script takes `--club <id>` (default `demo` on the emulator; **`--prod` requires an explicit `--club`** in `seed.mjs`, `backfillPlayers.mjs` and `snapshotSkills.mjs`) and writes
+under `clubs/<id>/...`. `exportProdPlayers.mjs` reads top-level `teams` unless you pass `--club <id>`:
+once production is migrated (`scripts/migrate/README.md`), always pass `--club <id>`. Collection-group scripts
+(`backfillSummaries`, `backfillPlayers`, `snapshotSkills`) only touch docs under the chosen club and exit non-zero (writing nothing, never an empty `skillsSnapshot.json`) when no docs match.
+
 The script logs **counts only** — never player or guardian field values.
 
 ## Prerequisites
@@ -28,9 +33,9 @@ The script logs **counts only** — never player or guardian field values.
   then the usual install dirs (Adoptium, Microsoft, Corretto, Zulu, `/usr/lib/jvm`,
   …), then `java` on `PATH` — so you do **not** need `JAVA_HOME` set. If none is
   found it prints a Temurin download link.
-- Prod target: `serviceAccountKey.json` at the repo root (**gitignored**) —
-  download it from the Firebase console → Project settings → Service accounts →
-  "Generate new private key".
+- Prod target: the service-account key, kept encrypted as `serviceAccountKey.json.enc`
+  at the repo root (**gitignored**); scripts ask for its passphrase. Setup and rotation:
+  `scripts/ops/README.md`.
 
 ## Seed the emulator
 
@@ -74,7 +79,7 @@ npm run seed:import-players                 # replaces the seeded team's players
 npm run seed:match                          # demo matches on those players
 ```
 
-- `exportProdPlayers.mjs` needs `serviceAccountKey.json` and **only reads** prod
+- `exportProdPlayers.mjs` needs the service-account key and **only reads** prod
   (`teams/*/players/*`, paged 500 at a time; no physical tests or other data).
   Limit it to one team with `-- --team <prodTeamId>`. It refuses to run if
   `FIRESTORE_EMULATOR_HOST` is set — that variable redirects every firebase-admin
@@ -132,15 +137,30 @@ Then at `/login`, enter the seeded admin email (`coach@example.com`, or whatever
 `--admin` you passed). The Auth emulator **does not send email** — it prints the
 sign-in link to the `npm run emulator` console (and shows it in the Emulator UI
 under Authentication). Open that link to finish signing in. The seeder also writes
-`adminAllowlist/<admin>`, so that account resolves to a full `role: 'admin'` on
-first sign-in.
+`platformAdmins/<admin>` and the admin's club membership, so that account is the club
+admin of `demo` on first sign-in.
+
+### Demo, rival and pending clubs
+
+`npm run seed:clubs` (run by `dev:emulator` right after the demo seed) adds three more clubs so
+you can try each state of the multi-club app. Sign in with the emulator link as:
+
+| Email | Sees |
+|---|---|
+| `coach@example.com` | Volley Demo (club admin and platform admin; the legal texts are accepted by `president@example.com`, so neither the review screen nor a notice shows): teams, library, matches, stats |
+| `president@example.com` | Volley Demo as club admin and owner (`ownerEmail`): accepted the current legal texts |
+| `rival@example.com` | Rival Volley: only `Rival U17` (2 players, 1 exercise); this club has AI and growth tests turned off, so those features are hidden |
+| `pending@example.com` | New Club: the pending screen (legal accepted) |
+| `review@example.com` | Review Club (active, `legal: null`): the blocking legal review screen; accept it to continue |
+| `operator@example.com` | `/platform` only (platform admin with no club membership): clubs table and lifecycle actions, never any club data |
+| `nobody@example.com` (any other) | the welcome page (no club) |
 
 `seed:emulator` runs `node scripts/seed/seed.mjs --emulator --reset`:
 
 - connects to `127.0.0.1:8080` via `FIRESTORE_EMULATOR_HOST` (no credentials),
-- `--reset` first deletes any team previously written by this script (so re-running
-  is safe and doesn't pile up duplicates),
-- writes the team with `adminEmails: ["coach@example.com"]`. To sign in as
+- `--reset` first deletes the whole club (`clubs/<club>/**`, via `recursiveDelete`) so
+  re-running is safe and doesn't pile up duplicates,
+- writes `clubs/demo`, its admin member and the team with `adminEmails: ["coach@example.com"]`. To sign in as
   yourself instead:
 
   ```bash
@@ -165,32 +185,54 @@ node scripts/seed/seed.mjs --prod --admin coach@realclub.example --yes
 
 Guards (all must pass):
 
-1. `serviceAccountKey.json` exists at the repo root.
-2. `--admin <email>` is given (the real team admin who will sign in). No default.
+1. The service-account key opens (`serviceAccountKey.json.enc` and its passphrase).
+2. `--club <id>` is given (no default in prod) and `--admin <email>` is given (the real team admin who will sign in). No default.
 3. `--yes` is given, or you type `seed` at the confirmation prompt.
-4. The `teams` collection is **empty**. To seed a project that already has teams,
-   add `--force` (it appends another team; it never edits or deletes existing data).
+4. Top-level `teams` is **empty** (prod is not migrated to clubs yet; otherwise seeding is refused) and
+   `clubs/<club>` does **not** exist. `--force` overrides both; on an existing club it only adds the
+   team and players (and `config/skillGuide` only if it is missing), never touching the club, member or sectionAccess docs.
+   `platformAdmins/<admin>` is written on the emulator only.
 
-The script prints the target project id (from the key file) before writing. Run it
+The script prints the target project id (from the key) before writing. Run it
 **once**.
 
 ## What gets written
 
+`seed.mjs` (`<club>` = `--club`, default `demo`):
+
 | Path | Contents |
 |---|---|
-| `teams/{autoId}` | `name` (age group), `club`, `ageGroup`, `season`, empty `description`/`notes`, empty `developmentPlan`, `adminEmails: [<--admin>]`, `createdBy: "seed-script"`, `createdAt` |
-| `adminAllowlist/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` — lets that email become a global admin on sign-in |
-| `sectionAccess/exercises` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/exercises` |
-| `sectionAccess/trainings` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/trainings` |
-| `sectionAccess/guides` | `{ adminEmails: [<--admin>], addedBy: "seed-script", addedAt }` — grants `/admin/guides` |
-| `skillGuide/config` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
-| `teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |
+| `clubs/<club>` | `name` ("Volley Demo" for `demo`), `country`, `locale`, `ownerEmail` (`<--admin>`; `president@example.com` on the emulator), `status: "active"`, `aiEnabled`/`growthTestsEnabled: true`, `referenceOptOut: false`, `legal` (`null` in prod; on the emulator the current version accepted by `president@example.com`, with an `acceptances/{versionKey}` doc with placeholder hashes), `termination` (all null), `billing: null`, `createdAt` |
+| `clubs/<club>/members/{<--admin>}` | `{ email, clubId, role: "admin", addedBy: "seed-script", addedAt }` (doc id = lowercased email) |
+| `clubs/<club>/sectionAccess/{exercises,trainings,guides}` | `{ adminEmails: [<--admin>] }` and nothing else (the rules only allow that key) |
+| `platformAdmins/{<--admin>}` | `{ addedBy: "seed-script", addedAt }` (emulator only) |
+| `clubs/<club>/teams/{autoId}` | `name` (age group), `ageGroup`, `season`, empty `description`/`notes`, empty `developmentPlan`, `adminEmails: [<--admin>]`, `createdBy: "seed-script"`, `createdAt` (no `club` field: the name lives on the club doc) |
+| `clubs/<club>/config/skillGuide` | `skills[8]` — each `{ key, label, ranges[4], howToEvaluate }`, `updatedBy: "seed-script"`, `updatedAt` |
+| `clubs/<club>/teams/{teamId}/players/{autoId}` ×20 | contact fields, `guardians[]`, `viewerEmails: []`, denormalized `teamName`/`ageGroup`/`season`, `skills` (per spec), `avgScore`/`level` (computed; `null` when unscored), `developmentPlan`, `consent: { given: false, date: null, confirmedBy: null }`, `createdBy: "seed-script"`, `createdAt`, `updatedAt` |
+
+`seedClubs.mjs`: `clubs/rival` (`Rival Volley`, active, `aiEnabled`/`growthTestsEnabled: false`, admin `rival@example.com`, team
+`Rival U17` with two players, one exercise) `clubs/newclub` (`New Club`, pending, admin
+`pending@example.com`) and `clubs/review` (`Review Club`, active, admin `review@example.com`, `legal: null`), each with the same club/member/sectionAccess docs, plus `platformAdmins/operator@example.com` (no membership in any club).
+
+Other scripts (`seedLibrary`, `seedMatch`, `seedMen1`, `applyNumbers`, `importPlayers`) write
+under the same `clubs/<club>/` root.
 
 ## Men 1 (adult team)
 
-`npm run seed:men1` adds a "Men 1" senior team (fixed id `seed-men-1`) with 14 adult
+`npm run seed:men1` (add `-- --club <id>` for another club) adds a "Men 1" senior team (fixed id `seed-men-1`) with 14 adult
 players to the running emulator. Adults give photo consent themselves, so consent is
 recorded as given — use it to try awards photos and background removal. It also
-seeds a season of matches for the team (`seedMatch.mjs --team seed-men-1`) and their summaries. Admin, club
+seeds a season of matches for the team (`seedMatch.mjs --team seed-men-1`) and their summaries. Admin
 and season are copied from the team `seed.mjs` created (`--admin <email>` overrides).
 `npm run dev:emulator` runs it automatically.
+
+## Try the sign-up flow
+
+Not run by the agent that wrote this (the operator's emulator holds the ports). With `npm run dev:emulator` running:
+
+1. Sign in as a new email (for example `new@example.com`); the link is printed in the Auth emulator console.
+2. Welcome page, then Create a club: fill the club details, switch the texts to Italian, go through the three steps (documents, specific approval, send the signing link). Open the signing link from the Auth emulator console.
+3. `/sign/complete` commits and lands on the pending screen. If it says the link is too old, send a new one.
+4. Sign in as `operator@example.com`, open `/platform` and Activate the new club.
+5. Sign in as `review@example.com`: the review screen blocks the app. Accept it and the club opens.
+6. Sign in as `coach@example.com` (operator and demo admin): no review screen and no notice.

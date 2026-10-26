@@ -1,5 +1,5 @@
 /** A placeholder block shaped like the content it stands in for. */
-export function SkeletonBlock({ className = '' }: { className?: string }) {
+function SkeletonBlock({ className = '' }: { className?: string }) {
   return <div data-skeleton-block aria-hidden="true" className={`rounded-md bg-border/60 motion-safe:animate-pulse ${className}`.trim()} />;
 }
 

@@ -12,7 +12,7 @@ vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 describe('CreateTeamDialog', () => {
   it('submits the form fields to createTeam and calls onCreated', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
     );
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockResolvedValue('team-1');
     const onCreated = vi.fn();
@@ -20,14 +20,13 @@ describe('CreateTeamDialog', () => {
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={onCreated} />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
-    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'Demo VC' } });
     fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
     fireEvent.click(screen.getByText('Create'));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
     expect(createTeamSpy).toHaveBeenCalledWith(
-      { name: 'U17', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '' },
+      { name: 'U17', ageGroup: 'U17', season: '2026-27', description: '' },
       'coach-uid',
       'coach@example.com'
     );
@@ -35,7 +34,7 @@ describe('CreateTeamDialog', () => {
 
   it('shows an error message when createTeam is rejected', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
     );
     vi.spyOn(teamsApi, 'createTeam').mockRejectedValue({ code: 'permission-denied' });
     const onCreated = vi.fn();
@@ -43,7 +42,6 @@ describe('CreateTeamDialog', () => {
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={onCreated} />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
-    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'Demo VC' } });
     fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
     fireEvent.click(screen.getByText('Create'));
@@ -54,12 +52,11 @@ describe('CreateTeamDialog', () => {
 
   it('creates the team once even when Create is clicked twice', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
     );
     const createTeamSpy = vi.spyOn(teamsApi, 'createTeam').mockReturnValue(new Promise(() => undefined));
     render(<CreateTeamDialog onClose={vi.fn()} onCreated={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
-    fireEvent.change(screen.getByLabelText('Club'), { target: { value: 'Demo VC' } });
     fireEvent.change(screen.getByLabelText('Age group'), { target: { value: 'U17' } });
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: '2026-27' } });
     fireEvent.click(screen.getByText('Create'));
@@ -69,7 +66,7 @@ describe('CreateTeamDialog', () => {
   });
 
   it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
-    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } }));
     const onClose = vi.fn();
     const { unmount } = render(<CreateTeamDialog onClose={onClose} onCreated={vi.fn()} />);
     expect(await screen.findByRole('dialog', { name: 'Create team' })).toBeInTheDocument();

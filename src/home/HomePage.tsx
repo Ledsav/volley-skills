@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ClipboardList, Dumbbell, Users } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { PageSkeleton } from '../components/Skeleton';
 import { matchMvpLabel } from '../awards/matchMvp';
 import { usePageMeta } from '../layout/usePageMeta';
-import { clubName, liveMatches, nextUp, recentResults } from './homeFeed';
+import { liveMatches, nextUp, recentResults } from './homeFeed';
 import { LiveNowBlock } from './LiveNowBlock';
 import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
@@ -36,13 +35,13 @@ function CourtLines() {
 
 export function HomePage() {
   usePageMeta({ title: 'Home' });
-  const { appUser, access } = useAuth();
+  const { appUser, access, club: activeClub } = useAuth();
   const email = appUser?.email ?? null;
   const name = (email?.split('@')[0] ?? '').split(/[._-]/)[0];
   const state = useHomeFeed(email);
-  const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isSuperAdmin);
+  const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isClubAdmin);
   const today = state.today;
-  const club = clubName(state.teams);
+  const club = activeClub?.name;
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
@@ -85,7 +84,7 @@ export function HomePage() {
             <section aria-labelledby="your-teams" className="mb-6">
               <div className="mb-2 flex items-baseline justify-between">
                 <h2 id="your-teams" className="text-lg font-semibold text-ink">Your teams</h2>
-                <Link to="/teams" className="text-sm text-blue hover:underline">All teams →</Link>
+                {state.hasMoreTeams && <Link to="/teams" className="text-sm text-blue hover:underline">All teams →</Link>}
               </div>
               {state.hasMoreTeams && <p className="mb-2 text-sm text-slate">Showing your first {state.teams.length} teams.</p>}
               <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -100,11 +99,6 @@ export function HomePage() {
               </ul>
             </section>
           )}
-          <section aria-label="Shortcuts" className="flex flex-wrap gap-2">
-            <Link to="/teams" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-4 text-ink hover:bg-bg"><Users size={16} aria-hidden="true" /> Teams</Link>
-            {access?.sections.exercises && <Link to="/exercises" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-4 text-ink hover:bg-bg"><Dumbbell size={16} aria-hidden="true" /> Exercises</Link>}
-            {access?.sections.trainings && <Link to="/trainings" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-4 text-ink hover:bg-bg"><ClipboardList size={16} aria-hidden="true" /> Trainings</Link>}
-          </section>
         </>
       )}
     </div>

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input, Textarea } from '../components/Input';
+import { HealthHint } from '../components/HealthHint';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useAuth } from '../auth/AuthContext';
 import { deleteTeam, updateTeamInfo } from './teamsApi';
@@ -81,10 +82,11 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               Description
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-              Notes
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-            </label>
+            <div className="flex flex-col gap-1 text-sm font-medium text-ink">
+              <label htmlFor="team-info-notes">Notes</label>
+              <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+              <HealthHint id="team-info-notes-hint" />
+            </div>
           </div>
           {infoError && <p role="alert" className="mt-3 text-sm text-red">{infoError}</p>}
           <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo}>
@@ -117,7 +119,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           </Button>
         </div>
 
-        {access?.isSuperAdmin && (
+        {access?.isClubAdmin && (
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>

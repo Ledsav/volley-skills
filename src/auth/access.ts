@@ -1,18 +1,18 @@
-import { doc, getDoc, type FirestoreError } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import type { AppUser } from '../types/auth';
+import { getDoc, type FirestoreError } from 'firebase/firestore';
+import { clubDoc } from '../firebase/clubPaths';
+import type { MemberRole } from '../types/club';
 
 export type SectionKey = 'exercises' | 'trainings' | 'guides';
 export const SECTION_KEYS: readonly SectionKey[] = ['exercises', 'trainings', 'guides'];
 
 export interface Access {
-  isSuperAdmin: boolean;
+  isClubAdmin: boolean;
   sections: Record<SectionKey, boolean>;
 }
 
 async function canReadSection(section: SectionKey): Promise<boolean> {
   try {
-    await getDoc(doc(db, 'sectionAccess', section));
+    await getDoc(clubDoc('sectionAccess', section));
     return true;
   } catch (error) {
     if ((error as FirestoreError).code === 'permission-denied') return false;
@@ -20,13 +20,14 @@ async function canReadSection(section: SectionKey): Promise<boolean> {
   }
 }
 
-export async function resolveAccess(appUser: AppUser): Promise<Access> {
-  if (appUser.role === 'superadmin') {
-    return { isSuperAdmin: true, sections: { exercises: true, trainings: true, guides: true } };
+/** Access within the active club: an admin has every section, a member what the rules let them read. */
+export async function resolveAccess(role: MemberRole): Promise<Access> {
+  if (role === 'admin') {
+    return { isClubAdmin: true, sections: { exercises: true, trainings: true, guides: true } };
   }
   const results = await Promise.all(SECTION_KEYS.map((s) => canReadSection(s)));
   return {
-    isSuperAdmin: false,
+    isClubAdmin: false,
     sections: {
       exercises: results[0],
       trainings: results[1],

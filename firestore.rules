@@ -1,110 +1,564 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSuperAdmin() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/adminAllowlist/$(request.auth.token.email));
+    // ---- Club platform (multi-club) ------------------------------------------
+    // Emails are stored and compared lowercased everywhere; the token's email is
+    // lowercased here so a mixed-case sign-in still matches its member doc.
+    // Email-link sign-in needs the Email/Password provider on, so anyone can make a
+    // password account for an address nobody verified. Only a verified email (email
+    // link, Google) counts as signed in, since every check below keys on the email.
+    function signedIn()        { return request.auth != null && request.auth.token.email_verified == true; }
+    function email()           { return request.auth.token.email.lower(); }
+    // The platform operator. Used only on platformAdmins, clubs/{clubId} itself,
+    // acceptances, statusLog and interestSignups, never on club data.
+    function isPlatformAdmin() { return signedIn() && exists(/databases/$(database)/documents/platformAdmins/$(email())); }
+
+    match /platformAdmins/{e} {
+      allow get: if signedIn() && e == email();
+      allow list, write: if false;
     }
-    function inSection(section) {
-      return request.auth != null && request.auth.token.email in
-        get(/databases/$(database)/documents/sectionAccess/$(section)).data.adminEmails;
+
+    // "My clubs": a person reads only member docs carrying their own email
+    // (collection-group query `members where email == me`).
+    match /{path=**}/members/{e} {
+      allow read: if signedIn() && resource.data.email == email();
     }
-    function canReadExercises() { return isSuperAdmin() || inSection('exercises') || inSection('trainings'); }
-    function canWriteExercises() { return isSuperAdmin() || inSection('exercises'); }
-    function canTrainings()      { return isSuperAdmin() || inSection('trainings'); }
+
+    match /clubs/{clubId} {
+      function clubPath()    { return /databases/$(database)/documents/clubs/$(clubId); }
+      function club()        { return get(clubPath()).data; }
+      function memberDoc()   { return /databases/$(database)/documents/clubs/$(clubId)/members/$(email()); }
+      function isMember()    { return signedIn() && exists(memberDoc()); }
+      function isClubAdmin() { return isMember() && get(memberDoc()).data.role == 'admin'; }
+      // Time-aware: a terminating club keeps full use until termination.effectiveAt.
+      function isActive()    { return club().status == 'active'
+                                 || (club().status == 'terminating' && request.time < club().termination.effectiveAt); }
+      function activeMember(){ return isMember() && isActive(); }
+      function activeAdmin() { return isClubAdmin() && isActive(); }
+      // Export-only access for club admins of a suspended club, and of a
+      // terminating club until termination.retrievalEndsAt.
+      function exporter()    { return isClubAdmin() && (club().status in ['active','suspended']
+                                 || (club().status == 'terminating' && request.time < club().termination.retrievalEndsAt)); }
+      // Growth (height/weight) tests are opt-in per club; other test types are
+      // unaffected. club() is already read by activeMember(), so no extra lookup.
+      // An update checks the stored type too, so a growth record cannot be edited
+      // by relabelling it while growth tests are off. Deletes stay allowed.
+      function growthAllowed() { return request.resource.data.testType != 'growth'
+                                 || club().growthTestsEnabled == true; }
+      function growthUpdateAllowed() { return growthAllowed()
+                                 && (resource.data.testType != 'growth' || club().growthTestsEnabled == true); }
+      function changed()     { return request.resource.data.diff(resource.data).affectedKeys(); }
+      function inSection(s) {
+        return email() in get(/databases/$(database)/documents/clubs/$(clubId)/sectionAccess/$(s)).data.adminEmails;
+      }
+      function canReadExercises()  { return isClubAdmin() || inSection('exercises') || inSection('trainings'); }
+      function canWriteExercises() { return isClubAdmin() || inSection('exercises'); }
+      function canTrainings()      { return isClubAdmin() || inSection('trainings'); }
+      function canGuides()         { return isClubAdmin() || inSection('guides'); }
+
+      function transitionAllowed(from, to) {
+        return (from == 'pending'     && to in ['active','deleted'])
+            || (from == 'active'      && to in ['suspended','terminating'])
+            || (from == 'suspended'   && to in ['active','terminating'])
+            || (from == 'terminating' && to in ['active','terminating']);
+      }
+      function optTimestamp(v) { return v == null || v is timestamp; }
+
+      // The operator moves a club through its lifecycle. Every change carries a
+      // statusLog entry written in the same batch. terminating -> terminating is a
+      // change of termination dates: it too needs a fresh log and the 30-day rule.
+      // `billing` is deliberately not writable yet; it arrives with payments.
+      function platformStatusChange() {
+        let prev = resource.data;
+        let next = request.resource.data;
+        return isPlatformAdmin()
+          && changed().hasOnly(['status','statusReason','statusChangedAt','statusChangedBy','lastStatusLogId','termination'])
+          && transitionAllowed(prev.status, next.status)
+          && next.statusChangedAt == request.time
+          && next.statusChangedBy == email()
+          && (next.statusReason == null || (next.statusReason is string && next.statusReason.size() <= 300))
+          && (next.status != 'suspended' || (next.statusReason is string && next.statusReason.size() > 0))
+          && next.lastStatusLogId is string
+          // A fresh log entry, written in this batch (an older id would skip the log).
+          && !exists(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
+          && existsAfter(/databases/$(database)/documents/clubs/$(clubId)/statusLog/$(next.lastStatusLogId))
+          // Only the operator's half of the termination map; requestedAt/By stay the club's,
+          // except that reinstating clears the request (to null, never to another value).
+          && (next.termination.diff(prev.termination).affectedKeys().hasOnly(['effectiveAt','retrievalEndsAt'])
+              || (prev.status == 'terminating' && next.status == 'active'
+                  && next.termination.diff(prev.termination).affectedKeys()
+                       .hasOnly(['effectiveAt','retrievalEndsAt','requestedAt','requestedBy'])
+                  && next.termination.requestedAt == null
+                  && next.termination.requestedBy == null))
+          && optTimestamp(next.termination.effectiveAt)
+          && optTimestamp(next.termination.retrievalEndsAt)
+          && (next.status != 'terminating'
+              || (next.termination.effectiveAt is timestamp
+                  && next.termination.retrievalEndsAt is timestamp
+                  // effectiveAt may be now (serious breach), never the past; one day
+                  // of tolerance covers "today" in local time. A date change may keep
+                  // an end date that has already passed (to move only the export date).
+                  && (next.termination.effectiveAt >= request.time - duration.value(1, 'd')
+                      || (prev.status == 'terminating'
+                          && next.termination.effectiveAt == prev.termination.effectiveAt))
+                  && next.termination.retrievalEndsAt >= next.termination.effectiveAt + duration.value(30, 'd')));
+      }
+
+      // Club admins edit the profile of an active (or still pending) club.
+      // `legal` changes only through legalReaccept() below.
+      function clubAdminProfileChange() {
+        let next = request.resource.data;
+        return isClubAdmin()
+          && (isActive() || resource.data.status == 'pending')
+          && changed().hasOnly(['name','country','locale','aiEnabled','referenceOptOut','growthTestsEnabled','ownerEmail'])
+          && next.name is string && next.name.size() >= 2 && next.name.size() <= 80
+          && next.country is string && next.country.matches('^[A-Z]{2}$')
+          && next.locale in ['en','it']
+          && next.aiEnabled is bool
+          && next.referenceOptOut is bool
+          && next.growthTestsEnabled is bool
+          // Ownership moves only to another admin member, judged after the batch so the
+          // new owner cannot be demoted or removed in the same write (promote-then-transfer is fine).
+          && (next.ownerEmail == resource.data.ownerEmail
+              || getAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(next.ownerEmail)).data.role == 'admin');
+      }
+
+      // A club admin asks to end the contract (a suspended club can still ask to leave).
+      function terminationRequest() {
+        let prev = resource.data.termination;
+        let next = request.resource.data.termination;
+        return isClubAdmin()
+          && resource.data.status in ['active','suspended']
+          && changed().hasOnly(['termination'])
+          && next.diff(prev).affectedKeys().hasOnly(['requestedAt','requestedBy'])
+          && next.requestedAt == request.time
+          && next.requestedBy == email();
+      }
+
+      function acceptancePath(v) { return /databases/$(database)/documents/clubs/$(clubId)/acceptances/$(v); }
+
+      // The club's `legal` field as the signer writes it: their own email, now.
+      function validLegal(legal) {
+        return legal is map
+          && legal.keys().hasOnly(['versionKey','acceptedAt','acceptedBy'])
+          && legal.keys().hasAll(['versionKey','acceptedAt','acceptedBy'])
+          && legal.versionKey is string
+          && legal.acceptedAt == request.time
+          && legal.acceptedBy == email();
+      }
+
+      // Self sign-up (spec §6.3): the pending club, the signer's admin member doc and
+      // the acceptance in one batch. The club doc does not exist yet, so nothing here
+      // may read it with get(): only request.resource and getAfter/existsAfter.
+      function signUpCreate() {
+        let next = request.resource.data;
+        let fields = ['name','country','locale','ownerEmail','aiEnabled','referenceOptOut','growthTestsEnabled',
+                      'createdAt','status','statusReason','statusChangedAt','statusChangedBy','lastStatusLogId',
+                      'legal','termination','billing'];
+        let member = /databases/$(database)/documents/clubs/$(clubId)/members/$(email());
+        return signedIn()
+          // A Firestore auto-id (decision P11): no hand-picked or squatted club ids.
+          && clubId.matches('^[A-Za-z0-9]{20}$')
+          && next.keys().hasOnly(fields) && next.keys().hasAll(fields)
+          && next.status == 'pending'
+          && next.ownerEmail == email()
+          && next.createdAt == request.time
+          // New clubs start with every opt-in off (spec §3.1, decision P11).
+          && next.aiEnabled == false
+          && next.referenceOptOut == false
+          && next.growthTestsEnabled == false
+          && next.statusReason == null
+          && next.statusChangedAt == null
+          && next.statusChangedBy == null
+          && next.lastStatusLogId == null
+          && next.billing == null
+          && next.termination == {'requestedAt': null, 'requestedBy': null, 'effectiveAt': null, 'retrievalEndsAt': null}
+          && next.name is string && next.name.size() >= 2 && next.name.size() <= 80
+          && next.country is string && next.country.matches('^[A-Z]{2}$')
+          && next.locale in ['en','it']
+          && validLegal(next.legal)
+          && existsAfter(member)
+          && getAfter(member).data.role == 'admin'
+          && existsAfter(acceptancePath(next.legal.versionKey))
+          && getAfter(acceptancePath(next.legal.versionKey)).data.acceptedBy == email();
+      }
+
+      // A club admin re-accepts new legal versions (spec §6.4): the club's `legal`
+      // points at a fresh acceptance written by the same person in the same batch.
+      function legalReaccept() {
+        let legal = request.resource.data.legal;
+        return isClubAdmin()
+          && (isActive() || resource.data.status == 'pending')
+          && changed().hasOnly(['legal'])
+          && validLegal(legal)
+          // Written in this batch, not an older record (as with lastStatusLogId).
+          && !exists(acceptancePath(legal.versionKey))
+          && existsAfter(acceptancePath(legal.versionKey))
+          && getAfter(acceptancePath(legal.versionKey)).data.acceptedBy == email();
+      }
+
+      allow get:  if isMember() || isPlatformAdmin();
+      allow list: if isPlatformAdmin();
+      // A set on an existing id is an update, so signUpCreate() only ever sees a new club.
+      allow create: if signUpCreate();
+      allow delete: if false;
+      allow update: if platformStatusChange() || clubAdminProfileChange() || terminationRequest() || legalReaccept();
+
+      match /members/{e} {
+        function validMember() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['email','clubId','role','addedBy','addedAt'])
+            && d.email == e && e == e.lower()
+            && d.clubId == clubId
+            && d.role in ['admin','member'];
+        }
+        allow read: if activeMember() || exporter() || (isMember() && club().status == 'pending');
+        // The sign-up batch's owner member: only for a club that does not exist yet
+        // and is created, pending and owned by the signer, in the same batch.
+        function signUpMember() {
+          let after = getAfter(clubPath()).data;
+          return signedIn()
+            && !exists(clubPath())
+            && after.status == 'pending'
+            && after.ownerEmail == email()
+            && e == email()
+            && request.resource.data.role == 'admin';
+        }
+        allow create: if (activeAdmin() || signUpMember())
+          && validMember()
+          && request.resource.data.addedBy == email()
+          && request.resource.data.addedAt == request.time;
+        // The owner always stays an admin and cannot be removed. The owner is read after
+        // the batch, so an ownership transfer in the same batch cannot open a gap.
+        allow update: if activeAdmin()
+          && changed().hasOnly(['role'])
+          && request.resource.data.role in ['admin','member']
+          && (e != getAfter(clubPath()).data.ownerEmail || request.resource.data.role == 'admin');
+        allow delete: if activeAdmin() && e != getAfter(clubPath()).data.ownerEmail;
+      }
+
+      // Immutable lifecycle log, written by the operator in the same batch as the
+      // status change. get() sees the pre-batch club, getAfter() the post-batch one;
+      // the log must be the one the club change names (lastStatusLogId), and its
+      // reason is always present and equal to the club's statusReason.
+      match /statusLog/{id} {
+        allow read: if isClubAdmin() || isPlatformAdmin();
+        allow create: if isPlatformAdmin()
+          && request.resource.data.keys().hasOnly(['from','to','reason','by','at'])
+          && request.resource.data.keys().hasAll(['from','to','reason','by','at'])
+          && request.resource.data.reason == getAfter(clubPath()).data.statusReason
+          && request.resource.data.from == club().status
+          && request.resource.data.to == getAfter(clubPath()).data.status
+          && getAfter(clubPath()).data.lastStatusLogId == id
+          && request.resource.data.by == email()
+          && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
+
+      // Immutable legal acceptance records (spec §6.2), written by the signer in the
+      // sign-up batch or in a re-acceptance batch. Only the club's own admin signs: the
+      // operator signs only for a club they are an admin of, like anyone else.
+      match /acceptances/{v} {
+        function validAcceptance() {
+          let a = request.resource.data;
+          let fields = ['versionKey','termsVersion','dpaVersion','subprocessorsVersion','language',
+                        'termsSha256','dpaSha256','clausesSha256','specificClauses','acceptedBy',
+                        'acceptedByName','authorityConfirmed','acceptedAt','authTime','userAgent'];
+          let isoDate = '^[0-9]{4}-[0-9]{2}-[0-9]{2}$';
+          return signedIn()
+            // The e-signature step: a fresh email-link sign-in ('password' provider,
+            // verified on the Auth emulator), not Google or any other provider.
+            && request.auth.token.firebase.sign_in_provider == 'password'
+            && a.keys().hasOnly(fields) && a.keys().hasAll(fields)
+            // ISO-date versions (decision P1), so 'terms-<t>_dpa-<d>' names one pair only.
+            && a.termsVersion is string && a.termsVersion.matches(isoDate)
+            && a.dpaVersion is string && a.dpaVersion.matches(isoDate)
+            && a.subprocessorsVersion is string && a.subprocessorsVersion.matches(isoDate)
+            && v == a.versionKey
+            && a.versionKey == 'terms-' + a.termsVersion + '_dpa-' + a.dpaVersion
+            && a.acceptedBy == email()
+            && a.acceptedAt == request.time
+            // Signed within 15 minutes of a fresh sign-in (the signing email link).
+            && a.authTime is int
+            && a.authTime == request.auth.token.auth_time
+            && request.time.toMillis() - a.authTime * 1000 <= 900000
+            && a.authorityConfirmed == true
+            && a.language in ['en','it','fr','de','es']
+            && a.termsSha256 is string && a.termsSha256.matches('^[0-9a-f]{64}$')
+            && a.dpaSha256 is string && a.dpaSha256.matches('^[0-9a-f]{64}$')
+            && a.clausesSha256 is string && a.clausesSha256.matches('^[0-9a-f]{64}$')
+            && a.specificClauses is list && a.specificClauses.size() >= 1 && a.specificClauses.size() <= 50
+            && a.acceptedByName is string && a.acceptedByName.size() >= 1 && a.acceptedByName.size() <= 100
+            && a.userAgent is string && a.userAgent.size() <= 300;
+        }
+        // Sign-up: the club does not exist yet and is created pending, owned by the
+        // signer, pointing at this record. No get() of the club here.
+        function signUpAcceptance() {
+          let after = getAfter(clubPath()).data;
+          return !exists(clubPath())
+            && after.status == 'pending'
+            && after.ownerEmail == email()
+            && after.legal.versionKey == v;
+        }
+        // Re-acceptance: a club admin of an active or pending club, with the club's
+        // legal pointing at this record after the batch.
+        function reaccept() {
+          return isClubAdmin()
+            && (isActive() || club().status == 'pending')
+            && getAfter(clubPath()).data.legal.versionKey == v;
+        }
+        allow read: if isClubAdmin() || isPlatformAdmin();
+        allow create: if validAcceptance() && (signUpAcceptance() || reaccept());
+        allow update, delete: if false;
+      }
+
+      // ---- Team subtree --------------------------------------------------------
+      // Reads need an active (or terminating-in-time) membership, or export-only
+      // access for a club admin; writes need an active membership.
+      match /teams/{teamId} {
+        // A club admin, or an email listed on this team. Short-circuits on the
+        // cheap member-doc read before touching the team doc.
+        function teamAdmin() {
+          return isClubAdmin()
+            || email() in get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)).data.adminEmails;
+        }
+
+        allow read:   if (activeMember() && (email() in resource.data.adminEmails || isClubAdmin()))
+                      || exporter();
+        allow create: if activeMember() && isClubAdmin()
+                      && request.resource.data.createdBy == request.auth.uid
+                      && request.resource.data.adminEmails is list;
+        allow update: if activeMember()
+                      && ((email() in resource.data.adminEmails
+                           && request.resource.data.adminEmails == resource.data.adminEmails)
+                          || isClubAdmin());
+        allow delete: if activeMember() && isClubAdmin();
+
+        match /players/{playerId} {
+          function validScore(score) {
+            return score == null || (score is number && score >= 1 && score <= 10);
+          }
+
+          function validSkills(skills) {
+            return validScore(skills.serve.score) &&
+              validScore(skills.attack.score) &&
+              validScore(skills.block.score) &&
+              validScore(skills.set.score) &&
+              validScore(skills.defence.score) &&
+              validScore(skills.reception.score) &&
+              validScore(skills.jump.score) &&
+              validScore(skills.speed.score) &&
+              validScore(skills.iq.score);
+          }
+
+          // Photo consent (minors' award photos): a bool; giving it names the recorder and
+          // the request time, withdrawing clears both. An untouched record stays valid.
+          function photoConsentOk(isCreate) {
+            let d = request.resource.data;
+            // Without photoConsent, the recorder and date may not appear (or change).
+            return (!('photoConsent' in d)
+                && d.get('photoConsentAt', null) == (isCreate ? null : resource.data.get('photoConsentAt', null))
+                && d.get('photoConsentBy', null) == (isCreate ? null : resource.data.get('photoConsentBy', null)))
+              || ('photoConsent' in d && d.photoConsent is bool && (
+                    (!isCreate
+                      && d.photoConsent == resource.data.get('photoConsent', null)
+                      && d.get('photoConsentAt', null) == resource.data.get('photoConsentAt', null)
+                      && d.get('photoConsentBy', null) == resource.data.get('photoConsentBy', null))
+                    || (d.photoConsent == true && d.get('photoConsentBy', null) == email() && d.get('photoConsentAt', null) == request.time)
+                    || (d.photoConsent == false && d.get('photoConsentAt', null) == null && d.get('photoConsentBy', null) == null)));
+          }
+
+          allow read: if (activeMember() && (teamAdmin() || email() in resource.data.viewerEmails))
+                      || exporter();
+          allow create: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(true);
+          allow update: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(false);
+          allow delete: if activeMember() && teamAdmin();
+
+          match /physicalTests/{testId} {
+            allow read: if (activeMember() && (teamAdmin() ||
+                email() in
+                  get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/players/$(playerId)).data.viewerEmails))
+              || exporter();
+            allow create: if activeMember() && teamAdmin() && growthAllowed();
+            allow update: if activeMember() && teamAdmin() && growthUpdateAllowed();
+            // Team admins can delete a single entry from the history view, and this
+            // also lets a player's own hard-delete clean up their test history
+            // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
+            allow delete: if activeMember() && teamAdmin();
+          }
+        }
+
+        match /calendar/{sessionId} {
+          allow read: if (activeMember() && teamAdmin() && canTrainings()) || exporter();
+          allow create: if activeMember() && teamAdmin() && canTrainings()
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.date is string;
+          allow update: if false;
+          allow delete: if activeMember() && teamAdmin() && canTrainings();
+        }
+
+        match /testingSessions/{sessionId} {
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow create, update: if activeMember() && teamAdmin();
+          // Team admins delete a session started by mistake (its entries and
+          // results go with it, client-side); team deletion also clears them.
+          allow delete: if activeMember() && teamAdmin();
+
+          match /entries/{entryId} {
+            allow read: if (activeMember() && teamAdmin()) || exporter();
+            function sessionOpen() {
+              return get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
+            }
+            allow create: if activeMember() && teamAdmin() && growthAllowed() && sessionOpen();
+            allow update: if activeMember() && teamAdmin() && growthUpdateAllowed() && sessionOpen();
+            // Team admins can delete in any session status: deleting a player
+            // erases their entries too (GDPR erasure, app design spec §10).
+            allow delete: if activeMember() && teamAdmin();
+          }
+        }
+
+        match /matches/{matchId} {
+          function validStatus(d) {
+            return d.status in ['setup', 'live', 'finished'];
+          }
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow delete: if activeMember() && teamAdmin();
+          allow create: if activeMember() && teamAdmin()
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.date is string
+            && validStatus(request.resource.data);
+          allow update: if activeMember() && teamAdmin()
+            && request.resource.data.date is string
+            && validStatus(request.resource.data);
+
+          match /events/{eventId} {
+            function validEvent(d) {
+              return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
+                && d.order is number
+                && d.source in ['tap', 'text', 'correction']
+                && (d.type != 'action'
+                    || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
+                        && d.grade in ['#', '+', '!', '-', '/', '=']));
+            }
+            allow read: if (activeMember() && teamAdmin()) || exporter();
+            allow delete: if activeMember() && teamAdmin();
+            allow create, update: if activeMember() && teamAdmin() && validEvent(request.resource.data);
+          }
+        }
+
+        match /awards/{scope} {
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow delete: if activeMember() && teamAdmin();
+          allow create, update: if activeMember() && teamAdmin()
+            && scope == 'season'
+            && request.resource.data.picks is map
+            && request.resource.data.custom is list
+            && request.resource.data.custom.size() <= 5
+            && request.resource.data.order is list;
+        }
+
+        match /scoutProfile/{docId} {
+          allow read: if (activeMember() && teamAdmin()) || exporter();
+          allow write: if activeMember() && teamAdmin();
+        }
+      }
+
+      // ---- Club library, guides and section access ------------------------------
+      // Same gating as the team subtree: reads need an active membership (or
+      // export-only access for a club admin), writes need an active membership.
+      match /config/{doc} {
+        allow read:  if doc in ['skillGuide', 'physicalTestGuide']
+                      && (activeMember() || exporter());
+        allow write: if activeMember() && canGuides()
+                      && doc in ['skillGuide', 'physicalTestGuide'];
+      }
+
+      match /sectionAccess/{section} {
+        allow read:  if (activeMember() && (isClubAdmin() || email() in resource.data.adminEmails))
+                      || exporter();
+        allow write: if activeAdmin()
+                      && request.resource.data.adminEmails is list
+                      && request.resource.data.keys().hasOnly(['adminEmails']);
+      }
+
+      match /exercises/{exerciseId} {
+        allow read: if (activeMember() && canReadExercises()) || exporter();
+        allow create: if activeMember() && canWriteExercises()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.category in
+             ['warmup','physical','service','setting','defense','reception','attack','compound','game']
+          && optIntIn(request.resource.data, 'minPlayers', 1, 30);
+        allow update: if activeMember() && canWriteExercises()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.category in
+             ['warmup','physical','service','setting','defense','reception','attack','compound','game']
+          && optIntIn(request.resource.data, 'minPlayers', 1, 30);
+        allow delete: if activeMember() && canWriteExercises();
+
+        match /diagrams/{diagramId} {
+          allow read: if (activeMember() && canReadExercises()) || exporter();
+          allow create, update: if activeMember() && canWriteExercises()
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.title is string
+            && request.resource.data.title.size() >= 1
+            && request.resource.data.title.size() <= 40
+            && request.resource.data.order is int
+            && request.resource.data.scene.v == 1
+            && request.resource.data.scene.court in ['full','half','blank']
+            && request.resource.data.scene.items is list
+            && request.resource.data.scene.items.size() <= 60;
+          allow delete: if activeMember() && canWriteExercises();
+        }
+      }
+
+      match /trainings/{trainingId} {
+        allow read: if (activeMember() && canTrainings()) || exporter();
+        allow create: if activeMember() && canTrainings()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.businessId is string
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.exercises is list
+          && request.resource.data.exerciseIds is list
+          && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
+          && optTargets(request.resource.data);
+        allow update: if activeMember() && canTrainings()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.exercises is list
+          && request.resource.data.exerciseIds is list
+          && request.resource.data.businessId == resource.data.businessId
+          && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
+          && optTargets(request.resource.data);
+        allow delete: if activeMember() && canTrainings();
+      }
+
+      match /counters/{counterId} {
+        allow read: if (activeMember() && canTrainings()) || exporter();
+        allow write: if activeMember() && canTrainings()
+          && request.resource.data.lastSequence is int
+          && request.resource.data.lastSequence >= 0;
+      }
+    }
+
+    // ---- Platform-wide -------------------------------------------------------
+    // The single-club top-level collections (teams, exercises, trainings,
+    // counters, skillGuide, physicalTestGuide, sectionAccess, adminAllowlist)
+    // have no rules: the default deny covers them until they are deleted.
+
     // Optional fields: absent is "not set" (older docs); when present they must be valid.
     function optIntIn(d, k, lo, hi) { return !(k in d) || (d[k] is int && d[k] >= lo && d[k] <= hi); }
     function optTargets(d) {
       return !('targets' in d) || (d.targets is list && d.targets.size() >= 1 && d.targets.size() <= 9
         && d.targets.toSet().difference(['warmup','physical','service','setting','defense','reception','attack','compound','game'].toSet()).size() == 0);
     }
-    function canGuides()         { return isSuperAdmin() || inSection('guides'); }
 
-    match /adminAllowlist/{email} {
-      allow read, write: if false;
-    }
-
-    match /sectionAccess/{section} {
-      allow read: if isSuperAdmin()
-        || (request.auth != null && request.auth.token.email in resource.data.adminEmails);
-      allow write: if isSuperAdmin()
-        && request.resource.data.adminEmails is list;
-    }
-
-    match /skillGuide/config {
-      allow read: if request.auth != null;
-      allow write: if canGuides();
-    }
-
-    match /physicalTestGuide/config {
-      allow read: if request.auth != null;
-      allow write: if canGuides();
-    }
-
-    match /exercises/{exerciseId} {
-      allow read: if canReadExercises();
-      allow create: if canWriteExercises()
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.category in
-           ['warmup','physical','service','setting','defense','reception','attack','compound','game']
-        && optIntIn(request.resource.data, 'minPlayers', 1, 30);
-      allow update: if canWriteExercises()
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.category in
-           ['warmup','physical','service','setting','defense','reception','attack','compound','game']
-        && optIntIn(request.resource.data, 'minPlayers', 1, 30);
-      allow delete: if canWriteExercises();
-
-      match /diagrams/{diagramId} {
-        allow read: if canReadExercises();
-        allow create, update: if canWriteExercises()
-          && request.resource.data.updatedBy == request.auth.uid
-          && request.resource.data.title is string
-          && request.resource.data.title.size() >= 1
-          && request.resource.data.title.size() <= 40
-          && request.resource.data.order is int
-          && request.resource.data.scene.v == 1
-          && request.resource.data.scene.court in ['full','half','blank']
-          && request.resource.data.scene.items is list
-          && request.resource.data.scene.items.size() <= 60;
-        allow delete: if canWriteExercises();
-      }
-    }
-
-    match /trainings/{trainingId} {
-      allow read: if canTrainings();
-      allow create: if canTrainings()
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.businessId is string
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.exercises is list
-        && request.resource.data.exerciseIds is list
-        && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
-        && optTargets(request.resource.data);
-      allow update: if canTrainings()
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.exercises is list
-        && request.resource.data.exerciseIds is list
-        && request.resource.data.businessId == resource.data.businessId
-        && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
-        && optTargets(request.resource.data);
-      allow delete: if canTrainings();
-    }
-
-    match /counters/{counterId} {
-      allow read: if canTrainings();
-      allow write: if canTrainings()
-        && request.resource.data.lastSequence is int
-        && request.resource.data.lastSequence >= 0;
-    }
-
+    // The operator's lead list: anyone may leave interest, only the operator reads it.
     match /interestSignups/{signupId} {
-      allow read, update, delete: if isSuperAdmin();
+      allow read, update, delete: if isPlatformAdmin();
       allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'role', 'reviewed', 'createdAt'])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
@@ -116,169 +570,15 @@ service cloud.firestore {
         && request.resource.data.reviewed == false;
     }
 
+    // A bare sign-in record. Roles are per club (members), so there is none here.
     match /users/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow create: if request.auth != null
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.keys().hasOnly(['email', 'role'])
-        && (
-          request.resource.data.role == 'member' ||
-          (request.resource.data.role == 'superadmin' && isSuperAdmin())
-        );
+        && request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        && request.resource.data.email == email()
+        && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
-    }
-
-    match /teams/{teamId} {
-      // Cheapest check first: `||` short-circuits, and isSuperAdmin() is a billed
-      // exists() read, while adminEmails is on the doc being read (free).
-      allow read:   if (request.auth != null && request.auth.token.email in resource.data.adminEmails)
-                    || isSuperAdmin();
-      allow create: if isSuperAdmin()
-                    && request.resource.data.createdBy == request.auth.uid
-                    && request.resource.data.adminEmails is list;
-      allow update: if (request.auth != null
-                        && request.auth.token.email in resource.data.adminEmails
-                        && request.resource.data.adminEmails == resource.data.adminEmails)
-                    || isSuperAdmin();
-      allow delete: if isSuperAdmin();
-
-      match /players/{playerId} {
-        function isTeamAdmin() {
-          return request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin();
-        }
-
-        function validScore(score) {
-          return score == null || (score is number && score >= 1 && score <= 10);
-        }
-
-        function validSkills(skills) {
-          return validScore(skills.serve.score) &&
-            validScore(skills.attack.score) &&
-            validScore(skills.block.score) &&
-            validScore(skills.set.score) &&
-            validScore(skills.defence.score) &&
-            validScore(skills.reception.score) &&
-            validScore(skills.jump.score) &&
-            validScore(skills.speed.score) &&
-            validScore(skills.iq.score);
-        }
-
-        allow read: if request.auth != null && (
-          isTeamAdmin() || request.auth.token.email in resource.data.viewerEmails
-        );
-        allow create, update: if request.auth != null && isTeamAdmin() && validSkills(request.resource.data.skills);
-        allow delete: if request.auth != null && isTeamAdmin();
-
-        match /physicalTests/{testId} {
-          allow read: if request.auth != null && (
-            isTeamAdmin() ||
-            request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)/players/$(playerId)).data.viewerEmails
-          );
-          allow create, update: if request.auth != null && isTeamAdmin();
-          // Team admins can delete a single entry from the history view, and this
-          // also lets a player's own hard-delete clean up their test history
-          // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
-          allow delete: if request.auth != null && isTeamAdmin();
-        }
-      }
-
-      match /calendar/{sessionId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read: if isTeamAdmin() && canTrainings();
-        allow create: if isTeamAdmin() && canTrainings()
-          && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.date is string;
-        allow update: if false;
-        allow delete: if isTeamAdmin() && canTrainings();
-      }
-
-      match /testingSessions/{sessionId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read: if isTeamAdmin();
-        allow create, update: if isTeamAdmin();
-        // Team admins delete a session started by mistake (its entries and
-        // results go with it, client-side); team deletion also clears them.
-        allow delete: if isTeamAdmin();
-
-        match /entries/{entryId} {
-          function isTeamAdmin() {
-            return request.auth != null && (request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-          }
-          allow read: if isTeamAdmin();
-          allow create, update: if isTeamAdmin()
-            && get(/databases/$(database)/documents/teams/$(teamId)/testingSessions/$(sessionId)).data.status == 'open';
-          // Team admins can delete in any session status: deleting a player
-          // erases their entries too (GDPR erasure, app design spec §10).
-          allow delete: if isTeamAdmin();
-        }
-      }
-
-      match /matches/{matchId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        function validStatus(d) {
-          return d.status in ['setup', 'live', 'finished'];
-        }
-        allow read, delete: if isTeamAdmin();
-        allow create: if isTeamAdmin()
-          && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.date is string
-          && validStatus(request.resource.data);
-        allow update: if isTeamAdmin()
-          && request.resource.data.date is string
-          && validStatus(request.resource.data);
-
-        match /events/{eventId} {
-          function isTeamAdmin() {
-            return request.auth != null && (request.auth.token.email in
-              get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-          }
-          function validEvent(d) {
-            return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
-              && d.order is number
-              && d.source in ['tap', 'text', 'correction']
-              && (d.type != 'action'
-                  || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
-                      && d.grade in ['#', '+', '!', '-', '/', '=']));
-          }
-          allow read, delete: if isTeamAdmin();
-          allow create, update: if isTeamAdmin() && validEvent(request.resource.data);
-        }
-      }
-
-      match /awards/{scope} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read, delete: if isTeamAdmin();
-        allow create, update: if isTeamAdmin()
-          && scope == 'season'
-          && request.resource.data.picks is map
-          && request.resource.data.custom is list
-          && request.resource.data.custom.size() <= 5
-          && request.resource.data.order is list;
-      }
-
-      match /scoutProfile/{docId} {
-        function isTeamAdmin() {
-          return request.auth != null && (request.auth.token.email in
-            get(/databases/$(database)/documents/teams/$(teamId)).data.adminEmails || isSuperAdmin());
-        }
-        allow read, write: if isTeamAdmin();
-      }
     }
   }
 }

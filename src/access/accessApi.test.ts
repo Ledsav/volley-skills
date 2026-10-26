@@ -5,13 +5,14 @@ const arrayUnion = vi.fn((...v: string[]) => ({ __op: 'union', v }));
 const arrayRemove = vi.fn((...v: string[]) => ({ __op: 'remove', v }));
 const update = vi.fn();
 const set = vi.fn();
+const del = vi.fn();
 const commit = vi.fn().mockResolvedValue(undefined);
 const getDocs = vi.fn();
 const getDoc = vi.fn();
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(() => 'col'),
-  doc: vi.fn((_db, c, id) => `${c}/${id}`),
+  doc: vi.fn((_db, ...p) => p.join('/')),
   query: vi.fn((...a) => a),
   orderBy: vi.fn(() => 'orderBy'),
   limit: vi.fn(() => 'limit'),
@@ -20,12 +21,17 @@ vi.mock('firebase/firestore', () => ({
   getDoc: (...a: unknown[]) => getDoc(...a),
   arrayUnion: (...v: string[]) => arrayUnion(...v),
   arrayRemove: (...v: string[]) => arrayRemove(...v),
-  writeBatch: () => ({ update, set, commit }),
+  serverTimestamp: () => 'TS',
+  writeBatch: () => ({ update, set, delete: del, commit }),
   type: {},
 }));
 vi.mock('../firebase/config', () => ({ db: {} }));
 
-beforeEach(() => { update.mockReset(); set.mockReset(); commit.mockReset().mockResolvedValue(undefined); });
+
+beforeEach(() => {
+  getDoc.mockReset();
+  del.mockReset();
+  update.mockReset(); set.mockReset(); commit.mockReset().mockResolvedValue(undefined); });
 
 describe('saveGrants', () => {
   it('only writes docs whose membership changed', async () => {
@@ -33,21 +39,40 @@ describe('saveGrants', () => {
     const next = { teamIds: ['t2', 't3'], sections: { exercises: false, trainings: true, guides: false } };
     await saveGrants('coach@example.com', next, prev);
 
-    expect(update).toHaveBeenCalledWith('teams/t3', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
-    expect(update).toHaveBeenCalledWith('teams/t1', { adminEmails: { __op: 'remove', v: ['coach@example.com'] } });
+    expect(update).toHaveBeenCalledWith('clubs/club-1/teams/t3', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
+    expect(update).toHaveBeenCalledWith('clubs/club-1/teams/t1', { adminEmails: { __op: 'remove', v: ['coach@example.com'] } });
     expect(set).toHaveBeenCalledWith(
-      'sectionAccess/trainings',
+      'clubs/club-1/sectionAccess/trainings',
       { adminEmails: { __op: 'union', v: ['coach@example.com'] } },
       { merge: true },
     );
     expect(set).toHaveBeenCalledWith(
-      'sectionAccess/exercises',
+      'clubs/club-1/sectionAccess/exercises',
       { adminEmails: { __op: 'remove', v: ['coach@example.com'] } },
       { merge: true },
     );
     // t2 unchanged, guides unchanged → not written
-    expect(update).not.toHaveBeenCalledWith('teams/t2', expect.anything());
-    expect(set).not.toHaveBeenCalledWith('sectionAccess/guides', expect.anything(), expect.anything());
+    expect(update).not.toHaveBeenCalledWith('clubs/club-1/teams/t2', expect.anything());
+    expect(set).not.toHaveBeenCalledWith('clubs/club-1/sectionAccess/guides', expect.anything(), expect.anything());
+    expect(commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('lowercases the email before writing grants', async () => {
+    const next = { teamIds: ['t1'], sections: { exercises: true, trainings: false, guides: false } };
+    await saveGrants('Coach@Example.COM', next, emptyGrantSet());
+    expect(update).toHaveBeenCalledWith('clubs/club-1/teams/t1', { adminEmails: { __op: 'union', v: ['coach@example.com'] } });
+    expect(set).toHaveBeenCalledWith(
+      'clubs/club-1/sectionAccess/exercises',
+      { adminEmails: { __op: 'union', v: ['coach@example.com'] } },
+      { merge: true },
+    );
+  });
+
+  it('no longer creates a member doc', async () => {
+    const next = { teamIds: ['t1'], sections: { exercises: false, trainings: false, guides: false } };
+    await saveGrants('new@x.y', next, emptyGrantSet());
+    expect(getDoc).not.toHaveBeenCalled();
+    expect(set).not.toHaveBeenCalledWith('clubs/club-1/members/new@x.y', expect.anything());
     expect(commit).toHaveBeenCalledTimes(1);
   });
 
@@ -66,9 +91,9 @@ describe('listGrantHolders', () => {
     });
     getDoc.mockImplementation((path: string) => {
       const map: Record<string, string[]> = {
-        'sectionAccess/exercises': ['a@x.com'],
-        'sectionAccess/trainings': [],
-        'sectionAccess/guides': ['c@x.com'],
+        'clubs/club-1/sectionAccess/exercises': ['a@x.com'],
+        'clubs/club-1/sectionAccess/trainings': [],
+        'clubs/club-1/sectionAccess/guides': ['c@x.com'],
       };
       return Promise.resolve({ data: () => ({ adminEmails: map[path] ?? [] }) });
     });

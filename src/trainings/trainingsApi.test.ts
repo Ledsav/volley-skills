@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   createTraining,
   updateTraining,
@@ -46,13 +46,17 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('../firebase/config', () => ({ db: {} }));
 
 describe('trainingsApi', () => {
+  // Retry tests run withBackoff's jittered sleeps on fake timers, so they
+  // stay instant and don't depend on its default delays.
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('creates a training inside a transaction, incrementing the counter and formatting the business id', async () => {
     mockDoc.mockImplementation((...args: unknown[]) => {
-      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      if (args[3] === 'counters') return { ref: 'counters/trainings' };
       return { id: 'training-1' };
     });
     const tx = {
@@ -89,7 +93,7 @@ describe('trainingsApi', () => {
 
   it('starts the sequence at 1 when the counter does not exist yet', async () => {
     mockDoc.mockImplementation((...args: unknown[]) =>
-      args[1] === 'counters' ? { ref: 'counters/trainings' } : { id: 'training-1' }
+      args[3] === 'counters' ? { ref: 'counters/trainings' } : { id: 'training-1' }
     );
     const tx = { get: vi.fn().mockResolvedValue({ exists: () => false }), set: vi.fn() };
     mockRunTransaction.mockImplementation(async (_db: unknown, fn: (t: typeof tx) => unknown) => fn(tx));
@@ -161,7 +165,7 @@ describe('trainingsApi', () => {
 
   it('bulk-creates trainings in one transaction with sequential business ids', async () => {
     mockDoc.mockImplementation((...args: unknown[]) => {
-      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      if (args[3] === 'counters') return { ref: 'counters/trainings' };
       return { id: 'training-x' };
     });
     const tx = {
@@ -198,7 +202,7 @@ describe('trainingsApi', () => {
 
   it('retries the transaction once on a transient resource-exhausted error', async () => {
     mockDoc.mockImplementation((...args: unknown[]) => {
-      if (args[1] === 'counters') return { ref: 'counters/trainings' };
+      if (args[3] === 'counters') return { ref: 'counters/trainings' };
       return { id: 'training-x' };
     });
     const tx = {
@@ -209,10 +213,13 @@ describe('trainingsApi', () => {
       .mockRejectedValueOnce(Object.assign(new Error('quota'), { code: 'resource-exhausted' }))
       .mockImplementation(async (_db: unknown, fn: (t: typeof tx) => unknown) => fn(tx));
 
-    const count = await bulkCreateTrainings(
+    vi.useFakeTimers();
+    const pending = bulkCreateTrainings(
       [{ name: 'A', description: '', ageGroupTarget: '', exercises: [] }],
       'coach-uid'
     );
+    await vi.runAllTimersAsync();
+    const count = await pending;
 
     expect(count).toBe(1);
     expect(mockRunTransaction).toHaveBeenCalledTimes(2);
@@ -223,7 +230,10 @@ describe('trainingsApi', () => {
       .mockRejectedValueOnce(Object.assign(new Error('blip'), { code: 'unavailable' }))
       .mockResolvedValue({ docs: [{ id: 'ex-1', data: () => ({ name: 'Butterfly' }) }] });
 
-    const map = await resolveExerciseNames(['Butterfly']);
+    vi.useFakeTimers();
+    const pending = resolveExerciseNames(['Butterfly']);
+    await vi.runAllTimersAsync();
+    const map = await pending;
 
     expect(map.get('Butterfly')).toEqual(['ex-1']);
     expect(mockGetDocs).toHaveBeenCalledTimes(2);

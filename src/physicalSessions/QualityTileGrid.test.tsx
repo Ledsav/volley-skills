@@ -1,8 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QualityTileGrid } from './QualityTileGrid';
+import { useAuth } from '../auth/AuthContext';
+import { authValue, testClub } from '../test/authValue';
 import type { TestingSessionEntry } from '../types/testingSession';
 
+vi.mock('../auth/AuthContext');
 vi.mock('./SessionQualityPanel', () => ({
   SessionQualityPanel: ({
     testType,
@@ -34,6 +37,27 @@ function buildEntry(overrides: Partial<TestingSessionEntry>): TestingSessionEntr
 }
 
 describe('QualityTileGrid', () => {
+  beforeEach(() => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+  });
+
+  it('offers no Growth tile when growth tests are off', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ growthTestsEnabled: false }) }));
+    render(
+      <QualityTileGrid
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        playerName="Jane Doe"
+        entriesByPlayerAndType={new Map()}
+        recordedByUid="coach-uid"
+      />
+    );
+    expect(screen.getAllByText('Not started').length).toBe(7);
+    expect(screen.queryByRole('button', { name: /growth/i })).not.toBeInTheDocument();
+  });
+
   it('shows Not started, In progress, and Done tiles based on entries', () => {
     const entries = new Map<string, TestingSessionEntry>([
       ['player-1__cmj', buildEntry({ status: 'in_progress' })],

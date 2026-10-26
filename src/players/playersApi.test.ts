@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   bulkCreatePlayers,
   createPlayer,
@@ -49,7 +49,6 @@ vi.mock('./playerFootprintApi');
 const team: Team = {
   id: 'team-1',
   name: 'U17',
-  club: 'Demo VC',
   ageGroup: 'U17',
   season: '2026-27',
   description: '',
@@ -61,6 +60,10 @@ const team: Team = {
 };
 
 describe('playersApi', () => {
+  // Retry tests run withBackoff's jittered sleeps on fake timers, so they
+  // stay instant and don't depend on its default delays.
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     mockAddDoc.mockReset();
     mockGetDocs.mockReset();
@@ -172,7 +175,7 @@ describe('playersApi', () => {
     expect(count).toBe(2);
     expect(batchSet).toHaveBeenCalledTimes(2);
     expect(batchCommit).toHaveBeenCalledTimes(1);
-    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'players');
     const payload = batchSet.mock.calls[0][1];
     expect(payload).toMatchObject({
       number: 7,
@@ -199,7 +202,8 @@ describe('playersApi', () => {
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
     const team = { id: 'team-1', name: 'U17', ageGroup: 'U17', season: '2026-27' } as never;
-    const count = await bulkCreatePlayers(
+    vi.useFakeTimers();
+    const pending = bulkCreatePlayers(
       'team-1',
       team,
       [
@@ -218,6 +222,8 @@ describe('playersApi', () => {
       ],
       'coach-uid'
     );
+    await vi.runAllTimersAsync();
+    const count = await pending;
 
     expect(count).toBe(1);
     expect(batchCommit).toHaveBeenCalledTimes(2);
@@ -259,7 +265,7 @@ describe('playersApi', () => {
 
     await deletePlayer('team-1', 'player-1');
 
-    expect(mockCollection).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests');
+    expect(mockCollection).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'players', 'player-1', 'physicalTests');
     expect(erasePlayerFootprint).toHaveBeenCalledWith('team-1', 'player-1');
     expect(order).toEqual(['footprint', 'tests', 'player']);
   });

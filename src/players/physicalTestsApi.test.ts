@@ -62,7 +62,7 @@ describe('physicalTestsApi', () => {
     await createPhysicalTest('team-1', 'player-1', cmjInput, 'coach-uid');
 
     expect(mockBatch.update).toHaveBeenCalledWith(
-      expect.objectContaining({ args: [{}, 'teams', 'team-1', 'players', 'player-1'] }),
+      expect.objectContaining({ args: [{}, 'clubs', 'club-1', 'teams', 'team-1', 'players', 'player-1'] }),
       { 'latestTests.cmj': expect.objectContaining({ id: 'new-test', bestCm: 34, date: '2026-09-07' }) }
     );
   });
@@ -196,7 +196,7 @@ describe('physicalTestsApi', () => {
 
     await deletePhysicalTest('team-1', 'player-1', 'test-1');
 
-    expect(mockDoc).toHaveBeenCalledWith({}, 'teams', 'team-1', 'players', 'player-1', 'physicalTests', 'test-1');
+    expect(mockDoc).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'players', 'player-1', 'physicalTests', 'test-1');
     expect(mockDeleteDoc).toHaveBeenCalled();
     expect(mockUpdateDoc).not.toHaveBeenCalled();
   });

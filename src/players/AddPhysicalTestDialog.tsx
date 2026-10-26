@@ -3,6 +3,7 @@ import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { useSave } from '../components/useSave';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
+import { HealthHint } from '../components/HealthHint';
 import { AttemptsInput } from '../components/AttemptsInput';
 import { computeBodyMassRatio } from './physicalTestMath';
 import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from './physicalTestFieldLogic';
@@ -321,7 +322,8 @@ export function AddPhysicalTestDialog({
           <label htmlFor="physical-test-notes" className="mb-1 block text-sm font-medium text-ink">
             Notes
           </label>
-          <Textarea id="physical-test-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" />
+          <Textarea id="physical-test-notes" aria-describedby="physical-test-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" />
+          <HealthHint id="physical-test-notes-hint" />
         </div>
 
         <div className="flex justify-end gap-3">

@@ -24,7 +24,7 @@ const GHOST_CLASS = {
   down: 'border-orange-strong motion-safe:animate-pulse',
 } as const;
 
-export interface SkillMeterProps {
+interface SkillMeterProps {
   score: number | null;
   /** Score suggested by match data; the difference to `score` is shown as ghost segments. */
   suggested?: number | null;

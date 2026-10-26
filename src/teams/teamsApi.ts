@@ -1,6 +1,5 @@
 import {
   addDoc,
-  collection,
   deleteDoc,
   doc,
   getDoc,
@@ -16,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
@@ -26,14 +26,13 @@ const TEAMS_PAGE_SIZE = 20;
 
 export interface NewTeamInput {
   name: string;
-  club: string;
   ageGroup: string;
   season: string;
   description: string;
 }
 
 export async function createTeam(input: NewTeamInput, creatorUid: string, creatorEmail: string): Promise<string> {
-  const docRef = await addDoc(collection(db, 'teams'), {
+  const docRef = await addDoc(clubCol('teams'), {
     ...input,
     notes: '',
     adminEmails: [creatorEmail],
@@ -52,7 +51,7 @@ export async function bulkCreateTeams(
   if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
   const batch = writeBatch(db);
   for (const input of inputs) {
-    const ref = doc(collection(db, 'teams'));
+    const ref = doc(clubCol('teams'));
     batch.set(ref, {
       ...input,
       notes: '',
@@ -66,7 +65,7 @@ export async function bulkCreateTeams(
   return inputs.length;
 }
 
-export interface TeamsPage {
+interface TeamsPage {
   teams: Team[];
   lastDoc: QueryDocumentSnapshot | null;
   // A full page might still be the last one — but a page shorter than the
@@ -77,7 +76,7 @@ export interface TeamsPage {
 }
 
 export async function listMyTeams(email: string, afterDoc: QueryDocumentSnapshot | null = null): Promise<TeamsPage> {
-  const base = collection(db, 'teams');
+  const base = clubCol('teams');
   const q = afterDoc
     ? query(base, where('adminEmails', 'array-contains', email), orderBy('createdAt', 'desc'), startAfter(afterDoc), limit(TEAMS_PAGE_SIZE))
     : query(base, where('adminEmails', 'array-contains', email), orderBy('createdAt', 'desc'), limit(TEAMS_PAGE_SIZE));
@@ -88,7 +87,7 @@ export async function listMyTeams(email: string, afterDoc: QueryDocumentSnapshot
 }
 
 export async function getTeam(teamId: string): Promise<Team | null> {
-  const snapshot = await getDoc(doc(db, 'teams', teamId));
+  const snapshot = await getDoc(clubDoc('teams', teamId));
   if (!snapshot.exists()) return null;
   return { id: snapshot.id, ...snapshot.data() } as Team;
 }
@@ -97,11 +96,11 @@ export async function updateTeamInfo(
   teamId: string,
   updates: Partial<Pick<Team, 'name' | 'description' | 'notes'>>
 ): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId), updates);
+  await updateDoc(clubDoc('teams', teamId), updates);
 }
 
 export async function updateTeamDevelopmentPlan(teamId: string, plan: DevelopmentPlan): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId), { developmentPlan: plan });
+  await updateDoc(clubDoc('teams', teamId), { developmentPlan: plan });
 }
 
 /**
@@ -110,11 +109,11 @@ export async function updateTeamDevelopmentPlan(teamId: string, plan: Developmen
  * explicitly, children first, and the team doc goes last.
  */
 export async function deleteTeam(teamId: string): Promise<void> {
-  const sub = (...path: string[]) => collection(db, 'teams', teamId, ...(path as [string]));
+  const sub = (...path: string[]) => clubCol('teams', teamId, ...path);
   await deleteCollection(sub('players'), (playerId) => deleteCollection(sub('players', playerId, 'physicalTests')));
   await deleteCollection(sub('matches'), (matchId) => deleteCollection(sub('matches', matchId, 'events')));
   await deleteCollection(sub('testingSessions'), (sessionId) => deleteCollection(sub('testingSessions', sessionId, 'entries')));
   await deleteCollection(sub('calendar'));
   await deleteCollection(sub('scoutProfile'));
-  await deleteDoc(doc(db, 'teams', teamId));
+  await deleteDoc(clubDoc('teams', teamId));
 }

@@ -1,6 +1,5 @@
 import {
   addDoc,
-  collection,
   deleteDoc,
   doc,
   getDoc,
@@ -16,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
@@ -48,7 +48,7 @@ const EMPTY_SKILLS: Record<SkillKey, { score: null; notes: string; priority: boo
   iq: { score: null, notes: '', priority: false },
 };
 
-export interface NewPlayerInput {
+interface NewPlayerInput {
   number: number;
   fullName: string;
   dob: string;
@@ -88,7 +88,7 @@ export async function createPlayer(
   creatorUid: string,
   confirmedByEmail: string
 ): Promise<string> {
-  const docRef = await addDoc(collection(db, 'teams', teamId, 'players'), {
+  const docRef = await addDoc(clubCol('teams', teamId, 'players'), {
     ...input,
     positionCategory: input.positionCategory ?? 'TBD',
     shirtSize: input.shirtSize ?? '',
@@ -129,7 +129,7 @@ export async function bulkCreatePlayers(
     const level = computeLevel(avgScore);
     const { skills: _skills, ...contact } = input;
     void _skills;
-    const ref = doc(collection(db, 'teams', teamId, 'players'));
+    const ref = doc(clubCol('teams', teamId, 'players'));
     batch.set(ref, {
       ...contact,
       positionCategory: contact.positionCategory ?? 'TBD',
@@ -153,14 +153,14 @@ export async function bulkCreatePlayers(
   return inputs.length;
 }
 
-export interface PlayersPage {
+interface PlayersPage {
   players: Player[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;
 }
 
 export async function listPlayers(teamId: string, afterDoc: QueryDocumentSnapshot | null = null): Promise<PlayersPage> {
-  const base = collection(db, 'teams', teamId, 'players');
+  const base = clubCol('teams', teamId, 'players');
   const q = afterDoc
     ? query(base, orderBy('number'), startAfter(afterDoc), limit(PLAYERS_PAGE_SIZE))
     : query(base, orderBy('number'), limit(PLAYERS_PAGE_SIZE));
@@ -171,7 +171,7 @@ export async function listPlayers(teamId: string, afterDoc: QueryDocumentSnapsho
 }
 
 export async function getPlayer(teamId: string, playerId: string): Promise<Player | null> {
-  const snapshot = await getDoc(doc(db, 'teams', teamId, 'players', playerId));
+  const snapshot = await getDoc(clubDoc('teams', teamId, 'players', playerId));
   if (!snapshot.exists()) return null;
   return hydratePlayer(snapshot.id, snapshot.data());
 }
@@ -181,15 +181,15 @@ export async function updatePlayerContact(
   playerId: string,
   updates: Partial<NewPlayerInput> & { starting?: boolean }
 ): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { ...updates, updatedAt: serverTimestamp() });
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { ...updates, updatedAt: serverTimestamp() });
 }
 
 export async function setPlayerStarting(teamId: string, playerId: string, starting: boolean): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { starting, updatedAt: serverTimestamp() });
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { starting, updatedAt: serverTimestamp() });
 }
 
 export async function updatePlayerGuardians(teamId: string, playerId: string, guardians: Guardian[]): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { guardians, updatedAt: serverTimestamp() });
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { guardians, updatedAt: serverTimestamp() });
 }
 
 export async function updatePlayerSkills(
@@ -199,7 +199,7 @@ export async function updatePlayerSkills(
   avgScore: number | null,
   level: Player['level']
 ): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), {
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), {
     skills,
     avgScore,
     level,
@@ -209,7 +209,7 @@ export async function updatePlayerSkills(
 
 /** Marks the player as having left the club on `date` (null: back in the club), starting the retention clock. */
 export async function setPlayerLeftClub(teamId: string, playerId: string, date: string | null): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { leftClubAt: date, updatedAt: serverTimestamp() });
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { leftClubAt: date, updatedAt: serverTimestamp() });
 }
 
 const DUE_FOR_DELETION_CAP = 50;
@@ -218,7 +218,7 @@ const DUE_FOR_DELETION_CAP = 50;
 export async function listPlayersDueForDeletion(teamId: string, cutoff: string): Promise<Player[]> {
   const snapshot = await getDocs(
     query(
-      collection(db, 'teams', teamId, 'players'),
+      clubCol('teams', teamId, 'players'),
       where('leftClubAt', '<=', cutoff),
       orderBy('leftClubAt'),
       limit(DUE_FOR_DELETION_CAP),
@@ -230,12 +230,20 @@ export async function listPlayersDueForDeletion(teamId: string, cutoff: string):
 /** Records guardian consent for a player created without it (bulk import). */
 export async function recordPlayerConsent(teamId: string, playerId: string, confirmedByEmail: string): Promise<Player['consent']> {
   const consent = { given: true, date: new Date().toISOString().slice(0, 10), confirmedBy: confirmedByEmail };
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { consent, updatedAt: serverTimestamp() });
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { consent, updatedAt: serverTimestamp() });
   return consent;
 }
 
+/** Records or withdraws the guardian's consent to use a minor's photo in award cards. Withdrawing clears the date and the email. */
+export async function setPhotoConsent(teamId: string, playerId: string, given: boolean, byEmail: string): Promise<void> {
+  const fields = given
+    ? { photoConsent: true, photoConsentAt: serverTimestamp(), photoConsentBy: byEmail }
+    : { photoConsent: false, photoConsentAt: null, photoConsentBy: null };
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { ...fields, updatedAt: serverTimestamp() });
+}
+
 export async function updatePlayerDevelopmentPlan(teamId: string, playerId: string, plan: DevelopmentPlan): Promise<void> {
-  await updateDoc(doc(db, 'teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
+  await updateDoc(clubDoc('teams', teamId, 'players', playerId), { developmentPlan: plan, updatedAt: serverTimestamp() });
 }
 
 /**
@@ -246,6 +254,6 @@ export async function updatePlayerDevelopmentPlan(teamId: string, playerId: stri
  */
 export async function deletePlayer(teamId: string, playerId: string): Promise<void> {
   await erasePlayerFootprint(teamId, playerId);
-  await deleteCollection(collection(db, 'teams', teamId, 'players', playerId, 'physicalTests'));
-  await deleteDoc(doc(db, 'teams', teamId, 'players', playerId));
+  await deleteCollection(clubCol('teams', teamId, 'players', playerId, 'physicalTests'));
+  await deleteDoc(clubDoc('teams', teamId, 'players', playerId));
 }

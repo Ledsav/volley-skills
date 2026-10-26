@@ -118,7 +118,7 @@ export function computeStats(
   return { players, team, timeoutEffects, sourceCounts };
 }
 
-export type LiveAlert =
+type LiveAlert =
   | { kind: 'playerErrors'; playerId: string; errors: number }
   | { kind: 'oppRun'; run: number };
 

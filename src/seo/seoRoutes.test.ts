@@ -1,10 +1,23 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PUBLIC_ROUTES, noindexHeaderSources, robotsTxt, sitemapXml } from './seoRoutes';
+import { PRIVATE_PREFIXES, PUBLIC_ROUTES, noindexHeaderSources, robotsTxt, sitemapXml } from './seoRoutes';
 
 describe('seoRoutes', () => {
-  it('public routes are exactly the three indexable pages', () => {
-    expect([...PUBLIC_ROUTES]).toEqual(['/login', '/privacy', '/request-access']);
+  it('public routes are exactly the indexable pages', () => {
+    expect([...PUBLIC_ROUTES]).toEqual([
+      '/login', '/privacy', '/request-access', '/signup',
+      '/legal/terms', '/legal/dpa', '/legal/subprocessors', '/legal/dpia-pack',
+    ]);
+  });
+
+  it('private prefixes cover the club, platform and signing areas without hiding /signup', () => {
+    for (const p of ['/club', '/platform', '/signup/', '/sign/', '/welcome']) expect(PRIVATE_PREFIXES).toContain(p);
+    const sources = noindexHeaderSources();
+    expect(sources).toContain('/signup/**');
+    expect(sources).not.toContain('/signup');
+    expect(sources).not.toContain('/signup/');
+    expect(sources).toContain('/sign/**');
+    expect(sources).toContain('/club');
   });
 
   it('robots.txt allows public, has no Disallow (so crawlers see the noindex header), links the sitemap', () => {

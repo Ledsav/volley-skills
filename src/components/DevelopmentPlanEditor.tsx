@@ -3,6 +3,7 @@ import { CalendarDays } from 'lucide-react';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
 import { EditButton } from './EditButton';
+import { HealthHint } from './HealthHint';
 import { Input, Textarea } from './Input';
 import { StatusChip, STATUS_OPTIONS } from './StatusChip';
 import type {
@@ -240,10 +241,12 @@ export function DevelopmentPlanEditor({
                 </label>
                 <Textarea
                   id={`short-term-comment-${i}`}
+                  aria-describedby={`short-term-comment-${i}-hint`}
                   value={o.coachComment}
                   onChange={(e) => updateShortTerm(i, { coachComment: e.target.value })}
                   className="w-full"
                 />
+                <HealthHint id={`short-term-comment-${i}-hint`} />
 
                 <Button variant="dangerGhost" size="sm" onClick={() => removeShortTerm(i)} className="mt-2">
                   Remove
@@ -298,10 +301,12 @@ export function DevelopmentPlanEditor({
                 </label>
                 <Textarea
                   id={`season-comment-${i}`}
+                  aria-describedby={`season-comment-${i}-hint`}
                   value={o.coachComment}
                   onChange={(e) => updateSeason(i, { coachComment: e.target.value })}
                   className="w-full"
                 />
+                <HealthHint id={`season-comment-${i}-hint`} />
 
                 <Button variant="dangerGhost" size="sm" onClick={() => removeSeason(i)} className="mt-2">
                   Remove
@@ -314,10 +319,12 @@ export function DevelopmentPlanEditor({
 
             <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">General notes</h3>
             <Textarea
+              aria-describedby="general-notes-hint"
               value={generalNotes}
               onChange={(e) => setGeneralNotes(e.target.value)}
               className="mt-2 min-h-[100px] w-full"
             />
+            <HealthHint id="general-notes-hint" />
 
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="ghost" onClick={handleCancel}>

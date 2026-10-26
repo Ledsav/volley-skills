@@ -342,7 +342,7 @@ The visual language is documented in the
 
 - **Colour:** navy `#2356A8` for structure and primary actions, blue `#2865F6` for interactive
   elements, and orange / green / red for status and levels.
-- **Type:** Inter (self-hosted) everywhere, plus Barlow Condensed Black Italic for the logo only.
+- **Type:** Inter (self-hosted) everywhere; the logo is fixed SVG artwork (`src/assets/brand`).
 - **Icons:** [Lucide](https://lucide.dev).
 - Light-first, with a dark theme.
 

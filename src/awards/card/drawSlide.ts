@@ -10,7 +10,7 @@ import { fitBlock, fitFontSize } from './wrapText';
 export interface PresentCard { key: string; title: string; model: CardModel }
 export interface StoryDeps { palette: Palette; cards: PresentCard[]; artFor: (key: string) => CardArt; clubName: string }
 
-export const WIPE_MS = 250;
+const WIPE_MS = 250;
 const INTRO_MS = 1200;
 const STAT_MS = 1600;
 const SUSPENSE_PULSE_MS = 1600;

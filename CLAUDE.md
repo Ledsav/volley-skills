@@ -8,11 +8,13 @@ A **club-agnostic** web app for volleyball clubs that replaces a per-player spre
 (the original was `reference/VCB_U17_PlayerCards_2026-27.xlsx`, used only for seeding)
 with a tool to manage teams, player profiles (skills + development plans + physical
 testing), a club-wide exercise/training library (with a court-diagram builder per
-exercise), and per-team training calendars. **One deployment serves one club, not
-multi-tenant** — but no club name is hardcoded: UI, metadata and award cards stay
-generic, and a club's name only appears where it comes from data (`team.club`).
-Internal localStorage keys keep their historical `vcb.` prefix (renaming would wipe
-users' saved settings). Players are
+exercise), and per-team training calendars. **One Firebase project serves many clubs**
+(multi-club platform, branch `feature/club-platform`): all club data lives under
+`clubs/{clubId}`, and a person's role is per club. No club name is hardcoded: UI,
+metadata and award cards stay generic, and a club's name only appears where it comes
+from data (the club doc's `name`; `team.club` is gone). Internal localStorage keys keep
+their historical `vcb.` prefix (renaming would wipe users' saved settings); the active
+club id is stored in `vcb.activeClub`. Players are
 minors, and guardian contact data is stored — this drives the consent/privacy
 requirements.
 
@@ -25,8 +27,11 @@ The authoritative specs live in `docs/superpowers/`:
 | `specs/2026-09-07-volley-skills-plan-2-design.md`, `plan-3-design.md` | Design detail for later plan increments. |
 | `specs/2026-10-13-volley-skills-scouting-design.md` | Match scouting: event-sourced live scouting, match/event data model, post-match report, offline behavior. |
 | `specs/2026-10-14-volley-skills-home-stats-awards-design.md` | Home dashboard (`/`), team stats tab, season/match awards cards, 404 + SEO (`noindex` everywhere except `/login`, `/privacy`, `/request-access`). |
-| `specs/2026-10-15-volley-skills-multi-club.md` | **Deferred** multi-club design (one project, `clubs/{clubId}` root). Read before adding any new top-level collection. |
-| `plans/*.md` | The phased implementation plans (foundation, plan 2, plan 3 calendar + library). |
+| `specs/2026-10-20-volley-skills-club-platform-design.md` | **Multi-club platform** (in design, branch `feature/club-platform`): `clubs/{clubId}` root, self-service sign-up, club lifecycle, platform admin, export, legal acceptance. Read before adding any new top-level collection. |
+| `specs/2026-10-20-volley-skills-legal-documents-design.md`, `-italian-design.md`, `-dvw-import-design.md` | Terms/DPA/sub-processors, Italian translation, DataVolley `.dvw` import — same programme. |
+| `docs/research/` | Pricing/competitor and legal research behind those designs (not legal advice). |
+
+Implementation plans are written per increment to `docs/superpowers/plans/` and deleted once built (git history keeps them); the specs stay the source of truth.
 
 ## Commands
 
@@ -58,8 +63,11 @@ because all files share one emulator project.
 
 - `npm run emulator` auto-locates a JDK 21+ (no `JAVA_HOME` needed) and starts Auth
   (:9099), Firestore (:8080), Emulator UI (:4000).
-- `npm run seed:emulator` writes one team, `skillGuide/config`, and 20 player docs
-  from the gitignored `.xlsx`. Emulator is in-memory — re-seed after every restart.
+- `npm run seed:emulator` writes the `demo` club (club doc, admin member, `sectionAccess`),
+  one team, `config/skillGuide`, and 20 player docs from the gitignored `.xlsx`, all under
+  `clubs/demo`. `npm run seed:clubs` adds a `rival` club and a pending `newclub` (sign in as
+  `rival@example.com` / `pending@example.com` to see each state). Every seed script takes
+  `--club <id>`. Emulator is in-memory — re-seed after every restart.
 - `npm run seed:match` adds a season of 10 finished matches, a finished demo match and a live one to the seeded team, then writes their summaries (`backfillSummaries.ts`, via vite-node) so the Stats tab and awards have data.
 - The Auth emulator prints the email sign-in link to its console (no email is sent).
 - Prod seeding (`node scripts/seed/seed.mjs --prod`) needs a gitignored
@@ -134,34 +142,108 @@ not a subcollection scan. **When adding a query, add the matching index.**
 ### Auth & routing
 
 `src/App.tsx` wraps everything in `AuthProvider`; `RequireAuth` gates the
-authenticated shell, `RequireSuperAdmin` gates `/admin/access`, and
+authenticated shell (with a `ClubGate` inside it, `src/clubs/ClubGate.tsx`, that shows the
+welcome page, pending, locked or ended screens from the active club's status and the
+person's role), `RequireClubAdmin` gates `/admin/access`, and
 `RequireSection` (given a `section` prop) gates `/exercises`,
 `/exercises/:exerciseId/diagram` (the lazy-loaded court-diagram editor),
 `/trainings`, `/admin/guides`. `/` is the home dashboard and the `*` catch-all is the 404 page. Match pages live at `/teams/:teamId/matches/:matchId`;
 the lazy-loaded full-screen scouting UI is `/teams/:teamId/matches/:matchId/scout`
 (outside `AppShell`); the lazy full-screen awards routes (`/teams/:teamId/awards`,
 `/teams/:teamId/matches/:matchId/awards`) are also outside `AppShell` and team-admin only.
-Two roles: `superadmin` (full access to
-everything) and `member` (read-only until granted access — invite flow for
-guardians/viewers is still TBD). A member's actual access is resolved per-team
-(email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
-`sectionAccess/{exercises,trainings,guides}.adminEmails`) via
-`useAuth().access` (`src/auth/access.ts`). A user's role is set on their
-`users/{uid}` doc on first sign-in; `role: 'superadmin'` is only accepted if
-their email is in `adminAllowlist/{email}` (enforced in rules; that collection
-is never client-readable). See
-`docs/superpowers/specs/2026-09-11-volley-skills-access-model.md` for the full
-model.
+Roles are per club: a person is `admin` or `member` of a club via
+`clubs/{clubId}/members/{email}` (doc id is the lowercased email). `AuthProvider` finds
+the person's clubs with one collection-group query on `members` (`email == me`), picks
+the active club (`vcb.activeClub` in localStorage if still usable, else the first by
+name; `switchClub` stores the choice and reloads) and subscribes to the club doc live,
+so a status change reaches open tabs. `useAuth()` exposes `memberships`, `club`, `role`,
+`activeClubId`, `isPlatformAdmin` and `access`. A member's actual access is resolved
+per-team (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
+`clubs/{clubId}/sectionAccess/{exercises,trainings,guides}.adminEmails`) via
+`useAuth().access` (`src/auth/access.ts`); a club admin has everything in their club.
+The platform operator is an email in `platformAdmins/{email}` (readable only by that
+email; written by script/console, never the client); the operator sees only the club
+profile/lifecycle doc and leads — never members, teams, players or library — and can
+status-update club docs. `users/{uid}` holds only email and
+timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
+(`pending | active | suspended | terminating | deleted`) drives `ClubGate`. See
+`docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
+`2026-09-11-volley-skills-access-model.md` is superseded in part.
+
+**Club export, migration and purge.** The club area's Export tab (`src/clubs/area/ExportTab.tsx`)
+builds one ZIP in the browser (`fflate`): `src/clubs/export/clubExportApi.ts` reads every club
+collection through `readAll` (config docs by id), and the pure `clubExport.ts` turns it into the
+spec §7.2 file map with a `README.txt`. `src/firebase/schemaVersion.ts` clears a pre-migration
+offline cache once (`vcb.schemaVersion`) before the app renders. Admin SDK scripts:
+`scripts/migrate/2026-10-club-platform.mjs` (rehearsable, resumable migration),
+`scripts/migrate/dropLegacy.mjs` (old top-level data, after 14 days) and
+`scripts/ops/purgeClub.mjs` (an ended club down to a tombstone). Each is a thin CLI around a
+pure, unit-tested planner and an I/O core tested on the emulator (`tests/rules/*.test.mjs`).
+
+**Backups and the service-account key.** Production is backed up by `scripts/ops/backup.mjs`:
+a generic walk of every collection, sealed with the operator's public key
+(`scripts/ops/backup-public-key.pem`; AES-256-GCM, RSA-OAEP), pruned at 28 days so none outlives the DPA's 35, restored or checked
+with `scripts/ops/restore.mjs`. Every production script loads the service-account key through
+`scripts/lib/serviceAccount.mjs` (the encrypted `serviceAccountKey.json.enc` plus a passphrase).
+Runbook: `scripts/ops/README.md`; operator controls: `docs/SECURITY-OPERATIONS.md`.
+
+**Club area and platform page.** `/club` (inside `ClubGate`/`AppShell`) is the club area with
+Profile, People & access, Export and Contract tabs. A club whose status is paused (suspended, or
+terminating after `effectiveAt`) gets a restricted club area for admins instead of the app.
+Membership is explicit: People & access *adds* members (a `members/{email}` doc) and
+"Remove from club" deletes it. `/platform` sits **outside** `ClubGate` behind
+`RequirePlatformAdmin` and renders in `MinimalShell`: the operator's clubs table, lifecycle
+actions and leads (`/admin/interest` redirects to its Leads tab). The operator sees only the
+club profile/lifecycle doc and leads — never members, teams, players or library — so an
+operator-only account (no membership) works there. `RequireSignedIn` gates routes that need
+only a signed-in user (no club). `useClubFeatures()` reads the club's
+`aiEnabled`/`growthTestsEnabled` and hides AI features and growth tests when a club turns them
+off. While `growthTestsEnabled` is false, rules refuse growth creates and updates (including
+relabelling an existing growth record); deletes stay allowed, and there is no time element.
+Termination date changes (terminating to terminating) are allowed by rules; `effectiveAt`
+defaults to now + 30 days (today for a paused club) and may not be earlier than one day before
+now, unless a date change keeps the stored one. Reinstating clears the dates and the club's
+termination request. Seed sign-ins: `operator@example.com` (`/platform` only) and
+`rival@example.com` (AI and growth tests off); see `scripts/seed/README.md`.
+
+**Legal texts and sign-up.** `src/legal/` holds the Terms, DPA, sub-processor list, privacy notice and DPIA pack in
+five languages (`content/<en|it|fr|de|es>/<doc>-2026-10-22.md`; English prevails), `content/versions.json` +
+`versions.ts` (ISO-date versions, `versionKey = terms-<t>_dpa-<d>`), `legalDocs.ts` (operator placeholder substitution from
+`operator.ts` and fixed country names, never the browser's `Intl`; clause extraction; `published.test.ts` pins the SHA-256 of
+every published text, so a changed text ships as a new version id), `specificClauses.ts`, `hash.ts`, `LegalDocPage` at `/legal/:doc` (`?v`, `?lang`),
+`LegalReviewScreen`, `LegalNoticeBanner` and `acceptance.ts`. Clauses are level-2 headings `## T12. Heading` (`## D5.` in the
+DPA) with the same ids in every language (P3); the specific-approval texts are extracted, never copied. Sign-up is
+`src/signup/` (`/signup`, `/signup/club`, `/sign/complete`): the draft (`vcb.signDraft`, 24 h, removed when expired,
+on sign-out and once committed) is saved with a random nonce, a signing link to `/finish-sign-in?sign=<nonce>` is sent
+(`src/auth/reauth.ts`, P6; no return path is stored, so an ordinary sign-in is never redirected), and `/sign/complete?sign=`
+commits the club, member and acceptance in one batch, only when the nonce matches and within 14 minutes of `auth_time`,
+reading `auth.currentUser` (a same-uid re-sign-in fires no auth-state event, so the context user is stale), then reloads
+at `/` (P8, P9). The rules accept an acceptance only after
+a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`). Email-link sign-in needs
+the Email/Password provider on, so every rule requires `email_verified` (`signedIn()`): a password account made for an
+address nobody verified gets nothing. `ClubGate` shows the blocking review screen to club admins with an outdated accepted
+version, except a club that asked to end the contract, which gets a non-blocking notice (P10). One account has roles: the
+operator accepts for their own club like any club admin (never for a club they are not an admin of). Award photos of minors
+need `player.photoConsent`; adults need none; a missing date of birth counts as a minor (`src/awards/photoGate.ts`, P12).
+Seed sign-ins: `president@example.com` (demo owner, accepted), `review@example.com` (blocking review screen), plus those
+in `scripts/seed/README.md`.
 
 ### Firestore model shape (see spec §5 for the full contract)
 
-Team-scoped: `teams/{teamId}` → `players/{playerId}` → `physicalTests/{testId}`,
-plus `teams/{teamId}/calendar/{sessionId}`, `teams/{teamId}/matches/{matchId}` →
+Everything is under `clubs/{clubId}` (`clubs/{id}` is the club profile and lifecycle doc),
+and API modules build paths with `clubCol()` / `clubDoc()` from `src/firebase/clubPaths.ts`
+(active club id set by `AuthProvider`), never a hardcoded top-level path. Members:
+`clubs/{clubId}/members/{email}`. Team-scoped: `clubs/{clubId}/teams/{teamId}` →
+`players/{playerId}` → `physicalTests/{testId}`, plus `teams/{teamId}/calendar/{sessionId}`,
+`teams/{teamId}/matches/{matchId}` →
 `events/{eventId}` (ordered by `order`; all match state is derived by pure replay in
-`src/matches/scoutEngine.ts`) `teams/{teamId}/scoutProfile/usage`, `teams/{teamId}/awards/season` and `matches/{id}.awards` (coach award choices; photos are never stored). Club-global: `exercises/{id}`
+`src/matches/scoutEngine.ts`) `teams/{teamId}/scoutProfile/usage`, `teams/{teamId}/awards/season` and `matches/{id}.awards` (coach award choices; photos are never stored). Club-global (still inside the club): `exercises/{id}`
 (+ an ordered `exercises/{id}/diagrams/{diagramId}` subcollection of court
 diagrams — admin-only, no index), `trainings/{id}` (+ `counters/trainings` for
-transactional `businessId`), `skillGuide/config`, `physicalTestGuide/config`.
+transactional `businessId`), `config/skillGuide`, `config/physicalTestGuide`,
+`sectionAccess/{section}`. Only `clubs`, `users`, `platformAdmins` and `interestSignups`
+are top-level. Production moves here with the one-off migration in `scripts/migrate/`
+(runbook: `scripts/migrate/README.md`), before this branch is merged and deployed.
 Access is email-keyed (`adminEmails`, `viewerEmails`) rather than uid-keyed so
 granting access needs no uid lookup. Player docs denormalize
 `teamName`/`ageGroup`/`season` so a viewer never needs to read the team doc.
@@ -191,4 +273,4 @@ Dark mode ships: tokens are CSS variables per theme in `src/index.css`, so compo
   (skill math, `businessId` sequencing, physical-test computations), then component
   tests for the critical forms (player card edit, skill guide edit, training builder).
 - No third-party analytics or tracking scripts — minors' data.
-- Never commit `serviceAccountKey.json`, `.env.local`, or `reference/` (all gitignored).
+- Never commit `serviceAccountKey.json` (or its `.enc`), backups (`*.vsbackup`), private keys, `.env.local`, or `reference/` (all gitignored).

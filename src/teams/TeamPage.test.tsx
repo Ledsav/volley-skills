@@ -5,7 +5,7 @@ import { TeamPage } from './TeamPage';
 import * as teamsApi from './teamsApi';
 import * as playersApi from '../players/playersApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 import { NoticeProvider } from '../components/Notice';
 
@@ -27,7 +27,6 @@ vi.mock('../matches/matchesApi', () => ({
 const team: Team = {
   id: 'team-1',
   name: 'U17 Boys',
-  club: 'VC',
   ageGroup: 'U17',
   season: '2026',
   description: 'Regional squad',
@@ -61,10 +60,23 @@ describe('TeamPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
+  });
+
+  it('uses the lowercased appUser email, not the raw sign-in email, for team admin', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+      })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByRole('tab', { name: 'Stats' })).toBeInTheDocument();
   });
 
   it('shows the not-found state when the team cannot be read', async () => {
@@ -180,7 +192,7 @@ describe('TeamPage', () => {
 
   it('shows the Calendar tab with trainings access', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: { isSuperAdmin: false, sections: { exercises: false, trainings: true, guides: false } } })
+      authValue({ access: { isClubAdmin: false, sections: { exercises: false, trainings: true, guides: false } } })
     );
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });

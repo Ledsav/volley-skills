@@ -5,7 +5,7 @@ import { finished, player } from '../../awards/testMatches';
 import * as matchesApi from '../../matches/matchesApi';
 import { downloadText } from '../../export/exportJson';
 import type { Team } from '../../types/team';
-import { TeamStatsTab } from './TeamStatsTab';
+import TeamStatsTab from './TeamStatsTab';
 
 vi.mock('../../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../../matches/matchesApi', async (orig) => ({

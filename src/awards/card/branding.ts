@@ -8,7 +8,7 @@ type Img = ImageBitmap | HTMLCanvasElement;
 export interface Branding { clubLogo: Img | null; sponsors: Img[]; mono: boolean }
 
 export const MAX_SPONSORS = 6;
-export const HEADER_ROW = { top: 50, h: 110, baseline: 122 };
+const HEADER_ROW = { top: 50, h: 110, baseline: 122 };
 export const SPONSOR_ROW = { top: 1740, h: 120, divider: 1712 };
 const FONT = 'Inter, system-ui, sans-serif';
 
@@ -140,7 +140,7 @@ function tinted(img: Img, color: string): HTMLCanvasElement | null {
 }
 
 /** Draws a logo contain-fitted in `box`; `tint` makes it a single-colour silhouette. */
-export function drawLogo(ctx: CanvasRenderingContext2D, img: Img, box: Box, tint: string | null, alpha = 1) {
+function drawLogo(ctx: CanvasRenderingContext2D, img: Img, box: Box, tint: string | null, alpha = 1) {
   const r = containRect(img.width, img.height, box);
   ctx.save();
   ctx.globalAlpha = alpha;

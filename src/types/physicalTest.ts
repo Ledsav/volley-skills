@@ -56,7 +56,7 @@ export interface ReactionData {
 export type WeightedExercise = 'trapBarDeadlift' | 'squat' | 'gobletSquat';
 export type BodyweightExercise = 'pushUps' | 'splitSquat';
 
-export interface WeightedStrengthData {
+interface WeightedStrengthData {
   testType: 'strength';
   mode: 'weighted';
   exercise: WeightedExercise;
@@ -65,7 +65,7 @@ export interface WeightedStrengthData {
   bodyMassRatio: number | null;
 }
 
-export interface BodyweightStrengthData {
+interface BodyweightStrengthData {
   testType: 'strength';
   mode: 'bodyweight';
   exercise: BodyweightExercise;
@@ -133,3 +133,7 @@ export const PHYSICAL_TEST_ORDER: PhysicalTestType[] = [
   'reaction',
   'strength',
 ];
+
+export function visibleTestTypes(growthTestsEnabled: boolean): PhysicalTestType[] {
+  return growthTestsEnabled ? PHYSICAL_TEST_ORDER : PHYSICAL_TEST_ORDER.filter((t) => t !== 'growth');
+}

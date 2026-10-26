@@ -1,20 +1,20 @@
-import { collection, doc, getDoc, type CollectionReference } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { readAll } from '../firebase/readAll';
+import { getDocFromServer, type CollectionReference } from 'firebase/firestore';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
+import { readAllFromServer } from '../firebase/readAll';
 import type { TeamExportData, TeamExportOptions } from './teamExport';
 
 async function docs(col: CollectionReference) {
-  return (await readAll(col)).map((d) => ({ id: d.id, ...d.data() }));
+  return (await readAllFromServer(col)).map((d) => ({ id: d.id, ...d.data() }));
 }
 
 /**
  * Reads everything stored under a team for a full export. Every collection is
- * paged (never one unbounded read). Raw scouting events cost one read per
+ * paged (never one unbounded read) and read from the server, never the offline cache. Raw scouting events cost one read per
  * event, hundreds per match, so they are opt-in.
  */
 export async function loadTeamExportData(teamId: string, options: TeamExportOptions): Promise<TeamExportData> {
-  const sub = (...path: string[]) => collection(db, 'teams', teamId, ...(path as [string]));
-  const teamSnap = await getDoc(doc(db, 'teams', teamId));
+  const sub = (...path: string[]) => clubCol('teams', teamId, ...path);
+  const teamSnap = await getDocFromServer(clubDoc('teams', teamId));
   if (!teamSnap.exists()) throw new Error('team not found');
 
   const players = [];

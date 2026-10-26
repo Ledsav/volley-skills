@@ -10,8 +10,8 @@ vi.mock('../exercises/exercisesApi');
 vi.mock('../diagrams/diagramsApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../auth/AuthContext', async () => {
-  const { authValue, superAdminAccess } = await import('../test/authValue');
-  return { useAuth: () => authValue({ firebaseUser: { uid: 'coach' } as never, access: superAdminAccess }) };
+  const { authValue, clubAdminAccess } = await import('../test/authValue');
+  return { useAuth: () => authValue({ firebaseUser: { uid: 'coach' } as never, access: clubAdminAccess }) };
 });
 
 const proposal = (name: string) => ({
@@ -51,6 +51,7 @@ describe('ExerciseDraftDialog', () => {
     await generate();
     expect(ask.mock.calls[0][0][1].content).toContain('serve receive for U15');
     expect(screen.getByRole('button', { name: 'Diagram for Alpha' })).toBeInTheDocument();
+    expect(screen.getAllByText('AI draft')).toHaveLength(2);
     fireEvent.click(screen.getByLabelText('Keep Beta'));
     fireEvent.click(screen.getByRole('button', { name: 'Save 1 kept' }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(1));

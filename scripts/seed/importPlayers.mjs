@@ -13,6 +13,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
+import { clubRoot, parseClubArg } from './clubArg.mjs';
+
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
@@ -40,6 +42,7 @@ if (!sourceId || !exported[sourceId]) {
 
 admin.initializeApp({ projectId: 'volley-skills' });
 const db = admin.firestore();
+const root = clubRoot(db, parseClubArg(process.argv.slice(2)));
 const { Timestamp } = admin.firestore;
 
 function decode(v) {
@@ -51,7 +54,7 @@ function decode(v) {
   return Object.fromEntries(keys.map((k) => [k, decode(v[k])]));
 }
 
-const teams = await db.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get();
+const teams = await root.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get();
 if (teams.empty) {
   console.error('No seeded team found — run `npm run seed:emulator` first.');
   process.exit(1);

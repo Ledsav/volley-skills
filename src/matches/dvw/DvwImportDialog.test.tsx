@@ -204,8 +204,8 @@ describe('DvwImportDialog', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     await waitFor(() => expect(api.startImport).toHaveBeenCalled());
-    // One parse warning plus the plan's one warning (the serve graded "!").
-    expect(vi.mocked(api.startImport).mock.calls[0][2].warnings).toBe(2);
+    // The one parse warning; the plan itself has none.
+    expect(vi.mocked(api.startImport).mock.calls[0][2].warnings).toBe(1);
   });
 
   it('labels a player with special role L as Libero whatever the role code', async () => {

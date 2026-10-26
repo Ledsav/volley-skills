@@ -306,23 +306,31 @@ describe('mapDvw: actions and points', () => {
   });
 
   it('drops a grade the app does not offer for that skill', () => {
-    const p = plan(file(['*07SM!', 'ap00:01']));
+    const p = plan(file(['*07EH/', 'ap00:01']));
     expect(p.events.some((e) => e.type === 'action')).toBe(false);
     expect(p.issues).toEqual([
-      { kind: 'warning', message: '1 Serve "!" action dropped: the app has no such grade (line 1).', lines: [1] },
+      { kind: 'warning', message: '1 Set "/" action dropped: the app has no such grade (line 1).', lines: [1] },
     ]);
   });
 
   it('groups dropped grades into one warning per skill and grade', () => {
-    const p = plan(file([...Array.from({ length: 7 }, () => '*07SM!'), '*09BH!', 'ap00:01']));
+    const p = plan(file([...Array.from({ length: 7 }, () => '*07EH/'), 'ap00:01']));
     expect(p.issues).toEqual([
       {
         kind: 'warning',
-        message: '7 Serve "!" actions dropped: the app has no such grade (lines 1, 2, 3, 4, 5, …).',
+        message: '7 Set "/" actions dropped: the app has no such grade (lines 1, 2, 3, 4, 5, …).',
         lines: [1, 2, 3, 4, 5],
       },
-      { kind: 'warning', message: '1 Block "!" action dropped: the app has no such grade (line 8).', lines: [8] },
     ]);
+  });
+
+  it('keeps a serve graded "!" (OK) and reads a block graded "!" as "-" (DataVolley: poor block, ball to the opponent)', () => {
+    const p = plan(file(['*07SM!', '*09BH!', 'ap00:01']));
+    expect(p.events.filter((e) => e.type === 'action').map((e) => (e.type === 'action' ? `${e.skill}${e.grade}` : ''))).toEqual([
+      'S!',
+      'B-',
+    ]);
+    expect(p.issues).toEqual([]);
   });
 
   it('drops our actions after the rally was decided, until the next point line', () => {
@@ -419,5 +427,49 @@ describe('mapDvw: limits and meta', () => {
     const p = plan(file(['*07SM+', 'ap00:01', '*T', '*07SM#', '*p01:01']));
     expect(p.events.map((e) => e.order)).toEqual(p.events.map((_, i) => i + 1));
     expect(p.events.every((e) => e.source === 'import' && e.chunkId === 'imp1')).toBe(true);
+  });
+});
+
+describe('mapDvw: real-file rallies and liberos', () => {
+  it('drops only the wrong-way action when the rally goes on (no later action is lost)', () => {
+    // Line 2's reception error would hand the point to the opponent, but the rally continues and we win it.
+    const p = plan(file(['a10SM+', '*07RM=', '*11EH+', '*09AH#', '*p01:00']));
+    expect(payloads(p.events).slice(1)).toEqual([
+      { type: 'action', playerId: 'p11', skill: 'E', grade: '+' },
+      { type: 'action', playerId: 'p9', skill: 'A', grade: '#' },
+    ]);
+    expect(p.issues).toEqual([
+      {
+        kind: 'warning',
+        message: 'Line 2: this action ended the rally the other way; line 5 gives the point to us — action dropped.',
+        lines: [2],
+      },
+    ]);
+    expect(replay(engineMatch(p), withIds(p.events)).score).toEqual({ us: 1, them: 0 });
+  });
+
+  // Real files rarely carry role codes: only the libero is marked.
+  const NO_ROLES: DvwPlayer[] = HOME_PLAYERS.map((pl) => (pl.specialRole === 'L' ? pl : { ...pl, roleCode: 6 as const }));
+  const rally = ['a10SM+', '*04RM+', '*11EH+', '*09AH+', 'a12DM+', 'a07AH+', '*07DM+', 'ap00:01'];
+
+  it('finds who the libero replaced from the scout when no middle is known', () => {
+    // P5 (#8) sits in the back row on every line and never plays a ball; #7 (P1) and #9 (P6) do.
+    const p = plan(file([...rally, ...rally, ...rally], { players: [...NO_ROLES, ...VISITING_PLAYERS] }));
+    expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: ['p8'] }]);
+    expect(p.issues).toEqual([]);
+    const state = replay(engineMatch(p), withIds(p.events));
+    expect(state.warnings.filter((w) => w.code === 'offCourt')).toEqual([]);
+  });
+
+  it('warns when the libero would never come on court', () => {
+    const p = plan(file(rally, { players: [...NO_ROLES, ...VISITING_PLAYERS] }));
+    expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: [] }]);
+    expect(p.issues).toEqual([
+      {
+        kind: 'warning',
+        message: 'The libero never comes on court: mark your middle blockers as MB in the team roster, then import again.',
+        lines: [],
+      },
+    ]);
   });
 });

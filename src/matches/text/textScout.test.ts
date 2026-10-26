@@ -71,7 +71,7 @@ describe('batchToPayloads', () => {
   const r = (over: Partial<ParsedBatch['rallies'][number]>) => ({ actions: [], point: null, subs: [], timeouts: [], ...over });
 
   it('blocks and skips actions whose grade does not exist for the skill', () => {
-    const { payloads, issues } = batchToPayloads(batch([r({ actions: [{ number: 7, skill: 'S', grade: '!' }] })]), roster);
+    const { payloads, issues } = batchToPayloads(batch([r({ actions: [{ number: 7, skill: 'B', grade: '!' }] })]), roster);
     expect(payloads).toEqual([]);
     expect(issues.find((x) => x.kind === 'invalidGrade')).toMatchObject({ rally: 0, blocking: true });
   });
@@ -273,7 +273,7 @@ describe('ungraded actions', () => {
   });
 
   it('SYSTEM_PROMPT teaches the app per-skill grade labels and new synonyms', () => {
-    expect(SYSTEM_PROMPT).toContain('S (Serve): "#" Ace, "+" Pressure, "-" Easy, "/" Free back, "=" Error');
+    expect(SYSTEM_PROMPT).toContain('S (Serve): "#" Ace, "+" Pressure, "!" OK, "-" Easy, "/" Free back, "=" Error');
     for (const s of ['S', 'R', 'A', 'B', 'D', 'E', 'F'] as const) expect(SYSTEM_PROMPT).toContain(`\n${s} (${SKILL_LABELS[s]}): "`);
     expect(SYSTEM_PROMPT).toContain('use that grade');
     for (const w of ['too easy', 'difícil', 'couvert']) expect(SYSTEM_PROMPT).toContain(w);

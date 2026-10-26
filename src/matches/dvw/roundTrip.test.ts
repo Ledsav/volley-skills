@@ -17,12 +17,12 @@ function parsed(name: string): DvwFile {
   return result;
 }
 
-// `dropped`: our skill lines the import leaves out (the serve graded `!`, and a `$$` line in the five-set file).
+// `dropped`: the warnings for our skill lines the import leaves out (a `$$` line in the five-set file).
 // `liberoChecked`: the three-set file's synthetic lineup has the libero receive while both middles are in the
 // front row (its middles start in P3 and P5, not opposite), so only the five-set file is a fair libero check.
 const cases: { name: string; setsWon: SetScore; corrections: number; dropped: number; liberoChecked: boolean }[] = [
-  { name: 'three-sets-home.dvw', setsWon: { us: 3, them: 0 }, corrections: 1, dropped: 1, liberoChecked: false },
-  { name: 'five-sets-away.dvw', setsWon: { us: 3, them: 2 }, corrections: 0, dropped: 2, liberoChecked: true },
+  { name: 'three-sets-home.dvw', setsWon: { us: 3, them: 0 }, corrections: 1, dropped: 0, liberoChecked: false },
+  { name: 'five-sets-away.dvw', setsWon: { us: 3, them: 2 }, corrections: 0, dropped: 1, liberoChecked: true },
 ];
 
 describe.each(cases)('round trip: $name', ({ name, setsWon, corrections, dropped, liberoChecked }) => {

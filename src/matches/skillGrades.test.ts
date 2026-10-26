@@ -8,7 +8,7 @@ describe('skillGrades', () => {
   });
 
   it('hides grades that make no sense for a skill', () => {
-    expect(validGrades('S')).toEqual(['#', '+', '-', '/', '=']);
+    expect(validGrades('S')).toEqual(['#', '+', '!', '-', '/', '=']);
     expect(validGrades('E')).toEqual(['#', '+', '!', '-', '=']);
     expect(validGrades('B')).toEqual(['#', '+', '-', '/', '=']);
     expect(validGrades('A')).toEqual(['#', '+', '!', '-', '/', '=']);

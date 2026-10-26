@@ -14,11 +14,14 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const lower = (e) => String(e ?? '').trim().toLowerCase();
 const lowerList = (list) => [...new Set((Array.isArray(list) ? list : []).map(lower).filter(Boolean))];
 
-function validate({ clubId, owner, operator, country, locale }) {
-  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(clubId ?? '')) throw new Error(`clubId must be a lowercase slug (got "${clubId}")`);
+function validate({ clubId, owner, operator, country, locale, operatorOwnerTestMode }) {
+  // The same app-made id a club gets at sign-up (a Firestore auto id; the rules check it there).
+  if (!/^[A-Za-z0-9]{20}$/.test(clubId ?? '')) throw new Error(`clubId must be an auto id, 20 letters and digits (got "${clubId}")`);
   if (!EMAIL.test(owner ?? '')) throw new Error('owner must be an email');
   if (!EMAIL.test(operator ?? '')) throw new Error('operator must be an email');
-  if (lower(owner) === lower(operator)) throw new Error('owner must not be the operator');
+  // Test mode only (no outside club yet): the operator may own the club for now. The rules
+  // never let a platform admin sign, so nobody can accept for the club until the owner changes.
+  if (!operatorOwnerTestMode && lower(owner) === lower(operator)) throw new Error('owner must not be the operator');
   if (!/^[A-Z]{2}$/.test(country ?? '')) throw new Error('country must be a two-letter code like ES');
   if (!['en', 'it'].includes(locale)) throw new Error('locale must be en or it');
 }
@@ -40,8 +43,8 @@ function mostCommonClubName(teams) {
  * Returns the club doc (written first), the other writes in order, the members, and
  * the expected doc count per destination group (for verification).
  */
-export function planMigration(source, { clubId, owner, operator, name, country, locale = 'en', now }) {
-  validate({ clubId, owner, operator, country, locale });
+export function planMigration(source, { clubId, owner, operator, name, country, locale = 'en', now, operatorOwnerTestMode = false }) {
+  validate({ clubId, owner, operator, country, locale, operatorOwnerTestMode });
   const ownerEmail = lower(owner);
   const operatorEmail = lower(operator);
   const root = `clubs/${clubId}`;

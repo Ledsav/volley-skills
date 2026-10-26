@@ -4,7 +4,7 @@
 //
 //   node scripts/migrate/2026-10-club-platform.mjs (--rehearse | --prod) \
 //     --club <id> --owner <email> --operator <email> --country <XX> \
-//     [--name <club name>] [--locale en|it] [--dry-run] [--resume]
+//     [--name <club name>] [--locale en|it] [--dry-run] [--resume] [--operator-owner-test-mode]
 //
 //   --rehearse   read PRODUCTION (read-only), write the migrated tree to the local
 //                emulator at 127.0.0.1:8080 (start it with `npm run emulator`).
@@ -14,6 +14,10 @@
 //   --name       club name; default: the most common team.club.
 //   --dry-run    read and plan only: prints the counts, estimated writes and reads.
 //   --resume     continue a stopped run: docs that already exist are skipped.
+//   --operator-owner-test-mode
+//                allow --owner to be the operator while no outside club uses the app.
+//                Nobody can accept the Terms for the club until a club admin hands
+//                ownership to a club officer (club area, People & access).
 //
 // Both modes need the service-account key (serviceAccountKey.json.enc, see
 // scripts/ops/README.md) and refuse to run while
@@ -42,9 +46,13 @@ const options = {
   country: flag(argv, '--country'),
   name: flag(argv, '--name'),
   locale: flag(argv, '--locale') ?? 'en',
+  operatorOwnerTestMode: argv.includes('--operator-owner-test-mode'),
 };
 for (const required of ['clubId', 'owner', 'operator', 'country']) {
   if (!options[required]) fail(`Missing --${required === 'clubId' ? 'club' : required}.`);
+}
+if (options.operatorOwnerTestMode && options.owner?.trim().toLowerCase() === options.operator?.trim().toLowerCase()) {
+  console.warn('TEST MODE: the operator owns the club. Hand ownership to a club officer before the club accepts the Terms.');
 }
 const dryRun = argv.includes('--dry-run');
 const resume = argv.includes('--resume');

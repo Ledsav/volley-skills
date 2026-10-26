@@ -1,16 +1,16 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronsUpDown, ClipboardList, Dumbbell, Building2, House, KeyRound, LogOut, Repeat, Settings, Shield, Users, type LucideIcon } from 'lucide-react';
+import { ChevronsUpDown, FileText, LogOut, Menu as MenuIcon, Repeat, Settings } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Menu } from '../components/Menu';
-import { useTheme } from '../theme/useTheme';
 import { usePendingSignups } from '../interest/usePendingSignups';
 import { Logo } from '../components/Logo';
 import { useNotify } from '../components/Notice';
 import { ContractEndingBanner } from '../clubs/ContractEndingBanner';
 import { LegalNoticeBanner } from '../legal/LegalNoticeBanner';
 import { otherUsableClubs } from '../clubs/activeClub';
+import { navGroups, phoneTabs, type NavGroup, type NavItem } from './navModel';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
@@ -27,12 +27,10 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { access, firebaseUser, isPlatformAdmin, memberships, activeClubId, switchClub, droppedClub } = useAuth();
+  const { access, club, firebaseUser, isPlatformAdmin, memberships, activeClubId, switchClub, droppedClub } = useAuth();
   const notify = useNotify();
   const notifiedDropped = useRef(false);
   const navigate = useNavigate();
-  const [theme, toggleTheme] = useTheme();
-  const adminGroupId = useId();
   const email = firebaseUser?.email ?? '';
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const { signOut, unsyncedDialog } = useSignOut();
@@ -62,30 +60,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [pathname]);
 
-  const navItems: { to: string; label: string; Icon: LucideIcon; show: boolean; badge?: number; admin?: boolean; end?: boolean }[] = [
-    { to: '/', label: 'Home', Icon: House, show: true, end: true },
-    { to: '/teams', label: 'Teams', Icon: Users, show: true },
-    { to: '/exercises', label: 'Exercises', Icon: Dumbbell, show: !!access?.sections.exercises },
-    { to: '/trainings', label: 'Trainings', Icon: ClipboardList, show: !!access?.sections.trainings },
-    { to: '/admin/guides', label: 'Guides', Icon: BookOpen, show: !!access?.sections.guides, admin: true },
-    { to: '/club', label: 'Club', Icon: KeyRound, show: !!access?.isClubAdmin, admin: true },
-    {
-      to: '/platform', label: 'Platform', Icon: Building2, show: isPlatformAdmin, admin: true,
-      badge: pendingSignups > 0 ? pendingSignups : undefined,
-    },
-  ].filter((item) => item.show);
+  const groups = navGroups(access, !!isPlatformAdmin);
+  const tabs = phoneTabs(access, !!isPlatformAdmin);
 
-  const phoneItems = navItems.filter((i) => !i.admin).slice(0, 4);
+  const badge = (count: number, className: string) =>
+    count > 0 ? <span className={`rounded-full bg-orange-strong font-semibold text-white ${className}`}>{count}</span> : null;
 
-  const renderSidebarLink = ({ to, label, Icon, badge, end }: (typeof navItems)[number]) => (
+  const renderSidebarLink = ({ to, label, Icon, end, pending }: NavItem) => (
     <NavLink key={to} to={to} end={end} className={sidebarLinkClass}>
       <Icon size={20} strokeWidth={1.5} />
       {label}
-      {!!badge && (
-        <span className="ml-auto rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">{badge}</span>
-      )}
+      {pending && badge(pendingSignups, 'ml-auto px-1.5 py-0.5 text-xs')}
     </NavLink>
   );
+
+  const renderGroup = (g: NavGroup) =>
+    g.label === null ? (
+      <div key={g.id} className="flex flex-col gap-1">{g.items.map(renderSidebarLink)}</div>
+    ) : (
+      <div key={g.id} role="group" aria-labelledby={`nav-${g.id}`} className="mt-5 flex flex-col gap-1">
+        <p id={`nav-${g.id}`} className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/60">{g.label}</p>
+        {g.items.map(renderSidebarLink)}
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-bg lg:flex">
@@ -97,18 +94,31 @@ export function AppShell({ children }: { children: ReactNode }) {
           <NavLink to="/" aria-label="Volley Skills home">
             <Logo className="text-[28px]" />
           </NavLink>
+          {/* Which club you are in; with more than one, this is where you switch. */}
+          {club && (otherClubs.length > 0 ? (
+            <Menu
+              label={`Club: ${club.name}`}
+              align="start"
+              triggerClassName="-mx-2 mt-3 flex w-[calc(100%+1rem)] items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-semibold text-white hover:bg-white/5"
+              trigger={
+                <>
+                  <span className="min-w-0 flex-1 truncate">{club.name}</span>
+                  <ChevronsUpDown size={16} aria-hidden="true" className="shrink-0 text-white/70" />
+                </>
+              }
+              items={otherClubs.map((m) => ({
+                kind: 'action' as const,
+                label: `Switch to ${m.clubName}`,
+                icon: <Repeat size={16} />,
+                onSelect: () => switchClub(m.clubId),
+              }))}
+            />
+          ) : (
+            <p className="mt-3 truncate text-sm font-semibold text-white">{club.name}</p>
+          ))}
         </div>
-        <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
-          {navItems.filter((item) => !item.admin).map(renderSidebarLink)}
-          {navItems.some((item) => item.admin) && (
-            <div role="group" aria-labelledby={adminGroupId} className="mt-6 flex flex-col gap-1">
-              <p id={adminGroupId} className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                <Shield size={14} strokeWidth={1.75} aria-hidden="true" />
-                Admin
-              </p>
-              {navItems.filter((item) => item.admin).map(renderSidebarLink)}
-            </div>
-          )}
+        <nav aria-label="Main" className="flex flex-1 flex-col">
+          {groups.map(renderGroup)}
         </nav>
         {/* Who is signed in, and everything about the account, behind one row. */}
         <div className="border-t border-white/10 pt-3">
@@ -128,18 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             }
             items={[
               { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
-              ...(access?.sections.guides ? [{ kind: 'action' as const, label: 'Guides', icon: <BookOpen size={16} />, onSelect: () => navigate('/admin/guides') }] : []),
-              ...(access?.isClubAdmin ? [{ kind: 'action' as const, label: 'Club', icon: <KeyRound size={16} />, onSelect: () => navigate('/club') }] : []),
-              ...(isPlatformAdmin ? [{ kind: 'action' as const, label: 'Platform', icon: <Building2 size={16} />, onSelect: () => navigate('/platform') }] : []),
-              { kind: 'check', label: 'Dark mode', checked: theme === 'dark', onSelect: toggleTheme },
-              { kind: 'action', label: 'Privacy policy', onSelect: () => navigate('/privacy') },
-              { kind: 'action', label: 'Legal', onSelect: () => navigate('/legal/terms') },
-              ...otherClubs.map((m) => ({
-                kind: 'action' as const,
-                label: `Switch to ${m.clubName}`,
-                icon: <Repeat size={16} />,
-                onSelect: () => switchClub(m.clubId),
-              })),
+              { kind: 'action', label: 'Terms & privacy', icon: <FileText size={16} />, onSelect: () => navigate('/legal/terms') },
               { kind: 'divider' },
               { kind: 'action', label: 'Sign out', icon: <LogOut size={16} />, danger: true, onSelect: signOut },
             ]}
@@ -159,30 +158,23 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav aria-label="Main (phone)" className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden print:hidden">
-        {phoneItems.map(({ to, label, Icon, badge, end }) => (
+        {tabs.map(({ to, label, Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={bottomTabClass}>
-            <span className="relative">
-              <Icon size={22} strokeWidth={1.5} />
-              {!!badge && (
-                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-white">
-                  {badge}
-                </span>
-              )}
-            </span>
+            <Icon size={22} strokeWidth={1.5} />
             <span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
-        {/* Phones reach the admin pages (Guides, Club) from Settings, so its tab carries their badge. */}
-        <NavLink to="/settings" className={bottomTabClass}>
+        {/* Everything else (club, platform, account) is one tap away on More. */}
+        <NavLink to="/more" className={bottomTabClass}>
           <span className="relative">
-            <Settings size={22} strokeWidth={1.5} />
+            <MenuIcon size={22} strokeWidth={1.5} />
             {pendingSignups > 0 && (
               <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-white">
                 {pendingSignups}
               </span>
             )}
           </span>
-          <span className="max-w-full truncate">Settings</span>
+          <span className="max-w-full truncate">More</span>
         </NavLink>
       </nav>
       {unsyncedDialog}

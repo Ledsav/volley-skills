@@ -1,3 +1,8 @@
+/*
+ * Format reference: the file layout was read from the documentation of the openvolley
+ * `datavolley` R package (MIT licence). This parser is written independently and copies
+ * no code from it or from pydatavolley / py-datavolley.
+ */
 import { parseScoutCode } from './parseScoutCode';
 import type { DvwError, DvwFile, DvwPlayer, DvwSet, DvwSide, ScoutLine } from './types';
 

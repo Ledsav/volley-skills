@@ -48,11 +48,11 @@ Players not in the app cannot be created from this screen in v1 (builder may add
 Pure TypeScript, no I/O, fully unit-tested:
 - `decodeDvw(bytes: ArrayBuffer): string` — try UTF-8 with `fatal: true`; on failure use the code page declared in `[3MATCH]` (text-encoding field, e.g. `1252`, `1250`) when present, else `windows-1252`. `TextDecoder` supports these labels in modern browsers.
 - `parseDvw(text: string): DvwFile | DvwError` — split into sections by `[3…]` headers; `;`-separated fields; returns:
-  - `match`: date (MM/DD/YYYY in the file → ISO `YYYY-MM-DD`), season, league, regulation (indoor rally point expected; others → error "unsupported regulation").
+  - `match`: date (MM/DD/YYYY in the file → ISO `YYYY-MM-DD`), season, league, regulation (`1` = indoor rally point expected; `0` indoor sideout, `2` beach and anything else → error "unsupported regulation").
   - `teams`: home (`*`) and visiting (`a`): name, sets won, coach.
-  - `sets`: per set — played flag, final score "25-16", duration.
+  - `sets`: per set — played flag, final score "25-16" (spaces around the dash allowed, e.g. "15- 9"), duration.
   - `players`: home/visiting lists — jersey, file player id, last/first name, special role (`L`, `C`), role code (1 libero, 2 outside, 3 opposite, 4 middle, 5 setter, 6 unknown), starting positions per set.
-  - `scout`: ordered lines with line number, raw code, parsed code, and trailing fields: set number (field 9), home and visiting setter position (10, 11), home P1–P6 jerseys (15–20), visiting P1–P6 jerseys (21–26).
+  - `scout`: ordered lines with line number, raw code, parsed code, and trailing fields: set number, home and visiting setter position (10, 11), home P1–P6 jerseys (15–20), visiting P1–P6 jerseys (21–26).
 - Code grammar (`parseScoutCode`):
   - Team char `*` (home) / `a` (visiting).
   - **Skill line**: jersey digits (or `$$` unknown), skill `S R A B D E F`, type char, evaluation `# + ! - / =`, the rest ignored in v1.
@@ -63,6 +63,7 @@ Pure TypeScript, no I/O, fully unit-tested:
   - **Set end**: `**Nset`.
   - **Team-level codes** `*$$&…` / `a$$&…`, sanctions/notes starting `>` (e.g. `>ROT`): kept as `other` lines, ignored (counted in checks).
   - Anything unparseable → `other` with a warning, never a crash.
+- Set number of a scout line: the running count of `**Nset` markers (lines before the first marker are set 1, lines after the Nth marker are set N+1; a marker belongs to the set it ends). Field 9 is only a cross-check: one parse warning per set where it is empty or disagrees. Parse warnings are shown in the review's checks with the mapping warnings.
 
 Format reference: the openvolley `datavolley` R package (MIT licence) and its documented column layouts were used to understand the format; the TypeScript parser is written independently (§7).
 
@@ -71,7 +72,7 @@ Format reference: the openvolley `datavolley` R package (MIT licence) and its do
 Let `us` be the file side chosen in the review (`*` or `a`), `them` the other.
 
 ### 4.1 Match doc
-Created like `createMatch` does today, then finished (§5): `date`, `opponent` (other team's name), `competition`, `homeAway` (`us == '*' ? 'home' : 'away'`), `format`, `roster` (snapshot of mapped players: playerId, number, name from the **app** player, positionCategory), `liberos` (mapped players with file role `L` → `{ playerId, mode: 'receiving', replaces: [] }` — builder verifies against the engine's libero handling with a real file, §8), and a new field:
+Created like `createMatch` does today, then finished (§5): `date`, `opponent` (other team's name), `competition`, `homeAway` (`us == '*' ? 'home' : 'away'`), `format`, `roster` (snapshot of mapped players: playerId, number, name from the **app** player, positionCategory), `liberos` (mapped players with special role `L` or role code 1, at most two → `{ playerId, mode: 'always', replaces: <playerIds of the roster entries whose positionCategory is 'MB'> }`: DataVolley never lists the libero in P1–P6, so the engine puts the libero on court for whichever middle is in the back row, except in P1 while we serve. A player with special role `L` gets `positionCategory: 'L'` whatever the role code. With two liberos, the engine uses the first `always` one), and a new field:
 
 ```
 import: { format: 'dvw', fileName, fileSha256, generator, importedAt, importedBy, warnings: number }
@@ -85,7 +86,7 @@ import: { format: 'dvw', fileName, fileSha256, generator, importedAt, importedBy
 - `setEnd { set }` at `**Nset`.
 
 ### 4.3 Actions
-Our skill lines with a mapped jersey → `action { playerId, skill, grade }`. Skill letters and grade symbols are identical to the app's (`skillGrades.ts`). Grades not valid for a skill in the app (e.g. `!` on serve) → dropped with a warning. `$$` (unknown player) and skipped players → dropped with a warning. Opponent skill lines are not turned into actions.
+Our skill lines with a mapped jersey → `action { playerId, skill, grade }`. Skill letters and grade symbols are identical to the app's (`skillGrades.ts`). Grades not valid for a skill in the app (e.g. `!` on serve) → dropped with a warning. `$$` (unknown player), skipped players and actions after the rally was decided → dropped with a warning. Dropped actions are grouped into one warning per jersey and reason (per skill and grade for invalid grades), with the count and the first five line numbers. A jersey seen in the scout but missing from the file's player list is warned about only when it is mapped to an app player. Two file players who appear in the match mapped to the same app player block the import (their stats would merge). Opponent skill lines are not turned into actions.
 
 ### 4.4 Points
 The engine closes a rally on an action whose grade decides it (`rallyOutcome`) or on a `point` event. To avoid counting twice:
@@ -145,7 +146,7 @@ Same as any finished match today (no special casing). The report shows the impor
 - **Round trip**: fixture → parse → map → `replay` → `buildReportData` gives the expected set scores and per-skill counts.
 - **Component**: review screen (team side flip, roster mapping, blocking issues, duplicate warning), import progress and retry.
 - **Rules**: `source: 'import'` accepted; `import` field only on create with the right shape; other sources still validated.
-- **Manual**: one real DataVolley file from the operator's club, imported on the emulator, compared by eye with the DataVolley report (the operator provides the file locally; it is not committed). This also settles the libero question in §4.1.
+- **Manual**: one real DataVolley file from the operator's club, imported on the emulator, compared by eye with the DataVolley report (the operator provides the file locally; it is not committed). It also checks the libero rule in §4.1 against a real file.
 
 ## 9. Left to the builder
 - Name-similarity heuristic for picking "us".

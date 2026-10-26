@@ -12,6 +12,7 @@ import type { DvwFile, DvwPlayer, DvwSide } from './types';
 const ROLE_LABEL: Record<DvwPlayer['roleCode'], string> = {
   1: 'Libero', 2: 'Outside', 3: 'Opposite', 4: 'Middle', 5: 'Setter', 6: 'Unknown',
 };
+const roleLabel = (p: DvwPlayer) => (p.specialRole === 'L' ? 'Libero' : ROLE_LABEL[p.roleCode]);
 
 const scoreText = (s: SetScore | undefined) => (s ? `${s.us}–${s.them}` : '–');
 const sameSets = (a: SetScore[], b: SetScore[]) =>
@@ -52,7 +53,8 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
     ...base.issues.filter((i) => i.kind === 'blocking').map((i) => i.message),
     ...(setupProblem ? [setupProblem] : []),
   ];
-  const warnings = base.issues.filter((i) => i.kind === 'warning');
+  // Parse warnings first, then the mapping's; every message names its lines.
+  const warnings = [...file.warnings, ...base.issues.filter((i) => i.kind === 'warning').map((i) => i.message)];
   const { checks } = base;
   const scoresDiffer = !sameSets(checks.replaySets, checks.fileSets);
 
@@ -139,7 +141,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
               <li key={key} className="flex items-center gap-2 text-sm">
                 <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-ink">#{p.jersey}</span>
                 <span className="min-w-0 flex-1 truncate text-ink">{name}</span>
-                <span className="hidden w-20 shrink-0 text-xs text-slate sm:block">{ROLE_LABEL[p.roleCode]}</span>
+                <span className="hidden w-20 shrink-0 text-xs text-slate sm:block">{roleLabel(p)}</span>
                 <select
                   aria-label={`Map #${p.jersey} ${name}`}
                   className={`${FIELD_CLASS} w-40 shrink-0`}
@@ -195,10 +197,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
         {warnings.length > 0 && (
           <ul className="mt-2 list-disc pl-5 text-ink">
             {warnings.map((w, i) => (
-              <li key={i}>
-                {w.message}
-                {w.lines.length > 0 && <span className="text-slate"> (line {w.lines.slice(0, 5).join(', ')})</span>}
-              </li>
+              <li key={i}>{w}</li>
             ))}
           </ul>
         )}

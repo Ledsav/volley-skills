@@ -54,14 +54,20 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const [discardError, setDiscardError] = useState<string | null>(null);
+  /** Bumped after an error: a fresh file input fires change again for the same file. */
+  const [pickerKey, setPickerKey] = useState(0);
   const attempt = useRef(0);
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const picked = event.target.files?.[0];
     if (!picked) return;
     setError(null);
+    const fail = (message: string) => {
+      setError(message);
+      setPickerKey((k) => k + 1);
+    };
     if (picked.size > MAX_BYTES) {
-      setError('This file is larger than 2 MB.');
+      fail('This file is larger than 2 MB.');
       return;
     }
     setBusy(true);
@@ -69,14 +75,14 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
       const bytes = await readBytes(picked);
       const parsed = parseDvw(decodeDvw(bytes));
       if ('error' in parsed) {
-        setError(parsed.error);
+        fail(parsed.error);
         return;
       }
       const sha = await sha256OfBytes(bytes);
       const [players, duplicate] = await Promise.all([loadTeamRoster(teamId), findImportedMatch(teamId, sha)]);
       setLoaded({ file: parsed, fileName: picked.name, sha, players, duplicate });
     } catch {
-      setError('Could not read this file. Check your connection and try again.');
+      fail('Could not read this file. Check your connection and try again.');
     } finally {
       setBusy(false);
     }
@@ -98,7 +104,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
 
   function startRun(plan: DvwPlan) {
     if (!loaded || !firebaseUser) return;
-    const warnings = plan.issues.filter((i) => i.kind === 'warning').length;
+    const warnings = loaded.file.warnings.length + plan.issues.filter((i) => i.kind === 'warning').length;
     const job = startImport(
       teamId,
       plan,
@@ -163,7 +169,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm font-medium text-ink">
             DVW file
-            <input type="file" accept=".dvw" onChange={(e) => void handleFile(e)} disabled={busy} className="text-sm" />
+            <input key={pickerKey} type="file" accept=".dvw" onChange={(e) => void handleFile(e)} disabled={busy} className="text-sm" />
           </label>
           <p className="text-sm text-slate">
             Pick a DataVolley scout file (up to 2 MB). It is read on this device; the player names in it are only shown

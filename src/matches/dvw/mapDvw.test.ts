@@ -177,7 +177,9 @@ describe('mapDvw: sets', () => {
     const p = plan(f);
     expect(p.events[0]).toMatchObject({ type: 'setStart', lineup: LINEUP });
     expect(p.setup.roster).toContainEqual({ playerId: 'p9', number: 9, name: 'App 9', positionCategory: 'U' });
-    expect(p.issues).toEqual([{ kind: 'warning', message: "#9 is not in the file's player list.", lines: [1] }]);
+    expect(p.issues).toEqual([
+      { kind: 'warning', message: "#9 is not in the file's player list (first seen on line 1).", lines: [1] },
+    ]);
   });
 
   it('blocks two file players mapped to the same app player in a lineup', () => {

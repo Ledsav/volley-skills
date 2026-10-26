@@ -82,6 +82,15 @@ describe('DvwImportDialog', () => {
     expect(screen.queryByText(/which team is us/i)).not.toBeInTheDocument();
   });
 
+  it('resets the file picker after an error so the same file can be picked again', async () => {
+    renderDialog();
+    const before = screen.getByLabelText(/dvw file/i);
+    pick(fileOf('hello world', 'notes.dvw'));
+    await screen.findByRole('alert');
+    expect(screen.getByLabelText(/dvw file/i)).not.toBe(before);
+    expect(screen.getByLabelText(/dvw file/i)).toHaveValue('');
+  });
+
   it('refuses a file over 2 MB', async () => {
     renderDialog();
     pick(fileOf(fixtureText('three-sets-home.dvw'), 'big.dvw', 2 * 1024 * 1024 + 1));
@@ -183,6 +192,38 @@ describe('DvwImportDialog', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
     await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('shows parse warnings in the checks and counts them in the import', async () => {
+    const text = fixtureText('three-sets-home.dvw').replace('*P11>LUp;;;;;;;;1;', '*P11>LUp;;;;;;;;;');
+    renderDialog();
+    pick(fileOf(text, 'no-set.dvw'));
+    await screen.findByText(/which team is us/i);
+    expect(screen.getByTestId('checks')).toHaveTextContent(
+      'Set 1: 1 scout line has a missing or different set number (line 53); the set markers were used.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await waitFor(() => expect(api.startImport).toHaveBeenCalled());
+    // One parse warning plus the plan's one warning (the serve graded "!").
+    expect(vi.mocked(api.startImport).mock.calls[0][2].warnings).toBe(2);
+  });
+
+  it('labels a player with special role L as Libero whatever the role code', async () => {
+    const text = fixtureText('three-sets-home.dvw').replace('T007;Gallard;Hugo;;L;1;', 'T007;Gallard;Hugo;;L;4;');
+    renderDialog();
+    pick(fileOf(text, 'libero.dvw'));
+    await screen.findByText(/which team is us/i);
+    expect(screen.getByLabelText(/map #4 /i).closest('li')).toHaveTextContent('Libero');
+  });
+
+  it('blocks import when two file players are mapped to the same app player', async () => {
+    await toReview();
+    expect(screen.getByRole('button', { name: 'Import' })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText(/map #9 /i), { target: { value: 'p7' } });
+    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    expect(screen.getByTestId('blocking-issues')).toHaveTextContent(
+      'Two file players are mapped to the same app player (#7 and #9).',
+    );
   });
 
   it('shows the checks: corrections and sets', async () => {

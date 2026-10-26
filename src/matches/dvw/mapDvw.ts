@@ -55,16 +55,39 @@ function orient(us: DvwSide, home: number, visiting: number): SetScore {
   return us === '*' ? { us: home, them: visiting } : { us: visiting, them: home };
 }
 
-/** Our players who appear in the scout: on court in any line, in a skill line or in a sub line. */
-export function ourFilePlayers(file: DvwFile, us: DvwSide): DvwPlayer[] {
-  const seen = new Set<number>();
+/** Our jerseys seen in the scout (on court, in a skill or a sub line) → the first line seen on. */
+function seenJerseys(file: DvwFile, us: DvwSide): Map<number, number> {
+  const seen = new Map<number, number>();
+  const see = (j: number, lineNo: number) => {
+    if (!seen.has(j)) seen.set(j, lineNo);
+  };
   for (const line of file.scout) {
-    for (const j of courtOf(line, us)) if (j !== null) seen.add(j);
+    for (const j of courtOf(line, us)) if (j !== null) see(j, line.lineNo);
     const c = line.code;
-    if (c.kind === 'skill' && c.side === us && c.jersey !== null) seen.add(c.jersey);
-    if (c.kind === 'sub' && c.side === us) seen.add(c.outJersey).add(c.inJersey);
+    if (c.kind === 'skill' && c.side === us && c.jersey !== null) see(c.jersey, line.lineNo);
+    if (c.kind === 'sub' && c.side === us) [c.outJersey, c.inJersey].forEach((j) => see(j, line.lineNo));
   }
-  return file.players.filter((p) => p.side === us && seen.has(p.jersey));
+  return seen;
+}
+
+/** Our jerseys seen in the scout that the file's player list lacks, with the first line seen on. */
+function unlistedJerseys(file: DvwFile, us: DvwSide): [number, number][] {
+  const listed = new Set(file.players.filter((p) => p.side === us).map((p) => p.jersey));
+  return [...seenJerseys(file, us)].filter(([j]) => !listed.has(j)).sort(([a], [b]) => a - b);
+}
+
+/**
+ * Our players who appear in the scout: on court in any line, in a skill line or in a sub line.
+ * A jersey missing from `[3PLAYERS]` gets a nameless stand-in so it can still be mapped or skipped.
+ */
+export function ourFilePlayers(file: DvwFile, us: DvwSide): DvwPlayer[] {
+  const seen = seenJerseys(file, us);
+  const unlisted = unlistedJerseys(file, us).map(
+    ([jersey]): DvwPlayer => ({
+      side: us, jersey, fileId: '', lastName: '', firstName: '', specialRole: null, roleCode: 6, startingPositions: [],
+    }),
+  );
+  return [...file.players.filter((p) => p.side === us && seen.has(p.jersey)), ...unlisted];
 }
 
 /** Each of our file players → the app player with the same jersey, or null. */
@@ -83,6 +106,15 @@ function pointReason(winner: Side, opp: { skill: Skill; grade: Grade } | null): 
     reason = 'oppError';
   }
   return POINT_REASONS[winner].includes(reason) ? reason : 'unknown';
+}
+
+/** One warning per skill and grade: the count and the first five line numbers. */
+function warnDroppedGrade(warn: (message: string, lines: number[]) => void, skill: Skill, grade: Grade, lines: number[]) {
+  const first = lines.slice(0, 5);
+  const n = lines.length;
+  const where = `${n === 1 ? 'line' : 'lines'} ${first.join(', ')}${n > 5 ? ', …' : ''}`;
+  const what = `${n} ${SKILL_LABELS[skill]} "${grade}" ${n === 1 ? 'action' : 'actions'} dropped`;
+  warn(`${what}: the app has no such grade (${where}).`, first);
 }
 
 function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players: Player[], issues: DvwIssue[]): MatchSetupInput {
@@ -131,6 +163,7 @@ export function mapDvw(
   const issues: DvwIssue[] = [];
   const warn = (message: string, lines: number[]) => issues.push({ kind: 'warning', message, lines });
   const setup = buildSetup(file, us, mapping, players, issues);
+  for (const [jersey, lineNo] of unlistedJerseys(file, us)) warn(`#${jersey} is not in the file's player list.`, [lineNo]);
   const engine: EngineMatch = { format: setup.format, roster: setup.roster, liberos: setup.liberos };
   const rosterIds = new Set(setup.roster.map((r) => r.playerId));
   const idOf = (jersey: number): string | null => {
@@ -152,6 +185,8 @@ export function mapDvw(
   const corrections: number[] = [];
   const pointLineSets = new Map<number, SetScore>();
   let ignoredLines = 0;
+  /** `${skill}${grade}` → line numbers of our actions dropped for a grade the app does not offer. */
+  const droppedGrades = new Map<string, number[]>();
   let set = 0;
   let setStartIndex = 0;
   let rally = newRally();
@@ -169,6 +204,16 @@ export function mapDvw(
         lines: [line.lineNo],
       });
     }
+    court.forEach((j, i) => {
+      const first = lineup.indexOf(lineup[i]);
+      if (lineup[i] !== null && first < i) {
+        issues.push({
+          kind: 'blocking',
+          message: `Two file players are mapped to the same app player (#${court[first]} and #${j}).`,
+          lines: [line.lineNo],
+        });
+      }
+    });
     const serve = firstServe.get(set) ?? us;
     payloads.push({ type: 'setStart', set, lineup: lineup.map((id) => id ?? ''), serving: serve === us ? 'us' : 'them', roles });
   };
@@ -209,7 +254,8 @@ export function mapDvw(
         if (c.jersey === null) warn(`Line ${line.lineNo}: unknown player ($$) — action dropped.`, [line.lineNo]);
         else if (!id) warn(`Line ${line.lineNo}: #${c.jersey} is not mapped to a player — action dropped.`, [line.lineNo]);
         else if (!validGrades(c.skill).includes(c.grade)) {
-          warn(`Line ${line.lineNo}: grade ${c.grade} is not offered for ${SKILL_LABELS[c.skill]} — action dropped.`, [line.lineNo]);
+          const key = `${c.skill}${c.grade}`;
+          droppedGrades.set(key, [...(droppedGrades.get(key) ?? []), line.lineNo]);
         } else if (rally.decided) {
           warn(`Line ${line.lineNo}: the rally was already decided — action dropped.`, [line.lineNo]);
         } else {
@@ -238,12 +284,15 @@ export function mapDvw(
         rally = newRally();
         break;
       case 'other':
-        ignoredLines += 1;
+        // Lineup markers are used: the lineups come from their court fields.
+        if (c.reason !== 'lineupMarker') ignoredLines += 1;
         break;
       case 'rotation':
         break;
     }
   }
+
+  for (const [key, lines] of droppedGrades) warnDroppedGrade(warn, key[0] as Skill, key[1] as Grade, lines);
 
   if (payloads.length > MAX_IMPORT_EVENTS) {
     issues.push({ kind: 'blocking', message: 'This match is too long to import (more than 1,900 events).', lines: [] });

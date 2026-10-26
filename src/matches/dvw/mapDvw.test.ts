@@ -151,6 +151,38 @@ describe('mapDvw: sets', () => {
     });
   });
 
+  it('maps a starter missing from the file player list by number, with a warning', () => {
+    const f = file(['*07SM+', 'ap00:01'], { players: [...HOME_PLAYERS.filter((pl) => pl.jersey !== 9), ...VISITING_PLAYERS] });
+    expect(ourFilePlayers(f, '*')).toContainEqual({
+      side: '*', jersey: 9, fileId: '', lastName: '', firstName: '', specialRole: null, roleCode: 6, startingPositions: [],
+    });
+    const p = plan(f);
+    expect(p.events[0]).toMatchObject({ type: 'setStart', lineup: LINEUP });
+    expect(p.setup.roster).toContainEqual({ playerId: 'p9', number: 9, name: 'App 9', positionCategory: 'U' });
+    expect(p.issues).toEqual([{ kind: 'warning', message: "#9 is not in the file's player list.", lines: [1] }]);
+  });
+
+  it('blocks two file players mapped to the same app player in a lineup', () => {
+    const f = file(['*07SM+', 'ap00:01']);
+    const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*9': 'p7' } });
+    expect(p.issues).toContainEqual({
+      kind: 'blocking',
+      message: 'Two file players are mapped to the same app player (#7 and #9).',
+      lines: [1],
+    });
+  });
+
+  it('takes serving from the first serve line when we are the visiting team', () => {
+    const awayPlayers = {
+      players: [...HOME_PLAYERS.map((pl) => ({ ...pl, side: 'a' as const })), ...VISITING_PLAYERS.map((pl) => ({ ...pl, side: '*' as const }))],
+    };
+    const lines = (codes: string[]) => codes.map((code) => ({ code, visiting: HOME_COURT }));
+    const theyServe = plan(file(lines(['*10SM+', 'ap00:01']), awayPlayers), { us: 'a' });
+    expect(theyServe.events[0]).toMatchObject({ type: 'setStart', serving: 'them', lineup: LINEUP });
+    const weServe = plan(file(lines(['a07SM+', '*p01:00']), awayPlayers), { us: 'a' });
+    expect(weServe.events[0]).toMatchObject({ type: 'setStart', serving: 'us', lineup: LINEUP });
+  });
+
   it('flags more than two liberos', () => {
     const f = file(['*04RM+', '*12DM+', '*06RM+', 'ap00:01'], {
       players: [
@@ -212,7 +244,21 @@ describe('mapDvw: actions and points', () => {
   it('drops a grade the app does not offer for that skill', () => {
     const p = plan(file(['*07SM!', 'ap00:01']));
     expect(p.events.some((e) => e.type === 'action')).toBe(false);
-    expect(p.issues).toEqual([expect.objectContaining({ kind: 'warning', lines: [1] })]);
+    expect(p.issues).toEqual([
+      { kind: 'warning', message: '1 Serve "!" action dropped: the app has no such grade (line 1).', lines: [1] },
+    ]);
+  });
+
+  it('groups dropped grades into one warning per skill and grade', () => {
+    const p = plan(file([...Array.from({ length: 7 }, () => '*07SM!'), '*09BH!', 'ap00:01']));
+    expect(p.issues).toEqual([
+      {
+        kind: 'warning',
+        message: '7 Serve "!" actions dropped: the app has no such grade (lines 1, 2, 3, 4, 5, …).',
+        lines: [1, 2, 3, 4, 5],
+      },
+      { kind: 'warning', message: '1 Block "!" action dropped: the app has no such grade (line 8).', lines: [8] },
+    ]);
   });
 
   it('drops our actions after the rally was decided, until the next point line', () => {
@@ -236,7 +282,10 @@ describe('mapDvw: subs and timeouts', () => {
       { type: 'timeout', team: 'us' },
       { type: 'timeout', team: 'them' },
     ]);
-    expect(p.issues).toEqual([expect.objectContaining({ kind: 'warning', lines: [5] })]);
+    expect(p.issues).toEqual([
+      { kind: 'warning', message: "#44 is not in the file's player list.", lines: [5] },
+      expect.objectContaining({ kind: 'warning', lines: [5] }),
+    ]);
   });
 });
 
@@ -276,7 +325,7 @@ describe('mapDvw: score check', () => {
   });
 
   it('fills the checks and warns when the replay differs from the file sets', () => {
-    const f = file(['*07SM#', '*p01:00', '>ROT', '*$$&H#', '**1set'], {
+    const f = file(['*P11>LUp', '*07SM#', '*p01:00', '>ROT', '*$$&H#', '**1set'], {
       sets: [{ played: true, home: 25, visiting: 20 }, { played: false, home: 0, visiting: 0 }],
     });
     const p = plan(f);

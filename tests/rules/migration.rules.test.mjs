@@ -1,12 +1,12 @@
 // Emulator rehearsal of the club-platform migration (spec §9, §10): a legacy
-// single-club tree is migrated under clubs/vcb, then read back through the rules.
+// single-club tree is migrated under clubs/VcbMigratedClub00001, then read back through the rules.
 import { assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { runMigration } from '../../scripts/migrate/clubPlatformRun.mjs';
 import { adminDb, put } from './adminDb.mjs';
 import { dbAs, getTestEnv } from './testEnv';
 
-const OPTIONS = { clubId: 'vcb', owner: 'president@x.com', operator: 'boss@x.com', country: 'ES' };
+const OPTIONS = { clubId: 'VcbMigratedClub00001', owner: 'president@x.com', operator: 'boss@x.com', country: 'ES' };
 const quiet = () => {};
 
 let db;
@@ -41,19 +41,19 @@ const migrate = (extra = {}) => runMigration({ source: db, target: db, options: 
 const exists = async (path) => (await db.doc(path).get()).exists;
 
 describe('club-platform migration', () => {
-  it('migrates the legacy tree under clubs/vcb', async () => {
+  it('migrates the legacy tree under clubs/VcbMigratedClub00001', async () => {
     const result = await migrate();
     expect(result.ok).toBe(true);
-    const club = (await db.doc('clubs/vcb').get()).data();
+    const club = (await db.doc('clubs/VcbMigratedClub00001').get()).data();
     expect(club).toMatchObject({ name: 'VCB', status: 'active', ownerEmail: 'president@x.com' });
-    const role = async (e) => (await db.doc(`clubs/vcb/members/${e}`).get()).data()?.role;
+    const role = async (e) => (await db.doc(`clubs/VcbMigratedClub00001/members/${e}`).get()).data()?.role;
     expect(await role('boss@x.com')).toBe('admin');
     expect(await role('president@x.com')).toBe('admin');
     expect(await role('coach@x.com')).toBe('member');
     expect(await role('parent@x.com')).toBe('member');
-    expect(await exists('clubs/vcb/teams/t1/matches/m1/events/e1')).toBe(true);
-    expect((await db.doc('clubs/vcb/teams/t1').get()).data()).not.toHaveProperty('club');
-    expect(await exists('clubs/vcb/config/skillGuide')).toBe(true);
+    expect(await exists('clubs/VcbMigratedClub00001/teams/t1/matches/m1/events/e1')).toBe(true);
+    expect((await db.doc('clubs/VcbMigratedClub00001/teams/t1').get()).data()).not.toHaveProperty('club');
+    expect(await exists('clubs/VcbMigratedClub00001/config/skillGuide')).toBe(true);
     expect((await db.doc('users/u1').get()).data()).toEqual({ email: 'boss@x.com' });
     expect(await exists('platformAdmins/boss@x.com')).toBe(true);
     expect(await exists('teams/t1')).toBe(true);
@@ -63,8 +63,8 @@ describe('club-platform migration', () => {
   it('migrated data works under the rules', async () => {
     await migrate();
     const env = await getTestEnv();
-    await assertSucceeds(dbAs(env, 'coach@x.com').doc('clubs/vcb/teams/t1').get());
-    await assertSucceeds(dbAs(env, 'parent@x.com').doc('clubs/vcb/teams/t1/players/p1').get());
+    await assertSucceeds(dbAs(env, 'coach@x.com').doc('clubs/VcbMigratedClub00001/teams/t1').get());
+    await assertSucceeds(dbAs(env, 'parent@x.com').doc('clubs/VcbMigratedClub00001/teams/t1/players/p1').get());
   });
 
   it('refuses to run twice without --resume', async () => {
@@ -74,11 +74,11 @@ describe('club-platform migration', () => {
 
   it('resume writes only what is missing', async () => {
     await migrate();
-    await db.doc('clubs/vcb/teams/t1/matches/m1/events/e1').delete();
+    await db.doc('clubs/VcbMigratedClub00001/teams/t1/matches/m1/events/e1').delete();
     const result = await migrate({ resume: true });
     expect(result.written).toBe(1);
     expect(result.ok).toBe(true);
-    expect(await exists('clubs/vcb/teams/t1/matches/m1/events/e1')).toBe(true);
+    expect(await exists('clubs/VcbMigratedClub00001/teams/t1/matches/m1/events/e1')).toBe(true);
   });
 
   it('a dry run needs no target and reports its read cost', async () => {
@@ -91,6 +91,6 @@ describe('club-platform migration', () => {
   it('a dry run writes nothing', async () => {
     const result = await migrate({ dryRun: true });
     expect(result.written).toBe(0);
-    expect(await exists('clubs/vcb')).toBe(false);
+    expect(await exists('clubs/VcbMigratedClub00001')).toBe(false);
   });
 });

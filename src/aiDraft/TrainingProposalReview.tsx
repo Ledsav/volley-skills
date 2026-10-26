@@ -29,6 +29,7 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
   const off = Math.abs(total - targetMinutes) > targetMinutes * 0.1;
   return (
     <div className="flex flex-col gap-4">
+      <p><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">AI draft</span></p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="tdraft-name" className="mb-1 block text-sm font-medium text-ink">

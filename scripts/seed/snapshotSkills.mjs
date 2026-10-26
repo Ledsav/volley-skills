@@ -9,25 +9,28 @@
 // BLOCK_DEFAULT (5) so seed + backfill share one source of truth.
 // Logs counts only — never names or scores.
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { SKILL_KEYS } from './parseWorkbook.mjs';
+
+import { assertProdClub, parseClubArg } from './clubArg.mjs';
+import { loadServiceAccount } from '../lib/serviceAccount.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
 const PROJECT_ID = 'volley-skills';
-const KEY_PATH = 'serviceAccountKey.json';
 const OUT_DEFAULT = 'scripts/seed/skillsSnapshot.json';
 const BLOCK_DEFAULT = 5;
 
 function parseArgs(argv) {
-  const args = { target: 'emulator', out: OUT_DEFAULT };
+  const args = { target: 'emulator', out: OUT_DEFAULT, club: parseClubArg(argv) };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--prod') args.target = 'prod';
     else if (a === '--emulator') args.target = 'emulator';
     else if (a === '--out') args.out = argv[++i];
+    else if (a === '--club') i++;
     else {
       console.error(`Unknown argument: ${a}`);
       process.exit(2);
@@ -38,13 +41,15 @@ function parseArgs(argv) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  try {
+    assertProdClub(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 
   if (args.target === 'prod') {
-    if (!existsSync(KEY_PATH)) {
-      console.error(`--prod requires ${KEY_PATH} (gitignored service-account key).`);
-      process.exit(1);
-    }
-    const key = JSON.parse(readFileSync(KEY_PATH, 'utf8'));
+    const key = await loadServiceAccount();
     admin.initializeApp({ credential: admin.credential.cert(key), projectId: key.project_id });
     console.log(`Target: PROD project "${key.project_id}"`);
   } else {
@@ -54,7 +59,13 @@ async function main() {
   }
 
   const db = admin.firestore();
-  const snap = await db.collectionGroup('players').get();
+  // collectionGroup spans every club: keep only this club's docs.
+  const snap = (await db.collectionGroup('players').get()).docs.filter((d) => d.ref.path.startsWith(`clubs/${args.club}/`));
+
+  if (snap.length === 0) {
+    console.error(`No players found under clubs/${args.club}/ — wrong --club? ${args.out} was not written.`);
+    process.exit(1);
+  }
 
   const out = {};
   let dupes = 0;
@@ -71,6 +82,11 @@ async function main() {
     }
     out[name] = scores;
   });
+
+  if (Object.keys(out).length === 0) {
+    console.error(`No player under clubs/${args.club}/ has a fullName — nothing to snapshot. ${args.out} was not written.`);
+    process.exit(1);
+  }
 
   const sorted = Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
   writeFileSync(args.out, JSON.stringify(sorted, null, 2) + '\n');

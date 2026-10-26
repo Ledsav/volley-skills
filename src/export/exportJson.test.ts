@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { fileSlug, toExportable } from './exportJson';
+import { describe, expect, it, vi } from 'vitest';
+import { fileSlug, toExportable, downloadBlob } from './exportJson';
 
 describe('toExportable', () => {
   it('turns nested Timestamps into ISO strings and drops undefined', () => {
@@ -20,5 +20,21 @@ describe('fileSlug', () => {
   it('keeps letters and digits, collapses the rest', () => {
     expect(fileSlug(' U17 Girls / Équipe A ')).toBe('U17-Girls-Équipe-A');
     expect(fileSlug('///')).toBe('export');
+  });
+});
+
+describe('downloadBlob', () => {
+  it('keeps the object URL alive after the click so large downloads can finish', () => {
+    vi.useFakeTimers();
+    const revoke = vi.fn();
+    Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:x'), revokeObjectURL: revoke });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    downloadBlob('a.zip', new Blob(['x']));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(revoke).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    expect(revoke).toHaveBeenCalledWith('blob:x');
+    click.mockRestore();
+    vi.useRealTimers();
   });
 });

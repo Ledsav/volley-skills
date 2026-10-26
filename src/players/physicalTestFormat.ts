@@ -24,7 +24,7 @@ export function formatPhysicalTestSummary(test: PhysicalTest): string {
   }
 }
 
-export interface PhysicalTestDetailRow {
+interface PhysicalTestDetailRow {
   label: string;
   value: string;
 }

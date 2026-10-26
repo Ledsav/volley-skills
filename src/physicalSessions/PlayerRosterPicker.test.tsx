@@ -1,8 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerRosterPicker } from './PlayerRosterPicker';
+import { useAuth } from '../auth/AuthContext';
+import { authValue, testClub } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { TestingSessionEntry } from '../types/testingSession';
+
+vi.mock('../auth/AuthContext');
 
 function buildPlayer(overrides: Partial<Player>): Player {
   return { id: 'player-1', number: 7, fullName: 'Jane Doe', ...overrides } as Player;
@@ -26,6 +30,23 @@ describe('PlayerRosterPicker', () => {
     buildPlayer({ id: 'player-1', number: 7, fullName: 'Jane Doe' }),
     buildPlayer({ id: 'player-2', number: 9, fullName: 'Mia Lopez' }),
   ];
+
+  beforeEach(() => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+  });
+
+  it('counts out of seven qualities when growth tests are off', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ growthTestsEnabled: false }) }));
+    render(<PlayerRosterPicker players={players} entries={[buildEntry({})]} selectedPlayerId={null} onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Jane Doe/ })).toHaveTextContent('1/7');
+  });
+
+  it('does not count a legacy growth entry when growth tests are off', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ growthTestsEnabled: false }) }));
+    const entries = [buildEntry({}), buildEntry({ id: 'player-1__growth', testType: 'growth' })];
+    render(<PlayerRosterPicker players={players} entries={entries} selectedPlayerId={null} onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Jane Doe/ })).toHaveTextContent('1/7');
+  });
 
   it('shows the whole roster right away, each with a completed-quality count', () => {
     render(<PlayerRosterPicker players={players} entries={[buildEntry({})]} selectedPlayerId={null} onSelect={vi.fn()} />);

@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'dangerGhost' | 'destructive';
-export type ButtonSize = 'sm' | 'md' | 'icon';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'dangerGhost' | 'destructive';
+type ButtonSize = 'sm' | 'md' | 'icon';
 
 // inline-flex + min-h-11 (44px) keeps every text button at least the recommended
 // mobile touch-target size, regardless of how tight its padding/text is. The

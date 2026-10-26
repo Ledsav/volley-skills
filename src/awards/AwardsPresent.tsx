@@ -28,7 +28,7 @@ function useWakeLock() {
 }
 
 
-export function slideAnnouncement(slide: Slide, cards: PresentCard[]): string {
+function slideAnnouncement(slide: Slide, cards: PresentCard[]): string {
   switch (slide.kind) {
     case 'intro': return `${slide.title} — ${slide.subtitle}`;
     case 'stat': return `${slide.stat.kicker}: ${slide.stat.big}${slide.stat.bigSuffix} ${slide.stat.caption}`;

@@ -58,6 +58,12 @@ describe('AssignTrainingDialog', () => {
     vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([exOne, exTwo]);
   });
 
+  it('shows the health hint under the notes field', async () => {
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await screen.findByLabelText(/Passing circuit/);
+    expect(screen.getByLabelText('Notes')).toHaveAccessibleDescription("Don't record health, injury or medical information.");
+  });
+
   it('creates a session with the picked training denormalized onto it', async () => {
     const createSpy = vi.mocked(calendarApi.createCalendarSession).mockResolvedValue('s-1');
     const onSaved = vi.fn();

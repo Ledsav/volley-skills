@@ -11,6 +11,7 @@ import { getExercisesByIds } from '../exercises/exercisesApi';
 import { findTrainingByBusinessId, listTrainings } from '../trainings/trainingsApi';
 import type { Training } from '../types/training';
 import { createCalendarSession } from './calendarApi';
+import { HealthHint } from '../components/HealthHint';
 
 interface ExerciseRow {
   exerciseId: string;
@@ -251,7 +252,8 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         <label htmlFor="session-notes" className="mb-1 mt-4 block text-sm font-medium text-ink">
           Notes
         </label>
-        <Textarea id="session-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <Textarea id="session-notes" aria-describedby="session-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <HealthHint id="session-notes-hint" />
 
         {error && (
           <p role="alert" className="mt-3 text-sm text-red">

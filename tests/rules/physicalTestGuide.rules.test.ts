@@ -1,19 +1,16 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
-import { getTestEnv } from './testEnv';
+import { dbAs, getTestEnv, seedClub } from './testEnv';
 
 describe('physicalTestGuide rules', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
-    await env.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await db.doc('adminAllowlist/coach@example.com').set({});
-      await db.doc('users/admin-uid').set({ email: 'coach@example.com', role: 'superadmin' });
-      await db.doc('users/viewer-uid').set({ email: 'parent@example.com', role: 'member' });
-      await db.doc('sectionAccess/exercises').set({ adminEmails: [] });
-      await db.doc('sectionAccess/trainings').set({ adminEmails: [] });
-      await db.doc('sectionAccess/guides').set({ adminEmails: [] });
+    await seedClub(env, {
+      id: 'club-a',
+      admins: ['coach@example.com'],
+      members: ['parent@example.com', 'guide@example.com'],
+      sections: { guides: ['guide@example.com'] },
     });
   });
 
@@ -22,18 +19,20 @@ describe('physicalTestGuide rules', () => {
     await env.cleanup();
   });
 
-  it('lets a global admin write the physical test guide, denies a non-admin write', async () => {
+  it('lets a club admin write the physical test guide, denies a member without the guides section', async () => {
     const env = await getTestEnv();
-    const adminDb = env.authenticatedContext('admin-uid', { email: 'coach@example.com' }).firestore();
-    await assertSucceeds(adminDb.doc('physicalTestGuide/config').set({ tests: [] }));
-
-    const viewerDb = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
-    await assertFails(viewerDb.doc('physicalTestGuide/config').set({ tests: [] }));
+    await assertSucceeds(dbAs(env, 'coach@example.com').doc('clubs/club-a/config/physicalTestGuide').set({ tests: [] }));
+    await assertFails(dbAs(env, 'parent@example.com').doc('clubs/club-a/config/physicalTestGuide').set({ tests: [] }));
   });
 
-  it('lets any signed-in user read the physical test guide', async () => {
+  it('lets a guides-section member write the physical test guide', async () => {
     const env = await getTestEnv();
-    const viewerDb = env.authenticatedContext('viewer-uid', { email: 'parent@example.com' }).firestore();
-    await assertSucceeds(viewerDb.doc('physicalTestGuide/config').get());
+    await assertSucceeds(dbAs(env, 'guide@example.com').doc('clubs/club-a/config/physicalTestGuide').set({ tests: [] }));
+  });
+
+  it('lets any active club member read the physical test guide, but not a non-member', async () => {
+    const env = await getTestEnv();
+    await assertSucceeds(dbAs(env, 'parent@example.com').doc('clubs/club-a/config/physicalTestGuide').get());
+    await assertFails(dbAs(env, 'outsider@example.com').doc('clubs/club-a/config/physicalTestGuide').get());
   });
 });

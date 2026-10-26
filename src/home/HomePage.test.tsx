@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authValue } from '../test/authValue';
+import { authValue, testClub } from '../test/authValue';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import type { Team } from '../types/team';
 import { finished, player } from '../awards/testMatches';
@@ -18,7 +18,7 @@ const useAuthMock = vi.fn();
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => useAuthMock() }));
 
 const team: Team = {
-  id: 't1', name: 'U17 Girls', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
+  id: 't1', name: 'U17 Girls', ageGroup: 'U17', season: '2026-27', description: '', notes: '',
   adminEmails: ['user@example.com'], developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' }, createdBy: '', createdAt: null,
 };
 const live: Match = {
@@ -52,10 +52,11 @@ describe('HomePage', () => {
     expect(resume).toHaveAttribute('href', '/teams/t1/matches/m1/scout');
   });
 
-  it('names the club from team data in the welcome band', async () => {
+  it('shows the club name from the active club', async () => {
+    useAuthMock.mockReturnValue(authValue({ club: testClub({ name: 'Volley Demo' }) }));
     renderHome();
     const band = screen.getByRole('region', { name: 'Welcome' });
-    expect(await within(band).findByText('Demo VC')).toBeInTheDocument();
+    expect(await within(band).findByText('Volley Demo')).toBeInTheDocument();
     expect(band.className).toContain('bg-navy');
   });
 

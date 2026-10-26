@@ -1,8 +1,6 @@
 import {
-  collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -15,6 +13,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
@@ -27,8 +26,8 @@ export async function createTraining(
   input: NewTrainingInput,
   creatorUid: string
 ): Promise<{ id: string; businessId: string }> {
-  const counterRef = doc(db, 'counters', 'trainings');
-  const trainingRef = doc(collection(db, 'trainings'));
+  const counterRef = clubDoc('counters', 'trainings');
+  const trainingRef = doc(clubCol('trainings'));
 
   const businessId = await runTransaction(db, async (tx) => {
     const counterSnap = await tx.get(counterRef);
@@ -56,14 +55,14 @@ export async function updateTraining(trainingId: string, updates: TrainingUpdate
   if (updates.exercises) {
     payload.exerciseIds = updates.exercises.map((e) => e.exerciseId);
   }
-  await updateDoc(doc(db, 'trainings', trainingId), payload);
+  await updateDoc(clubDoc('trainings', trainingId), payload);
 }
 
 export async function deleteTraining(trainingId: string): Promise<void> {
-  await deleteDoc(doc(db, 'trainings', trainingId));
+  await deleteDoc(clubDoc('trainings', trainingId));
 }
 
-export interface TrainingsPage {
+interface TrainingsPage {
   trainings: Training[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;
@@ -73,7 +72,7 @@ export async function listTrainings(
   afterDoc: QueryDocumentSnapshot | null = null,
   filters: { ageGroupTarget?: string } = {}
 ): Promise<TrainingsPage> {
-  const base = collection(db, 'trainings');
+  const base = clubCol('trainings');
   const constraints = [
     ...(filters.ageGroupTarget ? [where('ageGroupTarget', '==', filters.ageGroupTarget)] : []),
     orderBy('businessId'),
@@ -88,17 +87,11 @@ export async function listTrainings(
 
 export async function findTrainingByBusinessId(businessId: string): Promise<Training | null> {
   const snapshot = await getDocs(
-    query(collection(db, 'trainings'), where('businessId', '==', businessId), limit(1))
+    query(clubCol('trainings'), where('businessId', '==', businessId), limit(1))
   );
   if (snapshot.docs.length === 0) return null;
   const d = snapshot.docs[0];
   return { id: d.id, ...d.data() } as Training;
-}
-
-export async function getTraining(trainingId: string): Promise<Training | null> {
-  const snapshot = await getDoc(doc(db, 'trainings', trainingId));
-  if (!snapshot.exists()) return null;
-  return { id: snapshot.id, ...snapshot.data() } as Training;
 }
 
 /**
@@ -111,7 +104,7 @@ export async function resolveExerciseNames(names: string[]): Promise<Map<string,
   for (let i = 0; i < distinct.length; i += 30) {
     const chunk = distinct.slice(i, i + 30);
     const snap = await withBackoff(() =>
-      getDocs(query(collection(db, 'exercises'), where('name', 'in', chunk)))
+      getDocs(query(clubCol('exercises'), where('name', 'in', chunk)))
     );
     for (const d of snap.docs) {
       const name = d.data().name as string;
@@ -131,7 +124,7 @@ export async function bulkCreateTrainings(
 ): Promise<number> {
   if (inputs.length === 0) return 0;
   if (inputs.length > MAX_IMPORT) throw new Error(`bulk import is capped at ${MAX_IMPORT} entries per call`);
-  const counterRef = doc(db, 'counters', 'trainings');
+  const counterRef = clubDoc('counters', 'trainings');
 
   // The SDK already retries the transaction internally; this outer withBackoff
   // only adds a few paced retries if the whole transaction still surfaces a
@@ -143,7 +136,7 @@ export async function bulkCreateTrainings(
       const lastSequence = counterSnap.exists() ? (counterSnap.data().lastSequence as number) : 0;
 
       inputs.forEach((input, i) => {
-        const trainingRef = doc(collection(db, 'trainings'));
+        const trainingRef = doc(clubCol('trainings'));
         tx.set(trainingRef, {
           businessId: formatBusinessId(lastSequence + i + 1),
           ...optionalForCreate(input, ['suggestedPlayers', 'targets']),

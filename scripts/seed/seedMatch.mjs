@@ -14,6 +14,8 @@
 
 import { createRequire } from 'node:module';
 
+import { clubRoot, parseClubArg } from './clubArg.mjs';
+
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
@@ -24,6 +26,7 @@ if (!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(process.env.FIRESTORE_EMUL
 }
 admin.initializeApp({ projectId: 'volley-skills' });
 const db = admin.firestore();
+const root = clubRoot(db, parseClubArg(process.argv.slice(2)));
 
 // Deterministic pseudo-random so every seed looks the same. An explicit --team gets
 // its own sequence (from its id) so two seeded teams don't share identical results.
@@ -35,17 +38,17 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
 async function findTeam() {
   const i = process.argv.indexOf('--team');
   if (i > -1) {
-    const ref = db.collection('teams').doc(process.argv[i + 1]);
+    const ref = root.collection('teams').doc(process.argv[i + 1]);
     if (!(await ref.get()).exists) {
       console.error(`Team ${process.argv[i + 1]} not found.`);
       process.exit(1);
     }
     return ref;
   }
-  const seeded = await db.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get();
+  const seeded = await root.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get();
   if (!seeded.empty) return seeded.docs[0].ref;
   let best = null;
-  for (const t of (await db.collection('teams').limit(50).get()).docs) {
+  for (const t of (await root.collection('teams').limit(50).get()).docs) {
     const n = (await t.ref.collection('players').count().get()).data().count;
     if (n > 0 && (!best || n > best.n)) best = { ref: t.ref, n };
   }

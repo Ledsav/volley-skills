@@ -2,8 +2,14 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
-import { RequireAuth } from './auth/RequireAuth';
-import { RequireSuperAdmin } from './auth/RequireSuperAdmin';
+import { RequireAuth, RequireSignedIn } from './auth/RequireAuth';
+import { SignupInfoPage } from './signup/SignupInfoPage';
+import { SignupPage } from './signup/SignupPage';
+import { SignCompletePage } from './signup/SignCompletePage';
+import { RequireClubAdmin } from './auth/RequireClubAdmin';
+import { RequirePlatformAdmin } from './auth/RequirePlatformAdmin';
+import { MinimalShell } from './layout/MinimalShell';
+import { PlatformPage } from './platform/PlatformPage';
 import { RequireSection } from './auth/RequireSection';
 import { AppShell } from './layout/AppShell';
 import { LoginPage } from './auth/LoginPage';
@@ -15,8 +21,10 @@ import { GuidesPage } from './admin/GuidesPage';
 import { ExercisesPage } from './exercises/ExercisesPage';
 import { TrainingsPage } from './trainings/TrainingsPage';
 import { PrivacyPage } from './legal/PrivacyPage';
+import { LegalDocPage } from './legal/LegalDocPage';
 import { SettingsPage } from './settings/SettingsPage';
-import { AccessManagerPage } from './access/AccessManagerPage';
+import { MorePage } from './layout/MorePage';
+import { ClubAreaPage } from './clubs/area/ClubAreaPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
 import { NotFoundPage } from './layout/NotFoundPage';
 import { HomePage } from './home/HomePage';
@@ -48,11 +56,28 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/finish-sign-in" element={<FinishSignInPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/legal/:doc" element={<LegalDocPage />} />
             <Route path="/request-access" element={<RequestAccessPage />} />
+            <Route path="/signup" element={<SignupInfoPage />} />
+            <Route path="/signup/club" element={<RequireSignedIn><SignupPage /></RequireSignedIn>} />
+            <Route path="/sign/complete" element={<RequireSignedIn><SignCompletePage /></RequireSignedIn>} />
+            <Route
+              path="/platform"
+              element={
+                <RequirePlatformAdmin>
+                  <MinimalShell title="Platform">
+                    <PlatformPage />
+                  </MinimalShell>
+                </RequirePlatformAdmin>
+              }
+            />
+            {/* Leads moved to the operator's platform page. */}
+            <Route path="/admin/interest" element={<Navigate to="/platform?tab=leads" replace />} />
             <Route element={<AuthenticatedLayout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/teams" element={<TeamsListPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/more" element={<MorePage />} />
               <Route path="/teams/:teamId" element={<TeamPage />} />
               <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
               <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
@@ -91,15 +116,15 @@ export function App() {
                 }
               />
               <Route
-                path="/admin/access"
+                path="/club"
                 element={
-                  <RequireSuperAdmin>
-                    <AccessManagerPage />
-                  </RequireSuperAdmin>
+                  <RequireClubAdmin>
+                    <ClubAreaPage />
+                  </RequireClubAdmin>
                 }
               />
-              {/* Old link target: requests now live on the Access page. */}
-              <Route path="/admin/interest" element={<Navigate to="/admin/access" replace />} />
+              {/* Old link targets: access management moved into the club area. */}
+              <Route path="/admin/access" element={<Navigate to="/club?tab=people" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
             <Route

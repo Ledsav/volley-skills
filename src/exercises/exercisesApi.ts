@@ -1,6 +1,5 @@
 import {
   addDoc,
-  collection,
   doc,
   getCountFromServer,
   getDoc,
@@ -17,6 +16,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { saveDiagramSet } from '../diagrams/diagramsApi';
@@ -27,7 +27,7 @@ import type { ExerciseImportInput, ImportedDiagram } from './exercisesImport';
 const EXERCISES_PAGE_SIZE = 25;
 
 export async function createExercise(input: NewExerciseInput, creatorUid: string): Promise<string> {
-  const docRef = await addDoc(collection(db, 'exercises'), {
+  const docRef = await addDoc(clubCol('exercises'), {
     ...optionalForCreate(input, ['minPlayers']),
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
@@ -47,7 +47,7 @@ export async function bulkCreateExercises(
   const batch = writeBatch(db);
   for (const input of inputs) {
     const { diagrams, ...exercise } = input;
-    const ref = doc(collection(db, 'exercises'));
+    const ref = doc(clubCol('exercises'));
     batch.set(ref, { ...optionalForCreate(exercise, ['minPlayers']), createdBy: creatorUid, createdAt: serverTimestamp() });
     created.push({ ref, diagrams });
   }
@@ -79,22 +79,22 @@ export async function bulkCreateExercises(
 }
 
 export async function updateExercise(exerciseId: string, updates: ExerciseUpdate): Promise<void> {
-  await updateDoc(doc(db, 'exercises', exerciseId), optionalForUpdate(updates, ['minPlayers']));
+  await updateDoc(clubDoc('exercises', exerciseId), optionalForUpdate(updates, ['minPlayers']));
 }
 
 export async function deleteExercise(exerciseId: string): Promise<void> {
   // Cap the cascade read: an exercise holds at most 12 diagrams (SCENE_LIMITS),
   // so this is never truncating real data but guards against a runaway read.
   const diagrams = await getDocs(
-    query(collection(db, 'exercises', exerciseId, 'diagrams'), limit(12)),
+    query(clubCol('exercises', exerciseId, 'diagrams'), limit(12)),
   );
   const batch = writeBatch(db);
   diagrams.docs.forEach((d) => batch.delete(d.ref));
-  batch.delete(doc(db, 'exercises', exerciseId));
+  batch.delete(clubDoc('exercises', exerciseId));
   await withBackoff(() => batch.commit());
 }
 
-export interface ExercisesPage {
+interface ExercisesPage {
   exercises: Exercise[];
   lastDoc: QueryDocumentSnapshot | null;
   hasMore: boolean;
@@ -104,7 +104,7 @@ export async function listExercises(
   afterDoc: QueryDocumentSnapshot | null = null,
   category: ExerciseCategory | null = null
 ): Promise<ExercisesPage> {
-  const base = collection(db, 'exercises');
+  const base = clubCol('exercises');
   const constraints = [
     ...(category ? [where('category', '==', category)] : []),
     orderBy('name'),
@@ -132,21 +132,21 @@ export async function listExercisesInCategories(
     ...(afterDoc ? [startAfter(afterDoc)] : []),
     limit(EXERCISES_PAGE_SIZE),
   ];
-  const snapshot = await getDocs(query(collection(db, 'exercises'), ...constraints));
+  const snapshot = await getDocs(query(clubCol('exercises'), ...constraints));
   const exercises = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
 }
 
 export async function getExercisesByIds(ids: string[]): Promise<Exercise[]> {
-  const snaps = await Promise.all(ids.map((id) => getDoc(doc(db, 'exercises', id))));
+  const snaps = await Promise.all(ids.map((id) => getDoc(clubDoc('exercises', id))));
   return snaps
     .filter((snap) => snap.exists())
     .map((snap) => ({ id: snap.id, ...snap.data() }) as Exercise);
 }
 
 export async function countTrainingsUsingExercise(exerciseId: string): Promise<number> {
-  const q = query(collection(db, 'trainings'), where('exerciseIds', 'array-contains', exerciseId));
+  const q = query(clubCol('trainings'), where('exerciseIds', 'array-contains', exerciseId));
   const snapshot = await getCountFromServer(q);
   return snapshot.data().count;
 }

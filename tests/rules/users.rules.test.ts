@@ -1,8 +1,13 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
-import { getTestEnv } from './testEnv';
+import { dbAs, getTestEnv, seedClub, serverTimestamp } from './testEnv';
 
-describe('users and adminAllowlist rules', () => {
+// users/{uid} is a bare sign-in record: { email, createdAt }. Roles live on
+// club member docs, so there is no role here to escalate.
+const PARENT = 'parent@example.com';
+const UID = `uid-${PARENT}`;
+
+describe('users rules', () => {
   beforeEach(async () => {
     const env = await getTestEnv();
     await env.clearFirestore();
@@ -13,55 +18,62 @@ describe('users and adminAllowlist rules', () => {
     await env.cleanup();
   });
 
-  it('denies all reads and writes on adminAllowlist even when authenticated', async () => {
+  it('creates its own user doc with email and createdAt only', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
-    await assertFails(db.doc('adminAllowlist/coach@example.com').get());
-    await assertFails(db.doc('adminAllowlist/coach@example.com').set({}));
+    const db = dbAs(env, PARENT);
+    await assertSucceeds(db.doc(`users/${UID}`).set({ email: PARENT, createdAt: serverTimestamp() }));
+    await assertSucceeds(db.doc(`users/${UID}`).get());
   });
 
-  it('allows an allowlisted email to create their own user doc with role superadmin', async () => {
+  it('stores the lowercased email for a mixed-case sign-in', async () => {
+    const env = await getTestEnv();
+    const db = env.authenticatedContext('uid-mixed', { email: 'Mixed@Example.com', email_verified: true }).firestore();
+    await assertFails(db.doc('users/uid-mixed').set({ email: 'Mixed@Example.com', createdAt: serverTimestamp() }));
+    await assertSucceeds(db.doc('users/uid-mixed').set({ email: 'mixed@example.com', createdAt: serverTimestamp() }));
+  });
+
+  it('refuses a role field', async () => {
+    const env = await getTestEnv();
+    // Even a club admin cannot carry a role onto the platform-wide user doc.
+    await seedClub(env, { id: 'club-a', admins: [PARENT] });
+    const db = dbAs(env, PARENT);
+    for (const role of ['member', 'superadmin', 'admin']) {
+      await assertFails(db.doc(`users/${UID}`).set({ email: PARENT, createdAt: serverTimestamp(), role }));
+    }
+  });
+
+  it('refuses a missing field, another email or a client-chosen createdAt', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, PARENT);
+    await assertFails(db.doc(`users/${UID}`).set({ email: PARENT }));
+    await assertFails(db.doc(`users/${UID}`).set({ createdAt: serverTimestamp() }));
+    await assertFails(db.doc(`users/${UID}`).set({ email: 'other@example.com', createdAt: serverTimestamp() }));
+    await assertFails(db.doc(`users/${UID}`).set({ email: PARENT, createdAt: new Date('2020-01-01') }));
+  });
+
+  it('refuses another uid', async () => {
+    const env = await getTestEnv();
+    const db = dbAs(env, PARENT);
+    await assertFails(db.doc('users/other-uid').set({ email: PARENT, createdAt: serverTimestamp() }));
+    await assertFails(env.unauthenticatedContext().firestore().doc(`users/${UID}`).set({ email: PARENT, createdAt: serverTimestamp() }));
+  });
+
+  it('refuses updates', async () => {
     const env = await getTestEnv();
     await env.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc('adminAllowlist/coach@example.com').set({});
+      await context.firestore().doc(`users/${UID}`).set({ email: PARENT, createdAt: new Date() });
     });
-    const db = env.authenticatedContext('coach-uid', { email: 'coach@example.com' }).firestore();
-    await assertSucceeds(db.doc('users/coach-uid').set({ email: 'coach@example.com', role: 'superadmin' }));
+    const db = dbAs(env, PARENT);
+    await assertFails(db.doc(`users/${UID}`).update({ role: 'superadmin' }));
+    await assertFails(db.doc(`users/${UID}`).update({ email: PARENT, createdAt: serverTimestamp() }));
+    await assertFails(db.doc(`users/${UID}`).delete());
   });
 
-  it('denies a non-allowlisted email from creating a user doc with role superadmin', async () => {
-    const env = await getTestEnv();
-    const db = env.authenticatedContext('parent-uid', { email: 'parent@example.com' }).firestore();
-    await assertFails(db.doc('users/parent-uid').set({ email: 'parent@example.com', role: 'superadmin' }));
-  });
-
-  it('allows any authenticated user to create their own user doc with role member', async () => {
-    const env = await getTestEnv();
-    const db = env.authenticatedContext('parent-uid', { email: 'parent@example.com' }).firestore();
-    await assertSucceeds(db.doc('users/parent-uid').set({ email: 'parent@example.com', role: 'member' }));
-  });
-
-  it('denies a user from updating or deleting their own user doc', async () => {
+  it("denies reading another user's doc", async () => {
     const env = await getTestEnv();
     await env.withSecurityRulesDisabled(async (context) => {
-      await context
-        .firestore()
-        .doc('users/parent-uid')
-        .set({ email: 'parent@example.com', role: 'member' });
+      await context.firestore().doc('users/other-uid').set({ email: 'other@example.com', createdAt: new Date() });
     });
-
-    const db = env.authenticatedContext('parent-uid', { email: 'parent@example.com' }).firestore();
-    // This is the line that stops a member from self-promoting to superadmin.
-    await assertFails(db.doc('users/parent-uid').update({ role: 'superadmin' }));
-    await assertFails(db.doc('users/parent-uid').delete());
-  });
-
-  it("denies a user from reading another user's doc", async () => {
-    const env = await getTestEnv();
-    await env.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc('users/other-uid').set({ email: 'other@example.com', role: 'member' });
-    });
-    const db = env.authenticatedContext('parent-uid', { email: 'parent@example.com' }).firestore();
-    await assertFails(db.doc('users/other-uid').get());
+    await assertFails(dbAs(env, PARENT).doc('users/other-uid').get());
   });
 });

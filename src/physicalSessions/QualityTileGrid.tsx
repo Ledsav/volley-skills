@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER } from '../types/physicalTest';
+import { useClubFeatures } from '../clubs/useClubFeatures';
+import { PHYSICAL_TEST_LABELS, visibleTestTypes } from '../types/physicalTest';
 import type { PhysicalTestType } from '../types/physicalTest';
 import { buildEntryId, type TestingSessionEntry } from '../types/testingSession';
 import { SessionQualityPanel } from './SessionQualityPanel';
@@ -34,12 +35,13 @@ export function QualityTileGrid({
   entriesByPlayerAndType,
   recordedByUid,
 }: QualityTileGridProps) {
+  const { growthTestsEnabled } = useClubFeatures();
   const [openType, setOpenType] = useState<PhysicalTestType | null>(null);
 
   return (
     <div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {PHYSICAL_TEST_ORDER.map((testType) => {
+        {visibleTestTypes(growthTestsEnabled).map((testType) => {
           const entry = entriesByPlayerAndType.get(buildEntryId(playerId, testType));
           const status = statusLabel(entry);
           const done = status === 'Done';

@@ -11,7 +11,7 @@ export class DraftSaveError extends Error {
   }
 }
 
-export const DRAFT_DIAGRAM_TITLE = 'AI draft';
+const DRAFT_DIAGRAM_TITLE = 'AI draft';
 
 /**
  * Saves drafts in order and stops at the first failure. `created` maps draft key → exercise id and

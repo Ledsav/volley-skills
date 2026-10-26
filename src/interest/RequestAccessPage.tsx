@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { LegalLinks } from '../legal/LegalLinks';
 import { AuthShell } from '../auth/AuthShell';
 import { submitInterestSignup } from './interestApi';
 import type { InterestSignupRole } from '../types/interestSignup';
@@ -126,6 +127,7 @@ export function RequestAccessPage() {
           Already have access? Sign in
         </Link>
       </p>
+      <LegalLinks />
     </AuthShell>
   );
 }

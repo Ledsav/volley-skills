@@ -91,7 +91,7 @@ export function BulkImportDialog<TInput>({
           })
           .catch(() => {
             if (validationGen.current !== gen) return;
-            setParseError('could not validate the data — please try again');
+            setParseError('Could not validate the data. Please try again.');
           })
           .finally(() => {
             if (validationGen.current !== gen) return;
@@ -102,7 +102,7 @@ export function BulkImportDialog<TInput>({
       }
     } catch {
       if (validationGen.current === gen) {
-        setParseError('could not validate the data — please try again');
+        setParseError('Could not validate the data. Please try again.');
       }
     }
   }

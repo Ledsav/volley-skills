@@ -10,7 +10,7 @@ import {
   type Scene,
 } from '../types/diagram';
 
-export type ParseSceneResult = { ok: true; scene: Scene } | { ok: false; error: string };
+type ParseSceneResult = { ok: true; scene: Scene } | { ok: false; error: string };
 
 const COURTS: CourtPreset[] = ['full', 'half', 'blank'];
 const COLORS = new Set<string>(PALETTE_COLORS);

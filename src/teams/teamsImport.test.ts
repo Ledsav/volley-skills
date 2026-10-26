@@ -4,17 +4,23 @@ import { validateTeamRows } from './teamsImport';
 describe('validateTeamRows', () => {
   it('accepts a full row', () => {
     const result = validateTeamRows([
-      { name: 'U15 Girls', club: 'Demo VC', ageGroup: 'U15', season: '2026-27', description: 'girls' },
+      { name: 'U15 Girls', ageGroup: 'U15', season: '2026-27', description: 'girls' },
     ]);
     expect(result.errors).toEqual([]);
     expect(result.inputs).toEqual([
-      { name: 'U15 Girls', club: 'Demo VC', ageGroup: 'U15', season: '2026-27', description: 'girls' },
+      { name: 'U15 Girls', ageGroup: 'U15', season: '2026-27', description: 'girls' },
     ]);
+  });
+
+  it('ignores a club key', () => {
+    const result = validateTeamRows([{ name: 'X', club: 'Old VC' }]);
+    expect(result.errors).toEqual([]);
+    expect(result.inputs).toEqual([{ name: 'X', ageGroup: '', season: '', description: '' }]);
   });
 
   it('defaults every optional field to an empty string', () => {
     const result = validateTeamRows([{ name: 'Solo' }]);
-    expect(result.inputs).toEqual([{ name: 'Solo', club: '', ageGroup: '', season: '', description: '' }]);
+    expect(result.inputs).toEqual([{ name: 'Solo', ageGroup: '', season: '', description: '' }]);
   });
 
   it('trims the name and reports it when missing', () => {

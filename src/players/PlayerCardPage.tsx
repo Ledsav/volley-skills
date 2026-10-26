@@ -24,7 +24,8 @@ import { PlayerIdentityCard } from './PlayerIdentityCard';
 import { matchRatings, seasonStats, type SeasonStats } from './matchRating';
 import { PlayerMatchStatsSection } from './PlayerMatchStatsSection';
 import { PlayerKpiTiles } from './PlayerKpiTiles';
-import { deletePlayer, getPlayer, recordPlayerConsent, setPlayerLeftClub, updatePlayerDevelopmentPlan } from './playersApi';
+import { ageFromDob } from './age';
+import { deletePlayer, getPlayer, recordPlayerConsent, setPhotoConsent, setPlayerLeftClub, updatePlayerDevelopmentPlan } from './playersApi';
 import { deletionDueDate, todayIso } from './retention';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { PageSkeleton } from '../components/Skeleton';
@@ -72,7 +73,7 @@ export function PlayerCardPage() {
   usePageMeta({ title: 'Player' });
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const navigate = useNavigate();
-  const { firebaseUser, access } = useAuth();
+  const { appUser, access } = useAuth();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function PlayerCardPage() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [leftError, setLeftError] = useState<string | null>(null);
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
   const [editingSection, setEditingSection] = useState<'skills' | 'plan' | 'contact' | 'guardians' | null>(null);
@@ -99,10 +101,10 @@ export function PlayerCardPage() {
           return;
         }
         setPlayer(fetchedPlayer);
-        setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, firebaseUser?.email, access));
+        setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, appUser?.email, access));
       })
       .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this player.')));
-  }, [teamId, playerId, firebaseUser?.email, access]);
+  }, [teamId, playerId, appUser?.email, access]);
 
   const handleLatestLoaded = useCallback(
     (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),
@@ -159,13 +161,24 @@ export function PlayerCardPage() {
   }
 
   async function handleRecordConsent() {
-    if (!firebaseUser?.email) return;
+    if (!appUser?.email) return;
     setConsentError(null);
     try {
-      const consent = await recordPlayerConsent(teamId!, playerId!, firebaseUser.email);
+      const consent = await recordPlayerConsent(teamId!, playerId!, appUser.email);
       setPlayer({ ...player!, consent });
     } catch {
       setConsentError('Could not record consent. Please try again.');
+    }
+  }
+
+  async function handlePhotoConsent(given: boolean) {
+    if (!appUser?.email || !player) return;
+    setPhotoError(null);
+    try {
+      await setPhotoConsent(teamId!, playerId!, given, appUser.email);
+      setPlayer({ ...player, photoConsent: given, photoConsentAt: given ? new Date() : null, photoConsentBy: given ? appUser.email : null });
+    } catch {
+      setPhotoError('Could not update photo consent. Please try again.');
     }
   }
 
@@ -352,6 +365,29 @@ export function PlayerCardPage() {
                     {consentError && (
                       <p role="alert" className="mt-2 text-sm text-red">
                         {consentError}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {(ageFromDob(player.dob ?? '') ?? 0) >= 18 ? (
+                  <p className="mb-3 text-sm text-slate">Adult: photos follow the club's own agreement with the player</p>
+                ) : (
+                  <div className="mb-3 text-sm text-ink">
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={player.photoConsent === true}
+                        onChange={(e) => void handlePhotoConsent(e.target.checked)}
+                        className="mt-1"
+                      />
+                      Guardian consent to use photos in award cards
+                    </label>
+                    {player.photoConsent === true && player.photoConsentBy && (
+                      <p className="mt-1 text-caption text-slate">Recorded by {player.photoConsentBy}.</p>
+                    )}
+                    {photoError && (
+                      <p role="alert" className="mt-2 text-sm text-red">
+                        {photoError}
                       </p>
                     )}
                   </div>

@@ -1,0 +1,11 @@
+{
+  "terms": [
+    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First version of the Terms of Service." }
+  ],
+  "dpa": [
+    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First version of the Data Processing Agreement." }
+  ],
+  "subprocessors": [
+    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First list of sub-processors." }
+  ]
+}

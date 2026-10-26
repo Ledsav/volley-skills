@@ -4,6 +4,9 @@ dist
 .env
 .env.local
 serviceAccountKey.json
+serviceAccountKey.json.enc
+*.vsbackup
+*private-key*.pem
 .firebase
 firebase-debug*.log
 firestore-debug*.log

@@ -11,6 +11,8 @@
 
 import { createRequire } from 'node:module';
 
+import { clubRoot, parseClubArg } from './clubArg.mjs';
+
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
@@ -20,6 +22,7 @@ const CREATED_BY = 'seed-library';
 process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 admin.initializeApp({ projectId: PROJECT_ID });
 const db = admin.firestore();
+const root = clubRoot(db, parseClubArg(process.argv.slice(2)));
 
 // ── Scene helpers (court units: full court x∈[10,90], y∈[6,94], net at y=50;
 //    half court y∈[6,72] with the net along the top) ──────────────────────────
@@ -260,13 +263,13 @@ async function main() {
   console.log(`Target: EMULATOR at ${process.env.FIRESTORE_EMULATOR_HOST} (project "${PROJECT_ID}")`);
 
   // Clear previous demo docs (diagram subcollections first).
-  const old = await db.collection('exercises').where('createdBy', '==', CREATED_BY).get();
+  const old = await root.collection('exercises').where('createdBy', '==', CREATED_BY).get();
   for (const ex of old.docs) {
     const diags = await ex.ref.collection('diagrams').get();
     await Promise.all(diags.docs.map((d) => d.ref.delete()));
     await ex.ref.delete();
   }
-  const oldTrainings = await db.collection('trainings').where('createdBy', '==', CREATED_BY).get();
+  const oldTrainings = await root.collection('trainings').where('createdBy', '==', CREATED_BY).get();
   await Promise.all(oldTrainings.docs.map((d) => d.ref.delete()));
 
   const now = admin.firestore.FieldValue.serverTimestamp();
@@ -274,7 +277,7 @@ async function main() {
   let diagramCount = 0;
 
   for (const ex of EXERCISES) {
-    const ref = db.collection('exercises').doc(`demo-${ex.key}`);
+    const ref = root.collection('exercises').doc(`demo-${ex.key}`);
     batch.set(ref, {
       name: ex.name,
       description: ex.description,
@@ -300,7 +303,7 @@ async function main() {
       order: idx + 1,
       durationMinutes,
     }));
-    batch.set(db.collection('trainings').doc(`demo-training-${i + 1}`), {
+    batch.set(root.collection('trainings').doc(`demo-training-${i + 1}`), {
       businessId: `TR-${String(i + 1).padStart(4, '0')}`,
       name: t.name,
       description: t.description,
@@ -311,7 +314,7 @@ async function main() {
       createdAt: now,
     });
   });
-  batch.set(db.collection('counters').doc('trainings'), { lastSequence: TRAININGS.length });
+  batch.set(root.collection('counters').doc('trainings'), { lastSequence: TRAININGS.length });
 
   await batch.commit();
   console.log(

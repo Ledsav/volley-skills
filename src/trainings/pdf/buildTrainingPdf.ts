@@ -34,7 +34,7 @@ const MISSING_GLYPHS: [RegExp, string][] = [
   [/[←⇐]/g, '‹'],
 ];
 
-export function fontSafe(text: string): string {
+function fontSafe(text: string): string {
   return MISSING_GLYPHS.reduce((t, [re, to]) => t.replace(re, to), text);
 }
 
@@ -62,7 +62,7 @@ export interface TeamNotes {
   players: { name: string; position: string; level: Level | null; note: string }[];
 }
 
-export interface TrainingPdfInput {
+interface TrainingPdfInput {
   training: Training;
   teamNotes?: TeamNotes;
   exercisesById: Map<string, Exercise>;
@@ -71,7 +71,7 @@ export interface TrainingPdfInput {
   svgFor: (d: Diagram) => string;
 }
 
-export interface LineupEntry {
+interface LineupEntry {
   number: number;
   exerciseId: string;
   /** null => the exercise was deleted from the library. */

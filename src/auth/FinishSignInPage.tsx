@@ -6,6 +6,7 @@ import { auth } from '../firebase/config';
 import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
 import { takeEmailForSignIn } from './emailLinkStorage';
+import { isSignNonce } from '../legal/signDraft';
 
 export function FinishSignInPage() {
   usePageMeta({ title: 'Signing in' });
@@ -27,7 +28,10 @@ export function FinishSignInPage() {
       }
       try {
         await signInWithEmailLink(auth, email, window.location.href);
-        navigate(takeReturnTo(), { replace: true });
+        const returnTo = takeReturnTo();
+        // A signing link (sign-up or re-acceptance) carries its draft's nonce.
+        const sign = new URL(window.location.href).searchParams.get('sign');
+        navigate(isSignNonce(sign) ? `/sign/complete?sign=${sign}` : returnTo, { replace: true });
       } catch {
         setError('This sign-in link could not be used. Please request a new one.');
       }

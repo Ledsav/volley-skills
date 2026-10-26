@@ -17,7 +17,7 @@ vi.mock('../auth/AuthContext', async () => {
     useAuth: () =>
       authValue({
         firebaseUser: { uid: 'coach' } as never,
-        access: { isSuperAdmin: false, sections: { exercises: access.exercises, trainings: true, guides: false } },
+        access: { isClubAdmin: false, sections: { exercises: access.exercises, trainings: true, guides: false } },
       }),
   };
 });
@@ -81,6 +81,7 @@ describe('TrainingDraftDialog', () => {
     expect(within(steps()[0]).getByText('Library')).toBeInTheDocument();
     expect(within(steps()[1]).getByText('New')).toBeInTheDocument();
     expect(screen.getByText('65 / 90 min')).toBeInTheDocument();
+    expect(screen.getByText('AI draft')).toBeInTheDocument();
   });
 
   it('reorders, edits minutes and removes steps before saving', async () => {
@@ -164,7 +165,7 @@ describe('TrainingDraftDialog', () => {
     renderDialog();
     await generate();
     fireEvent.click(screen.getByRole('button', { name: 'View Short serve receive' }));
-    expect(await screen.findByText('AI draft')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('AI draft')).toHaveLength(2));
   });
 });
 

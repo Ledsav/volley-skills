@@ -88,7 +88,7 @@ export function orderSkills(args: {
  * candidates (it sums to PRIOR_WEIGHT). Each action of the skill in this match
  * counts 1, so this match's data dominates after a couple of touches.
  */
-export const PRIOR_WEIGHT = 2;
+const PRIOR_WEIGHT = 2;
 
 /** Who usually performs a skill when there is no data: earlier = more likely. */
 const PREDICT_POSITION_RANK: Record<Skill, PositionCategory[]> = {

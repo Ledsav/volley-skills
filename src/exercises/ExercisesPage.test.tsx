@@ -15,14 +15,16 @@ vi.mock('../aiDraft/ExerciseDraftDialog', () => ({
   ),
 }));
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+const clubOver = vi.hoisted(() => ({ aiEnabled: true }));
 vi.mock('../auth/AuthContext', async () => {
-  const { authValue, superAdminAccess } = await import('../test/authValue');
+  const { authValue, clubAdminAccess, testClub } = await import('../test/authValue');
   return {
     useAuth: () =>
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' as const },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+        club: testClub({ aiEnabled: clubOver.aiEnabled }),
       }),
   };
 });
@@ -39,7 +41,15 @@ const exercise = {
 describe('ExercisesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clubOver.aiEnabled = true;
     vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exercise], lastDoc: null, hasMore: false });
+  });
+
+  it('hides Draft with AI when the club has AI off', async () => {
+    clubOver.aiEnabled = false;
+    render(<ExercisesPage />);
+    await screen.findByText('Pepper');
+    expect(screen.queryByRole('button', { name: 'Draft with AI' })).not.toBeInTheDocument();
   });
 
   it('renders exercises from the first page', async () => {

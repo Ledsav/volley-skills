@@ -27,7 +27,7 @@ function dateBounds(all: Match[]): { from: string; to: string } {
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 'es'}`;
 
-export function TeamStatsTab({ team }: { team: Team }) {
+export default function TeamStatsTab({ team }: { team: Team }) {
   const [matches, setMatches] = useState<Match[] | null>(null);
   const [roster, setRoster] = useState<Player[]>([]);
   const [error, setError] = useState(false);
@@ -184,5 +184,3 @@ export function TeamStatsTab({ team }: { team: Team }) {
     </div>
   );
 }
-
-export default TeamStatsTab;

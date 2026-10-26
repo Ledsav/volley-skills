@@ -1,6 +1,6 @@
 export const MAX_IMPORT = 100;
 
-export type ParseResult = { ok: true; rows: unknown[] } | { ok: false; error: string };
+type ParseResult = { ok: true; rows: unknown[] } | { ok: false; error: string };
 
 export function parseJsonArray(text: string): ParseResult {
   if (text.trim() === '') {

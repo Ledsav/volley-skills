@@ -28,8 +28,8 @@ describe('awardsApi', () => {
 
   it('writes season and match awards with author + timestamp', async () => {
     await saveSeasonAwards('t1', input, 'u1');
-    expect(setDoc).toHaveBeenCalledWith({ path: 'teams/t1/awards/season' }, { ...input, updatedBy: 'u1', updatedAt: 'TS' });
+    expect(setDoc).toHaveBeenCalledWith({ path: 'clubs/club-1/teams/t1/awards/season' }, { ...input, updatedBy: 'u1', updatedAt: 'TS' });
     await saveMatchAwards('t1', 'm1', input, 'u1');
-    expect(updateDoc).toHaveBeenCalledWith({ path: 'teams/t1/matches/m1' }, { awards: { ...input, updatedBy: 'u1', updatedAt: 'TS' }, updatedAt: 'TS' });
+    expect(updateDoc).toHaveBeenCalledWith({ path: 'clubs/club-1/teams/t1/matches/m1' }, { awards: { ...input, updatedBy: 'u1', updatedAt: 'TS' }, updatedAt: 'TS' });
   });
 });

@@ -25,7 +25,7 @@ function formatRequestDate(value: unknown): string | null {
  * pending count go away once each one is reviewed. Deleting a handled request
  * honours the request page's promise that its data is not kept.
  */
-export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => void }) {
+export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => void }) {
   const [signups, setSignups] = useState<InterestSignup[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -98,7 +98,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
   }
 
   function grant(signup: InterestSignup) {
-    onGrant(signup.email);
+    onGrant?.(signup.email);
     void markReviewed(signup);
   }
 
@@ -143,10 +143,12 @@ export function AccessRequestsPanel({ onGrant }: { onGrant: (email: string) => v
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button variant="secondary" size="sm" className="flex-1 sm:flex-none"
-                    disabled={savingId === s.id} onClick={() => grant(s)}>
-                    Grant access
-                  </Button>
+                  {onGrant && (
+                    <Button variant="secondary" size="sm" className="flex-1 sm:flex-none"
+                      disabled={savingId === s.id} onClick={() => grant(s)}>
+                      Grant access
+                    </Button>
+                  )}
                   {!s.reviewed && (
                     <Button variant="ghost" size="sm" className="flex-1 sm:flex-none"
                       disabled={savingId === s.id} onClick={() => void markReviewed(s)}>

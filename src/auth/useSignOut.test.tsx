@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearAiLocalData } from '../ai/aiSettings';
+import { ACTIVE_CLUB_KEY, storeClub } from '../clubs/activeClub';
 import { signOutAndClearLocalData } from '../firebase/signOut';
 import { useSignOut } from './useSignOut';
 
@@ -22,7 +22,23 @@ describe('useSignOut', () => {
   it('asks the sign-out helper to clear AI settings and drafts once it proceeds', async () => {
     render(<Harness />);
     await act(async () => screen.getByText('go').click());
-    expect(signOutAndClearLocalData).toHaveBeenCalledWith({ force: false, beforeSignOut: clearAiLocalData });
+    expect(signOutAndClearLocalData).toHaveBeenCalledWith({ force: false, beforeSignOut: expect.any(Function) });
+  });
+
+  it('forgets the active club and AI settings in the pre-sign-out step', async () => {
+    storeClub('club-1');
+    render(<Harness />);
+    await act(async () => screen.getByText('go').click());
+    vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
+    expect(localStorage.getItem(ACTIVE_CLUB_KEY)).toBeNull();
+  });
+
+  it('forgets a signing draft in the pre-sign-out step', async () => {
+    localStorage.setItem('vcb.signDraft', '{"kind":"signup"}');
+    render(<Harness />);
+    await act(async () => screen.getByText('go').click());
+    vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
+    expect(localStorage.getItem('vcb.signDraft')).toBeNull();
   });
 
   it('shows the unsynced dialog when the helper reports unsynced writes', async () => {

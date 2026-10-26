@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { bulkCreateTeams, createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
 import { deleteCollection } from '../firebase/deleteCollection';
 
@@ -35,6 +35,10 @@ vi.mock('../firebase/config', () => ({ db: {} }));
 vi.mock('../firebase/deleteCollection');
 
 describe('teamsApi', () => {
+  // Retry tests run withBackoff's jittered sleeps on fake timers, so they
+  // stay instant and don't depend on its default delays.
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     mockAddDoc.mockReset();
     mockGetDocs.mockReset();
@@ -44,7 +48,7 @@ describe('teamsApi', () => {
     mockAddDoc.mockResolvedValue({ id: 'team-1' });
 
     const id = await createTeam(
-      { name: 'U17', club: 'Demo VC', ageGroup: 'U17', season: '2026-27', description: '' },
+      { name: 'U17', ageGroup: 'U17', season: '2026-27', description: '' },
       'creator-uid',
       'coach@example.com'
     );
@@ -66,8 +70,8 @@ describe('teamsApi', () => {
 
     const count = await bulkCreateTeams(
       [
-        { name: 'A', club: '', ageGroup: '', season: '', description: '' },
-        { name: 'B', club: '', ageGroup: '', season: '', description: '' },
+        { name: 'A', ageGroup: '', season: '', description: '' },
+        { name: 'B', ageGroup: '', season: '', description: '' },
       ],
       'coach-uid',
       'coach@example.com'
@@ -94,11 +98,14 @@ describe('teamsApi', () => {
       .mockResolvedValue(undefined);
     mockWriteBatch.mockReturnValue({ set: batchSet, commit: batchCommit });
 
-    const count = await bulkCreateTeams(
-      [{ name: 'A', club: '', ageGroup: '', season: '', description: '' }],
+    vi.useFakeTimers();
+    const pending = bulkCreateTeams(
+      [{ name: 'A', ageGroup: '', season: '', description: '' }],
       'coach-uid',
       'coach@example.com'
     );
+    await vi.runAllTimersAsync();
+    const count = await pending;
 
     expect(count).toBe(1);
     expect(batchCommit).toHaveBeenCalledTimes(2);
@@ -111,7 +118,7 @@ describe('teamsApi', () => {
 
     await expect(
       bulkCreateTeams(
-        Array.from({ length: 101 }, () => ({ name: 'x', club: '', ageGroup: '', season: '', description: '' })),
+        Array.from({ length: 101 }, () => ({ name: 'x', ageGroup: '', season: '', description: '' })),
         'coach-uid',
         'coach@example.com'
       )
@@ -163,14 +170,14 @@ describe('teamsApi', () => {
     await deleteTeam('team-1');
 
     expect(order).toEqual([
-      'teams/team-1/players',
-      'teams/team-1/players/child-1/physicalTests',
-      'teams/team-1/matches',
-      'teams/team-1/matches/child-1/events',
-      'teams/team-1/testingSessions',
-      'teams/team-1/testingSessions/child-1/entries',
-      'teams/team-1/calendar',
-      'teams/team-1/scoutProfile',
+      'clubs/club-1/teams/team-1/players',
+      'clubs/club-1/teams/team-1/players/child-1/physicalTests',
+      'clubs/club-1/teams/team-1/matches',
+      'clubs/club-1/teams/team-1/matches/child-1/events',
+      'clubs/club-1/teams/team-1/testingSessions',
+      'clubs/club-1/teams/team-1/testingSessions/child-1/entries',
+      'clubs/club-1/teams/team-1/calendar',
+      'clubs/club-1/teams/team-1/scoutProfile',
       'team-doc',
     ]);
   });

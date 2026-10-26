@@ -6,17 +6,20 @@
 // Targets
 //   --emulator   (default) write to the local Firestore emulator. No credentials.
 //                Requires the emulator to be running: `npm run emulator`.
-//   --prod       write to the live project. Requires ./serviceAccountKey.json
+//   --prod       write to the live project. Requires the service-account key (scripts/ops/README.md)
 //                (gitignored), plus --admin <email> and --yes. Refuses to run if
-//                the `teams` collection already has documents unless --force.
+//                `clubs/<club>` already exists unless --force.
 //
 // Options
 //   --file <path>    workbook path (default: reference/VCB_U17_PlayerCards_2026-27.xlsx)
-//   --admin <email>  email placed in the seeded team's adminEmails so someone can
-//                    sign in and see the data. Emulator default: coach@example.com
+//   --admin <email>  club admin + owner (and the team's adminEmails) so someone can
+//                    sign in and see the data; also made a platform admin. Emulator default: coach@example.com
 //                    (or $SEED_ADMIN_EMAIL). Required for --prod.
-//   --reset          (emulator only) delete the seeded team + skillGuide/config first.
-//   --force          (prod only) allow seeding even though `teams` is non-empty.
+//   --club <id>      club the data goes under (default: demo; REQUIRED with --prod) -> clubs/<id>/...
+//   --reset          (emulator only) delete the whole club (clubs/<club>/**) first.
+//   --force          (prod only) allow seeding even though top-level `teams` is non-empty
+//                    (pre-migration) or `clubs/<club>` exists. On an existing club only the
+//                    team data is added (config/skillGuide only if missing): the club, member and sectionAccess docs are untouched.
 //   --yes            (prod only) skip the interactive confirmation.
 //
 // Logs counts only — never player/guardian field values.
@@ -24,22 +27,25 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { parseWorkbook, SKILL_KEYS } from './parseWorkbook.mjs';
+import { assertProdClub, clubRoot, parseClubArg, writeClub } from './clubArg.mjs';
+import { loadServiceAccount } from '../lib/serviceAccount.mjs';
+import { askTyped } from '../lib/prompt.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
 const PROJECT_ID = 'volley-skills';
 const DEFAULT_FILE = 'reference/VCB_U17_PlayerCards_2026-27.xlsx';
-const KEY_PATH = 'serviceAccountKey.json';
 
 function parseArgs(argv) {
-  const args = { target: 'emulator', file: DEFAULT_FILE, admin: '', reset: false, force: false, yes: false };
+  const args = { target: 'emulator', file: DEFAULT_FILE, admin: '', club: 'demo', reset: false, force: false, yes: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--prod') args.target = 'prod';
     else if (a === '--emulator') args.target = 'emulator';
     else if (a === '--file') args.file = argv[++i];
     else if (a === '--admin') args.admin = argv[++i];
+    else if (a === '--club') args.club = parseClubArg(['--club', argv[++i]]);
     else if (a === '--reset') args.reset = true;
     else if (a === '--force') args.force = true;
     else if (a === '--yes' || a === '-y') args.yes = true;
@@ -66,18 +72,21 @@ function computeLevel(avg) {
 }
 
 async function confirm(question) {
-  process.stdout.write(question);
-  return new Promise((resolve) => {
-    process.stdin.setEncoding('utf8');
-    process.stdin.once('data', (d) => {
-      process.stdin.pause();
-      resolve(d.trim());
-    });
-  });
+  try {
+    return await askTyped(question);
+  } catch {
+    return '';
+  }
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  try {
+    assertProdClub(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 
   if (!existsSync(args.file)) {
     console.error(`Workbook not found: ${args.file}`);
@@ -87,15 +96,11 @@ async function main() {
 
   // --- Firebase Admin init -------------------------------------------------
   if (args.target === 'prod') {
-    if (!existsSync(KEY_PATH)) {
-      console.error(`--prod requires ${KEY_PATH} (gitignored service-account key). See scripts/seed/README.md.`);
-      process.exit(1);
-    }
     if (!args.admin) {
       console.error('--prod requires --admin <email> (the team admin who will sign in).');
       process.exit(1);
     }
-    const key = JSON.parse(readFileSync(KEY_PATH, 'utf8'));
+    const key = await loadServiceAccount();
     admin.initializeApp({ credential: admin.credential.cert(key), projectId: key.project_id });
     console.log(`Target: PROD project "${key.project_id}"`);
   } else {
@@ -105,8 +110,10 @@ async function main() {
     console.log(`Target: EMULATOR at ${process.env.FIRESTORE_EMULATOR_HOST} (project "${PROJECT_ID}")`);
   }
 
+  args.admin = args.admin.trim().toLowerCase();
   const db = admin.firestore();
   const { FieldValue } = admin.firestore;
+  const root = clubRoot(db, args.club);
 
   // --- Parse -------------------------------------------------------------
   const { team, skillGuide, players } = await parseWorkbook(args.file);
@@ -133,20 +140,28 @@ async function main() {
   console.log(`Applied skill snapshot to ${overlaid}/${players.length} players.`);
 
   // --- Guards ----------------------------------------------------------
-  const teamsSnap = await db.collection('teams').limit(1).get();
-  if (!teamsSnap.empty) {
+  if (args.target === 'prod' && !args.force) {
+    // Prod is not migrated to clubs yet: refuse while the old top-level model has data.
+    const legacy = await db.collection('teams').limit(1).get();
+    if (!legacy.empty) {
+      console.error('Top-level `teams` already has documents (prod not migrated yet). Refusing to seed prod without --force.');
+      process.exit(1);
+    }
+  }
+  const clubSnap = await root.get();
+  if (clubSnap.exists) {
     if (args.target === 'prod' && !args.force) {
-      console.error('`teams` already has documents. Refusing to seed prod without --force.');
+      console.error(`clubs/${args.club} already exists. Refusing to seed prod without --force.`);
       process.exit(1);
     }
     if (args.target === 'emulator' && !args.reset) {
-      console.warn('Note: `teams` already has documents in the emulator. Adding another team. Use --reset to clear the previous seed.');
+      console.warn(`Note: clubs/${args.club} already exists in the emulator. Adding another team. Use --reset to clear the previous seed.`);
     }
   }
 
   if (args.target === 'prod' && !args.yes) {
     const answer = await confirm(
-      `\nAbout to write 1 team + skillGuide/config + ${players.length} players to PROD, admin = ${args.admin}.\nType "seed" to proceed: `
+      `\nAbout to write club ${args.club} + 1 team + config/skillGuide + ${players.length} players to PROD, admin = ${args.admin}.\nType "seed" to proceed: `
     );
     if (answer !== 'seed') {
       console.log('Aborted.');
@@ -156,30 +171,37 @@ async function main() {
 
   // --- Optional reset (emulator) ------------------------------------------
   if (args.reset && args.target === 'emulator') {
-    const existing = await db.collection('teams').where('createdBy', '==', 'seed-script').get();
-    for (const teamDoc of existing.docs) {
-      const kids = await teamDoc.ref.collection('players').get();
-      const batch = db.batch();
-      kids.docs.forEach((d) => batch.delete(d.ref));
-      batch.delete(teamDoc.ref);
-      await batch.commit();
-    }
-    await db.doc('skillGuide/config').delete().catch(() => {});
-    const allow = await db.collection('adminAllowlist').where('addedBy', '==', 'seed-script').get();
-    await Promise.all(allow.docs.map((d) => d.ref.delete()));
-    await Promise.all(
-      ['exercises', 'trainings', 'guides'].map((section) => db.doc(`sectionAccess/${section}`).delete().catch(() => {}))
-    );
-    console.log(
-      `Reset: removed ${existing.size} previously-seeded team(s), skillGuide/config, ${allow.size} adminAllowlist entr${allow.size === 1 ? 'y' : 'ies'}, sectionAccess/{exercises,trainings,guides}.`
-    );
+    await db.recursiveDelete(root);
+    console.log(`Reset: removed clubs/${args.club} and everything under it.`);
   }
 
   // --- Write ---------------------------------------------------------
   const now = FieldValue.serverTimestamp();
+  const PRESIDENT = 'president@example.com';
+
+  // Club doc + members + sectionAccess (admin owns the club and every section).
+  // --force on an existing prod club: never rewrite the club, member or sectionAccess docs.
+  const keepClub = args.target === 'prod' && clubSnap.exists;
+  if (!keepClub) {
+    await writeClub(db, {
+      id: args.club,
+      name: args.club === 'demo' ? 'Volley Demo' : args.club,
+      status: 'active',
+      // Emulator: the demo club is accepted by a seeded officer (not the operator, who is the
+      // demo admin), so the operator sees neither the review screen nor the notice (P15).
+      admins: args.target === 'emulator' ? [args.admin, PRESIDENT] : [args.admin],
+      ...(args.target === 'emulator' ? { ownerEmail: PRESIDENT, accepted: PRESIDENT } : {}),
+    });
+  }
   const batch = db.batch();
 
-  const teamRef = db.collection('teams').doc();
+  // platformAdmins gates the operator console; seeding it keeps the admin able
+  // to open /platform locally. Emulator only: in prod the operator gets it via migration.
+  if (args.target === 'emulator') {
+    batch.set(db.doc(`platformAdmins/${args.admin}`), { addedBy: 'seed-script', addedAt: now });
+  }
+
+  const teamRef = root.collection('teams').doc();
   batch.set(teamRef, {
     ...team,
     adminEmails: [args.admin],
@@ -187,28 +209,15 @@ async function main() {
     createdAt: now,
   });
 
-  // adminAllowlist gates who may become a global admin (spec §6). Without an
-  // entry, the admin email would resolve to role 'viewer' on first sign-in and
-  // couldn't create teams or edit the guide. In prod this doc is normally added
-  // via the Firebase console; seeding it here keeps the imported team usable.
-  batch.set(db.doc(`adminAllowlist/${args.admin}`), { addedBy: 'seed-script', addedAt: now });
-
-  // sectionAccess/{exercises,trainings,guides} grants club-global admin access
-  // (spec: per-team + per-section grants). Seeding the admin into all three
-  // keeps the imported team's exercises/trainings/guides editable.
-  for (const section of ['exercises', 'trainings', 'guides']) {
-    batch.set(db.doc(`sectionAccess/${section}`), {
-      adminEmails: [args.admin],
-      addedBy: 'seed-script',
-      addedAt: now,
-    }, { merge: true });
+  // On an existing prod club keep its (possibly edited) guide: write only if missing.
+  const guideRef = root.collection('config').doc('skillGuide');
+  if (!keepClub || !(await guideRef.get()).exists) {
+    batch.set(guideRef, {
+      skills: skillGuide,
+      updatedBy: 'seed-script',
+      updatedAt: now,
+    });
   }
-
-  batch.set(db.doc('skillGuide/config'), {
-    skills: skillGuide,
-    updatedBy: 'seed-script',
-    updatedAt: now,
-  });
 
   for (const p of players) {
     const avgScore = computeAvgScore(p.skills);
@@ -243,8 +252,8 @@ async function main() {
   await batch.commit();
 
   console.log(
-    `\nDone. Wrote team ${teamRef.id}, skillGuide/config, adminAllowlist/${args.admin}, ` +
-      `sectionAccess/{exercises,trainings,guides}, and ${players.length} players.` +
+    `\nDone. ${keepClub ? `Kept existing clubs/${args.club} untouched; added` : `Wrote clubs/${args.club} (+ members, sectionAccess/{exercises,trainings,guides})${args.target === 'emulator' ? `, platformAdmins/${args.admin}` : ''},`} ` +
+      `team ${teamRef.id}, config/skillGuide and ${players.length} players.` +
       `\nSign in as ${args.admin} to manage this team.`
   );
   process.exit(0);

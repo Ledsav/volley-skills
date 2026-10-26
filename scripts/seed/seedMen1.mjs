@@ -6,12 +6,13 @@
 //   npm run seed:men1                       # against a running emulator (127.0.0.1:8080)
 //   node scripts/seed/seedMen1.mjs --admin you@example.com
 //
-// Admin, club and season come from the team seed.mjs created (no club name is
-// hardcoded); --admin overrides the admin. Emulator-only. Rerunnable: the team
+// Admin and season come from the team seed.mjs created in the club (--club, default
+// demo); --admin overrides the admin. Emulator-only. Rerunnable: the team
 // has a fixed id and its players are replaced.
 
 import { createRequire } from 'node:module';
 import { MEN1_TEAM, men1Players } from './men1Roster.mjs';
+import { clubRoot, parseClubArg } from './clubArg.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -23,22 +24,23 @@ if (!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(process.env.FIRESTORE_EMUL
 }
 admin.initializeApp({ projectId: 'volley-skills' });
 const db = admin.firestore();
+const club = parseClubArg(process.argv.slice(2));
+const root = clubRoot(db, club);
 const { FieldValue } = admin.firestore;
 
 const TEAM_ID = 'seed-men-1';
 
 const i = process.argv.indexOf('--admin');
-const seeded = (await db.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get()).docs[0]?.data();
-const adminEmail = (i > -1 ? process.argv[i + 1] : null) ?? seeded?.adminEmails?.[0] ?? process.env.SEED_ADMIN_EMAIL ?? 'coach@example.com';
+const seeded = (await root.collection('teams').where('createdBy', '==', 'seed-script').limit(1).get()).docs[0]?.data();
+const adminEmail = ((i > -1 ? process.argv[i + 1] : null) ?? seeded?.adminEmails?.[0] ?? process.env.SEED_ADMIN_EMAIL ?? 'coach@example.com').toLowerCase();
 const team = {
   ...MEN1_TEAM,
-  club: seeded?.club ?? '',
   season: seeded?.season ?? '2026-27',
   adminEmails: [adminEmail],
   createdBy: 'seed-script-men1', // not 'seed-script': seedMatch.mjs targets that team
 };
 
-const teamRef = db.collection('teams').doc(TEAM_ID);
+const teamRef = root.collection('teams').doc(TEAM_ID);
 const old = await teamRef.collection('players').get();
 const now = FieldValue.serverTimestamp();
 const batch = db.batch();

@@ -11,7 +11,7 @@
  */
 const RETRYABLE_CODES = new Set(['resource-exhausted', 'unavailable']);
 
-export interface BackoffOptions {
+interface BackoffOptions {
   /** Number of retries after the initial attempt. */
   retries?: number;
   /** Base delay for the first retry, in ms. */

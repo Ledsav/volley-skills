@@ -1,14 +1,20 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShell } from './AppShell';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { Timestamp } from 'firebase/firestore';
+import { authValue, clubAdminAccess, testClub } from '../test/authValue';
+import { useNotify } from '../components/Notice';
 
 const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../auth/AuthContext');
-vi.mock('../interest/interestApi', () => ({ countUnreviewedInterestSignups: vi.fn().mockResolvedValue(0) }));
+vi.mock('../components/Notice');
+const unreviewed = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../interest/interestApi', () => ({
+  countUnreviewedInterestSignups: () => Promise.resolve(unreviewed.count),
+}));
 
 function renderShell() {
   return render(
@@ -23,59 +29,65 @@ const openAccountMenu = () => fireEvent.click(screen.getByRole('button', { name:
 describe('AppShell', () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: superAdminAccess, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
+      authValue({ access: clubAdminAccess, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
     );
   });
 
-  it('shows every nav destination in both shells for a super-admin', () => {
-    renderShell();
-    for (const label of ['Home', 'Teams', 'Exercises', 'Trainings']) {
-      expect(screen.getAllByText(label)).toHaveLength(2);
-    }
-    // Admin destinations live in the sidebar only; phones reach them via the account menu.
-    for (const label of ['Guides', 'Access']) {
-      expect(screen.getAllByText(label)).toHaveLength(1);
-    }
+  const aside = (c: HTMLElement) => c.querySelector('aside') as HTMLElement;
+  const group = (c: HTMLElement, name: string) => within(aside(c)).getByRole('group', { name });
+
+  it('lists every destination once in the sidebar, grouped by who it is for', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
+    const { container } = renderShell();
+    const nav = within(aside(container)).getByRole('navigation', { name: 'Main' });
+    const labels = within(nav).getAllByRole('link').map((l) => l.textContent?.replace(/\d+$/, '').trim());
+    expect(labels).toEqual(['Home', 'Teams', 'Trainings', 'Exercises', 'Guides', 'Members & settings', 'Clubs & sign-ups']);
+    expect(within(group(container, 'Coaching')).getAllByRole('link').map((l) => l.textContent)).toEqual(['Teams', 'Trainings', 'Exercises']);
+    expect(within(group(container, 'Club')).getByRole('link', { name: 'Members & settings' })).toHaveAttribute('href', '/club');
+    expect(within(group(container, 'Platform')).getByRole('link', { name: /Clubs & sign-ups/ })).toHaveAttribute('href', '/platform');
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });
 
-  it('keeps account actions in one account menu in the sidebar, showing who is signed in', () => {
+  it('shows the platform group only to platform admins, carrying the pending sign-ups count', async () => {
+    const first = renderShell();
+    expect(within(aside(first.container)).queryByRole('group', { name: 'Platform' })).not.toBeInTheDocument();
+    cleanup();
+    unreviewed.count = 4;
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
     const { container } = renderShell();
-    const aside = container.querySelector('aside') as HTMLElement;
-    // No loose Settings / theme / sign-out rows in the sidebar any more.
-    expect(within(aside).queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
-    expect(within(aside).queryByRole('button', { name: /mode$/ })).not.toBeInTheDocument();
-    const account = within(aside).getByRole('button', { name: 'Account: coach@example.com' });
+    const link = within(group(container, 'Platform')).getByRole('link', { name: /Clubs & sign-ups/ });
+    await waitFor(() => expect(link).toHaveTextContent('4'));
+    unreviewed.count = 0;
+  });
+
+  it('keeps only personal things in the account menu, never a page that is in the sidebar', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ access: clubAdminAccess, isPlatformAdmin: true, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
+    );
+    const { container } = renderShell();
+    const account = within(aside(container)).getByRole('button', { name: 'Account: coach@example.com' });
     expect(account).toHaveTextContent('coach@example.com');
     fireEvent.click(account);
     const menu = screen.getByRole('menu', { name: 'Account: coach@example.com' });
-    for (const item of ['Settings', 'Privacy policy', 'Sign out']) {
-      expect(within(menu).getByRole('menuitem', { name: item })).toBeInTheDocument();
-    }
-    expect(within(menu).getByRole('menuitemcheckbox', { name: 'Dark mode' })).toBeInTheDocument();
-    // Phones keep Settings in the bottom bar.
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(within(menu).getAllByRole('menuitem').map((i) => i.textContent?.trim())).toEqual(['Settings', 'Terms & privacy', 'Sign out']);
   });
 
-  it('groups the admin-only destinations under an Admin label for a super-admin', () => {
-    const { container } = renderShell();
-    const aside = container.querySelector('aside') as HTMLElement;
-    const admin = within(aside).getByRole('group', { name: 'Admin' });
-    expect(within(admin).getByRole('link', { name: 'Guides' })).toBeInTheDocument();
-    expect(within(admin).getByRole('link', { name: /Access/ })).toBeInTheDocument();
-    expect(within(admin).queryByRole('link', { name: 'Teams' })).not.toBeInTheDocument();
-  });
-
-  it('shows only granted sections for a member', () => {
+  it('shows only granted sections for a member, and no club or platform group', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: { isSuperAdmin: false, sections: { exercises: true, trainings: false, guides: false } } })
+      authValue({ access: { isClubAdmin: false, sections: { exercises: true, trainings: false, guides: false } } })
     );
-    renderShell();
+    const { container } = renderShell();
     expect(screen.getAllByText('Teams')).toHaveLength(2);
     expect(screen.getAllByText('Exercises')).toHaveLength(2);
     expect(screen.queryByText('Trainings')).not.toBeInTheDocument();
+    expect(within(aside(container)).queryByRole('group', { name: 'Club' })).not.toBeInTheDocument();
     expect(screen.queryByText('Guides')).not.toBeInTheDocument();
-    expect(screen.queryByText('Access')).not.toBeInTheDocument();
+  });
+
+  it('shows the active club under the logo', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ name: 'Volley Club Belair' }) }));
+    const { container } = renderShell();
+    expect(within(aside(container)).getByText('Volley Club Belair')).toBeInTheDocument();
   });
 
   it('signs out and clears local data when a sign-out button is clicked', async () => {
@@ -98,12 +110,13 @@ describe('AppShell', () => {
     await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true, beforeSignOut: expect.any(Function) }));
   });
 
-  it('shows text labels in the phone bottom bar, not icons alone', () => {
+  it('shows text labels in the phone bottom bar, with More for everything else', () => {
     const { container } = renderShell();
     const bottomBar = container.querySelector('nav.fixed') as HTMLElement;
-    for (const label of ['Home', 'Teams', 'Exercises', 'Trainings', 'Settings']) {
+    for (const label of ['Home', 'Teams', 'Trainings', 'Exercises', 'More']) {
       expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
     }
+    expect(within(bottomBar).getByRole('link', { name: 'More' })).toHaveAttribute('href', '/more');
   });
 
   it('caps page content at one shared width so wide screens keep readable lines', () => {
@@ -123,22 +136,83 @@ describe('AppShell', () => {
     expect(labels.indexOf('Home')).toBeLessThan(labels.indexOf('Teams'));
   });
 
-  it('caps the phone bottom bar at 5 items for a superadmin', () => {
+  it('caps the phone bottom bar at 5 items for a club admin, with no club pages on it', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: superAdminAccess, appUser: { uid: 'u-1', email: 'user@example.com', role: 'superadmin' } })
+      authValue({ access: clubAdminAccess, isPlatformAdmin: true, appUser: { uid: 'u-1', email: 'user@example.com' } })
     );
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
     expect(within(bottom).getAllByRole('link')).toHaveLength(5);
     expect(within(bottom).queryByText('Guides')).toBeNull();
-    expect(within(bottom).queryByText('Access')).toBeNull();
+    expect(within(bottom).queryByText('Members & settings')).toBeNull();
   });
 
-  it('offers Guides and Access in the account menu for a superadmin', () => {
-    renderShell();
-    openAccountMenu();
-    const menu = screen.getByRole('menu', { name: /^Account/ });
-    expect(within(menu).getByRole('menuitem', { name: 'Guides' })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Access' })).toBeInTheDocument();
+  describe('club state', () => {
+    const DAY = 86_400_000;
+    const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    const effective = new Date(Date.now() + 10 * DAY);
+    const retrieval = new Date(Date.now() + 40 * DAY);
+    const ending = () =>
+      testClub({
+        status: 'terminating',
+        termination: {
+          requestedAt: null,
+          requestedBy: null,
+          effectiveAt: Timestamp.fromDate(effective),
+          retrievalEndsAt: Timestamp.fromDate(retrieval),
+        },
+      });
+    const two = [
+      { clubId: 'club-1', role: 'member' as const, clubName: 'Test Club', status: 'active' as const },
+      { clubId: 'club-2', role: 'member' as const, clubName: 'Other Club', status: 'active' as const },
+    ];
+
+    it('shows the contract-ending banner while terminating', () => {
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: ending(), role: 'admin', access: clubAdminAccess }));
+      const { unmount } = renderShell();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `Your contract ends on ${fmt(effective)}. Export your data before ${fmt(retrieval)}.`
+      );
+      unmount();
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: ending(), role: 'member' }));
+      renderShell();
+      expect(screen.getByRole('status')).toHaveTextContent(`Your club's contract ends on ${fmt(effective)}.`);
+    });
+
+    const openClubMenu = () => fireEvent.click(screen.getByRole('button', { name: /^Club:/ }));
+
+    it('switches club from the club name under the logo, only when there is more than one', () => {
+      const switchClub = vi.fn();
+      vi.mocked(useAuth).mockReturnValue(authValue({ memberships: two, switchClub, club: testClub({ name: 'Test Club' }) }));
+      const { unmount } = renderShell();
+      openClubMenu();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Switch to Other Club' }));
+      expect(switchClub).toHaveBeenCalledWith('club-2');
+      unmount();
+      vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ name: 'Test Club' }) }));
+      renderShell();
+      expect(screen.queryByRole('button', { name: /^Club:/ })).not.toBeInTheDocument();
+    });
+
+    it('does not offer a switch to a deleted club', () => {
+      const memberships = [...two, { clubId: 'club-3', role: 'member' as const, clubName: 'Gone Club', status: 'deleted' as const }];
+      vi.mocked(useAuth).mockReturnValue(authValue({ memberships: [memberships[0], memberships[2]], club: testClub({ name: 'Test Club' }) }));
+      renderShell();
+      expect(screen.queryByRole('button', { name: /^Club:/ })).not.toBeInTheDocument();
+    });
+
+    it('notifies once when the stored club was dropped', () => {
+      const notify = vi.fn();
+      vi.mocked(useNotify).mockReturnValue(notify);
+      vi.mocked(useAuth).mockReturnValue(authValue({ droppedClub: true }));
+      const { rerender } = renderShell();
+      rerender(
+        <MemoryRouter initialEntries={['/teams']}>
+          <AppShell><p>Page content</p></AppShell>
+        </MemoryRouter>
+      );
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledWith('You no longer have access to your previous club.');
+    });
   });
 });

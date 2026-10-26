@@ -76,6 +76,15 @@ describe('DevelopmentPlanEditor', () => {
     expect(screen.queryByText(/—\s*$/)).not.toBeInTheDocument();
   });
 
+  it('shows the health hint under coach comments and general notes, linked to the fields', () => {
+    render(<PlanHarness plan={emptyPlan} />);
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('+ Add short-term objective'));
+    fireEvent.click(screen.getByText('+ Add season objective'));
+    expect(screen.getAllByText("Don't record health, injury or medical information.")).toHaveLength(3);
+    expect(screen.getAllByLabelText('Coach comment')[0]).toHaveAccessibleDescription("Don't record health, injury or medical information.");
+  });
+
   it('adds a short-term objective and saves the whole plan', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<PlanHarness plan={emptyPlan} onSave={onSave} />);

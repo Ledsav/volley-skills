@@ -10,7 +10,7 @@ later. Tick items as they land.
 
 Status legend: `[ ]` todo · `[x]` done · `[~]` in progress / partial
 
-Last reviewed: 2026-10-14
+Last reviewed: 2026-10-26
 
 ## Decisions locked (2026-09-09)
 
@@ -52,20 +52,33 @@ Last reviewed: 2026-10-14
 - [x] **Deploy Firestore rules + indexes to the live project** — done once from
       the CLI on 2026-09-09; `deploy.yml` keeps them in sync on every merge.
 - [x] **Decide: one project or two** — one (`volley-skills`). See decisions above.
-- [ ] **Prod seed (one-time)** — `node scripts/seed/seed.mjs --prod --admin
-      alberto.valdes.rey.official@gmail.com`. Needs a gitignored
-      `serviceAccountKey.json` at the repo root (console → Project Settings →
-      Service Accounts → Generate new private key). Seeds one team,
-      `skillGuide/config`, `adminAllowlist/<email>`, and the 20 player docs.
-- [ ] **Run `node scripts/migrate/2026-09-11-section-access.mjs --prod` BEFORE
-      deploying the new `firestore.rules`** (creates `sectionAccess/*`,
-      back-fills existing admins, relabels `users.role`). Order matters: run
-      the migration script first — it uses the Admin SDK and works fine under
-      the *old* rules — THEN deploy the new `firestore.rules`, THEN ship the
-      new client build. Deploying the rules before the migration breaks new
-      user sign-in (the `users` create rule denies both the old `role:
-      'admin'` and `role: 'viewer'` writes) until the migration creates the
-      `sectionAccess/*` docs and relabels existing users.
+- [ ] **Production backups and operator security** — production has no backup until
+      the first `npm run backup -- --prod` (`scripts/ops/README.md`). Do the first-time
+      setup (encrypt and rotate the service-account key, backup key pair), take a backup
+      weekly and before every risky change, and work through `docs/SECURITY-OPERATIONS.md`.
+      Watch the reads each backup prints: once scouting events push it near the 20,000
+      budget, move to Google's managed backups (billing) or a quiet-day budget.
+- [ ] **Club platform: migrate production before deploying this branch** — the
+      `feature/club-platform` branch reads and writes only under `clubs/{clubId}`, so
+      deploying it before the migration locks everyone out. Follow the runbook in
+      `scripts/migrate/README.md`: dry run → rehearse on the emulator → freeze → migrate
+      prod → merge (deploys rules + app) → check → drop the old collections after 14 days.
+- [x] **Firestore region verified: `eur3`** (club platform spec §11) —
+      `firebase firestore:databases:get "(default)" --project volley-skills` reported
+      `eur3`, verified 2026-10-20.
+- [~] **Rules require a verified token email** — membership and `platformAdmins` are
+      matched by `request.auth.token.email`, and email-link sign-in needs the
+      Email/Password provider on, so anyone could create a password account for an
+      address that has none yet. Fixed on `feature/club-platform` (2026-10-26):
+      `signedIn()` requires `email_verified == true` (email link and Google verify),
+      covered by `tests/rules/emailVerified.rules.test.ts`. **`main` (live today) still
+      has the gap** (`adminAllowlist` / `adminEmails` keyed on the email alone) until the
+      branch is merged or the check is backported.
+- [x] ~~**Prod seed (one-time)**~~ — obsolete: production already holds the club's data
+      and is migrated (above), not seeded.
+- [x] ~~**Run `scripts/migrate/2026-09-11-section-access.mjs --prod`**~~ — obsolete:
+      superseded by the club platform migration, which reads `adminAllowlist`, team
+      `adminEmails` and `sectionAccess` directly.
 - [x] **Verify no analytics/tracking slipped in** — grepped source on 2026-09-09:
       no gtag / GA / GTM / Sentry / posthog / segment / `firebase/analytics`.
       Re-grep the built `dist/` before shipping a bundle with new deps.
@@ -189,20 +202,20 @@ for the detailed steps.
 
 From the bulk-import and quota-protection reviews:
 
-- [ ] **F7** — `BulkImportDialog` async-validate error copy is lower-case
+- [x] **F7** — `BulkImportDialog` async-validate error copy is lower-case — fixed 2026-10-20
       (`'could not validate the data…'`), inconsistent with the sentence-case
       commit error. Only shows if a validator throws, which none currently can.
-- [ ] **F10** — no `tests/rules/` test for the trainings bulk-create
+- [x] **F10** — no `tests/rules/` test for the trainings bulk-create — fixed 2026-10-20
       transaction (teams + trainings write-shapes are rule-safe by inspection).
-- [ ] **F14** — the 4s `setTimeout(() => setNotice(null))` on the Exercises /
+- [x] **F14** — the 4s `setTimeout(() => setNotice(null))` on the Exercises / — fixed 2026-10-20
       Trainings / Teams import notices isn't cleared on unmount. React 18 no-ops
       the stale `setState`; harmless timer leak.
-- [ ] **F15** — `SKILL_KEYS` in `src/types/player.ts` is a mutable exported
+- [x] **F15** — `SKILL_KEYS` in `src/types/player.ts` is a mutable exported — fixed 2026-10-20
       array; `readonly` / `as const` would harden it.
 - [ ] **F16** — app design / bulk-import spec §8 says a failed commit "writes
       nothing"; a lost response can land server-side, and "always create new"
       means a retry duplicates. One sentence of doc.
-- [ ] **QP review minor** — `TrainingsPage` tests and the api retry tests now
+- [x] **QP review minor** — `TrainingsPage` tests and the api retry tests now — fixed 2026-10-20
       spend ~350ms / ~300ms of real time inside `waitFor` because of the debounce
       and `withBackoff` default `baseMs`. Not flaky, but fake timers (or a shared
       delay constant) would keep them fast and decoupled from the constants.
@@ -234,3 +247,55 @@ From the bulk-import and quota-protection reviews:
       usable on a phone today.
       *Trigger: pick up opportunistically, or when a coach reports it's hard to
       use one-handed in the gym.*
+
+## E. Club platform: legal launch gate and operator actions
+
+- [ ] **Fill the operator address in `src/legal/operator.ts`** — the legal texts
+      show a marker while `address` is null. Registration and VAT stay empty (the
+      operator is an individual) and their lines are omitted.
+- [ ] **Fill the address and pass the lawyer gate BEFORE the first production
+      acceptance** — the migrated club's owner accepts on first visit, and from then on
+      a signed version must never change (its hash is stored with the acceptance). A
+      version id covers the file, the `operator.ts` values and the fixed country names
+      in `legalDocs.ts`; `src/legal/published.test.ts` pins the SHA-256 of every
+      published text. Before the first acceptance, update the pins in place; after it,
+      ship any change (address, lawyer edits) as a new version id in `versions.json`.
+- [ ] **Lawyer review of each language a club signs in, before any outside club is
+      activated (launch gate).** Questions collected while building:
+  - Is fresh email-link re-authentication enough as "specific written approval"
+    (Cass. ord. 20945/2026), or is an advanced/qualified e-signature needed?
+  - T4: the Italian B2B late-interest rate under Luxembourg law.
+  - DSA Art. 11-12 contact languages and the Art. 14 moderation/complaints description
+    (not decided by the spec); the "Report content" mailto in `LegalLinks`.
+  - T9: no refund when a club terminates over an assignment (T14).
+  - T21: law tied to the "place of establishment"; governing law/forum for Italian clubs.
+  - T12 cap and free-use floor, T20 enforceability against amateur associations, Data Act
+    Art. 13 exposure, and whether non-business ASDs can be consumers.
+  - Italian texts carry no explicit "artt. 1341-1342 c.c." reference beyond the sentence
+    that closes each specifically approved clause.
+  - German: "Kündigungsfrist" vs "Frist" in T10; "Salvatorische Klausel" as the T23 heading.
+  - reCAPTCHA v3 as a sub-processor vs Google as controller; which Google entity
+    contracts Auth and reCAPTCHA.
+  - The EUR 80/h assistance rate against Art. 28(3)(e).
+  - A fixed retention period for acceptance records.
+  - Whether the cookie-banner exemption covers the preference keys in localStorage.
+- [~] **Verify in the Auth emulator that `auth_time` is fresh after the signing link**
+      (club-platform spec §11); record the result here. Do the same check once in
+      production (decode the ID token after a signing link; read `auth_time` and
+      `firebase.sign_in_provider`). Do the production check while already signed in
+      as the same account: the emulator derives `auth_time` from the user's last
+      login on every refresh, production keeps it per session, so a stale `User`
+      object only shows its old `auth_time` in production.
+      Emulator DONE 2026-10-26: a second email link 3 s later gave a new `auth_time`
+      (= `iat`), `sign_in_provider: password`, `email_verified: true`; a REST password
+      sign-up for another address gave `email_verified: false`. Production check owed.
+- [x] ~~**Keep Email/Password sign-in DISABLED in the Firebase console**~~ — not
+      possible: email-link sign-in requires the Email/Password provider. Instead the
+      rules require `email_verified` (section A), so a password account made for an
+      address nobody proved control of can neither read club data nor sign.
+- [ ] **Tick SECURITY-OPERATIONS rows 6-8** (BitLocker, external drive, weekly backup)
+      before publishing: Annex II of the DPA states them. Two promises are manual:
+      leads are deleted within 12 months, and accounts are deleted on request.
+- [ ] **Production: the migrated club's owner (`--owner`) accepts on first visit** — the
+      migrated club has `legal: null`, so its owner sees the review screen once. The
+      operator (a platform admin) cannot accept for the club.

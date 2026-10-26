@@ -7,6 +7,7 @@
 // Emulator-only. Also updates each team's scoutProfile/usage.
 
 import admin from 'firebase-admin';
+import { parseClubArg } from './clubArg.mjs';
 import { buildFinishPayload } from '../../src/matches/finish';
 import { replay } from '../../src/matches/scoutEngine';
 import type { Match, MatchEvent, UsageProfile } from '../../src/types/match';
@@ -18,10 +19,20 @@ if (!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(process.env.FIRESTORE_EMUL
 }
 admin.initializeApp({ projectId: 'volley-skills' });
 const db = admin.firestore();
+const club = parseClubArg(process.argv.slice(2));
 
+// collectionGroup spans every club: keep only this club's matches.
 const finished = await db.collectionGroup('matches').where('status', '==', 'finished').get();
-const pending = finished.docs.filter((d) => !d.data().summary).sort((a, b) => String(a.data().date).localeCompare(String(b.data().date)));
+const pending = finished.docs
+  .filter((d) => d.ref.path.startsWith(`clubs/${club}/`) && !d.data().summary).sort((a, b) => String(a.data().date).localeCompare(String(b.data().date)));
 const profiles = new Map<string, UsageProfile>();
+const teamRefs = new Map<string, FirebaseFirestore.DocumentReference>();
+
+const allInClub = finished.docs.filter((d) => d.ref.path.startsWith(`clubs/${club}/`));
+if (allInClub.length === 0) {
+  console.error(`No finished matches found under clubs/${club}/ — wrong --club? Nothing was written.`);
+  process.exit(1);
+}
 
 for (const doc of pending) {
   const teamRef = doc.ref.parent.parent!;
@@ -29,6 +40,7 @@ for (const doc of pending) {
   const events = (await doc.ref.collection('events').orderBy('order').limit(5000).get()).docs.map(
     (e) => ({ id: e.id, ...e.data() }) as MatchEvent,
   );
+  teamRefs.set(teamRef.id, teamRef);
   if (!profiles.has(teamRef.id)) {
     const snap = await teamRef.collection('scoutProfile').doc('usage').get();
     profiles.set(teamRef.id, (snap.exists ? snap.data() : { players: {} }) as UsageProfile);
@@ -46,7 +58,7 @@ for (const doc of pending) {
 }
 
 for (const [teamId, profile] of profiles) {
-  await db.doc(`teams/${teamId}/scoutProfile/usage`).set(profile);
+  await teamRefs.get(teamId)!.collection('scoutProfile').doc('usage').set(profile);
 }
 console.log(`Done: ${pending.length} match(es) summarised.`);
 process.exit(0);

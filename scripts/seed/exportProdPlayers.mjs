@@ -2,7 +2,7 @@
 // Exports the PRODUCTION teams' player docs (teams/*/players/*, no
 // subcollections) to a local JSON file, for importPlayers.mjs.
 //
-//   npm run seed:export-prod-players            # needs ./serviceAccountKey.json (gitignored)
+//   npm run seed:export-prod-players            # needs the service-account key (scripts/ops/README.md)
 //   node scripts/seed/exportProdPlayers.mjs --team <prodTeamId>
 //
 // READ-ONLY on prod: only get() — never a write.
@@ -19,22 +19,18 @@ if (process.env.FIRESTORE_EMULATOR_HOST) {
 }
 delete process.env.FIRESTORE_EMULATOR_HOST;
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { loadServiceAccount } from '../lib/serviceAccount.mjs';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
-const KEY_PATH = 'serviceAccountKey.json';
 const OUT = 'reference/prod-players.json';
 const PAGE = 500;
 const MAX_DOCS = 5000;
 
-if (!existsSync(KEY_PATH)) {
-  console.error(`Missing ${KEY_PATH} (gitignored service-account key). See scripts/seed/README.md.`);
-  process.exit(1);
-}
 // Make sure the export can never be committed by accident.
 try {
   execFileSync('git', ['check-ignore', '-q', OUT]);
@@ -43,7 +39,7 @@ try {
   process.exit(1);
 }
 
-const key = JSON.parse(readFileSync(KEY_PATH, 'utf8'));
+const key = await loadServiceAccount();
 admin.initializeApp({ credential: admin.credential.cert(key), projectId: key.project_id });
 const db = admin.firestore();
 const { Timestamp, DocumentReference, FieldPath } = admin.firestore;
@@ -57,14 +53,18 @@ function encode(v) {
   return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, encode(x)]));
 }
 
+// Reads top-level `teams` (pre-migration layout) unless --club <id> is given; after the
+// club platform migration (scripts/migrate/README.md) always pass --club <id>.
+const clubIdx = process.argv.indexOf('--club');
+const teamsCol = clubIdx > -1 ? db.collection('clubs').doc(process.argv[clubIdx + 1]).collection('teams') : db.collection('teams');
 const teamArg = process.argv.indexOf('--team');
 const teamIds =
-  teamArg > -1 ? [process.argv[teamArg + 1]] : (await db.collection('teams').limit(100).get()).docs.map((d) => d.id);
+  teamArg > -1 ? [process.argv[teamArg + 1]] : (await teamsCol.limit(100).get()).docs.map((d) => d.id);
 
 const teams = {};
 let total = 0;
 for (const teamId of teamIds) {
-  const coll = db.collection('teams').doc(teamId).collection('players');
+  const coll = teamsCol.doc(teamId).collection('players');
   const players = [];
   let last = null;
   for (;;) {

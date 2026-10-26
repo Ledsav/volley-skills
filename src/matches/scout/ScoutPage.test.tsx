@@ -38,7 +38,10 @@ vi.mock('../text/TextScoutPanel', async () => {
     },
   };
 });
-vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ firebaseUser: { uid: 'u1' } }) }));
+const mockClub = vi.hoisted(() => ({ aiEnabled: true }));
+vi.mock('../../auth/AuthContext', () => ({
+  useAuth: () => ({ firebaseUser: { uid: 'u1' }, club: { aiEnabled: mockClub.aiEnabled } }),
+}));
 
 const roster = [
   { playerId: 's', number: 2, name: 'Sofía', positionCategory: 'S' as const },
@@ -97,6 +100,7 @@ async function toolState(name: RegExp) {
 describe('ScoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockClub.aiEnabled = true;
     window.localStorage.clear();
     vi.mocked(api.getMatch).mockResolvedValue(match);
     vi.mocked(api.getUsageProfile).mockResolvedValue({ players: {} });
@@ -574,6 +578,14 @@ describe('ScoutPage', () => {
       expect(within(screen.getByRole('region', { name: 'Match events' })).getByRole('button', { name: /^Point us/ })).toBeInTheDocument();
     });
 
+    it('hides the Text tab when the club has AI off', async () => {
+      mockClub.aiEnabled = false;
+      renderPage([setStart]);
+      const nav = await screen.findByRole('tablist', { name: 'Scouting views' });
+      expect(within(nav).getByRole('tab', { name: 'Court' })).toBeInTheDocument();
+      expect(within(nav).queryByRole('tab', { name: 'Text' })).not.toBeInTheDocument();
+    });
+
     it('keeps the text preview across tab switches', async () => {
       renderPage([setStart]);
       const nav = await screen.findByRole('tablist', { name: 'Scouting views' });
@@ -585,6 +597,14 @@ describe('ScoutPage', () => {
       fireEvent.click(within(nav).getByRole('tab', { name: 'Text' }));
       expect(screen.getByText('batch-stub')).toBeInTheDocument();
     });
+  });
+
+  it('offers no Text panel on desktop when the club has AI off', async () => {
+    mockClub.aiEnabled = false;
+    renderPage([setStart]);
+    await openTools();
+    expect(screen.queryByRole('menuitemcheckbox', { name: /Text panel/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: /Auto-select/ })).toBeInTheDocument();
   });
 
   it('does not auto-select while the text panel is open', async () => {

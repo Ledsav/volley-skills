@@ -13,6 +13,7 @@ import { PhotoCropDialog } from './PhotoCropDialog';
 import { revealable, type ResolvedAward } from './resolveAwards';
 import { LogoThumb } from './LogoThumb';
 import { MAX_SPONSORS } from './card/branding';
+import { HealthHint } from '../components/HealthHint';
 
 export type PrepareAction =
   | { type: 'pick'; key: string; playerId: string | null }
@@ -122,7 +123,9 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           {props.storyLabel}
         </label>
         <label className="text-sm text-slate">Background image
-          <input type="file" accept="image/*" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
+          <input type="file" accept="image/*" aria-describedby="awards-background-hint" className="ml-2 text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
+          {/* Photos of minors are used only with recorded consent (Terms T7); a background has none. */}
+          <span id="awards-background-hint" className="block text-xs">Don&apos;t use photos that show players.</span>
         </label>
         {props.hasBackground && <Button variant="ghost" size="sm" onClick={() => props.onBackground(null)}>Remove background</Button>}
         <label className="text-sm text-slate">Names on cards
@@ -253,8 +256,9 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
               </select>
             </label>
             <label className="text-sm text-slate">Note
-              <input className="ml-2 rounded-md border border-border px-2 py-1 text-ink" maxLength={CUSTOM_NOTE_MAX} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
+              <input aria-describedby="award-note-hint" className="ml-2 rounded-md border border-border px-2 py-1 text-ink" maxLength={CUSTOM_NOTE_MAX} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
             </label>
+            <HealthHint id="award-note-hint" />
             <Button type="submit" variant="primary">Add award</Button>
             <Button type="button" variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
           </form>

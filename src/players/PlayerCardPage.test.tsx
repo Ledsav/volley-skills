@@ -7,7 +7,7 @@ import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
 import * as footprintApi from './playerFootprintApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 import * as matchesApi from '../matches/matchesApi';
@@ -31,7 +31,6 @@ vi.mock('react-router-dom', async (importOriginal) => {
 const baseTeam: Team = {
   id: 'team-1',
   name: 'U17',
-  club: 'Demo VC',
   ageGroup: 'U17',
   season: '2026-27',
   description: '',
@@ -105,8 +104,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -180,8 +179,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -203,8 +202,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -229,8 +228,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -268,8 +267,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, consent: { given: false, date: null, confirmedBy: null } });
@@ -292,12 +291,50 @@ describe('PlayerCardPage', () => {
     expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
   });
 
+  describe('photo consent', () => {
+    function asCoach() {
+      vi.mocked(useAuth).mockReturnValue(
+        authValue({
+          firebaseUser: { email: 'coach@example.com' } as never,
+          appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+          access: clubAdminAccess,
+        })
+      );
+      vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+      vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    }
+
+    it('lets a team admin give and withdraw guardian photo consent for a minor', async () => {
+      asCoach();
+      vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, dob: '2012-01-01' });
+      const setSpy = vi.spyOn(playersApi, 'setPhotoConsent').mockResolvedValue();
+      renderPlayerCard();
+      await openSection('Privacy');
+      const toggle = await screen.findByRole('checkbox', { name: 'Guardian consent to use photos in award cards' });
+      expect(toggle).not.toBeChecked();
+      fireEvent.click(toggle);
+      await waitFor(() => expect(setSpy).toHaveBeenCalledWith('team-1', 'player-1', true, 'coach@example.com'));
+      await waitFor(() => expect(toggle).toBeChecked());
+      fireEvent.click(toggle);
+      await waitFor(() => expect(setSpy).toHaveBeenLastCalledWith('team-1', 'player-1', false, 'coach@example.com'));
+    });
+
+    it('shows adults no toggle, only the club-agreement note', async () => {
+      asCoach();
+      vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, dob: '1990-01-01' });
+      renderPlayerCard();
+      await openSection('Privacy');
+      expect(await screen.findByText("Adult: photos follow the club's own agreement with the player")).toBeInTheDocument();
+      expect(screen.queryByRole('checkbox', { name: 'Guardian consent to use photos in award cards' })).toBeNull();
+    });
+  });
+
   it('marks a player as having left the club and shows the deletion date', async () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
@@ -321,8 +358,8 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);

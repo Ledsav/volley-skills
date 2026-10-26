@@ -18,7 +18,7 @@ export type SlotKey = keyof Slots51;
  * setter in P1 the lineup is P1 S, P2 OH1, P3 MB1, P4 O, P5 OH2, P6 MB2.
  * Opposite pairs are always 3 apart: S/O, OH1/OH2, MB1/MB2.
  */
-export const SLOT_ORDER: SlotKey[] = ['setter', 'oh1', 'mb1', 'opposite', 'oh2', 'mb2'];
+const SLOT_ORDER: SlotKey[] = ['setter', 'oh1', 'mb1', 'opposite', 'oh2', 'mb2'];
 
 export const SLOT_ROLE: Record<SlotKey, PositionCategory> = {
   setter: 'S',

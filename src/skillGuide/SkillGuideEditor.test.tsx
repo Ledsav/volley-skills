@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SkillGuideEditor } from './SkillGuideEditor';
 import * as skillGuideApi from './skillGuideApi';
 import { useAuth } from '../auth/AuthContext';
-import { authValue, superAdminAccess } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 
 vi.mock('./skillGuideApi');
 vi.mock('../auth/AuthContext');
@@ -14,8 +14,8 @@ describe('SkillGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
@@ -55,8 +55,8 @@ describe('SkillGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockResolvedValue({
@@ -85,8 +85,8 @@ describe('SkillGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     vi.spyOn(skillGuideApi, 'getSkillGuide').mockRejectedValue({ code: 'unavailable' });
@@ -101,8 +101,8 @@ describe('SkillGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com', role: 'superadmin' },
-        access: superAdminAccess,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
       })
     );
     let resolveLoad: (value: { skills: never[]; updatedBy: string; updatedAt: null }) => void = () => {};

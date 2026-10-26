@@ -36,6 +36,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
           <li key={d.key} className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row">
             <DraftDiagramPreview scene={d.scene} label={`Diagram for ${d.name}`} onOpen={() => setZoomed(d)} />
             <div className="min-w-0 flex-1">
+              <p className="mb-1"><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">AI draft</span></p>
               {editing === d.key ? (
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-ink" htmlFor={`draft-name-${d.key}`}>

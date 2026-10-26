@@ -13,6 +13,11 @@ const rally = (winner: Side, serving: Side, rotation = 1, set = 1, index = 0, re
 const empty = { actions: [] as ActionRecord[], rallies: [] as RallyRecord[], timeouts: [] as TimeoutRecord[] };
 
 describe('computeStats', () => {
+  it('counts imported actions under import', () => {
+    const actions = [act('oh1', 'A', '#'), act('oh1', 'A', '+')].map((a) => ({ ...a, source: 'import' as const }));
+    expect(computeStats({ ...empty, actions }, {}).sourceCounts).toEqual({ tap: 0, text: 0, import: 2 });
+  });
+
   it('computes attack efficiency, points and errors per player', () => {
     const actions = ['#', '#', '=', '/', '+'].map((g) => act('oh1', 'A', g as Grade));
     const p = computeStats({ ...empty, actions }, {}).players.oh1;

@@ -33,7 +33,13 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
   const players = Object.values(stats.players).sort(
     (a, b) => (roster.get(a.playerId)?.number ?? 0) - (roster.get(b.playerId)?.number ?? 0),
   );
-  const totalSource = stats.sourceCounts.tap + stats.sourceCounts.text;
+  const imported = stats.sourceCounts.import ?? 0;
+  const totalSource = stats.sourceCounts.tap + stats.sourceCounts.text + imported;
+  const sourceParts = [
+    stats.sourceCounts.tap > 0 && `${Math.round((stats.sourceCounts.tap / totalSource) * 100)}% tapped`,
+    stats.sourceCounts.text > 0 && `${Math.round((stats.sourceCounts.text / totalSource) * 100)}% from text`,
+    imported > 0 && 'Imported from DataVolley',
+  ].filter(Boolean);
   const setNumbers = report.sets;
 
   return (
@@ -146,7 +152,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
 
       {totalSource > 0 && (
         <p className="text-xs text-slate">
-          {Math.round((stats.sourceCounts.tap / totalSource) * 100)}% tapped · {Math.round((stats.sourceCounts.text / totalSource) * 100)}% from text
+          {sourceParts.join(' · ')}
         </p>
       )}
     </div>

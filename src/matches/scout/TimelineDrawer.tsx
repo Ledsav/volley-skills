@@ -1,4 +1,4 @@
-import { CornerDownRight, Pencil, PenLine, Trash2, TriangleAlert } from 'lucide-react';
+import { CornerDownRight, FileDown, Pencil, PenLine, Trash2, TriangleAlert } from 'lucide-react';
 import type { ActionEvent, MatchEvent, RosterEntry } from '../../types/match';
 import { describeEvent } from '../format';
 import { sortEvents, type MatchState } from '../scoutEngine';
@@ -31,6 +31,7 @@ export function TimelineDrawer({ events, state, roster, onDelete, onEdit, onInse
             <div className="min-w-0 flex-1">
               <span className="text-ink">
                 {ev.source === 'text' && <PenLine role="img" aria-label="From text" className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
+                {ev.source === 'import' && <FileDown role="img" aria-label="Imported" className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
                 {describeEvent(ev, roster)}
               </span>
               {warn && (

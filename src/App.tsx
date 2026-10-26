@@ -23,6 +23,7 @@ import { TrainingsPage } from './trainings/TrainingsPage';
 import { PrivacyPage } from './legal/PrivacyPage';
 import { LegalDocPage } from './legal/LegalDocPage';
 import { SettingsPage } from './settings/SettingsPage';
+import { MorePage } from './layout/MorePage';
 import { ClubAreaPage } from './clubs/area/ClubAreaPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
 import { NotFoundPage } from './layout/NotFoundPage';
@@ -76,6 +77,7 @@ export function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/teams" element={<TeamsListPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/more" element={<MorePage />} />
               <Route path="/teams/:teamId" element={<TeamPage />} />
               <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
               <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />

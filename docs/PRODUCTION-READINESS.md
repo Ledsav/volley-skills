@@ -283,7 +283,7 @@ From the bulk-import and quota-protection reviews:
   - reCAPTCHA v3 as a sub-processor vs Google as controller; which Google entity
     contracts Auth and reCAPTCHA.
   - The EUR 80/h assistance rate against Art. 28(3)(e).
-  - DataVolley import: whether the Data Project EULA restricts use of exported .dvw files (it binds the club, not the operator; Terms T7/T18 say the club imports only files it may use).
+  - DataVolley import: whether the Data Project EULA restricts use of exported .dvw files. Assumed to bind the club, not the operator; Terms T7 says the club imports only files it may use.
   - A fixed retention period for acceptance records.
   - Whether the cookie-banner exemption covers the preference keys in localStorage.
 - [~] **Verify in the Auth emulator that `auth_time` is fresh after the signing link**

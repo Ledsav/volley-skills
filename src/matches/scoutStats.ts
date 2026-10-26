@@ -36,7 +36,7 @@ export function computeStats(
 ): MatchStats {
   const inScope = <T extends { set: number }>(x: T) => scope.set === undefined || x.set === scope.set;
   const players: Record<string, PlayerStats> = {};
-  const sourceCounts = { tap: 0, text: 0 };
+  const sourceCounts = { tap: 0, text: 0, import: 0 };
 
   for (const a of state.actions.filter(inScope)) {
     const p = (players[a.playerId] ??= {
@@ -55,7 +55,7 @@ export function computeStats(
     const outcome = rallyOutcome(a.skill, a.grade);
     if (outcome === 'us') p.points += 1;
     if (outcome === 'them') p.errors += 1;
-    sourceCounts[a.source === 'text' ? 'text' : 'tap'] += 1;
+    sourceCounts[a.source === 'text' ? 'text' : a.source === 'import' ? 'import' : 'tap'] += 1;
   }
 
   for (const p of Object.values(players)) {

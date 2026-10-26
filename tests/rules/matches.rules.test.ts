@@ -1,6 +1,6 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
-import { dbAs, getTestEnv, seedClub } from './testEnv';
+import { dbAs, getTestEnv, seedClub, serverTimestamp } from './testEnv';
 
 const MATCH = {
   date: '2026-10-18',
@@ -142,5 +142,52 @@ describe('matches rules', () => {
     await assertSucceeds(coach.doc('clubs/club-a/teams/team-1/matches/m1').update({ awards }));
     const parent = await as('parent-uid', 'parent@example.com');
     await assertFails(parent.doc('clubs/club-a/teams/team-1/matches/m1').update({ awards }));
+  });
+
+  describe('imported matches', () => {
+    const M = 'clubs/club-a/teams/team-1/matches';
+    const imp = (over: Record<string, unknown> = {}) => ({
+      format: 'dvw', fileName: 'm.dvw', fileSha256: 'a'.repeat(64), generator: 'Data Volley 4',
+      importedAt: serverTimestamp(), importedBy: 'uid-coach@example.com', warnings: 0, ...over,
+    });
+
+    it('accepts import events', async () => {
+      const db = await as('c', 'coach@example.com');
+      await assertSucceeds(db.collection(`${M}/m1/events`).add({ ...ACTION, order: 3, source: 'import' }));
+    });
+
+    it('refuses an unknown event source', async () => {
+      const db = await as('c', 'coach@example.com');
+      await assertFails(db.collection(`${M}/m1/events`).add({ ...ACTION, order: 3, source: 'bogus' }));
+    });
+
+    it('accepts a match created with a valid import field', async () => {
+      const db = await as('c', 'coach@example.com');
+      await assertSucceeds(db.collection(M).add({ ...MATCH, import: imp() }));
+    });
+
+    it('refuses an import field with extra keys, a wrong format, a bad hash or another uid', async () => {
+      const db = await as('c', 'coach@example.com');
+      for (const bad of [
+        imp({ extra: 1 }),
+        imp({ format: 'xml' }),
+        imp({ fileSha256: 'A'.repeat(64) }),
+        imp({ fileSha256: 'abc' }),
+        imp({ importedBy: 'uid-other@example.com' }),
+        imp({ warnings: -1 }),
+        imp({ generator: 'x'.repeat(101) }),
+      ]) {
+        await assertFails(db.collection(M).add({ ...MATCH, import: bad }));
+      }
+    });
+
+    it('refuses adding or changing import on update', async () => {
+      const db = await as('c', 'coach@example.com');
+      await assertFails(db.doc(`${M}/m1`).update({ import: imp() }));
+      await assertSucceeds(db.collection(M).doc('m2').set({ ...MATCH, import: imp() }));
+      await assertFails(db.doc(`${M}/m2`).update({ import: imp({ warnings: 5 }) }));
+      await assertFails(db.doc(`${M}/m2`).update({ import: null }));
+      await assertSucceeds(db.doc(`${M}/m2`).update({ status: 'finished' }));
+    });
   });
 });

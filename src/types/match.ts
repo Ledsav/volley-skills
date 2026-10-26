@@ -128,7 +128,7 @@ export interface MatchStats {
   players: Record<string, PlayerStats>;
   team: TeamStats;
   timeoutEffects: TimeoutEffect[];
-  sourceCounts: { tap: number; text: number };
+  sourceCounts: { tap: number; text: number; import?: number };
 }
 
 export type MatchSummary = MatchStats;
@@ -162,6 +162,17 @@ export interface MatchSetupInput {
   liberos: LiberoConfig[];
 }
 
+/** Provenance of a match created from a DataVolley file. `importedBy` is the uid. */
+export interface MatchImport {
+  format: 'dvw';
+  fileName: string;
+  fileSha256: string;
+  generator: string;
+  importedAt: unknown;
+  importedBy: string;
+  warnings: number;
+}
+
 export interface Match extends MatchSetupInput {
   id: string;
   status: MatchStatus;
@@ -171,6 +182,8 @@ export interface Match extends MatchSetupInput {
   report?: MatchReportData | null;
   /** Coach award choices; absent on matches without prepared awards. */
   awards?: AwardsConfig | null;
+  /** Set once at creation when the match came from a DataVolley file. */
+  import?: MatchImport | null;
   usageContribution: UsageContribution | null;
   activeDevice: ActiveDevice | null;
   createdBy: string;
@@ -178,7 +191,7 @@ export interface Match extends MatchSetupInput {
   updatedAt: unknown;
 }
 
-export type EventSource = 'tap' | 'text' | 'correction';
+export type EventSource = 'tap' | 'text' | 'correction' | 'import';
 
 export type MatchEventPayload =
   | {

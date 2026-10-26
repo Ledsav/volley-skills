@@ -421,21 +421,41 @@ service cloud.firestore {
           function validStatus(d) {
             return d.status in ['setup', 'live', 'finished'];
           }
+          function validImport(i) {
+            return i is map
+              && i.keys().hasOnly(['format', 'fileName', 'fileSha256', 'generator', 'importedAt', 'importedBy', 'warnings'])
+              && i.keys().hasAll(['format', 'fileName', 'fileSha256', 'generator', 'importedAt', 'importedBy', 'warnings'])
+              && i.format == 'dvw'
+              && i.fileName is string && i.fileName.size() <= 255
+              && i.fileSha256 is string && i.fileSha256.matches('^[0-9a-f]{64}$')
+              && i.generator is string && i.generator.size() <= 100
+              && i.importedAt == request.time
+              && i.importedBy == request.auth.uid
+              && i.warnings is int && i.warnings >= 0;
+          }
+          // The import provenance is written once, at creation, and never changes.
+          function importUnchanged() {
+            return 'import' in resource.data
+              ? request.resource.data.import == resource.data.import
+              : !('import' in request.resource.data);
+          }
           allow read: if (activeMember() && teamAdmin()) || exporter();
           allow delete: if activeMember() && teamAdmin();
           allow create: if activeMember() && teamAdmin()
             && request.resource.data.createdBy == request.auth.uid
             && request.resource.data.date is string
-            && validStatus(request.resource.data);
+            && validStatus(request.resource.data)
+            && (!('import' in request.resource.data) || validImport(request.resource.data.import));
           allow update: if activeMember() && teamAdmin()
             && request.resource.data.date is string
-            && validStatus(request.resource.data);
+            && validStatus(request.resource.data)
+            && importUnchanged();
 
           match /events/{eventId} {
             function validEvent(d) {
               return d.type in ['setStart', 'action', 'point', 'sub', 'timeout', 'correction', 'setEnd']
                 && d.order is number
-                && d.source in ['tap', 'text', 'correction']
+                && d.source in ['tap', 'text', 'correction', 'import']
                 && (d.type != 'action'
                     || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
                         && d.grade in ['#', '+', '!', '-', '/', '=']));

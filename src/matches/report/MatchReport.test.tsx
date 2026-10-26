@@ -37,4 +37,19 @@ describe('MatchReport', () => {
     fireEvent.change(screen.getByLabelText('Set'), { target: { value: '2' } });
     expect(screen.getByText('Set 2 only')).toHaveClass('hidden', 'print:block');
   });
+
+  const withCounts = (sourceCounts: { tap: number; text: number; import?: number }) => {
+    const base = buildReportData(replay(match, events));
+    return { ...base, all: { ...base.all, sourceCounts } };
+  };
+
+  it('says the match was imported from DataVolley', () => {
+    render(<MatchReport match={match} report={withCounts({ tap: 0, text: 0, import: 10 })} />);
+    expect(screen.getByText('Imported from DataVolley')).toBeInTheDocument();
+  });
+
+  it('keeps the tapped and text wording for summaries without an import count', () => {
+    render(<MatchReport match={match} report={withCounts({ tap: 5, text: 5 })} />);
+    expect(screen.getByText('50% tapped · 50% from text')).toBeInTheDocument();
+  });
 });

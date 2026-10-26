@@ -1,10 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LegalDocPage } from './LegalDocPage';
 import { LegalLinks } from './LegalLinks';
 import { OPERATOR } from './operator';
 import { DRAFT_BANNER } from './versions';
+
+const authState = vi.hoisted(() => ({ firebaseUser: null as null | { uid: string } }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: () => authState }));
 
 function at(url: string) {
   return render(
@@ -15,6 +18,20 @@ function at(url: string) {
 }
 
 describe('LegalDocPage', () => {
+  beforeEach(() => {
+    authState.firebaseUser = null;
+  });
+
+  it('offers sign-in when signed out, and the way back to the app when signed in', () => {
+    const first = at('/legal/terms');
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    first.unmount();
+    authState.firebaseUser = { uid: 'u1' };
+    at('/legal/terms');
+    expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to the app' })).toHaveAttribute('href', '/');
+  });
+
   it('shows the English terms with their banner and clause anchors', () => {
     const { container } = at('/legal/terms?lang=en');
     expect(screen.getByText(DRAFT_BANNER.en + '.')).toBeInTheDocument();

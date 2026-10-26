@@ -1,4 +1,5 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { usePageMeta } from '../layout/usePageMeta';
 import { Logo } from '../components/Logo';
 import { LegalLangSwitcher } from './LegalLangSwitcher';
@@ -28,6 +29,7 @@ function formatDate(iso: string, lang: LegalLang): string {
 
 /** One legal text with its language switcher, shared by /legal/:doc and /privacy. */
 export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; canonicalPath: string }) {
+  const { firebaseUser } = useAuth();
   const [params, setParams] = useSearchParams();
   const requestedVersion = params.get('v');
   const langParam = params.get('lang');
@@ -66,7 +68,11 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
       <header className="bg-navy text-white">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3">
           <Logo className="text-[22px]" />
-          <Link to="/login" className="text-sm text-white/90 hover:underline">Sign in</Link>
+          {firebaseUser ? (
+            <Link to="/" className="text-sm text-white/90 hover:underline">Back to the app</Link>
+          ) : (
+            <Link to="/login" className="text-sm text-white/90 hover:underline">Sign in</Link>
+          )}
         </div>
       </header>
       <main className="mx-auto max-w-2xl p-6">

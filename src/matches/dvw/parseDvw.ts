@@ -3,6 +3,7 @@
  * `datavolley` R package (MIT licence). This parser is written independently and copies
  * no code from it or from pydatavolley / py-datavolley.
  */
+import { lineList } from './lineList';
 import { parseScoutCode } from './parseScoutCode';
 import type { DvwError, DvwFile, DvwPlayer, DvwSet, DvwSide, ScoutLine } from './types';
 
@@ -49,7 +50,7 @@ function parseSets(lines: string[]): DvwSet[] {
     .slice(0, 5)
     .map((l) => {
       const f = fields(l);
-      const m = /^(\d+)-(\d+)$/.exec(f[4] ?? '');
+      const m = /^(\d+)\s*-\s*(\d+)$/.exec(f[4] ?? '');
       return {
         played: (f[0] ?? '').toLowerCase() === 'true',
         home: m ? Number(m[1]) : 0,
@@ -83,28 +84,38 @@ function parsePlayers(lines: string[], side: DvwSide, warnings: string[]): DvwPl
   return players;
 }
 
+/**
+ * The set of each line is the running count of `**Nset` markers: lines before the first
+ * marker are set 1, lines after the Nth are set N+1 (a marker belongs to the set it ends).
+ * Field 9 is only a cross-check: one warning per set where it is empty or disagrees.
+ */
 function parseScout(section: Section, warnings: string[]): ScoutLine[] {
   const out: ScoutLine[] = [];
-  let lastSet = 1;
+  const mismatches = new Map<number, number[]>();
+  let markers = 0;
   section.lines.forEach((line, i) => {
     if (line.trim() === '') return;
     const f = fields(line);
     const lineNo = section.start + i;
-    let set = int(f[8]);
-    if (set === null || set < 1) {
-      warnings.push(`Line ${lineNo}: missing set number, assumed set ${lastSet}.`);
-      set = lastSet;
-    }
-    lastSet = set;
+    const code = parseScoutCode(f[0]);
+    const set = markers + 1;
+    if (int(f[8]) !== set) mismatches.set(set, [...(mismatches.get(set) ?? []), lineNo]);
     out.push({
       lineNo,
       raw: f[0],
-      code: parseScoutCode(f[0]),
+      code,
       set,
       homeCourt: [14, 15, 16, 17, 18, 19].map((k) => int(f[k])),
       visitingCourt: [20, 21, 22, 23, 24, 25].map((k) => int(f[k])),
     });
+    if (code.kind === 'setEnd') markers += 1;
   });
+  for (const [set, lines] of mismatches) {
+    const n = lines.length;
+    warnings.push(
+      `Set ${set}: ${n} scout ${n === 1 ? 'line has' : 'lines have'} a missing or different set number (${lineList(lines)}); the set markers were used.`,
+    );
+  }
   return out;
 }
 
@@ -113,7 +124,8 @@ export function parseDvw(text: string): DvwFile | DvwError {
   const match = sections.get('MATCH');
   if (!match) return { error: 'This does not look like a DataVolley file.' };
   const m = fields(match.lines.find((l) => l.trim() !== ''));
-  if (m[9] !== '2') {
+  // [3MATCH] regulation: 0 indoor sideout, 1 indoor rally point, 2 beach rally point.
+  if (m[9] !== '1') {
     return { error: 'Unsupported regulation: only indoor rally-point matches can be imported.' };
   }
   const scout = sections.get('SCOUT');

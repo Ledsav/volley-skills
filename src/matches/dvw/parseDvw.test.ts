@@ -90,16 +90,30 @@ describe('parseDvw: five-sets-away', () => {
     expect(file.sets.every((s) => s.played)).toBe(true);
     expect(new Set(file.scout.map((l) => l.set))).toEqual(new Set([1, 2, 3, 4, 5]));
   });
+
+  it('has no warnings', () => {
+    expect(file.warnings).toEqual([]);
+  });
 });
 
 describe('parseDvw: errors and edge cases', () => {
   const three = loadFixture('three-sets-home.dvw');
 
-  it('refuses another regulation', () => {
-    const text = three.replace(';1252;2;', ';1252;1;');
+  it.each([
+    ['0', 'indoor sideout'],
+    ['2', 'beach rally point'],
+    ['', 'missing'],
+  ])('refuses regulation %j (%s)', (code) => {
+    const text = three.replace(';1252;1;', `;1252;${code};`);
     expect(parseDvw(text)).toEqual({
       error: 'Unsupported regulation: only indoor rally-point matches can be imported.',
     });
+  });
+
+  it('reads space-padded set scores', () => {
+    const result = parseDvw(three.replace('6-8;16-11;21-20;25-20;', '6-8;16-11;21-20; 25 - 9 ;'));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.sets[0]).toEqual({ played: true, home: 25, visiting: 9 });
   });
 
   it('returns an error without [3SCOUT]', () => {
@@ -132,5 +146,43 @@ describe('parseDvw: errors and edge cases', () => {
     expect(result.players.find((p) => p.fileId === 'T001')?.roleCode).toBe(6);
     expect(result.players.find((p) => p.fileId === 'T002')).toBeUndefined();
     expect(result.warnings).toHaveLength(1);
+  });
+});
+
+describe('parseDvw: set numbers come from the set markers', () => {
+  const COURTS = '7;11;3;5;8;9;10;6;9;12;7;11';
+  const line = (code: string, set: string) => `${code};;;;;;;;${set};1;1;;;;${COURTS}`;
+  const fileWith = (lines: string[]) =>
+    ['[3MATCH]', '10/18/2026;;;;;;;;1252;1;', '[3SCOUT]', ...lines].join('\n');
+
+  it('counts **Nset markers and warns once per set whose field 9 disagrees or is empty', () => {
+    const result = parseDvw(
+      fileWith([
+        line('*P11>LUp', '1'), // line 4
+        line('*07SM#', '1'),
+        line('*p01:00', '1'),
+        line('**1set', '1'),
+        line('*P11>LUp', ''), // line 8: empty
+        line('*07SM#', '1'), // line 9: wrong
+        line('*p01:00', '2'),
+        line('**2set', '2'),
+        line('*P11>LUp', '3'),
+        line('**3set', '3'),
+      ]),
+    );
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 3, 3]);
+    expect(result.warnings).toEqual([
+      'Set 2: 2 scout lines have a missing or different set number (lines 8, 9); the set markers were used.',
+    ]);
+  });
+
+  it('keeps lines before the first marker in set 1 and lists at most five lines', () => {
+    const result = parseDvw(fileWith([...Array.from({ length: 7 }, () => line('*T', '4')), line('**1set', '1')]));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.every((l) => l.set === 1)).toBe(true);
+    expect(result.warnings).toEqual([
+      'Set 1: 7 scout lines have a missing or different set number (lines 4, 5, 6, 7, 8, …); the set markers were used.',
+    ]);
   });
 });

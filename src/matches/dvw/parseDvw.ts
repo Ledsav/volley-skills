@@ -143,7 +143,7 @@ export function parseDvw(text: string): DvwFile | DvwError {
     return { error: 'Unsupported regulation: only indoor rally-point matches can be imported.' };
   }
   const scout = sections.get('SCOUT');
-  if (!scout || scout.lines.every((l) => l.trim() === '')) {
+  if (!scout || scout.lines.every(isBlank)) {
     return { error: 'This file has no scouted rallies.' };
   }
 

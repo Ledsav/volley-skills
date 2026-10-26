@@ -132,8 +132,8 @@ const BACK_ROW = [0, 4, 5];
 
 /**
  * Our jerseys the libero stood in for. DataVolley keeps the replaced player in P1-P6, so a player
- * who is in the back row for many of our skill lines yet almost never plays a ball there was off
- * court. P1 in a rally we served is left out: the server stays on and plays that rally.
+ * who is in the back row for at least 10 of our skill lines yet plays the ball on under 5% of them
+ * was off court (a real file had a middle with one stray dig in 94 such lines). P1 in a rally we served is left out: the server stays on and plays that rally.
  */
 function replacedByLibero(file: DvwFile, us: DvwSide): number[] {
   const inBack = new Map<number, number>();
@@ -198,16 +198,21 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
   let middles = roster.filter((r) => r.positionCategory === 'MB').map((r) => r.playerId);
   if (liberoIds.length > 0 && middles.length === 0) {
     const ids = new Set(roster.map((r) => r.playerId));
-    middles = replacedByLibero(file, us)
-      .map((j) => mapping[keyOf(us, j)])
-      .filter((id): id is string => !!id && ids.has(id) && !liberoIds.includes(id));
-    if (middles.length === 0) {
-      issues.push({
-        kind: 'warning',
-        message: 'The libero never comes on court: mark your middle blockers as MB in the team roster, then import again.',
-        lines: [],
-      });
-    }
+    const appId = (j: number) => mapping[keyOf(us, j)] ?? null;
+    const replaced = replacedByLibero(file, us).filter((j) => {
+      const id = appId(j);
+      return id !== null && ids.has(id) && !liberoIds.includes(id);
+    });
+    middles = replaced.map((j) => appId(j) as string);
+    const fix = 'mark your middle blockers as MB in the team roster, then import again.';
+    issues.push({
+      kind: 'warning',
+      message:
+        replaced.length === 0
+          ? `The libero never comes on court: ${fix}`
+          : `Read from the file: the libero replaces ${replaced.map((j) => `#${j}`).join(', ')} in the back row. If that is wrong, ${fix}`,
+      lines: [],
+    });
   }
   const liberos: LiberoConfig[] = liberoIds
     .slice(0, 2)
@@ -224,19 +229,16 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
   };
 }
 
-interface PendingAction {
-  playerId: string;
-  skill: Skill;
-  grade: Grade;
-  jersey: number;
-  lineNo: number;
-}
+/** A line held until the rally's point line: one of our actions, or a sub or timeout in between. */
+type Held =
+  | { kind: 'action'; playerId: string; skill: Skill; grade: Grade; jersey: number; lineNo: number }
+  | { kind: 'event'; payload: MatchEventPayload };
 
 interface Rally {
-  /** Our actions held until the point line says who won, so a wrong-way action drops alone. */
-  pending: PendingAction[];
+  /** Held until the point line says who won, so a wrong-way action drops alone, in file order. */
+  pending: Held[];
   /** Our emitted action that decided this file rally (the engine has already closed it). */
-  decided: { winner: Side; index: number; lineNo: number } | null;
+  decided: { winner: Side; lineNo: number } | null;
   lastOpp: { skill: Skill; grade: Grade } | null;
 }
 
@@ -289,15 +291,22 @@ export function mapDvw(
   };
   let set = 0;
   let setStartIndex = 0;
+  /** The current set's end marker has been seen: later subs and timeouts belong to no set. */
+  let setEnded = false;
   let rally = newRally();
 
   /**
-   * Emits the rally's held actions. With the point line's winner, an action that would end the
-   * rally the other way is dropped on its own; without one (a sub, timeout or set end came
-   * first), the first deciding action closes the rally. Actions after the decider are dropped.
+   * Emits the rally's held lines in order. With the point line's winner, an action that would end
+   * the rally the other way is dropped on its own; without one (the set ended or the file stopped
+   * before a point line), the first deciding action closes the rally. Our actions after the
+   * decider are dropped; held subs and timeouts are always kept.
    */
   const flush = (point: { winner: Side; lineNo: number } | null) => {
     for (const a of rally.pending) {
+      if (a.kind === 'event') {
+        payloads.push(a.payload);
+        continue;
+      }
       if (rally.decided) {
         drop('decided', a.jersey, a.lineNo);
         continue;
@@ -312,7 +321,7 @@ export function mapDvw(
         continue;
       }
       payloads.push({ type: 'action', playerId: a.playerId, skill: a.skill, grade: a.grade });
-      if (winner) rally.decided = { winner, index: payloads.length - 1, lineNo: a.lineNo };
+      if (winner) rally.decided = { winner, lineNo: a.lineNo };
     }
     rally.pending = [];
   };
@@ -321,6 +330,7 @@ export function mapDvw(
     flush(null);
     set = line.set;
     setStartIndex = payloads.length;
+    setEnded = false;
     rally = newRally();
     const court = courtOf(line, us);
     const lineup = court.map((j) => (j === null ? null : idOf(j)));
@@ -338,16 +348,8 @@ export function mapDvw(
   const onPoint = (line: ScoutLine, side: DvwSide, home: number, visiting: number) => {
     const winner: Side = side === us ? 'us' : 'them';
     flush({ winner, lineNo: line.lineNo });
-    const decided = rally.decided;
-    if (decided && decided.winner !== winner) {
-      payloads.splice(decided.index, 1);
-      const team = winner === 'us' ? 'us' : 'the opponent';
-      warn(
-        `Line ${decided.lineNo}: this action ended the rally the other way; line ${line.lineNo} gives the point to ${team} — action dropped.`,
-        [decided.lineNo],
-      );
-    }
-    if (!decided || decided.winner !== winner) payloads.push({ type: 'point', winner, reason: pointReason(winner, rally.lastOpp) });
+    // flush never lets an action decide the rally for the other side.
+    if (!rally.decided) payloads.push({ type: 'point', winner, reason: pointReason(winner, rally.lastOpp) });
     // §4.7: re-sync the score whenever the replay drifts from the file.
     const fileScore = orient(us, home, visiting);
     const now = replay(engine, withMeta(payloads.slice(setStartIndex))).score;
@@ -375,10 +377,8 @@ export function mapDvw(
         else if (!validGrades(c.skill).includes(grade)) {
           const key = `${c.skill}${grade}`;
           droppedGrades.set(key, [...(droppedGrades.get(key) ?? []), line.lineNo]);
-        } else if (rally.decided) {
-          drop('decided', c.jersey, line.lineNo);
         } else {
-          rally.pending.push({ playerId: id, skill: c.skill, grade, jersey: c.jersey, lineNo: line.lineNo });
+          rally.pending.push({ kind: 'action', playerId: id, skill: c.skill, grade, jersey: c.jersey, lineNo: line.lineNo });
         }
         break;
       }
@@ -387,20 +387,27 @@ export function mapDvw(
         break;
       case 'sub': {
         if (c.side !== us) break;
-        flush(null);
+        if (setEnded) {
+          ignoredLines += 1;
+          break;
+        }
         const outId = idOf(c.outJersey);
         const inId = idOf(c.inJersey);
-        if (outId && inId) payloads.push({ type: 'sub', outPlayerId: outId, inPlayerId: inId });
+        if (outId && inId) rally.pending.push({ kind: 'event', payload: { type: 'sub', outPlayerId: outId, inPlayerId: inId } });
         else warn(`Line ${line.lineNo}: substitution #${c.outJersey} → #${c.inJersey} has an unmapped player — skipped.`, [line.lineNo]);
         break;
       }
       case 'timeout':
-        flush(null);
-        payloads.push({ type: 'timeout', team: c.side === us ? 'us' : 'them' });
+        if (setEnded) {
+          ignoredLines += 1;
+          break;
+        }
+        rally.pending.push({ kind: 'event', payload: { type: 'timeout', team: c.side === us ? 'us' : 'them' } });
         break;
       case 'setEnd':
         flush(null);
         payloads.push({ type: 'setEnd', set: line.set });
+        setEnded = true;
         rally = newRally();
         break;
       case 'other':
@@ -412,6 +419,10 @@ export function mapDvw(
     }
   }
   flush(null);
+  // A file saved before its last set marker: close that set if its score already ends it.
+  if (set > 0 && !setEnded && replay(engine, withMeta(payloads.slice(setStartIndex))).setPointReached) {
+    payloads.push({ type: 'setEnd', set });
+  }
 
   for (const { reason, jersey, lines } of droppedActions.values()) warn(dropMessage(reason, jersey, lines), lines.slice(0, 5));
   for (const [key, lines] of droppedGrades) warnDroppedGrade(warn, key[0] as Skill, key[1] as Grade, lines);

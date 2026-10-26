@@ -456,9 +456,63 @@ describe('mapDvw: real-file rallies and liberos', () => {
     // P5 (#8) sits in the back row on every line and never plays a ball; #7 (P1) and #9 (P6) do.
     const p = plan(file([...rally, ...rally, ...rally], { players: [...NO_ROLES, ...VISITING_PLAYERS] }));
     expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: ['p8'] }]);
-    expect(p.issues).toEqual([]);
+    // The guess is shown so the coach can check it.
+    expect(p.issues).toEqual([
+      { kind: 'warning', message: `Read from the file: the libero replaces #8 in the back row. If that is wrong, mark your middle blockers as MB in the team roster, then import again.`, lines: [] },
+    ]);
     const state = replay(engineMatch(p), withIds(p.events));
     expect(state.warnings.filter((w) => w.code === 'offCourt')).toEqual([]);
+  });
+
+  it('counts the server in P1 as replaced: they play the rally they serve', () => {
+    // #8 is in P1: it serves and digs in our serving rallies, and never plays a ball when the opponent serves.
+    const home = [8, 11, 3, 5, 7, 9];
+    const lines = (codes: string[]) => codes.map((code) => ({ code, home }));
+    const ours = ['*08SM+', 'a10RM+', 'a07AH+', '*08DM+', '*p01:00'];
+    const theirs = ['a10SM+', '*04RM+', '*11EH+', '*09AH+', 'a12DM+', 'a07AH+', '*07DM+', 'ap01:01'];
+    const p = plan(file(lines([...ours, ...theirs, ...ours, ...theirs, ...theirs]), { players: [...NO_ROLES, ...VISITING_PLAYERS] }));
+    expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: ['p8'] }]);
+  });
+
+  it('tolerates a stray ball (under 5% of back-row lines) but not a player who plays there, nor an unmapped one', () => {
+    const once = ['a10SM+', '*04RM+', '*08DM+', '*11EH+', '*09AH+', 'a12DM+', 'a07AH+', '*07DM+', 'ap00:01'];
+    const players = [...NO_ROLES, ...VISITING_PLAYERS];
+    const stray = plan(file([...Array.from({ length: 8 }, () => rally).flat(), ...once], { players })); // 1 of 37
+    expect(stray.setup.liberos[0].replaces).toEqual(['p8']);
+    const played = plan(file([...rally, ...rally, ...rally, ...once, ...once], { players })); // 2 of 22
+    expect(played.setup.liberos[0].replaces).toEqual([]);
+    const f = file([...rally, ...rally, ...rally], { players: [...NO_ROLES, ...VISITING_PLAYERS] });
+    const unmapped = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*8': null } });
+    expect(unmapped.setup.liberos[0].replaces).toEqual([]);
+    expect(unmapped.issues).toContainEqual(expect.objectContaining({ message: expect.stringMatching(/^The libero never comes on court/) }));
+  });
+
+  it('keeps the rest of the rally when a timeout or sub sits between a wrong-way action and the point line', () => {
+    const p = plan(file(['a10SM+', '*07RM=', 'aT', '*c05:12', '*11EH+', '*09AH#', '*p01:00']));
+    expect(payloads(p.events).slice(1)).toEqual([
+      { type: 'timeout', team: 'them' },
+      { type: 'sub', outPlayerId: 'p5', inPlayerId: 'p12' },
+      { type: 'action', playerId: 'p11', skill: 'E', grade: '+' },
+      { type: 'action', playerId: 'p9', skill: 'A', grade: '#' },
+    ]);
+    expect(p.issues).toEqual([expect.objectContaining({ kind: 'warning', lines: [2] })]);
+  });
+
+  it('ignores subs and timeouts after the last set end (they belong to no set)', () => {
+    const p = plan(file(['*07SM#', '*p01:00', '**1set', '*T', '*c05:12']));
+    expect(payloads(p.events).slice(-1)[0]).toEqual({ type: 'setEnd', set: 1 });
+    expect(p.events.some((e) => e.type === 'timeout' || e.type === 'sub')).toBe(false);
+    expect(p.checks.ignoredLines).toBe(2);
+    expect(replay(engineMatch(p), withIds(p.events)).warnings).toEqual([]);
+  });
+
+  it('closes a final set saved without its end marker once the score ends it', () => {
+    const points = (n: number) => Array.from({ length: n }, (_, i) => ['*07SM#', `*p${String(i + 1).padStart(2, '0')}:00`]).flat();
+    const done = plan(file(points(25)));
+    expect(payloads(done.events).slice(-1)[0]).toEqual({ type: 'setEnd', set: 1 });
+    expect(replay(engineMatch(done), withIds(done.events)).setsWon).toEqual({ us: 1, them: 0 });
+    const open = plan(file(points(3)));
+    expect(open.events.some((e) => e.type === 'setEnd')).toBe(false);
   });
 
   it('warns when the libero would never come on court', () => {

@@ -216,6 +216,17 @@ describe('parseDvw: set numbers come from the set markers', () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it('keeps every line in set 1 when the file has no set markers', () => {
+    const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('*T', '1')]));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('refuses a scout section holding only NUL padding', () => {
+    expect(parseDvw(fileWith([String.fromCharCode(0), ' ']))).toEqual({ error: 'This file has no scouted rallies.' });
+  });
+
   it('still starts a set after the last marker when it has rallies (a file saved mid-set)', () => {
     const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), line('*07SM#', '2')]));
     if ('error' in result) throw new Error(result.error);

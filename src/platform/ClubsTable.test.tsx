@@ -33,16 +33,32 @@ const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) }
 describe('ClubsTable', () => {
   it('shows name, country, owner, status, created date, accepted legal version and contract dates', async () => {
     render(<ClubsTable />);
-    const a = within(await screen.findByRole('row', { name: /Alpha VC/ }));
-    expect(a.getByText('BE')).toBeInTheDocument();
-    expect(a.getByText('owner@alpha.be')).toBeInTheDocument();
-    expect(a.getByText('Active')).toBeInTheDocument();
-    expect(a.getByText(new Date(2026, 0, 5, 12).toLocaleDateString())).toBeInTheDocument();
-    expect(a.getByText('2026-09')).toBeInTheDocument();
-    const b = within(row('Beta VC'));
-    expect(b.getByText('Ending')).toBeInTheDocument();
-    expect(b.getByText(new Date(2026, 10, 30, 12).toLocaleDateString())).toBeInTheDocument();
-    expect(b.getByText(new Date(2026, 11, 30, 12).toLocaleDateString())).toBeInTheDocument();
+    const created = new Date(2026, 0, 5, 12).toLocaleDateString();
+    const a = await screen.findByRole('row', { name: /Alpha VC/ });
+    expect(a).toHaveTextContent(`BE · created ${created}`);
+    expect(within(a).getByText('owner@alpha.be')).toBeInTheDocument();
+    expect(within(a).getByText('Active')).toBeInTheDocument();
+    expect(a).toHaveTextContent('Accepted 2026-09');
+    const b = row('Beta VC');
+    expect(within(b).getByText('Ending')).toBeInTheDocument();
+    const ends = new Date(2026, 10, 30, 12).toLocaleDateString();
+    const exportUntil = new Date(2026, 11, 30, 12).toLocaleDateString();
+    expect(b).toHaveTextContent(`Ends ${ends} · export until ${exportUntil}`);
+    expect(row('Gamma VC')).toHaveTextContent('Not accepted');
+  });
+
+  it('fits the page: five columns that wrap, no forced full-width table', async () => {
+    render(<ClubsTable />);
+    await screen.findByRole('row', { name: /Alpha VC/ });
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Club', 'Owner', 'Status', 'Terms', 'Actions']);
+    expect(screen.getByRole('table').className).not.toContain('min-w-max');
+  });
+
+  it('shows the terms date from a full version key', async () => {
+    vi.mocked(platformApi.listClubs).mockResolvedValue(page([testClub({ id: 'c4', name: 'Delta VC',
+      legal: { versionKey: 'terms-2026-10-22_dpa-2026-10-22', acceptedAt: ts(2026, 9, 26), acceptedBy: 'x@y.z' } })]));
+    render(<ClubsTable />);
+    expect(await screen.findByRole('row', { name: /Delta VC/ })).toHaveTextContent('Accepted 2026-10-22');
   });
 
   it('filters by status', async () => {

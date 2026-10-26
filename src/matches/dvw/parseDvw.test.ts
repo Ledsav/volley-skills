@@ -54,7 +54,7 @@ describe('parseDvw: three-sets-home', () => {
     expect(first.raw).toBe('*P11>LUp');
     expect(first.homeCourt).toEqual([7, 11, 3, 5, 8, 9]);
     expect(first.visitingCourt).toEqual([10, 6, 9, 12, 7, 11]);
-    expect(first.code).toEqual({ kind: 'other', reason: 'unparsed' });
+    expect(first.code).toEqual({ kind: 'other', reason: 'lineupMarker' });
     expect(new Set(file.scout.map((l) => l.set))).toEqual(new Set([1, 2, 3]));
     expect(file.scout.every((l) => l.lineNo > 0)).toBe(true);
   });

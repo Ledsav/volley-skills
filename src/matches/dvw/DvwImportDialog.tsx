@@ -53,6 +53,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
   const [running, setRunning] = useState<Running | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [discardError, setDiscardError] = useState<string | null>(null);
   const attempt = useRef(0);
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
@@ -111,12 +112,26 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
   }
 
   async function discard() {
-    if (running) await discardImport(teamId, running.job.matchId).catch(() => undefined);
+    setDiscardError(null);
+    if (running) {
+      try {
+        await discardImport(teamId, running.job.matchId);
+      } catch {
+        setDiscardError('Could not discard the partial import. Check your connection and try again.');
+        return;
+      }
+    }
     onClose();
   }
 
+  /** Closing with a failed job must not leave the partial match behind. */
+  function handleClose() {
+    if (running && failed) void discard();
+    else onClose();
+  }
+
   return (
-    <Dialog title="Import from DataVolley (.dvw)" onClose={onClose} size="lg" mobileSheet dirty={!!running && !failed}>
+    <Dialog title="Import from DataVolley (.dvw)" onClose={handleClose} size="lg" mobileSheet dirty={!!running}>
       {running ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-ink tabular-nums" role="status">
@@ -125,6 +140,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
           {failed && (
             <>
               <p role="alert" className="text-sm text-red">The import did not finish. Retry, or discard what was written.</p>
+              {discardError && <p role="alert" className="text-sm text-red">{discardError}</p>}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => void discard()}>Discard</Button>
                 <Button variant="primary" onClick={() => void run(running)}>Retry</Button>

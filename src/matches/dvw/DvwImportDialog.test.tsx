@@ -125,12 +125,64 @@ describe('DvwImportDialog', () => {
   });
 
   it('requires the score confirmation when replayed and file set scores differ', async () => {
-    await toReview('five-sets-away.dvw');
-    const confirm = screen.queryByLabelText('I checked the scores');
-    if (!confirm) return; // the fixture replays cleanly: nothing to confirm
+    const text = fixtureText('three-sets-home.dvw').replace('6-8;16-11;21-20;25-20;', '6-8;16-11;21-20;25-18;');
+    const r = renderDialog();
+    pick(fileOf(text, 'mismatch.dvw'));
+    await screen.findByText(/which team is us/i);
+    expect(r.onClose).not.toHaveBeenCalled();
+    const confirm = screen.getByLabelText('I checked the scores');
     expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
     fireEvent.click(confirm);
     expect(screen.getByRole('button', { name: 'Import' })).toBeEnabled();
+  });
+
+  it('never starts an import while the plan is blocked', async () => {
+    await toReview();
+    fireEvent.change(screen.getByLabelText(/map #7 /i), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    expect(api.startImport).not.toHaveBeenCalled();
+    expect(api.runImport).not.toHaveBeenCalled();
+  });
+
+  it('imports the edited match fields and keeps them when the side is flipped', async () => {
+    await toReview();
+    fireEvent.change(screen.getByLabelText(/^competition/i), { target: { value: 'cup' } });
+    fireEvent.change(screen.getByLabelText(/^format/i), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText(/^date/i), { target: { value: '2026-11-02' } });
+    fireEvent.click(screen.getByRole('radio', { name: /rivali uno/i }));
+    expect(screen.getByLabelText(/^competition/i)).toHaveValue('cup');
+    expect(screen.getByLabelText(/^format/i)).toHaveValue('3');
+    expect(screen.getByLabelText(/^date/i)).toHaveValue('2026-11-02');
+    expect(screen.getByLabelText(/opponent/i)).toHaveValue('Volley Club Test');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await waitFor(() => expect(api.startImport).toHaveBeenCalled());
+    const plan = vi.mocked(api.startImport).mock.calls[0][1];
+    expect(plan.setup).toMatchObject({ competition: 'cup', date: '2026-11-02', opponent: 'Volley Club Test' });
+    expect(plan.setup.format.bestOf).toBe(3);
+    expect(vi.mocked(api.runImport).mock.calls[0][1]).toBe(plan);
+  });
+
+  it('discards the partial match when a failed import is closed', async () => {
+    vi.mocked(api.runImport).mockRejectedValueOnce(new Error('offline'));
+    const { onClose } = await toReview();
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByRole('button', { name: 'Retry' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    const discards = await screen.findAllByRole('button', { name: 'Discard' });
+    fireEvent.click(discards[discards.length - 1]);
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(api.discardImport).toHaveBeenCalledWith('t1', 'm1');
+  });
+
+  it('shows a discard error and stays open', async () => {
+    vi.mocked(api.runImport).mockRejectedValueOnce(new Error('offline'));
+    vi.mocked(api.discardImport).mockRejectedValueOnce(new Error('offline'));
+    const { onClose } = await toReview();
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2));
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('shows the checks: corrections and sets', async () => {

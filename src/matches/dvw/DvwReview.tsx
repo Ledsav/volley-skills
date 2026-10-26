@@ -63,7 +63,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
   function flip(next: DvwSide) {
     setSide(next);
     setMapping(autoMapPlayers(file, next, players));
-    setEdits({});
+    setEdits((c) => ({ ...c, opponent: undefined }));
     setConfirmed(false);
   }
 

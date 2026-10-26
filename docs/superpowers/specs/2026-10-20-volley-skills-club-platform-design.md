@@ -212,7 +212,7 @@ The same specific-approval step is used for all clubs, not only Italian ones (on
 | `authTime` | == `request.auth.token.auth_time`; rules require `auth_time` within 15 min of request.time |
 | `userAgent` | navigator.userAgent (≤ 300 chars) |
 
-**The operator never signs for a club**: acceptance creates are refused when `exists(platformAdmins/email())`, so the operator cannot be on both sides of the contract, including for the operator's home club (rules test).
+**One account with roles (operator decision, 2026-10-26)**: an acceptance is valid when made by the club's own admin, whether or not that account is also a platform admin. The operator signs only for a club they are an admin of (their own club), never for another one: they are not a member there (rules tests). For the operator's own club this means signing with themselves, accepted for the demo; a club officer re-accepts a later version before any outside club relies on it.
 
 Not captured: the IP address (no server on Spark). Recorded as a known gap; revisit when Cloud Functions arrive with payments. The operator keeps acceptance records as the operator's own controller data (evidence), so they survive club deletion in the tombstone (§7.4).
 
@@ -241,8 +241,8 @@ Each published version in `src/legal/versions.ts` carries `{ version, announcedA
 > `email_verified` on every request) and the client commits within
 > 14 minutes (P6, P8); the new club id is a 20-character auto id kept in the draft (P7, P11); new clubs start with AI,
 > growth tests and reference opt-out off; after the commit the app reloads at `/` (P9); club admins with an outdated accepted
-> version get the blocking review screen, except a platform admin (non-blocking notice naming `ownerEmail`) and a club that
-> already asked to terminate (non-blocking notice) (P10); the signing language is chosen on the signing screens and stored in
+> version get the blocking review screen, except a club that already asked to terminate (non-blocking notice) (P10; the
+> platform-admin exception was dropped on 2026-10-26: one account with roles); the signing language is chosen on the signing screens and stored in
 > the acceptance (P13); award photos of minors need `player.photoConsent` (P12). The acceptance record gained
 > `authTime`, `userAgent`, `acceptedByName`, `authorityConfirmed` and `clausesSha256`.
 

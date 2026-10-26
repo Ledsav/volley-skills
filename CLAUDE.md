@@ -110,6 +110,17 @@ position, level and a per-player note go on a "Team notes" page. That is the onl
 player data the PDF carries, by club decision. Roboto lacks arrow glyphs, so
 `fontSafe` swaps them for ›/‹ in every printed string.
 
+**DataVolley import** (`src/matches/dvw/`): `decodeDvw` → `parseDvw` → `parseScoutCode` is a
+pure in-browser parser; the file is never uploaded or stored. The format is read from the MIT
+openvolley `datavolley` docs, with no code copied. `mapDvw` turns the file plus the coach's side
+and roster choices into normal match events with `source: 'import'` and one `chunkId`. It replays
+through `scoutEngine` and, where the file's point lines disagree with the replayed score, adds
+`correction` events so the score matches the file (the file wins). Opponent players and file
+player names are never stored. `dvwImportApi.ts` writes the match (create-only `import` field,
+checked by the rules) and its events in batches of ≤ 450 with pre-generated ids, so Retry is
+idempotent, then finishes through `buildFinishPayload` like live scouting. `DvwImportDialog` sits
+on the team Matches tab (online only, ≤ 2 MB, duplicate check by file SHA-256).
+
 ### Feature-folder layout
 
 `src/<feature>/` groups everything for a feature: components, dialogs, and a

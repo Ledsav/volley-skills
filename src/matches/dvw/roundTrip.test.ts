@@ -18,12 +18,14 @@ function parsed(name: string): DvwFile {
 }
 
 // `dropped`: our skill lines the import leaves out (the serve graded `!`, and a `$$` line in the five-set file).
-const cases: { name: string; setsWon: SetScore; corrections: number; dropped: number }[] = [
-  { name: 'three-sets-home.dvw', setsWon: { us: 3, them: 0 }, corrections: 1, dropped: 1 },
-  { name: 'five-sets-away.dvw', setsWon: { us: 3, them: 2 }, corrections: 0, dropped: 2 },
+// `liberoChecked`: the three-set file's synthetic lineup has the libero receive while both middles are in the
+// front row (its middles start in P3 and P5, not opposite), so only the five-set file is a fair libero check.
+const cases: { name: string; setsWon: SetScore; corrections: number; dropped: number; liberoChecked: boolean }[] = [
+  { name: 'three-sets-home.dvw', setsWon: { us: 3, them: 0 }, corrections: 1, dropped: 1, liberoChecked: false },
+  { name: 'five-sets-away.dvw', setsWon: { us: 3, them: 2 }, corrections: 0, dropped: 2, liberoChecked: true },
 ];
 
-describe.each(cases)('round trip: $name', ({ name, setsWon, corrections, dropped }) => {
+describe.each(cases)('round trip: $name', ({ name, setsWon, corrections, dropped, liberoChecked }) => {
   const file = parsed(name);
   const us = pickOurSide(file.teams, ['Volley Club Test', 'U17']);
   const ours = file.players.filter((p) => p.side === us);
@@ -51,6 +53,15 @@ describe.each(cases)('round trip: $name', ({ name, setsWon, corrections, dropped
     expect(report.setsWon).toEqual(setsWon);
     expect(state.warnings.filter((w) => w.code === 'setEndTie')).toEqual([]);
     expect(plan.checks.corrections).toHaveLength(corrections);
+  });
+
+  it.runIf(liberoChecked)('puts the libero on court: no libero action is reported off court', () => {
+    const liberoIds = new Set(plan.setup.liberos.map((l) => l.playerId));
+    expect(liberoIds.size).toBe(1);
+    const liberoEvents = new Set(events.filter((e) => e.type === 'action' && liberoIds.has(e.playerId)).map((e) => e.id));
+    expect(liberoEvents.size).toBeGreaterThan(0);
+    const offCourt = state.warnings.filter((w) => w.code === 'offCourt' && liberoEvents.has(w.eventId));
+    expect(offCourt).toEqual([]);
   });
 
   it('keeps every valid our-side skill line as an action', () => {

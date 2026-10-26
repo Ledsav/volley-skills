@@ -15,6 +15,7 @@ import {
 import type { Player, PositionCategory } from '../../types/player';
 import { replay, type EngineMatch } from '../scoutEngine';
 import { POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
+import { lineList } from './lineList';
 import type { DvwFile, DvwPlayer, DvwSide, ScoutLine } from './types';
 
 /** Key `${side}${jersey}`, value an app playerId, or null = Skip. */
@@ -108,33 +109,62 @@ function pointReason(winner: Side, opp: { skill: Skill; grade: Grade } | null): 
   return POINT_REASONS[winner].includes(reason) ? reason : 'unknown';
 }
 
+const actionsText = (n: number) => `${n} ${n === 1 ? 'action' : 'actions'}`;
+
 /** One warning per skill and grade: the count and the first five line numbers. */
 function warnDroppedGrade(warn: (message: string, lines: number[]) => void, skill: Skill, grade: Grade, lines: number[]) {
-  const first = lines.slice(0, 5);
-  const n = lines.length;
-  const where = `${n === 1 ? 'line' : 'lines'} ${first.join(', ')}${n > 5 ? ', …' : ''}`;
-  const what = `${n} ${SKILL_LABELS[skill]} "${grade}" ${n === 1 ? 'action' : 'actions'} dropped`;
-  warn(`${what}: the app has no such grade (${where}).`, first);
+  const what = `${lines.length} ${SKILL_LABELS[skill]} "${grade}" ${lines.length === 1 ? 'action' : 'actions'} dropped`;
+  warn(`${what}: the app has no such grade (${lineList(lines)}).`, lines.slice(0, 5));
+}
+
+/** Why one of our skill lines was dropped (one grouped warning per jersey and reason). */
+type DropReason = 'unmapped' | 'unknownPlayer' | 'decided';
+
+function dropMessage(reason: DropReason, jersey: number | null, lines: number[]): string {
+  const n = actionsText(lines.length);
+  if (reason === 'unknownPlayer') return `${n} by an unknown player ($$) dropped (${lineList(lines)}).`;
+  const why = reason === 'unmapped' ? 'not mapped to a player' : 'the rally was already decided';
+  return `${n} of #${jersey} dropped: ${why} (${lineList(lines)}).`;
 }
 
 function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players: Player[], issues: DvwIssue[]): MatchSetupInput {
   const roster: RosterEntry[] = [];
   const liberoIds: string[] = [];
+  /** App playerId → the first file jersey mapped to it. */
+  const mappedFrom = new Map<string, number>();
+  const seen = seenJerseys(file, us);
   for (const fp of ourFilePlayers(file, us)) {
     const app = players.find((p) => p.id === mapping[keyOf(us, fp.jersey)]);
-    if (!app || roster.some((r) => r.playerId === app.id)) continue;
+    if (!app) continue;
+    const first = mappedFrom.get(app.id);
+    if (first !== undefined) {
+      // Two file players merged into one app player would silently merge their stats.
+      const lineNo = seen.get(fp.jersey);
+      issues.push({
+        kind: 'blocking',
+        message: `Two file players are mapped to the same app player (#${first} and #${fp.jersey}).`,
+        lines: lineNo === undefined ? [] : [lineNo],
+      });
+      continue;
+    }
+    mappedFrom.set(app.id, fp.jersey);
+    const isLibero = fp.specialRole === 'L' || fp.roleCode === 1;
     roster.push({
       playerId: app.id,
       number: app.number,
       name: app.fullName,
-      positionCategory: ROLE_BY_CODE[fp.roleCode] ?? app.positionCategory,
+      positionCategory: isLibero ? 'L' : ROLE_BY_CODE[fp.roleCode] ?? app.positionCategory,
     });
-    if (fp.specialRole === 'L' || fp.roleCode === 1) liberoIds.push(app.id);
+    if (isLibero) liberoIds.push(app.id);
   }
   if (liberoIds.length > 2) {
     issues.push({ kind: 'blocking', message: 'The app takes at most two liberos: skip the others or map them to other players.', lines: [] });
   }
-  const liberos: LiberoConfig[] = liberoIds.slice(0, 2).map((playerId) => ({ playerId, mode: 'receiving', replaces: [] }));
+  // DataVolley never lists the libero in P1-P6: the libero is on court for any back-row middle.
+  const middles = roster.filter((r) => r.positionCategory === 'MB').map((r) => r.playerId);
+  const liberos: LiberoConfig[] = liberoIds
+    .slice(0, 2)
+    .map((playerId) => ({ playerId, mode: 'always', replaces: [...middles] }));
   const them = us === '*' ? 'a' : '*';
   return {
     date: file.date ?? '',
@@ -163,7 +193,9 @@ export function mapDvw(
   const issues: DvwIssue[] = [];
   const warn = (message: string, lines: number[]) => issues.push({ kind: 'warning', message, lines });
   const setup = buildSetup(file, us, mapping, players, issues);
-  for (const [jersey, lineNo] of unlistedJerseys(file, us)) warn(`#${jersey} is not in the file's player list.`, [lineNo]);
+  for (const [jersey, lineNo] of unlistedJerseys(file, us)) {
+    if (mapping[keyOf(us, jersey)]) warn(`#${jersey} is not in the file's player list.`, [lineNo]);
+  }
   const engine: EngineMatch = { format: setup.format, roster: setup.roster, liberos: setup.liberos };
   const rosterIds = new Set(setup.roster.map((r) => r.playerId));
   const idOf = (jersey: number): string | null => {
@@ -187,6 +219,14 @@ export function mapDvw(
   let ignoredLines = 0;
   /** `${skill}${grade}` → line numbers of our actions dropped for a grade the app does not offer. */
   const droppedGrades = new Map<string, number[]>();
+  /** `${reason}:${jersey}` → our dropped skill lines, grouped into one warning each. */
+  const droppedActions = new Map<string, { reason: DropReason; jersey: number | null; lines: number[] }>();
+  const drop = (reason: DropReason, jersey: number | null, lineNo: number) => {
+    const key = `${reason}:${jersey ?? '$$'}`;
+    const entry = droppedActions.get(key) ?? { reason, jersey, lines: [] };
+    entry.lines.push(lineNo);
+    droppedActions.set(key, entry);
+  };
   let set = 0;
   let setStartIndex = 0;
   let rally = newRally();
@@ -204,16 +244,6 @@ export function mapDvw(
         lines: [line.lineNo],
       });
     }
-    court.forEach((j, i) => {
-      const first = lineup.indexOf(lineup[i]);
-      if (lineup[i] !== null && first < i) {
-        issues.push({
-          kind: 'blocking',
-          message: `Two file players are mapped to the same app player (#${court[first]} and #${j}).`,
-          lines: [line.lineNo],
-        });
-      }
-    });
     const serve = firstServe.get(set) ?? us;
     payloads.push({ type: 'setStart', set, lineup: lineup.map((id) => id ?? ''), serving: serve === us ? 'us' : 'them', roles });
   };
@@ -251,13 +281,13 @@ export function mapDvw(
           break;
         }
         const id = c.jersey === null ? null : idOf(c.jersey);
-        if (c.jersey === null) warn(`Line ${line.lineNo}: unknown player ($$) — action dropped.`, [line.lineNo]);
-        else if (!id) warn(`Line ${line.lineNo}: #${c.jersey} is not mapped to a player — action dropped.`, [line.lineNo]);
+        if (c.jersey === null) drop('unknownPlayer', null, line.lineNo);
+        else if (!id) drop('unmapped', c.jersey, line.lineNo);
         else if (!validGrades(c.skill).includes(c.grade)) {
           const key = `${c.skill}${c.grade}`;
           droppedGrades.set(key, [...(droppedGrades.get(key) ?? []), line.lineNo]);
         } else if (rally.decided) {
-          warn(`Line ${line.lineNo}: the rally was already decided — action dropped.`, [line.lineNo]);
+          drop('decided', c.jersey, line.lineNo);
         } else {
           payloads.push({ type: 'action', playerId: id, skill: c.skill, grade: c.grade });
           const winner = rallyOutcome(c.skill, c.grade);
@@ -280,7 +310,7 @@ export function mapDvw(
         payloads.push({ type: 'timeout', team: c.side === us ? 'us' : 'them' });
         break;
       case 'setEnd':
-        payloads.push({ type: 'setEnd', set: c.set });
+        payloads.push({ type: 'setEnd', set: line.set });
         rally = newRally();
         break;
       case 'other':
@@ -292,6 +322,7 @@ export function mapDvw(
     }
   }
 
+  for (const { reason, jersey, lines } of droppedActions.values()) warn(dropMessage(reason, jersey, lines), lines.slice(0, 5));
   for (const [key, lines] of droppedGrades) warnDroppedGrade(warn, key[0] as Skill, key[1] as Grade, lines);
 
   if (payloads.length > MAX_IMPORT_EVENTS) {

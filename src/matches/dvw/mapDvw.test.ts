@@ -100,7 +100,25 @@ describe('mapDvw: setup', () => {
     expect(p.setup.format.bestOf).toBe(5);
     expect(p.setup.roster).toContainEqual({ playerId: 'p11', number: 11, name: 'App 11', positionCategory: 'S' });
     expect(p.setup.roster).toContainEqual({ playerId: 'p4', number: 4, name: 'App 4', positionCategory: 'L' });
-    expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'receiving', replaces: [] }]);
+    expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: ['p3', 'p8'] }]);
+  });
+
+  it('puts the libero on court for a back-row middle', () => {
+    // P5 is #8, a middle: the libero (#4) replaces them, so their reception is on court.
+    const p = plan(file(['a10SM-', '*04RM+', '*08AH+', 'ap00:01']));
+    const state = replay(engineMatch(p), withIds(p.events));
+    expect(state.actions.map((a) => a.playerId)).toEqual(['p4', 'p8']);
+    const offCourt = state.warnings.filter((w) => w.code === 'offCourt').map((w) => w.eventId);
+    expect(offCourt).toEqual([`e${p.events.findIndex((e) => e.type === 'action' && e.playerId === 'p8') + 1}`]);
+  });
+
+  it('treats a player with special role L as a libero whatever the role code', () => {
+    const f = file(['*04RM+', 'ap00:01'], {
+      players: [...HOME_PLAYERS.map((pl) => (pl.jersey === 4 ? { ...pl, roleCode: 4 as const } : pl)), ...VISITING_PLAYERS],
+    });
+    const p = plan(f);
+    expect(p.setup.roster).toContainEqual({ playerId: 'p4', number: 4, name: 'App 4', positionCategory: 'L' });
+    expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: ['p3', 'p8'] }]);
   });
 
   it('uses best of 3 when the winner won two sets, and orients an away match', () => {
@@ -165,11 +183,26 @@ describe('mapDvw: sets', () => {
   it('blocks two file players mapped to the same app player in a lineup', () => {
     const f = file(['*07SM+', 'ap00:01']);
     const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*9': 'p7' } });
+    expect(p.issues.filter((i) => i.kind === 'blocking' && i.message.startsWith('Two file players'))).toEqual([
+      { kind: 'blocking', message: 'Two file players are mapped to the same app player (#7 and #9).', lines: [1] },
+    ]);
+  });
+
+  it('blocks two bench players mapped to the same app player', () => {
+    const f = file(['*c05:12', '*T', '*c08:06']);
+    const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*6': 'p12' } });
     expect(p.issues).toContainEqual({
       kind: 'blocking',
-      message: 'Two file players are mapped to the same app player (#7 and #9).',
-      lines: [1],
+      message: 'Two file players are mapped to the same app player (#12 and #6).',
+      lines: [3],
     });
+  });
+
+  it('allows one app player for a file player who never appears in the match', () => {
+    const f = file(['*07SM+', 'ap00:01']);
+    // #12 is in the file's player list but not in the scout: their mapping does not count.
+    const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*12': 'p7' } });
+    expect(p.issues.filter((i) => i.kind === 'blocking')).toEqual([]);
   });
 
   it('takes serving from the first serve line when we are the visiting team', () => {
@@ -235,9 +268,38 @@ describe('mapDvw: actions and points', () => {
       { type: 'point', winner: 'us', reason: 'unknown' },
       { type: 'point', winner: 'them', reason: 'unknown' },
     ]);
-    expect(p.issues.map((i) => [i.kind, i.lines])).toEqual([
-      ['warning', [1]],
-      ['warning', [3]],
+    expect(p.issues).toEqual([
+      { kind: 'warning', message: '1 action of #12 dropped: not mapped to a player (line 1).', lines: [1] },
+      { kind: 'warning', message: '1 action by an unknown player ($$) dropped (line 3).', lines: [3] },
+    ]);
+  });
+
+  it('groups dropped actions into one warning per jersey and reason', () => {
+    const f = file([
+      ...Array.from({ length: 6 }, () => '*12DM+'), // lines 1-6: #12 skipped
+      '*$$RM=', // 7
+      '*07SM#', // 8
+      '*09AH+', // 9: decided
+      '*09AH+', // 10: decided
+      '*p01:00', // 11
+      '*$$DM+', // 12
+      '*11EM+', // 13
+      '*12DM+', // 14
+      'ap01:01',
+    ]);
+    const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*12': null } });
+    expect(p.issues).toEqual([
+      {
+        kind: 'warning',
+        message: '7 actions of #12 dropped: not mapped to a player (lines 1, 2, 3, 4, 5, …).',
+        lines: [1, 2, 3, 4, 5],
+      },
+      { kind: 'warning', message: '2 actions by an unknown player ($$) dropped (lines 7, 12).', lines: [7, 12] },
+      {
+        kind: 'warning',
+        message: '2 actions of #9 dropped: the rally was already decided (lines 9, 10).',
+        lines: [9, 10],
+      },
     ]);
   });
 
@@ -264,7 +326,9 @@ describe('mapDvw: actions and points', () => {
   it('drops our actions after the rally was decided, until the next point line', () => {
     const p = plan(file(['*07SM#', '*09AH+', '*p01:00', '*07SM+']));
     expect(p.events.filter((e) => e.type === 'action').map((e) => (e.type === 'action' ? e.grade : ''))).toEqual(['#', '+']);
-    expect(p.issues).toEqual([expect.objectContaining({ kind: 'warning', lines: [2] })]);
+    expect(p.issues).toEqual([
+      { kind: 'warning', message: '1 action of #9 dropped: the rally was already decided (line 2).', lines: [2] },
+    ]);
   });
 
   it('maps opponent skill lines to nothing', () => {
@@ -282,10 +346,9 @@ describe('mapDvw: subs and timeouts', () => {
       { type: 'timeout', team: 'us' },
       { type: 'timeout', team: 'them' },
     ]);
-    expect(p.issues).toEqual([
-      { kind: 'warning', message: "#44 is not in the file's player list.", lines: [5] },
-      expect.objectContaining({ kind: 'warning', lines: [5] }),
-    ]);
+    // #44 is skipped, so only the skipped sub is reported (not "#44 is not in the file's player list").
+    expect(p.issues).toEqual([expect.objectContaining({ kind: 'warning', lines: [5] })]);
+    expect(p.issues[0].message).toMatch(/substitution #8 → #44/);
   });
 });
 

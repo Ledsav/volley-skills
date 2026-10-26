@@ -10,7 +10,7 @@ export const OPERATOR: {
 } = {
   name: 'Alberto Valdes Rey',
   country: 'LU',
-  address: null,
+  address: '16, rue Robert Stümper, L-2557 Luxembourg',
   registration: null,
   vat: null,
   contactEmail: 'alberto.valdes.rey.official@gmail.com',

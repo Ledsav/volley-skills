@@ -255,7 +255,8 @@ From the bulk-import and quota-protection reviews:
 
 ## E. Club platform: legal launch gate and operator actions
 
-- [ ] **Fill the operator address in `src/legal/operator.ts`** — the legal texts
+- [x] **Fill the operator address in `src/legal/operator.ts`** — DONE 2026-10-26 (pins updated in place;
+      no production acceptance existed yet) — the legal texts
       show a marker while `address` is null. Registration and VAT stay empty (the
       operator is an individual) and their lines are omitted.
 - [ ] **Fill the address and pass the lawyer gate BEFORE the first production

@@ -36,11 +36,11 @@ import { FINISHED_MATCHES_CAP } from './limits';
 
 const MATCHES_PAGE_SIZE = 20;
 const MATCHES_MONTH_CAP = 50;
-const MATCH_EVENTS_CAP = 2000;
+export const MATCH_EVENTS_CAP = 2000;
 
-const matchesCol = (teamId: string) => clubCol('teams', teamId, 'matches');
-const matchDoc = (teamId: string, matchId: string) => clubDoc('teams', teamId, 'matches', matchId);
-const eventsCol = (teamId: string, matchId: string) => clubCol('teams', teamId, 'matches', matchId, 'events');
+export const matchesCol = (teamId: string) => clubCol('teams', teamId, 'matches');
+export const matchDoc = (teamId: string, matchId: string) => clubDoc('teams', teamId, 'matches', matchId);
+export const eventsCol = (teamId: string, matchId: string) => clubCol('teams', teamId, 'matches', matchId, 'events');
 const usageDoc = (teamId: string) => clubDoc('teams', teamId, 'scoutProfile', 'usage');
 
 const toMatch = (id: string, data: object) => ({ id, ...data }) as Match;

@@ -51,8 +51,9 @@ function parseSets(lines: string[]): DvwSet[] {
     .map((l) => {
       const f = fields(l);
       const m = /^(\d+)\s*-\s*(\d+)$/.exec(f[4] ?? '');
+      // DataVolley marks unplayed sets True too; only a final score makes a set played.
       return {
-        played: (f[0] ?? '').toLowerCase() === 'true',
+        played: (f[0] ?? '').toLowerCase() === 'true' && m !== null,
         home: m ? Number(m[1]) : 0,
         visiting: m ? Number(m[2]) : 0,
       };
@@ -84,22 +85,35 @@ function parsePlayers(lines: string[], side: DvwSide, warnings: string[]): DvwPl
   return players;
 }
 
+/** A blank line, or one holding only NUL padding (some files end with a stray NUL byte). */
+const isBlank = (line: string) => line.replace(/\0/g, '').trim() === '';
+
 /**
  * The set of each line is the running count of `**Nset` markers: lines before the first
  * marker are set 1, lines after the Nth are set N+1 (a marker belongs to the set it ends).
- * Field 9 is only a cross-check: one warning per set where it is empty or disagrees.
+ * Lines after the last marker start a set only if they hold a rally (a skill or point line);
+ * otherwise they stay in the last set, so a trailing note never makes a phantom set.
+ * Field 9 is only a cross-check: one warning per set where it is empty or disagrees. Marker
+ * lines are not checked, since DataVolley writes the next set's number on them.
  */
 function parseScout(section: Section, warnings: string[]): ScoutLine[] {
   const out: ScoutLine[] = [];
   const mismatches = new Map<number, number[]>();
+  const rows = section.lines
+    .map((line, i) => ({ line, lineNo: section.start + i }))
+    .filter(({ line }) => !isBlank(line))
+    .map(({ line, lineNo }) => ({ f: fields(line), lineNo }))
+    .map(({ f, lineNo }) => ({ f, lineNo, code: parseScoutCode(f[0]) }));
+  let lastMarker = -1;
+  rows.forEach((r, i) => {
+    if (r.code.kind === 'setEnd') lastMarker = i;
+  });
+  const trailingRally = rows.slice(lastMarker + 1).some((r) => r.code.kind === 'skill' || r.code.kind === 'point');
   let markers = 0;
-  section.lines.forEach((line, i) => {
-    if (line.trim() === '') return;
-    const f = fields(line);
-    const lineNo = section.start + i;
-    const code = parseScoutCode(f[0]);
-    const set = markers + 1;
-    if (int(f[8]) !== set) mismatches.set(set, [...(mismatches.get(set) ?? []), lineNo]);
+  rows.forEach(({ f, lineNo, code }, i) => {
+    const trailing = lastMarker >= 0 && i > lastMarker && !trailingRally;
+    const set = trailing ? markers : markers + 1;
+    if (code.kind !== 'setEnd' && !trailing && int(f[8]) !== set) mismatches.set(set, [...(mismatches.get(set) ?? []), lineNo]);
     out.push({
       lineNo,
       raw: f[0],

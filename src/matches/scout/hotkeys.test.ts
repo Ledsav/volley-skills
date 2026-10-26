@@ -64,7 +64,7 @@ describe('resolveKey', () => {
   });
 
   it('ignores grades the skill does not have, and grades with no panel open', () => {
-    expect(resolveKey({ key: '!' }, withPanel({ panelSkill: 'S' }))).toBeNull();
+    expect(resolveKey({ key: '!' }, withPanel({ panelSkill: 'B' }))).toBeNull();
     expect(resolveKey({ key: '/' }, withPanel({ panelSkill: 'E' }))).toBeNull();
     expect(resolveKey({ key: '#' }, base)).toBeNull();
   });

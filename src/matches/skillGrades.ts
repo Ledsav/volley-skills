@@ -12,7 +12,7 @@ export const SKILL_LABELS: Record<Skill, string> = {
 
 /** DataVolley grades with a per-skill meaning. A missing key = grade not offered. */
 export const GRADE_LABELS: Record<Skill, Partial<Record<Grade, string>>> = {
-  S: { '#': 'Ace', '+': 'Pressure', '-': 'Easy', '/': 'Free back', '=': 'Error' },
+  S: { '#': 'Ace', '+': 'Pressure', '!': 'OK', '-': 'Easy', '/': 'Free back', '=': 'Error' },
   R: { '#': 'Perfect', '+': 'Good', '!': 'OK', '-': 'Poor', '/': 'Overpass', '=': 'Aced' },
   A: { '#': 'Kill', '+': 'Good', '!': 'Covered', '-': 'Easy dig', '/': 'Blocked', '=': 'Error' },
   B: { '#': 'Stuff', '+': 'Touch ours', '-': 'Touch theirs', '/': 'Tooled', '=': 'Net' },

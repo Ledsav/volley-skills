@@ -136,7 +136,7 @@ describe('TextScoutPanel', () => {
   });
 
   it('blocks an invalid skill/grade pair until the grade is fixed', async () => {
-    renderPanel({ ask: vi.fn(async () => ({ rallies: [{ actions: [{ number: 2, skill: 'S', grade: '!' }] }], unparsed: [] })) });
+    renderPanel({ ask: vi.fn(async () => ({ rallies: [{ actions: [{ number: 2, skill: 'B', grade: '!' }] }], unparsed: [] })) });
     fireEvent.change(screen.getByLabelText('Match notes'), { target: { value: 'x' } });
     fireEvent.click(screen.getByRole('button', { name: 'Process' }));
     await screen.findByText(/has no grade "!"/);

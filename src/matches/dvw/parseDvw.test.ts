@@ -147,6 +147,13 @@ describe('parseDvw: errors and edge cases', () => {
     expect(result.players.find((p) => p.fileId === 'T002')).toBeUndefined();
     expect(result.warnings).toHaveLength(1);
   });
+
+  it('counts a set marked True but without a final score as not played (DataVolley marks unplayed sets True)', () => {
+    const result = parseDvw(three.replace('False;;;;;0;', 'True;;;;;;'));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.sets.filter((s) => s.played)).toHaveLength(3);
+    expect(result.sets[3]).toEqual({ played: false, home: 0, visiting: 0 });
+  });
 });
 
 describe('parseDvw: set numbers come from the set markers', () => {
@@ -184,5 +191,34 @@ describe('parseDvw: set numbers come from the set markers', () => {
     expect(result.warnings).toEqual([
       'Set 1: 7 scout lines have a missing or different set number (lines 4, 5, 6, 7, 8, …); the set markers were used.',
     ]);
+  });
+
+  it('does not cross-check marker lines: DataVolley writes the next set number on them', () => {
+    const result = parseDvw(
+      fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), line('*07SM#', '2'), line('**2set', '3')]),
+    );
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 2, 2]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('skips blank lines, including a stray NUL at the end of the file', () => {
+    const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), ' ', String.fromCharCode(0)]));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.map((l) => l.raw)).toEqual(['*07SM#', '*p01:00', '**1set']);
+  });
+
+  it('keeps rally-less lines after the last marker in the last set (no phantom set)', () => {
+    const empty = '*P11>LUp;;;;;;;;4;1;1;;;;;;;;;;;;;;;';
+    const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), empty, line('*T', '2')]));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 1, 1]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('still starts a set after the last marker when it has rallies (a file saved mid-set)', () => {
+    const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), line('*07SM#', '2')]));
+    if ('error' in result) throw new Error(result.error);
+    expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 2]);
   });
 });

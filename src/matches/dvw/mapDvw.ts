@@ -127,6 +127,39 @@ function dropMessage(reason: DropReason, jersey: number | null, lines: number[])
   return `${n} of #${jersey} dropped: ${why} (${lineList(lines)}).`;
 }
 
+/** Court indexes of the back row: P1, P5, P6. */
+const BACK_ROW = [0, 4, 5];
+
+/**
+ * Our jerseys the libero stood in for. DataVolley keeps the replaced player in P1-P6, so a player
+ * who is in the back row for many of our skill lines yet almost never plays a ball there was off
+ * court. P1 in a rally we served is left out: the server stays on and plays that rally.
+ */
+function replacedByLibero(file: DvwFile, us: DvwSide): number[] {
+  const inBack = new Map<number, number>();
+  const playedBack = new Map<number, number>();
+  let server: DvwSide | null = null;
+  for (const line of file.scout) {
+    const c = line.code;
+    if (c.kind === 'point') server = null;
+    if (c.kind !== 'skill' || c.side !== us || c.skill === 'S') {
+      if (c.kind === 'skill' && c.skill === 'S') server = c.side;
+      continue;
+    }
+    const court = courtOf(line, us);
+    for (const pos of BACK_ROW) {
+      const j = court[pos];
+      if (j === null || (pos === 0 && server === us)) continue;
+      inBack.set(j, (inBack.get(j) ?? 0) + 1);
+      if (c.jersey === j) playedBack.set(j, (playedBack.get(j) ?? 0) + 1);
+    }
+  }
+  return [...inBack]
+    .filter(([j, n]) => n >= 10 && (playedBack.get(j) ?? 0) / n < 0.05)
+    .map(([j]) => j)
+    .sort((a, b) => a - b);
+}
+
 function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players: Player[], issues: DvwIssue[]): MatchSetupInput {
   const roster: RosterEntry[] = [];
   const liberoIds: string[] = [];
@@ -161,7 +194,21 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
     issues.push({ kind: 'blocking', message: 'The app takes at most two liberos: skip the others or map them to other players.', lines: [] });
   }
   // DataVolley never lists the libero in P1-P6: the libero is on court for any back-row middle.
-  const middles = roster.filter((r) => r.positionCategory === 'MB').map((r) => r.playerId);
+  // Real files rarely carry role codes, so without a known middle the scout says who was replaced.
+  let middles = roster.filter((r) => r.positionCategory === 'MB').map((r) => r.playerId);
+  if (liberoIds.length > 0 && middles.length === 0) {
+    const ids = new Set(roster.map((r) => r.playerId));
+    middles = replacedByLibero(file, us)
+      .map((j) => mapping[keyOf(us, j)])
+      .filter((id): id is string => !!id && ids.has(id) && !liberoIds.includes(id));
+    if (middles.length === 0) {
+      issues.push({
+        kind: 'warning',
+        message: 'The libero never comes on court: mark your middle blockers as MB in the team roster, then import again.',
+        lines: [],
+      });
+    }
+  }
   const liberos: LiberoConfig[] = liberoIds
     .slice(0, 2)
     .map((playerId) => ({ playerId, mode: 'always', replaces: [...middles] }));
@@ -177,13 +224,26 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
   };
 }
 
+interface PendingAction {
+  playerId: string;
+  skill: Skill;
+  grade: Grade;
+  jersey: number;
+  lineNo: number;
+}
+
 interface Rally {
+  /** Our actions held until the point line says who won, so a wrong-way action drops alone. */
+  pending: PendingAction[];
   /** Our emitted action that decided this file rally (the engine has already closed it). */
   decided: { winner: Side; index: number; lineNo: number } | null;
   lastOpp: { skill: Skill; grade: Grade } | null;
 }
 
-const newRally = (): Rally => ({ decided: null, lastOpp: null });
+const newRally = (): Rally => ({ pending: [], decided: null, lastOpp: null });
+
+/** DataVolley grades the app reads as another: a block "!" (poor, ball to the opponent) is a touch theirs. */
+const GRADE_ALIASES: Partial<Record<Skill, Partial<Record<Grade, Grade>>>> = { B: { '!': '-' } };
 
 export function mapDvw(
   file: DvwFile,
@@ -231,7 +291,34 @@ export function mapDvw(
   let setStartIndex = 0;
   let rally = newRally();
 
+  /**
+   * Emits the rally's held actions. With the point line's winner, an action that would end the
+   * rally the other way is dropped on its own; without one (a sub, timeout or set end came
+   * first), the first deciding action closes the rally. Actions after the decider are dropped.
+   */
+  const flush = (point: { winner: Side; lineNo: number } | null) => {
+    for (const a of rally.pending) {
+      if (rally.decided) {
+        drop('decided', a.jersey, a.lineNo);
+        continue;
+      }
+      const winner = rallyOutcome(a.skill, a.grade);
+      if (winner && point && winner !== point.winner) {
+        const team = point.winner === 'us' ? 'us' : 'the opponent';
+        warn(
+          `Line ${a.lineNo}: this action ended the rally the other way; line ${point.lineNo} gives the point to ${team} — action dropped.`,
+          [a.lineNo],
+        );
+        continue;
+      }
+      payloads.push({ type: 'action', playerId: a.playerId, skill: a.skill, grade: a.grade });
+      if (winner) rally.decided = { winner, index: payloads.length - 1, lineNo: a.lineNo };
+    }
+    rally.pending = [];
+  };
+
   const startSet = (line: ScoutLine) => {
+    flush(null);
     set = line.set;
     setStartIndex = payloads.length;
     rally = newRally();
@@ -250,6 +337,7 @@ export function mapDvw(
 
   const onPoint = (line: ScoutLine, side: DvwSide, home: number, visiting: number) => {
     const winner: Side = side === us ? 'us' : 'them';
+    flush({ winner, lineNo: line.lineNo });
     const decided = rally.decided;
     if (decided && decided.winner !== winner) {
       payloads.splice(decided.index, 1);
@@ -281,17 +369,16 @@ export function mapDvw(
           break;
         }
         const id = c.jersey === null ? null : idOf(c.jersey);
+        const grade = GRADE_ALIASES[c.skill]?.[c.grade] ?? c.grade;
         if (c.jersey === null) drop('unknownPlayer', null, line.lineNo);
         else if (!id) drop('unmapped', c.jersey, line.lineNo);
-        else if (!validGrades(c.skill).includes(c.grade)) {
-          const key = `${c.skill}${c.grade}`;
+        else if (!validGrades(c.skill).includes(grade)) {
+          const key = `${c.skill}${grade}`;
           droppedGrades.set(key, [...(droppedGrades.get(key) ?? []), line.lineNo]);
         } else if (rally.decided) {
           drop('decided', c.jersey, line.lineNo);
         } else {
-          payloads.push({ type: 'action', playerId: id, skill: c.skill, grade: c.grade });
-          const winner = rallyOutcome(c.skill, c.grade);
-          if (winner) rally.decided = { winner, index: payloads.length - 1, lineNo: line.lineNo };
+          rally.pending.push({ playerId: id, skill: c.skill, grade, jersey: c.jersey, lineNo: line.lineNo });
         }
         break;
       }
@@ -300,6 +387,7 @@ export function mapDvw(
         break;
       case 'sub': {
         if (c.side !== us) break;
+        flush(null);
         const outId = idOf(c.outJersey);
         const inId = idOf(c.inJersey);
         if (outId && inId) payloads.push({ type: 'sub', outPlayerId: outId, inPlayerId: inId });
@@ -307,9 +395,11 @@ export function mapDvw(
         break;
       }
       case 'timeout':
+        flush(null);
         payloads.push({ type: 'timeout', team: c.side === us ? 'us' : 'them' });
         break;
       case 'setEnd':
+        flush(null);
         payloads.push({ type: 'setEnd', set: line.set });
         rally = newRally();
         break;
@@ -321,6 +411,7 @@ export function mapDvw(
         break;
     }
   }
+  flush(null);
 
   for (const { reason, jersey, lines } of droppedActions.values()) warn(dropMessage(reason, jersey, lines), lines.slice(0, 5));
   for (const [key, lines] of droppedGrades) warnDroppedGrade(warn, key[0] as Skill, key[1] as Grade, lines);

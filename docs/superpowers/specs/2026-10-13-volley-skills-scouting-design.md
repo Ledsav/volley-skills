@@ -57,7 +57,7 @@ Fundamentals (`Skill`): `S` serve, `R` reception, `A` attack, `B` block, `D` dig
 
 | Skill | `#` | `+` | `!` | `-` | `/` | `=` |
 |---|---|---|---|---|---|---|
-| S | Ace | Pressure (opp out of system) | — | Easy (opp in system) | Free back | Error |
+| S | Ace | Pressure (opp out of system) | OK (no first tempo for the opponent) | Easy (opp in system) | Free back | Error |
 | R | Perfect | Good | OK (limited options) | Poor (high ball only) | Overpass | Aced / error |
 | A | Kill | Good (advantage kept) | Covered (blocked, covered) | Easy dig | Blocked (point lost) | Error |
 | B | Stuff | Touch, ours | — | Touch, theirs | Tooled | Net / error |

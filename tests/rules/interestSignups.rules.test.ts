@@ -25,7 +25,7 @@ describe('interestSignups', () => {
     return getTestEnv().then((env) => env.unauthenticatedContext().firestore());
   }
   function authDb(uid: string, email: string) {
-    return getTestEnv().then((env) => env.authenticatedContext(uid, { email }).firestore());
+    return getTestEnv().then((env) => env.authenticatedContext(uid, { email, email_verified: true }).firestore());
   }
 
   it('lets a signed-out visitor create a valid signup', async () => {

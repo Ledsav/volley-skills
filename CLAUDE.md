@@ -219,8 +219,9 @@ on sign-out and once committed) is saved with a random nonce, a signing link to 
 commits the club, member and acceptance in one batch, only when the nonce matches and within 14 minutes of `auth_time`,
 reading `auth.currentUser` (a same-uid re-sign-in fires no auth-state event, so the context user is stale), then reloads
 at `/` (P8, P9). The rules accept an acceptance only after
-a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`), so Email/Password sign-in
-must stay disabled in the console. `ClubGate` shows the blocking review screen to club admins with an outdated accepted
+a fresh email-link sign-in (`auth_time` at most 15 minutes old, `sign_in_provider == 'password'`). Email-link sign-in needs
+the Email/Password provider on, so every rule requires `email_verified` (`signedIn()`): a password account made for an
+address nobody verified gets nothing. `ClubGate` shows the blocking review screen to club admins with an outdated accepted
 version, except a platform admin or a club that asked to end the contract, who get a non-blocking notice (P10). Award photos of minors
 need `player.photoConsent`; adults need none; a missing date of birth counts as a minor (`src/awards/photoGate.ts`, P12).
 Seed sign-ins: `president@example.com` (demo owner, accepted), `review@example.com` (blocking review screen), plus those

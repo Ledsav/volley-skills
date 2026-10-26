@@ -121,20 +121,25 @@ export async function seedPlatformAdmin(env: RulesTestEnvironment, email: string
  * A signing token (`authTime` or `provider` given) also carries
  * `firebase.sign_in_provider`: `provider`, default 'password' — what an email-link
  * sign-in yields (verified on the Auth emulator). The mock default is 'custom'.
+ * The token's `email_verified` is true (email link and Google both verify the
+ * address) unless `verified: false`: a password account created for an address
+ * nobody proved control of.
  */
 export function dbAs(
   env: RulesTestEnvironment,
   email: string,
-  opts: { authTime?: number; provider?: 'password' | 'email' | 'google.com' | 'custom' } = {}
+  opts: { authTime?: number; provider?: 'password' | 'email' | 'google.com' | 'custom'; verified?: boolean } = {}
 ): Firestore {
   const signing = opts.authTime !== undefined || opts.provider !== undefined;
+  const email_verified = opts.verified ?? true;
   const token = signing
     ? {
         email,
+        email_verified,
         ...(opts.authTime === undefined ? {} : { auth_time: opts.authTime }),
         firebase: { sign_in_provider: opts.provider ?? 'password', identities: {} },
       }
-    : { email };
+    : { email, email_verified };
   return env.authenticatedContext(`uid-${email}`, token).firestore();
 }
 

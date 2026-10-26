@@ -27,7 +27,7 @@ describe('users rules', () => {
 
   it('stores the lowercased email for a mixed-case sign-in', async () => {
     const env = await getTestEnv();
-    const db = env.authenticatedContext('uid-mixed', { email: 'Mixed@Example.com' }).firestore();
+    const db = env.authenticatedContext('uid-mixed', { email: 'Mixed@Example.com', email_verified: true }).firestore();
     await assertFails(db.doc('users/uid-mixed').set({ email: 'Mixed@Example.com', createdAt: serverTimestamp() }));
     await assertSucceeds(db.doc('users/uid-mixed').set({ email: 'mixed@example.com', createdAt: serverTimestamp() }));
   });

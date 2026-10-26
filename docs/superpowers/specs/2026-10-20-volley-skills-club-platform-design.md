@@ -237,7 +237,8 @@ Each published version in `src/legal/versions.ts` carries `{ version, announcedA
 > **Resolved (Plan 3, 2026-10-23).** Sign-up and legal acceptance are built as §6 describes, with these decisions:
 > version ids are ISO dates and `versionKey = terms-<terms>_dpa-<dpa>` (P1, P2); the signer re-authenticates by a fresh
 > email-link sign-in (`auth_time` at most 15 minutes old and `firebase.sign_in_provider == 'password'`, which is how the Auth
-> SDK reports an email-link sign-in; keep Email/Password sign-in disabled in the console) and the client commits within
+> SDK reports an email-link sign-in; the provider cannot be turned off while email links are on, so the rules require
+> `email_verified` on every request) and the client commits within
 > 14 minutes (P6, P8); the new club id is a 20-character auto id kept in the draft (P7, P11); new clubs start with AI,
 > growth tests and reference opt-out off; after the commit the app reloads at `/` (P9); club admins with an outdated accepted
 > version get the blocking review screen, except a platform admin (non-blocking notice naming `ownerEmail`) and a club that

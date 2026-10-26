@@ -10,7 +10,7 @@ later. Tick items as they land.
 
 Status legend: `[ ]` todo · `[x]` done · `[~]` in progress / partial
 
-Last reviewed: 2026-10-14
+Last reviewed: 2026-10-26
 
 ## Decisions locked (2026-09-09)
 
@@ -66,12 +66,14 @@ Last reviewed: 2026-10-14
 - [x] **Firestore region verified: `eur3`** (club platform spec §11) —
       `firebase firestore:databases:get "(default)" --project volley-skills` reported
       `eur3`, verified 2026-10-20.
-- [ ] **Rules trust the token email without `email_verified`** — membership and
-      `platformAdmins` are matched by `request.auth.token.email` alone. Safe for
-      email-link sign-in (the link proves control of the mailbox) and Google (verified
-      emails); before enabling ANY other provider (e.g. email/password), add
-      `request.auth.token.email_verified == true` to the rules' email helper and a
-      rules test. Note: Google sign-in is currently enabled (see section A).
+- [~] **Rules require a verified token email** — membership and `platformAdmins` are
+      matched by `request.auth.token.email`, and email-link sign-in needs the
+      Email/Password provider on, so anyone could create a password account for an
+      address that has none yet. Fixed on `feature/club-platform` (2026-10-26):
+      `signedIn()` requires `email_verified == true` (email link and Google verify),
+      covered by `tests/rules/emailVerified.rules.test.ts`. **`main` (live today) still
+      has the gap** (`adminAllowlist` / `adminEmails` keyed on the email alone) until the
+      branch is merged or the check is backported.
 - [x] ~~**Prod seed (one-time)**~~ — obsolete: production already holds the club's data
       and is migrated (above), not seeded.
 - [x] ~~**Run `scripts/migrate/2026-09-11-section-access.mjs --prod`**~~ — obsolete:
@@ -277,15 +279,20 @@ From the bulk-import and quota-protection reviews:
   - The EUR 80/h assistance rate against Art. 28(3)(e).
   - A fixed retention period for acceptance records.
   - Whether the cookie-banner exemption covers the preference keys in localStorage.
-- [ ] **Verify in the Auth emulator that `auth_time` is fresh after the signing link**
+- [~] **Verify in the Auth emulator that `auth_time` is fresh after the signing link**
       (club-platform spec §11); record the result here. Do the same check once in
       production (decode the ID token after a signing link; read `auth_time` and
       `firebase.sign_in_provider`). Do the production check while already signed in
       as the same account: the emulator derives `auth_time` from the user's last
       login on every refresh, production keeps it per session, so a stale `User`
       object only shows its old `auth_time` in production.
-- [ ] **Keep Email/Password sign-in DISABLED in the Firebase console** — it reports the
-      same `password` provider as email-link sign-in and would count as a signature.
+      Emulator DONE 2026-10-26: a second email link 3 s later gave a new `auth_time`
+      (= `iat`), `sign_in_provider: password`, `email_verified: true`; a REST password
+      sign-up for another address gave `email_verified: false`. Production check owed.
+- [x] ~~**Keep Email/Password sign-in DISABLED in the Firebase console**~~ — not
+      possible: email-link sign-in requires the Email/Password provider. Instead the
+      rules require `email_verified` (section A), so a password account made for an
+      address nobody proved control of can neither read club data nor sign.
 - [ ] **Tick SECURITY-OPERATIONS rows 6-8** (BitLocker, external drive, weekly backup)
       before publishing: Annex II of the DPA states them. Two promises are manual:
       leads are deleted within 12 months, and accounts are deleted on request.

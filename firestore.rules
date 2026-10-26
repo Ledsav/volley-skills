@@ -4,7 +4,10 @@ service cloud.firestore {
     // ---- Club platform (multi-club) ------------------------------------------
     // Emails are stored and compared lowercased everywhere; the token's email is
     // lowercased here so a mixed-case sign-in still matches its member doc.
-    function signedIn()        { return request.auth != null; }
+    // Email-link sign-in needs the Email/Password provider on, so anyone can make a
+    // password account for an address nobody verified. Only a verified email (email
+    // link, Google) counts as signed in, since every check below keys on the email.
+    function signedIn()        { return request.auth != null && request.auth.token.email_verified == true; }
     function email()           { return request.auth.token.email.lower(); }
     // The platform operator. Used only on platformAdmins, clubs/{clubId} itself,
     // acceptances, statusLog and interestSignups, never on club data.

@@ -100,3 +100,16 @@ describe('App', () => {
     expect(await screen.findByRole('tab', { name: 'Leads' })).toHaveAttribute('aria-selected', 'true');
   });
 });
+
+describe('lazy-route fallbacks', () => {
+  it('come from the catalogs, English unchanged', async () => {
+    const { en } = await import('./i18n/en');
+    const { it: itCat } = await import('./i18n/it');
+    expect(en.layout.lazyLoading).toEqual({
+      editor: 'Loading editor…',
+      scouting: 'Loading scouting…',
+      awards: 'Loading awards…',
+    });
+    expect(itCat.layout.lazyLoading.awards).toBe('Caricamento dei premi…');
+  });
+});

@@ -12,6 +12,11 @@ export const layout = {
     clubsAndSignups: 'Clubs & sign-ups',
     more: 'More',
   },
+  lazyLoading: {
+    editor: 'Loading editor…',
+    scouting: 'Loading scouting…',
+    awards: 'Loading awards…',
+  },
   appShell: {
     droppedClub: 'You no longer have access to your previous club.',
     skipToContent: 'Skip to content',

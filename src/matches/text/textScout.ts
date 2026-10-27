@@ -115,7 +115,7 @@ Everyday words for each fundamental (English, Spanish, French, Italian):
 Result words -> grade:
 - kill, point, punto, point gagnant, winner -> "#" (S# ace, A# kill, B# stuff block); ace -> S "#"
 - out, fuera, dehors, long, wide, net, red, filet, error, fallo, faute, fuori, in rete, errore, invasione -> "="
-- blocked, bloqueado, contré, murato, murata (our attack) -> A "/"
+- blocked, bloqueado, contré, murato (our attack) -> A "/"
 - good, bien, bon, buona, positiva -> "+"; bad, poor, mal, mauvais, scarsa, negativa -> "-"
 - overpass, over -> "/" for R, D or F
 - easy, too easy, fácil, facile -> "-" (for S, R, D, F, E it means poor/easy)

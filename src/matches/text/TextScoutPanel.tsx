@@ -122,7 +122,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
       const name = providerName(settings.provider);
       return e.retryAfterSec ? tx.retryIn(name, e.retryAfterSec) : tx.tryAgainSoon(name);
     }
-    if (e.kind === 'unreachable' && settings.provider === 'local') return `${tx.errors.unreachable} ${tx.localHint}`;
+    if (e.kind === 'unreachable' && settings.provider === 'local') return `${tx.errors.unreachable} ${t.ai.localHint}`;
     return tx.errors[e.kind];
   }
 

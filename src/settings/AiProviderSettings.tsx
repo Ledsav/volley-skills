@@ -10,7 +10,6 @@ import { useNotify } from '../components/Notice';
 import { AiError, testConnection } from '../ai/aiClient';
 import {
   AI_PROVIDERS,
-  LOCAL_UNREACHABLE_HINT,
   forgetAiKey,
   providerName,
   readAiSettings,
@@ -19,18 +18,11 @@ import {
   type AiSettings,
 } from '../ai/aiSettings';
 
-function errorText(e: AiError, provider: AiProvider, t: Catalog['settings']['ai']): string {
+function errorText(e: AiError, provider: AiProvider, t: Catalog['settings']['ai'], hint: string): string {
   if (e.kind === 'rateLimited') return t.rateLimitedFor(providerName(provider));
-  if (e.kind === 'unreachable' && provider === 'local') return `${t.errors.unreachable} ${LOCAL_UNREACHABLE_HINT}`;
+  if (e.kind === 'unreachable' && provider === 'local') return `${t.errors.unreachable} ${hint}`;
   return t.errors[e.kind];
 }
-
-const MODEL_PLACEHOLDER: Record<AiProvider, string> = {
-  groq: '',
-  openrouter: 'provider/model-name:free',
-  local: 'qwen2.5:7b-instruct',
-  custom: 'model name',
-};
 
 const INPUT_CLASS = 'w-full min-h-11';
 const EXT_LINK_CLASS = 'text-sm text-blue hover:underline';
@@ -45,7 +37,9 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
   const [showKey, setShowKey] = useState(false);
   const keyId = useId();
   const notify = useNotify();
-  const t = useT().settings.ai;
+  const catalog = useT();
+  const t = catalog.settings.ai;
+  const ait = catalog.ai;
   const preset = AI_PROVIDERS[s.provider];
 
   function update(next: AiSettings) {
@@ -62,7 +56,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
       await testFn(s);
       setStatus({ kind: 'ok', text: t.connected });
     } catch (e) {
-      setStatus({ kind: 'error', text: e instanceof AiError ? errorText(e, s.provider, t) : t.connectionFailed });
+      setStatus({ kind: 'error', text: e instanceof AiError ? errorText(e, s.provider, t, ait.localHint) : t.connectionFailed });
     } finally {
       setTesting(false);
     }
@@ -88,7 +82,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
             }}
           >
             {(Object.keys(AI_PROVIDERS) as AiProvider[]).map((id) => (
-              <option key={id} value={id}>{AI_PROVIDERS[id].label}</option>
+              <option key={id} value={id}>{ait.providers[id].label}</option>
             ))}
           </select>
         </label>
@@ -98,7 +92,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
             <Input
               aria-label={t.model}
               className={INPUT_CLASS}
-              placeholder={MODEL_PLACEHOLDER[s.provider]}
+              placeholder={ait.modelPlaceholder[s.provider]}
               value={s.model}
               onChange={(e) => update({ ...s, model: e.target.value })}
             />
@@ -181,7 +175,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           </div>
         )}
       </div>
-      <p className="text-xs text-slate">{preset.note}</p>
+      <p className="text-xs text-slate">{ait.providers[s.provider].note}</p>
       {preset.needsKey && (
         <p className="text-xs text-slate">
           {t.dpa}

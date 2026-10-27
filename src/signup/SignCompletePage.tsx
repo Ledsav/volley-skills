@@ -4,6 +4,7 @@ import { AuthShell } from '../auth/AuthShell';
 import { sendSigningLink } from '../auth/reauth';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
+import { useT } from '../i18n/I18nProvider';
 import { usePageMeta } from '../layout/usePageMeta';
 import { readSignDraft } from '../legal/signDraft';
 import { commitSignDraft } from './signingApi';
@@ -12,7 +13,8 @@ type View = 'working' | 'linkExpired' | 'noDraft' | 'wrongLink' | 'wrongAccount'
 
 /** /sign/complete: the landing page of the signing link; commits the saved draft once. */
 export function SignCompletePage() {
-  usePageMeta({ title: 'Completing sign-up' });
+  const t = useT().signup.complete;
+  usePageMeta({ title: t.title });
   const { signOut, unsyncedDialog } = useSignOut();
   const nonce = useSearchParams()[0].get('sign');
   const [view, setView] = useState<View>('working');
@@ -61,56 +63,56 @@ export function SignCompletePage() {
   }
 
   return (
-    <AuthShell title="Completing sign-up">
-      {view === 'working' && <p role="status" className="text-center text-slate">Completing your sign-up...</p>}
+    <AuthShell title={t.title}>
+      {view === 'working' && <p role="status" className="text-center text-slate">{t.working}</p>}
 
       {view === 'linkExpired' && (
         <>
-          <p className="text-center text-slate">The link is older than 15 minutes. Send a new link to confirm again.</p>
+          <p className="text-center text-slate">{t.linkExpired}</p>
           <div className="mt-4 flex justify-center">
-            <Button variant="primary" disabled={busy} onClick={sendNewLink}>Send a new link</Button>
+            <Button variant="primary" disabled={busy} onClick={sendNewLink}>{t.sendNewLink}</Button>
           </div>
         </>
       )}
 
       {view === 'linkSent' && (
-        <p role="status" className="text-center text-slate">We&apos;ve sent a new link. Open it in this browser to sign.</p>
+        <p role="status" className="text-center text-slate">{t.linkSent}</p>
       )}
 
       {view === 'noDraft' && (
         <p className="text-center text-slate">
-          There is no signing in progress in this browser. If you started in another browser, open the link there.
+          {t.noDraft}
         </p>
       )}
 
       {view === 'wrongLink' && (
         <p className="text-center text-slate">
-          This link doesn&apos;t match the signing in progress in this browser. Open the latest link we sent you.
+          {t.wrongLink}
         </p>
       )}
 
       {view === 'wrongAccount' && (
         <>
           <p className="text-center text-slate">
-            Signed in as another account than the one that started this sign-up. Sign out and use the link again.
+            {t.wrongAccount}
           </p>
           <div className="mt-4 flex justify-center">
-            <Button variant="secondary" onClick={signOut}>Sign out</Button>
+            <Button variant="secondary" onClick={signOut}>{t.signOut}</Button>
           </div>
         </>
       )}
 
       {view === 'error' && (
         <>
-          <p role="alert" className="text-center text-red">We could not complete the sign-up. Please try again.</p>
+          <p role="alert" className="text-center text-red">{t.error}</p>
           <div className="mt-4 flex justify-center">
-            <Button variant="primary" onClick={() => void run()}>Try again</Button>
+            <Button variant="primary" onClick={() => void run()}>{t.tryAgain}</Button>
           </div>
         </>
       )}
 
       {resendError && (
-        <p role="alert" className="mt-3 text-center text-sm text-red">Could not send a new link. Please try again.</p>
+        <p role="alert" className="mt-3 text-center text-sm text-red">{t.resendError}</p>
       )}
       {unsyncedDialog}
     </AuthShell>

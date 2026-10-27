@@ -9,7 +9,7 @@ import { Input } from '../components/Input';
 import { LegalLinks } from '../legal/LegalLinks';
 import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
-import { useLocale, useT } from '../i18n/I18nProvider';
+import { getLocale, useT } from '../i18n/I18nProvider';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
 const googleProvider = new GoogleAuthProvider();
@@ -18,7 +18,6 @@ export function LoginPage() {
   const t = useT().auth.loginPage;
   usePageMeta({ title: t.pageTitle, description: t.pageDescription, robots: 'index', canonicalPath: '/login' });
   const navigate = useNavigate();
-  const { locale } = useLocale();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +26,7 @@ export function LoginPage() {
     event.preventDefault();
     setError(null);
     try {
-      auth.languageCode = locale;
+      auth.languageCode = getLocale(); // the language on screen, same source as reauth.ts
       await sendSignInLinkToEmail(auth, email, {
         url: `${window.location.origin}/finish-sign-in`,
         handleCodeInApp: true,

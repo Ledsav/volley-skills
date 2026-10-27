@@ -1,8 +1,8 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
-import { I18nProvider } from './i18n/I18nProvider';
+import { I18nProvider, useT } from './i18n/I18nProvider';
 import { RequireAuth, RequireSignedIn } from './auth/RequireAuth';
 import { SignupInfoPage } from './signup/SignupInfoPage';
 import { SignupPage } from './signup/SignupPage';
@@ -38,6 +38,16 @@ const DiagramEditorPage = lazy(() =>
 const AwardsPage = lazy(() => import('./awards/AwardsPage'));
 const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
 
+function LazyFallback({ what }: { what: 'editor' | 'scouting' | 'awards' }) {
+  const t = useT();
+  return <div className="p-6 text-slate">{t.layout.lazyLoading[what]}</div>;
+}
+
+function PlatformShell({ children }: { children: ReactNode }) {
+  const t = useT();
+  return <MinimalShell title={t.layout.nav.platform}>{children}</MinimalShell>;
+}
+
 function AuthenticatedLayout() {
   return (
     <RequireAuth>
@@ -67,9 +77,9 @@ export function App() {
               path="/platform"
               element={
                 <RequirePlatformAdmin>
-                  <MinimalShell title="Platform">
+                  <PlatformShell>
                     <PlatformPage />
-                  </MinimalShell>
+                  </PlatformShell>
                 </RequirePlatformAdmin>
               }
             />
@@ -111,7 +121,7 @@ export function App() {
                 path="/exercises/:exerciseId/diagram"
                 element={
                   <RequireSection section="exercises">
-                    <Suspense fallback={<div className="p-6 text-slate">Loading editor…</div>}>
+                    <Suspense fallback={<LazyFallback what="editor" />}>
                       <DiagramEditorPage />
                     </Suspense>
                   </RequireSection>
@@ -133,7 +143,7 @@ export function App() {
               path="/teams/:teamId/matches/:matchId/scout"
               element={
                 <RequireAuth>
-                  <Suspense fallback={<div className="p-6 text-slate">Loading scouting…</div>}>
+                  <Suspense fallback={<LazyFallback what="scouting" />}>
                     <ScoutPage />
                   </Suspense>
                 </RequireAuth>
@@ -143,7 +153,7 @@ export function App() {
               path="/teams/:teamId/awards"
               element={
                 <RequireAuth>
-                  <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                  <Suspense fallback={<LazyFallback what="awards" />}>
                     <AwardsPage scope="season" />
                   </Suspense>
                 </RequireAuth>
@@ -153,7 +163,7 @@ export function App() {
               path="/teams/:teamId/matches/:matchId/awards"
               element={
                 <RequireAuth>
-                  <Suspense fallback={<div className="p-6 text-slate">Loading awards…</div>}>
+                  <Suspense fallback={<LazyFallback what="awards" />}>
                     <AwardsPage scope="match" />
                   </Suspense>
                 </RequireAuth>

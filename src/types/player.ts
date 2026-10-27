@@ -47,14 +47,15 @@ export type Level = 'Beginner' | 'Developing' | 'Advanced' | 'Elite';
  */
 export type PositionCategory = 'S' | 'OH' | 'O' | 'MB' | 'L' | 'U' | 'TBD';
 
-export const POSITION_CATEGORIES: { value: PositionCategory; label: string }[] = [
-  { value: 'S', label: 'Setter' },
-  { value: 'OH', label: 'Outside' },
-  { value: 'O', label: 'Opposite' },
-  { value: 'MB', label: 'Middle' },
-  { value: 'L', label: 'Libero' },
-  { value: 'U', label: 'Universal' },
-  { value: 'TBD', label: 'TBD' },
+/** Position codes in display order; their labels live in the catalog (`labels.position`). */
+export const POSITION_CATEGORIES: { value: PositionCategory }[] = [
+  { value: 'S' },
+  { value: 'OH' },
+  { value: 'O' },
+  { value: 'MB' },
+  { value: 'L' },
+  { value: 'U' },
+  { value: 'TBD' },
 ];
 
 /** Kit size. '' = not recorded yet (also the value for docs that predate the field). */

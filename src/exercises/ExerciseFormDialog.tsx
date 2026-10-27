@@ -14,6 +14,7 @@ import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategor
 import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
 import { EXERCISE_NAME_EXAMPLE, EXERCISE_NAME_HINT } from '../trainings/naming';
+import { useT } from '../i18n/I18nProvider';
 
 const FORM_ID = 'exercise-form';
 
@@ -24,6 +25,7 @@ interface ExerciseFormDialogProps {
 }
 
 export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormDialogProps) {
+  const lb = useT().labels;
   const { firebaseUser } = useAuth();
   const [name, setName] = useState(exercise?.name ?? '');
   const [description, setDescription] = useState(exercise?.description ?? '');
@@ -149,7 +151,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         >
           {EXERCISE_CATEGORIES.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.label}
+              {lb.exerciseCategory[c.key]}
             </option>
           ))}
         </select>

@@ -8,17 +8,13 @@ import { LevelPill } from '../components/LevelPill';
 import { deletePlayer, listPlayers, setPlayerStarting } from '../players/playersApi';
 import { ageFromDob } from '../players/age';
 import { filterRoster, sortRoster, type RosterSort } from '../players/rosterSort';
-import { POSITION_CATEGORIES, type Player } from '../types/player';
+import type { Player } from '../types/player';
 import { formatNumber } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
 
 const NUMERIC_HEADER_CLASS =
   'px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate';
 const NUMERIC_CELL_CLASS = 'px-3 py-2 text-right tabular-nums text-ink';
-
-const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.value, c.label])) as Record<
-  Player['positionCategory'],
-  string
->;
 
 const SORT_OPTIONS: { value: RosterSort; label: string }[] = [
   { value: 'lineup', label: 'Lineup' },
@@ -46,6 +42,7 @@ interface TeamRosterTableProps {
 }
 
 export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: TeamRosterTableProps) {
+  const lb = useT().labels;
   const [players, setPlayers] = useState<Player[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -188,7 +185,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
 
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt className="text-slate">Position</dt>
-              <dd className="text-ink">{POSITION_LABELS[player.positionCategory]}</dd>
+              <dd className="text-ink">{lb.position[player.positionCategory]('mixed')}</dd>
 
               <dt className="text-slate">Born</dt>
               <dd className="text-ink">
@@ -268,7 +265,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
                   </Link>
                 </td>
                 <td className="px-3 py-2 text-ink">
-                  <span className="block max-w-[10rem] truncate">{POSITION_LABELS[player.positionCategory]}</span>
+                  <span className="block max-w-[10rem] truncate">{lb.position[player.positionCategory]('mixed')}</span>
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-ink">
                   <BornCell dob={player.dob ?? ''} />

@@ -2,7 +2,7 @@ import { fileSlug } from '../../export/exportJson';
 import { GRADES, SKILLS, type Match, type MatchStats, type Skill, type SkillLine } from '../../types/match';
 import { rosterMap } from '../format';
 import { mergeLines, ratio, serveEff } from '../scoutStats';
-import { SKILL_LABELS } from '../skillGrades';
+import { labelSkill } from '../skillGrades';
 
 export type Cell = string | number | null;
 
@@ -23,10 +23,10 @@ export function csvCell(value: Cell, format: CsvFormat = 'en'): string {
   return /[",;\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-const HEADER: Cell[] = [
+const header = (): Cell[] => [
   'Number',
   'Name',
-  ...SKILLS.flatMap((s) => [`${SKILL_LABELS[s]} att`, ...GRADES.map((g) => `${SKILL_LABELS[s]} ${g}`)]),
+  ...SKILLS.flatMap((s) => [`${labelSkill(s)} att`, ...GRADES.map((g) => `${labelSkill(s)} ${g}`)]),
   'Attack eff',
   'Serve eff',
   'Reception +',
@@ -52,7 +52,7 @@ export function reportCsv(match: Match, stats: MatchStats, format: CsvFormat = '
   const players = Object.values(stats.players).sort(
     (a, b) => (roster.get(a.playerId)?.number ?? 0) - (roster.get(b.playerId)?.number ?? 0),
   );
-  const rows: Cell[][] = [HEADER];
+  const rows: Cell[][] = [header()];
   for (const p of players) {
     const entry = roster.get(p.playerId);
     rows.push([

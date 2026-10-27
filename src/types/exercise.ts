@@ -9,16 +9,17 @@ export type ExerciseCategory =
   | 'compound'
   | 'game';
 
-export const EXERCISE_CATEGORIES: { key: ExerciseCategory; label: string }[] = [
-  { key: 'warmup', label: 'Warm-up' },
-  { key: 'physical', label: 'Physical' },
-  { key: 'service', label: 'Service' },
-  { key: 'setting', label: 'Setting' },
-  { key: 'defense', label: 'Defense' },
-  { key: 'reception', label: 'Reception' },
-  { key: 'attack', label: 'Attack' },
-  { key: 'compound', label: 'Compound' },
-  { key: 'game', label: 'Game' },
+/** Category codes in display order; their labels live in the catalog (`labels.exerciseCategory`). */
+export const EXERCISE_CATEGORIES: { key: ExerciseCategory }[] = [
+  { key: 'warmup' },
+  { key: 'physical' },
+  { key: 'service' },
+  { key: 'setting' },
+  { key: 'defense' },
+  { key: 'reception' },
+  { key: 'attack' },
+  { key: 'compound' },
+  { key: 'game' },
 ];
 
 export interface Exercise {

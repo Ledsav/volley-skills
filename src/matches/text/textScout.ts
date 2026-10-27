@@ -1,6 +1,11 @@
 import { GRADES, SKILLS, type Grade, type MatchEventPayload, type PointReason, type RosterEntry, type Side, type Skill } from '../../types/match';
-import { GRADE_LABELS, POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
+import { labels as enLabels } from '../../i18n/en/labels';
+import { POINT_REASONS, rallyOutcome, validGrades } from '../skillGrades';
 import type { ChatMessage } from '../../ai/aiClient';
+
+// The prompt and its validator messages are a protocol: always the English labels, never the active locale.
+const SKILL_LABELS = enLabels.skill;
+const GRADE_LABELS = enLabels.grade;
 
 export interface ParsedAction {
   number: number;

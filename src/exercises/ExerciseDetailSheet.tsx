@@ -4,14 +4,10 @@ import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import { listDiagrams } from '../diagrams/diagramsApi';
-import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import { sceneAsDiagram } from '../diagrams/sceneFactory';
 import type { Diagram, Scene } from '../types/diagram';
-
-const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
-  ExerciseCategory,
-  string
->;
+import { useT } from '../i18n/I18nProvider';
+import type { ExerciseCategory } from '../types/exercise';
 
 const SWIPE_PX = 50;
 
@@ -41,6 +37,7 @@ interface ExerciseDetailSheetProps {
  * or a horizontal swipe on the diagram.
  */
 export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDetailSheetProps) {
+  const lb = useT().labels;
   const [index, setIndex] = useState(startIndex);
   const [diagramIndex, setDiagramIndex] = useState(0);
   // Per-exercise diagram cache so stepping back and forth doesn't refetch.
@@ -148,7 +145,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
           )}
           {entry.category && (
             <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
-              {CATEGORY_LABEL[entry.category]}
+              {lb.exerciseCategory[entry.category]}
             </span>
           )}
           {isTrainingStep && (

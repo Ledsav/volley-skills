@@ -15,6 +15,7 @@ import { existingExerciseNames } from './libraryIndex';
 import { DraftSaveError, saveExerciseDrafts } from './saveDrafts';
 import { DRAFT_LIMITS, type ExerciseDraft } from './types';
 import { validateExerciseProposals } from './validateDraft';
+import { useT } from '../i18n/I18nProvider';
 
 interface Props {
   onClose: () => void;
@@ -26,6 +27,7 @@ interface Props {
 type DraftError = { text: string; settingsLink: boolean };
 
 export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
+  const lb = useT().labels;
   const { firebaseUser } = useAuth();
   const [settings] = useState(readAiSettings);
   const askModel: AskFn =
@@ -195,7 +197,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
                   <option value="">Any</option>
                   {EXERCISE_CATEGORIES.map((c) => (
                     <option key={c.key} value={c.key}>
-                      {c.label}
+                      {lb.exerciseCategory[c.key]}
                     </option>
                   ))}
                 </select>

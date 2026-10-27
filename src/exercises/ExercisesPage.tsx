@@ -15,16 +15,14 @@ import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listE
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
 import { useNotify } from '../components/Notice';
 import { PageHeader } from '../layout/PageHeader';
-
-const CATEGORY_LABEL: Record<ExerciseCategory, string> = Object.fromEntries(
-  EXERCISE_CATEGORIES.map((c) => [c.key, c.label])
-) as Record<ExerciseCategory, string>;
+import { useT } from '../i18n/I18nProvider';
 
 // Sentinel for askDelete when the usage count read fails: the confirm dialog
 // still opens, but the message says the count could not be determined.
 const USAGE_UNKNOWN = -1;
 
 export function ExercisesPage() {
+  const lb = useT().labels;
   usePageMeta({ title: 'Exercises' });
   const { firebaseUser } = useAuth();
   const { aiEnabled } = useClubFeatures();
@@ -141,7 +139,7 @@ export function ExercisesPage() {
               category === c.key ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
             }`}
           >
-            {c.label}
+            {lb.exerciseCategory[c.key]}
           </button>
         ))}
       </div>
@@ -183,7 +181,7 @@ export function ExercisesPage() {
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-medium text-ink">{exercise.name}</span>
                   <span className="rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
-                    {CATEGORY_LABEL[exercise.category]}
+                    {lb.exerciseCategory[exercise.category]}
                   </span>
                 </div>
                 {exercise.description && (

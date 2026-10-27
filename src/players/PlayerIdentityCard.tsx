@@ -1,14 +1,14 @@
 import { getInitials } from './nameFormat';
-import { POSITION_CATEGORIES, type Player } from '../types/player';
+import type { Player } from '../types/player';
 import { formatNumber } from '../i18n/format';
-
-const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.value, c.label]));
+import { useT } from '../i18n/I18nProvider';
 
 interface PlayerIdentityCardProps {
   player: Player;
 }
 
 export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
+  const lb = useT().labels;
   const hasScores = player.avgScore !== null;
 
   return (
@@ -21,7 +21,7 @@ export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
           <h1 className="break-words text-title font-semibold">{player.fullName}</h1>
           <p className="mt-0.5 text-sm text-white/80">
             {player.number ? `#${player.number} · ` : ''}
-            {POSITION_LABELS[player.positionCategory]}
+            {lb.position[player.positionCategory]('mixed')}
             {player.starting && ' · Starting'}
           </p>
         </div>
@@ -35,7 +35,7 @@ export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
           <p className="text-xs uppercase tracking-wide text-white/60">Avg skill score</p>
           {hasScores && player.level ? (
             <span className="mt-1 inline-flex rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium">
-              {player.level}
+              {lb.level[player.level]('mixed') /* TODO(i18n T8): teamGender(team) */}
             </span>
           ) : (
             <span className="mt-1 inline-block text-xs text-white/60">No scores yet</span>

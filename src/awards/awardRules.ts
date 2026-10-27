@@ -7,11 +7,6 @@ import { formatNumber } from '../i18n/format';
 
 const MVP_QUALITY_WEIGHT = 0.5;
 
-export const AWARD_TITLES: Record<AwardId, string> = {
-  mvp: 'MVP', topScorer: 'Top scorer', attacker: 'Best attacker', server: 'Best server', receiver: 'Best receiver',
-  blocker: 'Best blocker', defender: 'Best defender', setter: 'Best setter', mostImproved: 'Most improved', everPresent: 'Ever-present',
-};
-
 const BOTH: AwardId[] = ['topScorer', 'attacker', 'server', 'receiver', 'blocker', 'defender', 'setter'];
 export const AWARDS_FOR: Record<AwardScope, AwardId[]> = {
   match: [...BOTH, 'mvp'],

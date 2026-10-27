@@ -1,26 +1,25 @@
 import { GRADES, type Grade, type PointReason, type Side, type Skill } from '../types/match';
+import { labels as enLabels } from '../i18n/en/labels';
+import { getT } from '../i18n/I18nProvider';
 
-export const SKILL_LABELS: Record<Skill, string> = {
-  S: 'Serve',
-  R: 'Reception',
-  A: 'Attack',
-  B: 'Block',
-  D: 'Dig',
-  E: 'Set',
-  F: 'Free ball',
-};
+/**
+ * English labels, kept as the text-scout protocol vocabulary and for tests. UI text reads the
+ * active catalog instead (`labelSkill`, `labelGrade`, or `useT().labels`).
+ */
+export const SKILL_LABELS = enLabels.skill;
+export const GRADE_LABELS = enLabels.grade;
 
-/** DataVolley grades with a per-skill meaning. A missing key = grade not offered. */
-export const GRADE_LABELS: Record<Skill, Partial<Record<Grade, string>>> = {
-  S: { '#': 'Ace', '+': 'Pressure', '!': 'OK', '-': 'Easy', '/': 'Free back', '=': 'Error' },
-  R: { '#': 'Perfect', '+': 'Good', '!': 'OK', '-': 'Poor', '/': 'Overpass', '=': 'Aced' },
-  A: { '#': 'Kill', '+': 'Good', '!': 'Covered', '-': 'Easy dig', '/': 'Blocked', '=': 'Error' },
-  B: { '#': 'Stuff', '+': 'Touch ours', '-': 'Touch theirs', '/': 'Tooled', '=': 'Net' },
-  D: { '#': 'Perfect', '+': 'Good', '!': 'OK', '-': 'Poor', '/': 'Overpass', '=': 'Error' },
-  E: { '#': 'Perfect', '+': 'Good', '!': 'OK', '-': 'Poor', '=': 'Error' },
-  F: { '#': 'Perfect', '+': 'Good', '!': 'OK', '-': 'Poor', '/': 'Overpass', '=': 'Error' },
-};
+/** The active-language label of a skill, for code outside components. */
+export function labelSkill(skill: Skill): string {
+  return getT().labels.skill[skill];
+}
 
+/** The active-language label of a grade for a skill ('' when the skill has no such grade). */
+export function labelGrade(skill: Skill, grade: Grade): string {
+  return getT().labels.grade[skill][grade] ?? '';
+}
+
+/** Grades offered for a skill; the set never depends on the active language. */
 export function validGrades(skill: Skill): Grade[] {
   return GRADES.filter((g) => GRADE_LABELS[skill][g] !== undefined);
 }

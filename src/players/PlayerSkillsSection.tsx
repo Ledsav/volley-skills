@@ -14,20 +14,10 @@ import { computeAvgScore, computeLevel } from './skillMath';
 import { SkillRadarChart } from './SkillRadarChart';
 import { useNotify } from '../components/Notice';
 import { formatNumber } from '../i18n/format';
+import { labels as enLabels } from '../i18n/en/labels';
+import { useT } from '../i18n/I18nProvider';
 
-const SKILL_LABELS: Record<SkillKey, string> = {
-  serve: 'Serve',
-  attack: 'Attack',
-  block: 'Block',
-  set: 'Set',
-  defence: 'Defence',
-  reception: 'Reception',
-  jump: 'Jump',
-  speed: 'Speed',
-  iq: 'IQ',
-};
-
-const SKILL_ORDER = Object.keys(SKILL_LABELS) as SkillKey[];
+const SKILL_ORDER = Object.keys(enLabels.playerSkill) as SkillKey[];
 
 /** The scoring-guide reminder shown in a skill's ⓘ tooltip. */
 function SkillGuideHint({ entry }: { entry: SkillGuideEntry }) {
@@ -81,6 +71,7 @@ export function PlayerSkillsSection({
   showSuggestions = true,
 }: PlayerSkillsSectionProps) {
   const notify = useNotify();
+  const lb = useT().labels;
   const [skills, setSkills] = useState<Skills>(player.skills);
   const [error, setError] = useState<string | null>(null);
   const [guide, setGuide] = useState<Record<string, SkillGuideEntry>>({});
@@ -148,7 +139,7 @@ export function PlayerSkillsSection({
       return;
     }
     onPlayerUpdated({ ...player, skills: next, avgScore, level });
-    notify(`${SKILL_LABELS[key]} set to ${score}`);
+    notify(`${lb.playerSkill[key]} set to ${score}`);
   }
 
   const previewAvg = computeAvgScore(skills);
@@ -160,12 +151,12 @@ export function PlayerSkillsSection({
         <div>
           <SkillRadarChart
             scores={SKILL_ORDER.map((key) => player.skills[key]?.score ?? null)}
-            labels={SKILL_ORDER.map((key) => SKILL_LABELS[key])}
+            labels={SKILL_ORDER.map((key) => lb.playerSkill[key])}
             level={player.level}
           />
           <p className="mt-2 text-center text-sm text-slate">
             Average: <span className="font-semibold tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</span>{' '}
-            ({player.level ?? 'No scores yet'})
+            ({player.level ? lb.level[player.level]('mixed') : 'No scores yet'})
           </p>
         </div>
         <ul className="flex flex-col gap-3">
@@ -176,9 +167,9 @@ export function PlayerSkillsSection({
             return (
               <li key={key} className="grid grid-cols-[6.5rem_2rem_1fr_3.5rem] items-center gap-x-2">
                 <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange-strong' : 'text-ink'}`}>
-                  {SKILL_LABELS[key]}
+                  {lb.playerSkill[key]}
                   {guide[key] && (
-                    <InfoTooltip label={`${SKILL_LABELS[key]} scoring guide`}>
+                    <InfoTooltip label={`${lb.playerSkill[key]} scoring guide`}>
                       <SkillGuideHint entry={guide[key]} />
                     </InfoTooltip>
                   )}
@@ -198,7 +189,7 @@ export function PlayerSkillsSection({
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`Adapt ${SKILL_LABELS[key]} to ${suggested}`}
+                    aria-label={`Adapt ${lb.playerSkill[key]} to ${suggested}`}
                     onClick={() => void adapt(key, suggested)}
                     className={`!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs tabular-nums ${suggested > (score ?? 0) ? 'text-green-strong hover:bg-green/10' : 'text-orange-strong hover:bg-orange/10'}`}
                   >
@@ -219,7 +210,7 @@ export function PlayerSkillsSection({
           <div aria-label="Edit skills">
             <p className="mb-4 text-sm text-slate">
               Average: <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
-              ({previewLevel ?? 'No scores yet'})
+              ({previewLevel ? lb.level[previewLevel]('mixed') : 'No scores yet'})
             </p>
             <div className="flex flex-col gap-4">
               {SKILL_ORDER.map((key) => {
@@ -232,10 +223,10 @@ export function PlayerSkillsSection({
                   >
                     <span className="flex items-center gap-1">
                       <label htmlFor={`skill-${key}`} className="text-sm font-medium text-ink">
-                        {SKILL_LABELS[key]}
+                        {lb.playerSkill[key]}
                       </label>
                       {guide[key] && (
-                        <InfoTooltip label={`${SKILL_LABELS[key]} scoring guide`}>
+                        <InfoTooltip label={`${lb.playerSkill[key]} scoring guide`}>
                           <SkillGuideHint entry={guide[key]} />
                         </InfoTooltip>
                       )}
@@ -269,7 +260,7 @@ export function PlayerSkillsSection({
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label={`Use ${suggestedScore(value)} for ${SKILL_LABELS[key]}`}
+                          aria-label={`Use ${suggestedScore(value)} for ${lb.playerSkill[key]}`}
                           onClick={() => updateScore(key, String(suggestedScore(value)))}
                           className="!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs"
                         >

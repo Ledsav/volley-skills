@@ -19,6 +19,7 @@ import { buildTrainingMessages } from './trainingPrompt';
 import { TrainingProposalReview } from './TrainingProposalReview';
 import { DRAFT_LIMITS, type TrainingDraft } from './types';
 import { validateTrainingProposal } from './validateDraft';
+import { useT } from '../i18n/I18nProvider';
 
 interface Props {
   onClose: () => void;
@@ -53,6 +54,7 @@ function saveErrorText(e: unknown) {
 }
 
 export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: Props) {
+  const lb = useT().labels;
   const { firebaseUser, access } = useAuth();
   // New exercises can only be created by coaches who can write the exercise library.
   const canWriteExercises = !!access?.sections.exercises;
@@ -252,7 +254,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                         active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
                       }`}
                     >
-                      {c.label}
+                      {lb.exerciseCategory[c.key]}
                     </button>
                   );
                 })}

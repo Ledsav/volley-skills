@@ -7,6 +7,7 @@ import { useSave } from '../components/useSave';
 import { createPlayer } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory, type ShirtSize } from '../types/player';
 import type { Team } from '../types/team';
+import { useT } from '../i18n/I18nProvider';
 
 interface AddPlayerDialogProps {
   teamId: string;
@@ -23,6 +24,7 @@ function emptyGuardian(): Guardian {
 }
 
 export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerDialogProps) {
+  const lb = useT().labels;
   const { firebaseUser, appUser } = useAuth();
   const [number, setNumber] = useState('');
   const [fullName, setFullName] = useState('');
@@ -133,7 +135,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           >
             {POSITION_CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
-                {c.label}
+                {lb.position[c.value]('mixed') /* TODO(i18n T8): teamGender(team) */}
               </option>
             ))}
           </select>

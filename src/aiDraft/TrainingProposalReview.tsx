@@ -1,17 +1,12 @@
 import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
 import { Input, Textarea } from '../components/Input';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
-import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import { DraftDiagramPreview } from './DraftDiagramPreview';
 import { NumberField } from './NumberField';
 import { moveStep, removeStep, setStepMinutes, stepName, totalMinutes } from './trainingDraftOps';
 import { DRAFT_LIMITS, type TrainingDraft } from './types';
 import { PlayersNote } from '../trainings/PlayersNote';
-
-const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
-  ExerciseCategory,
-  string
->;
+import { useT } from '../i18n/I18nProvider';
 
 const iconBtn =
   'inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink disabled:opacity-30 sm:h-9 sm:w-9';
@@ -25,6 +20,7 @@ interface Props {
 
 /** Editable header + ordered steps of an AI training proposal. Removing a new step drops its exercise too. */
 export function TrainingProposalReview({ draft, targetMinutes, onChange, onView }: Props) {
+  const lb = useT().labels;
   const total = totalMinutes(draft);
   const off = Math.abs(total - targetMinutes) > targetMinutes * 0.1;
   return (
@@ -102,7 +98,7 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
                     {s.kind === 'new' ? 'New' : 'Library'}
                   </span>
                   {category && (
-                    <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{CATEGORY_LABEL[category]}</span>
+                    <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{lb.exerciseCategory[category]}</span>
                   )}
                   <PlayersNote
                     minPlayers={s.kind === 'library' ? s.minPlayers : s.exercise.minPlayers}

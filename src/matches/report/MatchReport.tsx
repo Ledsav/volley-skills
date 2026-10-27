@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FIELD_CLASS } from '../../components/Input';
 import { GRADES, SKILLS, type Match, type MatchReportData } from '../../types/match';
 import { fmtEff, fmtPct, playerLabel, rosterMap } from '../format';
-import { SKILL_LABELS } from '../skillGrades';
+import { useT } from '../../i18n/I18nProvider';
 import { GRADE_CLASS } from '../scout/gradeStyles';
 import { isManyErrors, isWeakAttack, isWeakReception, weakClass } from '../statFlags';
 
@@ -24,6 +24,7 @@ interface MatchReportProps {
 }
 
 export function MatchReport({ match, report, set: setProp, onSetChange }: MatchReportProps) {
+  const lb = useT().labels;
   const [localSet, setLocalSet] = useState<number | 'all'>('all');
   const set = setProp ?? localSet;
   const setSet = onSetChange ?? setLocalSet;
@@ -78,7 +79,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
               <tr>
                 <th scope="col" className="px-2 py-2 font-medium">Player</th>
                 {SKILLS.map((s) => (
-                  <th scope="col" key={s} className="px-2 py-2 font-medium">{SKILL_LABELS[s]}</th>
+                  <th scope="col" key={s} className="px-2 py-2 font-medium">{lb.skill[s]}</th>
                 ))}
                 <th scope="col" className="px-2 py-2 font-medium">Att. eff</th>
                 <th scope="col" className="px-2 py-2 font-medium">Rec +</th>

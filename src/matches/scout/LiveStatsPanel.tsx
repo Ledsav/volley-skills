@@ -1,13 +1,14 @@
 import { TriangleAlert } from 'lucide-react';
 import { Fragment, useState } from 'react';
-import { GRADES, type RosterEntry, type Skill } from '../../types/match';
+import { GRADES, SKILLS, type RosterEntry } from '../../types/match';
 import { fmtEff, fmtPct, playerLabel } from '../format';
-import { SKILL_LABELS } from '../skillGrades';
+import { useT } from '../../i18n/I18nProvider';
 import type { MatchState } from '../scoutEngine';
 import { computeStats, liveAlerts } from '../scoutStats';
 import { isManyErrors, isWeakAttack, isWeakReception, weakClass } from '../statFlags';
 
 export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: Map<string, RosterEntry> }) {
+  const lb = useT().labels;
   const [scope, setScope] = useState<'set' | 'match'>('set');
   const [openId, setOpenId] = useState<string | null>(null);
   const stats = computeStats(state, scope === 'set' ? { set: state.set } : {});
@@ -110,13 +111,13 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
                     <tr>
                       <td colSpan={6} className="pb-2 pl-2 text-xs text-slate">
                         <ul className="space-y-0.5">
-                          {(Object.keys(SKILL_LABELS) as Skill[]).map((k) => {
+                          {SKILLS.map((k) => {
                             const st = p.skills[k];
                             if (!st) return null;
                             const gs = GRADES.filter((g) => st.grades[g] > 0).map((g) => `${g} ${st.grades[g]}`);
                             return (
                               <li key={k}>
-                                {SKILL_LABELS[k]}: {st.attempts}{gs.length > 0 ? ` · ${gs.join(' ')}` : ''}
+                                {lb.skill[k]}: {st.attempts}{gs.length > 0 ? ` · ${gs.join(' ')}` : ''}
                               </li>
                             );
                           })}

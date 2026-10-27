@@ -1,7 +1,8 @@
 import { UNKNOWN_PERSON, type Person } from '../teams/stats/rosterIndex';
 import type { AwardId, AwardScope, AwardsInput, CustomAward } from '../types/awards';
 import type { Match } from '../types/match';
-import { AWARD_TITLES, AWARDS_FOR, rankAward, type Ranked } from './awardRules';
+import { AWARDS_FOR, rankAward, type Ranked } from './awardRules';
+import { getT } from '../i18n/I18nProvider';
 
 export interface ResolvedAward {
   key: string; title: string; kind: 'stats' | 'custom';
@@ -29,7 +30,8 @@ export function resolveAwards(scope: AwardScope, matches: Match[], config: Award
     const chosenId = pick?.playerId ?? suggested?.playerId ?? null;
     const overridden = !!pick?.playerId && pick.playerId !== suggested?.playerId;
     byKey.set(id, {
-      key: id, title: AWARD_TITLES[id], kind: 'stats',
+      // TODO(i18n T8): teamGender(team)
+      key: id, title: getT().labels.awardTitle[id]('mixed'), kind: 'stats',
       winner: chosenId ? person(chosenId) : null,
       statLine: !overridden && suggested ? statLine(suggested) : null,
       suggested, runnersUp: ranking.ranked.slice(1, 3),

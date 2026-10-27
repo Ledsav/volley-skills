@@ -4,6 +4,7 @@ import type { ExerciseCategory } from '../../types/exercise';
 import type { ObjectiveStatus } from '../../types/developmentPlan';
 import type { Competition, Grade, MatchStatus, PointReason, Skill } from '../../types/match';
 import type { Level, PositionCategory, SkillKey } from '../../types/player';
+import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../../types/physicalTest';
 
 /** Labels for stored codes. Keys are the codes; saved values never change. English ignores `g`. */
 export const labels = {
@@ -116,4 +117,22 @@ export const labels = {
     live: 'Live',
     finished: 'Finished',
   } as Record<MatchStatus, string>,
+  /** The physical tests (Task 8 players, Task 9 testing sessions). */
+  physicalTest: {
+    growth: 'Growth',
+    cmj: 'Countermovement Jump',
+    approachJump: 'Approach Jump',
+    broadJump: 'Standing Broad Jump',
+    sprint10m: '10m Sprint',
+    shuttle5105: '5-10-5 Shuttle',
+    reaction: 'Reaction Time',
+    strength: 'Strength',
+  } as Record<PhysicalTestType, string>,
+  strengthExercise: {
+    trapBarDeadlift: 'Trap-bar deadlift',
+    squat: 'Squat',
+    gobletSquat: 'Goblet squat',
+    pushUps: 'Push-ups',
+    splitSquat: 'Split squat',
+  } as Record<WeightedExercise | BodyweightExercise, string>,
 };

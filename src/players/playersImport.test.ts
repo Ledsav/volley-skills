@@ -32,7 +32,7 @@ describe('validatePlayerRows', () => {
     );
     const bad = validatePlayerRows([{ number: 1, fullName: 'A', positionCategory: 'wing' }]);
     expect(bad.inputs).toEqual([]);
-    expect(bad.errors[0]).toMatch(/positionCategory/);
+    expect(bad.errors[0]).toMatchObject({ code: 'positionInvalid', row: 1 });
   });
 
   it('accepts a valid shirt size and rejects an unknown one', () => {
@@ -40,25 +40,25 @@ describe('validatePlayerRows', () => {
     expect(validatePlayerRows([{ number: 1, fullName: 'A', shirtSize: '' }]).inputs[0].shirtSize).toBe('');
     const bad = validatePlayerRows([{ number: 1, fullName: 'A', shirtSize: 'medium' }]);
     expect(bad.inputs).toEqual([]);
-    expect(bad.errors[0]).toMatch(/shirtSize/);
+    expect(bad.errors[0]).toMatchObject({ code: 'shirtSizeInvalid', row: 1 });
   });
 
   it('reports a missing or non-numeric number', () => {
     const result = validatePlayerRows([{ fullName: 'A' }, { number: '3', fullName: 'B' }]);
     expect(result.errors).toEqual([
-      'row 1: "number" is required and must be a number',
-      'row 2: "number" is required and must be a number',
+      { code: 'numberRequired', row: 1 },
+      { code: 'numberRequired', row: 2 },
     ]);
   });
 
   it('reports a missing fullName', () => {
     const result = validatePlayerRows([{ number: 1 }]);
-    expect(result.errors).toEqual(['row 1: "fullName" is required']);
+    expect(result.errors).toEqual([{ code: 'fullNameRequired', row: 1 }]);
   });
 
   it('reports a malformed dob but accepts YYYY-MM-DD', () => {
     expect(validatePlayerRows([{ number: 1, fullName: 'A', dob: '12/03/2010' }]).errors).toEqual([
-      'row 1: "dob" must be YYYY-MM-DD',
+      { code: 'dobFormat', row: 1 },
     ]);
     expect(validatePlayerRows([{ number: 1, fullName: 'A', dob: '2010-03-12' }]).errors).toEqual([]);
   });
@@ -68,8 +68,8 @@ describe('validatePlayerRows', () => {
       { number: 1, fullName: 'A', guardians: [{ relation: 'aunt', name: '' }] },
     ]);
     expect(result.errors).toEqual([
-      'row 1: guardian 1 "relation" must be mother, father, or other',
-      'row 1: guardian 1 "name" is required',
+      { code: 'guardianRelation', row: 1, guardian: 1 },
+      { code: 'guardianNameRequired', row: 1, guardian: 1 },
     ]);
   });
 
@@ -82,13 +82,13 @@ describe('validatePlayerRows', () => {
       { number: 1, fullName: 'A', skills: { serve: 0, attack: 11, made_up: 5 } },
     ]);
     expect(bad.errors).toEqual([
-      'row 1: "skills.serve" must be a number from 1 to 10, or null',
-      'row 1: "skills.attack" must be a number from 1 to 10, or null',
-      'row 1: "skills" has an unknown key "made_up"',
+      { code: 'skillRange', row: 1, key: 'serve' },
+      { code: 'skillRange', row: 1, key: 'attack' },
+      { code: 'skillsUnknownKey', row: 1, key: 'made_up' },
     ]);
   });
 
   it('reports a non-object row', () => {
-    expect(validatePlayerRows([5]).errors).toEqual(['row 1: each entry must be a JSON object']);
+    expect(validatePlayerRows([5]).errors).toEqual([{ code: 'notObject', row: 1 }]);
   });
 });

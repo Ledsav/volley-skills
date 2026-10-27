@@ -8,6 +8,7 @@ import { createPlayer } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory, type ShirtSize } from '../types/player';
 import type { Team } from '../types/team';
 import { useT } from '../i18n/I18nProvider';
+import { teamGender } from '../teams/teamGender';
 
 interface AddPlayerDialogProps {
   teamId: string;
@@ -24,7 +25,10 @@ function emptyGuardian(): Guardian {
 }
 
 export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerDialogProps) {
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const p = t.players;
+  const g = teamGender(team);
   const { firebaseUser, appUser } = useAuth();
   const [number, setNumber] = useState('');
   const [fullName, setFullName] = useState('');
@@ -78,54 +82,54 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
       ));
       if (!done) return;
     } catch {
-      setError('Could not create the player. Please try again.');
+      setError(p.addPlayer.error(g));
       return;
     }
     onCreated();
   }
 
   return (
-    <Dialog title="Add player" onClose={onClose} guardUnsaved size="lg" mobileSheet>
-      <form onSubmit={handleSubmit} aria-label="Add player">
+    <Dialog title={p.addPlayer.title(g)} onClose={onClose} guardUnsaved size="lg" mobileSheet>
+      <form onSubmit={handleSubmit} aria-label={p.addPlayer.title(g)}>
 
         <div className={fieldClass}>
           <label htmlFor="player-number" className={labelClass}>
-            Number
+            {p.shared.number}
           </label>
           <Input id="player-number" type="number" value={number} onChange={(e) => setNumber(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="player-full-name" className={labelClass}>
-            Full name
+            {p.addPlayer.fullName}
           </label>
           <Input id="player-full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="player-dob" className={labelClass}>
-            Date of birth
+            {p.addPlayer.dob}
           </label>
           <Input id="player-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="player-nationality" className={labelClass}>
-            Nationality
+            {p.shared.nationality}
           </label>
           <Input id="player-nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="player-license" className={labelClass}>
-            License #
+            {p.addPlayer.licenseNumber}
           </label>
           <Input id="player-license" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="player-position-category" className={labelClass}>
-            Position
+            {p.shared.position}
           </label>
           <select
             id="player-position-category"
@@ -135,7 +139,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           >
             {POSITION_CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
-                {lb.position[c.value]('mixed') /* TODO(i18n T8): teamGender(team) */}
+                {lb.position[c.value](g)}
               </option>
             ))}
           </select>
@@ -143,7 +147,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
 
         <div className={fieldClass}>
           <label htmlFor="player-shirt-size" className={labelClass}>
-            Shirt size
+            {p.shared.shirtSize}
           </label>
           <select
             id="player-shirt-size"
@@ -151,7 +155,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             value={shirtSize}
             onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
           >
-            <option value="">Not set</option>
+            <option value="">{p.shared.notSet}</option>
             {SHIRT_SIZES.map((size) => (
               <option key={size} value={size}>
                 {size}
@@ -162,17 +166,17 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
 
         <div className={fieldClass}>
           <label htmlFor="player-phone" className={labelClass}>
-            Phone
+            {p.shared.phone}
           </label>
           <Input id="player-phone" value={playerPhone} onChange={(e) => setPlayerPhone(e.target.value)} />
         </div>
 
-        <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate">Guardians</h3>
+        <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{p.addPlayer.guardians}</h3>
         {guardians.map((guardian, index) => (
           <div key={index} className="mb-4 rounded-md border border-border p-3">
             <div className={fieldClass}>
               <label htmlFor={`guardian-relation-${index}`} className={labelClass}>
-                Relation
+                {p.shared.relation}
               </label>
               <select
                 id={`guardian-relation-${index}`}
@@ -180,14 +184,14 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
                 value={guardian.relation}
                 onChange={(e) => updateGuardian(index, { relation: e.target.value as Guardian['relation'] })}
               >
-                <option value="mother">Mother</option>
-                <option value="father">Father</option>
-                <option value="other">Other</option>
+                <option value="mother">{p.shared.relations.mother}</option>
+                <option value="father">{p.shared.relations.father}</option>
+                <option value="other">{p.shared.relations.other}</option>
               </select>
             </div>
             <div className={fieldClass}>
               <label htmlFor={`guardian-name-${index}`} className={labelClass}>
-                Guardian name
+                {p.shared.guardianName}
               </label>
               <Input
                 id={`guardian-name-${index}`}
@@ -198,7 +202,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             </div>
             <div className={fieldClass}>
               <label htmlFor={`guardian-phone-${index}`} className={labelClass}>
-                Guardian phone
+                {p.shared.guardianPhone}
               </label>
               <Input
                 id={`guardian-phone-${index}`}
@@ -208,7 +212,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             </div>
             <div className={fieldClass}>
               <label htmlFor={`guardian-email-${index}`} className={labelClass}>
-                Guardian email
+                {p.shared.guardianEmail}
               </label>
               <Input
                 id={`guardian-email-${index}`}
@@ -219,13 +223,13 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             </div>
             {guardians.length > 1 && (
               <Button variant="dangerGhost" size="sm" onClick={() => removeGuardian(index)}>
-                Remove guardian
+                {p.shared.removeGuardian}
               </Button>
             )}
           </div>
         ))}
         <Button variant="secondary" size="sm" onClick={addGuardian} className="mb-4">
-          + Add guardian
+          {p.shared.addGuardian}
         </Button>
 
         <label className="mb-4 flex items-start gap-2 text-sm text-ink">
@@ -236,15 +240,15 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             required
             className="mt-1"
           />
-          I confirm a parent or legal guardian has consented to storing this player's data, including physical-test measurements and match statistics.
+          {p.shared.consent}
         </label>
 
         <div className="mt-2 flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Create'}
+            {saving ? p.shared.saving : p.addPlayer.create}
           </Button>
         </div>
         {error && (

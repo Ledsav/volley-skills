@@ -1,27 +1,28 @@
-import { STRENGTH_EXERCISE_LABELS } from '../types/physicalTest';
 import type { PhysicalTest } from '../types/physicalTest';
 import { formatNumber } from '../i18n/format';
+import { getT } from '../i18n/I18nProvider';
 
 export function formatPhysicalTestSummary(test: PhysicalTest): string {
+  const s = getT().players.physical.summary;
   switch (test.testType) {
     case 'growth':
       return `${test.heightCm} cm, ${test.bodyMassKg} kg`;
     case 'cmj':
       return `${test.bestCm} cm`;
     case 'approachJump':
-      return `${test.approachJumpCm} cm (touch ${test.bestTouchCm} cm)`;
+      return s.approachJump(test.approachJumpCm, test.bestTouchCm);
     case 'broadJump':
       return `${test.bestCm} cm`;
     case 'sprint10m':
       return `${test.bestSeconds} s`;
     case 'shuttle5105':
-      return `R ${test.rightFirstSeconds}s / L ${test.leftFirstSeconds}s`;
+      return s.shuttle(test.rightFirstSeconds, test.leftFirstSeconds);
     case 'reaction':
       return `${formatNumber(test.reactionTimeMs, 0)} ms`;
     case 'strength':
       return test.mode === 'weighted'
         ? `${test.weightKg} kg (${test.bodyMassRatio !== null ? formatNumber(test.bodyMassRatio, 2) : '—'})`
-        : `${test.reps} reps`;
+        : s.reps(test.reps);
   }
 }
 
@@ -41,56 +42,59 @@ function list(values: number[], unit: string): string {
 
 /** Every stored measurement for one entry, for the expanded history row. */
 export function formatPhysicalTestDetail(test: PhysicalTest): PhysicalTestDetailRow[] {
+  const t = getT();
+  const d = t.players.physical.detail;
+  const exercises = t.labels.strengthExercise;
   switch (test.testType) {
     case 'growth':
       return [
-        { label: 'Height', value: `${test.heightCm} cm` },
-        { label: 'Body mass', value: `${test.bodyMassKg} kg` },
+        { label: d.height, value: `${test.heightCm} cm` },
+        { label: d.bodyMass, value: `${test.bodyMassKg} kg` },
       ];
     case 'cmj':
       return [
-        { label: 'Attempts', value: list(test.attemptsCm, 'cm') },
-        { label: 'Best', value: `${test.bestCm} cm` },
+        { label: d.attempts, value: list(test.attemptsCm, 'cm') },
+        { label: d.best, value: `${test.bestCm} cm` },
       ];
     case 'approachJump':
       return [
-        { label: 'Standing reach', value: `${test.standingReachCm} cm` },
-        { label: 'Touch attempts', value: list(test.attemptsTouchCm, 'cm') },
-        { label: 'Best touch', value: `${test.bestTouchCm} cm` },
-        { label: 'Approach jump', value: `${test.approachJumpCm} cm` },
+        { label: d.standingReach, value: `${test.standingReachCm} cm` },
+        { label: d.touchAttempts, value: list(test.attemptsTouchCm, 'cm') },
+        { label: d.bestTouch, value: `${test.bestTouchCm} cm` },
+        { label: d.approachJump, value: `${test.approachJumpCm} cm` },
       ];
     case 'broadJump':
       return [
-        { label: 'Attempts', value: list(test.attemptsCm, 'cm') },
-        { label: 'Best', value: `${test.bestCm} cm` },
+        { label: d.attempts, value: list(test.attemptsCm, 'cm') },
+        { label: d.best, value: `${test.bestCm} cm` },
       ];
     case 'sprint10m':
       return [
-        { label: 'Attempts', value: list(test.attemptsSeconds, 's') },
-        { label: 'Best', value: `${test.bestSeconds} s` },
+        { label: d.attempts, value: list(test.attemptsSeconds, 's') },
+        { label: d.best, value: `${test.bestSeconds} s` },
       ];
     case 'shuttle5105':
       return [
-        { label: 'Right first', value: `${test.rightFirstSeconds} s` },
-        { label: 'Left first', value: `${test.leftFirstSeconds} s` },
+        { label: d.rightFirst, value: `${test.rightFirstSeconds} s` },
+        { label: d.leftFirst, value: `${test.leftFirstSeconds} s` },
       ];
     case 'reaction':
       return [
-        { label: 'Attempts', value: list(test.attemptsCm, 'cm') },
-        { label: 'Average', value: `${round1(test.averageCm)} cm` },
-        { label: 'Reaction time', value: `${formatNumber(test.reactionTimeMs, 0)} ms` },
+        { label: d.attempts, value: list(test.attemptsCm, 'cm') },
+        { label: d.average, value: `${round1(test.averageCm)} cm` },
+        { label: d.reactionTime, value: `${formatNumber(test.reactionTimeMs, 0)} ms` },
       ];
     case 'strength':
       return test.mode === 'weighted'
         ? [
-            { label: 'Exercise', value: STRENGTH_EXERCISE_LABELS[test.exercise] },
-            { label: 'Weight', value: `${test.weightKg} kg` },
-            { label: 'Reps (6RM)', value: String(test.reps6RM) },
-            { label: 'Body-mass ratio', value: test.bodyMassRatio !== null ? formatNumber(test.bodyMassRatio, 2) : '—' },
+            { label: d.exercise, value: exercises[test.exercise] },
+            { label: d.weight, value: `${test.weightKg} kg` },
+            { label: d.reps6RM, value: String(test.reps6RM) },
+            { label: d.bodyMassRatio, value: test.bodyMassRatio !== null ? formatNumber(test.bodyMassRatio, 2) : '—' },
           ]
         : [
-            { label: 'Exercise', value: STRENGTH_EXERCISE_LABELS[test.exercise] },
-            { label: 'Reps', value: String(test.reps) },
+            { label: d.exercise, value: exercises[test.exercise] },
+            { label: d.reps, value: String(test.reps) },
           ];
   }
 }

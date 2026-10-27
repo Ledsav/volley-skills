@@ -1,5 +1,6 @@
 import type { Level } from '../types/player';
 import { buildSkillRadar } from './skillRadar';
+import { useT } from '../i18n/I18nProvider';
 
 interface SkillRadarChartProps {
   scores: (number | null)[];
@@ -22,17 +23,18 @@ const STROKE_CLASS: Record<Level, string> = {
 };
 
 export function SkillRadarChart({ scores, labels, level }: SkillRadarChartProps) {
+  const r = useT().players.radar;
   const geometry = buildSkillRadar(scores, labels);
   const fillClass = level ? FILL_CLASS[level] : 'fill-ink/10';
   const strokeClass = level ? STROKE_CLASS[level] : 'stroke-slate';
-  const summary = labels.map((label, i) => `${label} ${scores[i] ?? 'not rated'}`).join(', ');
+  const summary = labels.map((label, i) => `${label} ${scores[i] ?? r.notRated}`).join(', ');
 
   return (
     <svg
       viewBox={`0 0 ${geometry.size} ${geometry.size}`}
       className="mx-auto block w-full max-w-[280px] sm:max-w-[320px] lg:max-w-[360px]"
       role="img"
-      aria-label={`Skills radar chart: ${summary}`}
+      aria-label={r.ariaLabel(summary)}
     >
       {geometry.gridPolygons.map((points, i) => (
         <polygon key={i} points={points} fill="none" className="stroke-border" strokeWidth={1} />

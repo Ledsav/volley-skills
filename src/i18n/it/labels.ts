@@ -39,7 +39,7 @@ export const labels = {
     reception: 'Ricezione',
     jump: 'Salto',
     speed: 'Velocità',
-    iq: 'Intelligenza di gioco',
+    iq: 'Lettura del gioco',
   },
   position: {
     S: (g: Gender) => agree(g, 'Palleggiatore', 'Palleggiatrice', 'Palleggiatore/trice'),
@@ -110,5 +110,22 @@ export const labels = {
     setup: 'Preparazione',
     live: 'In diretta',
     finished: 'Conclusa',
+  },
+  physicalTest: {
+    growth: 'Crescita',
+    cmj: 'Salto con contromovimento',
+    approachJump: 'Salto con rincorsa',
+    broadJump: 'Salto in lungo da fermo',
+    sprint10m: 'Sprint 10 m',
+    shuttle5105: 'Navetta 5-10-5',
+    reaction: 'Tempo di reazione',
+    strength: 'Forza',
+  },
+  strengthExercise: {
+    trapBarDeadlift: 'Stacco con trap bar',
+    squat: 'Squat',
+    gobletSquat: 'Goblet squat',
+    pushUps: 'Flessioni',
+    splitSquat: 'Squat bulgaro',
   },
 } satisfies Catalog['labels'];

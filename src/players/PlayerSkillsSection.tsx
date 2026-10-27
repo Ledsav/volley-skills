@@ -7,17 +7,17 @@ import { Input } from '../components/Input';
 import { SkillMeter } from '../components/SkillMeter';
 import { getSkillGuide } from '../skillGuide/skillGuideApi';
 import type { SkillGuideEntry } from '../types/skillGuide';
-import type { Player, SkillKey, Skills } from '../types/player';
+import { SKILL_KEYS, type Player, type SkillKey, type Skills } from '../types/player';
 import { updatePlayerSkills } from './playersApi';
 import { suggestedScore, type MatchRatings } from './matchRating';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SkillRadarChart } from './SkillRadarChart';
 import { useNotify } from '../components/Notice';
 import { formatNumber } from '../i18n/format';
-import { labels as enLabels } from '../i18n/en/labels';
-import { useT } from '../i18n/I18nProvider';
+import { useLocale, useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
 
-const SKILL_ORDER = Object.keys(enLabels.playerSkill) as SkillKey[];
+const SKILL_ORDER = SKILL_KEYS;
 
 /** The scoring-guide reminder shown in a skill's ⓘ tooltip. */
 function SkillGuideHint({ entry }: { entry: SkillGuideEntry }) {
@@ -39,12 +39,6 @@ function SkillGuideHint({ entry }: { entry: SkillGuideEntry }) {
   );
 }
 
-function matchLine(rating: { rating: number | null; attempts: number }): string {
-  return rating.rating === null
-    ? `Match — · ${rating.attempts} att. (not enough data)`
-    : `Match ${formatNumber(rating.rating, 1)} · ${rating.attempts} att.`;
-}
-
 interface PlayerSkillsSectionProps {
   teamId: string;
   playerId: string;
@@ -57,6 +51,8 @@ interface PlayerSkillsSectionProps {
   ratings?: MatchRatings;
   /** Header toggle state: show match suggestions (ghost segments + Adapt). Defaults to on. */
   showSuggestions?: boolean;
+  /** The team's grammatical gender, for the level wording. */
+  gender?: Gender;
 }
 
 export function PlayerSkillsSection({
@@ -69,9 +65,21 @@ export function PlayerSkillsSection({
   onEditingChange,
   ratings,
   showSuggestions = true,
+  gender = 'mixed',
 }: PlayerSkillsSectionProps) {
   const notify = useNotify();
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const p = t.players;
+  const { locale } = useLocale();
+  // Italian skill names are longer ("Lettura del gioco"), so their label column is wider.
+  const listGridClass = locale === 'it' ? 'grid-cols-[9.5rem_2rem_1fr_3.5rem]' : 'grid-cols-[6.5rem_2rem_1fr_3.5rem]';
+  const editGridClass =
+    locale === 'it' ? 'grid-cols-[9rem_5rem] sm:grid-cols-[9rem_5rem_1fr_auto]' : 'grid-cols-[7rem_5rem] sm:grid-cols-[7rem_5rem_1fr_auto]';
+  const matchLine = (rating: { rating: number | null; attempts: number }): string =>
+    rating.rating === null
+      ? p.skills.matchNoData(rating.attempts)
+      : p.skills.matchRated(formatNumber(rating.rating, 1), rating.attempts);
   const [skills, setSkills] = useState<Skills>(player.skills);
   const [error, setError] = useState<string | null>(null);
   const [guide, setGuide] = useState<Record<string, SkillGuideEntry>>({});
@@ -113,7 +121,7 @@ export function PlayerSkillsSection({
     try {
       await updatePlayerSkills(teamId, playerId, skills, avgScore, level);
     } catch {
-      setError('Could not save skills. Check that every score is between 1 and 10, then try again.');
+      setError(p.skills.saveFailedRange);
       return;
     }
     onPlayerUpdated({ ...player, skills, avgScore, level });
@@ -135,11 +143,11 @@ export function PlayerSkillsSection({
     try {
       await updatePlayerSkills(teamId, playerId, next, avgScore, level);
     } catch {
-      setError('Could not save skills. Please try again.');
+      setError(p.skills.saveFailed);
       return;
     }
     onPlayerUpdated({ ...player, skills: next, avgScore, level });
-    notify(`${lb.playerSkill[key]} set to ${score}`);
+    notify(p.skills.adapted(lb.playerSkill[key], score));
   }
 
   const previewAvg = computeAvgScore(skills);
@@ -155,8 +163,8 @@ export function PlayerSkillsSection({
             level={player.level}
           />
           <p className="mt-2 text-center text-sm text-slate">
-            Average: <span className="font-semibold tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</span>{' '}
-            ({player.level ? lb.level[player.level]('mixed') : 'No scores yet'})
+            {p.skills.average} <span className="font-semibold tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</span>{' '}
+            ({player.level ? lb.level[player.level](gender) : p.shared.noScores})
           </p>
         </div>
         <ul className="flex flex-col gap-3">
@@ -165,31 +173,31 @@ export function PlayerSkillsSection({
             const rating = ratings?.[key];
             const suggested = suggestionFor(rating, score);
             return (
-              <li key={key} className="grid grid-cols-[6.5rem_2rem_1fr_3.5rem] items-center gap-x-2">
+              <li key={key} className={`grid ${listGridClass} items-center gap-x-2`}>
                 <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange-strong' : 'text-ink'}`}>
                   {lb.playerSkill[key]}
                   {guide[key] && (
-                    <InfoTooltip label={`${lb.playerSkill[key]} scoring guide`}>
+                    <InfoTooltip label={p.skills.scoringGuide(lb.playerSkill[key])}>
                       <SkillGuideHint entry={guide[key]} />
                     </InfoTooltip>
                   )}
                   {priority && (
                     <Target
                       role="img"
-                      aria-label="Focus area"
+                      aria-label={p.skills.focusArea}
                       className="h-3.5 w-3.5 shrink-0 text-orange-strong"
                     />
                   )}
                 </span>
                 <span className="text-right text-sm tabular-nums text-ink">{score ?? '—'}</span>
-                <div title={suggested !== null && rating ? `${matchLine(rating)} — suggests ${suggested}` : undefined}>
+                <div title={suggested !== null && rating ? p.skills.suggests(matchLine(rating), suggested) : undefined}>
                   <SkillMeter score={score} suggested={suggested} />
                 </div>
                 {suggested !== null && isAdmin ? (
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`Adapt ${lb.playerSkill[key]} to ${suggested}`}
+                    aria-label={p.skills.adaptAria(lb.playerSkill[key], suggested)}
                     onClick={() => void adapt(key, suggested)}
                     className={`!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs tabular-nums ${suggested > (score ?? 0) ? 'text-green-strong hover:bg-green/10' : 'text-orange-strong hover:bg-orange/10'}`}
                   >
@@ -206,11 +214,11 @@ export function PlayerSkillsSection({
       </div>
 
       {editing && isAdmin && (
-        <Dialog title="Edit skills" onClose={() => onEditingChange(false)} guardUnsaved>
-          <div aria-label="Edit skills">
+        <Dialog title={p.skills.editTitle} onClose={() => onEditingChange(false)} guardUnsaved>
+          <div aria-label={p.skills.editTitle}>
             <p className="mb-4 text-sm text-slate">
-              Average: <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
-              ({previewLevel ? lb.level[previewLevel]('mixed') : 'No scores yet'})
+              {p.skills.average} <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
+              ({previewLevel ? lb.level[previewLevel](gender) : p.shared.noScores})
             </p>
             <div className="flex flex-col gap-4">
               {SKILL_ORDER.map((key) => {
@@ -219,14 +227,14 @@ export function PlayerSkillsSection({
                 return (
                   <div
                     key={key}
-                    className="grid grid-cols-[7rem_5rem] items-center gap-x-4 gap-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[7rem_5rem_1fr_auto]"
+                    className={`grid ${editGridClass} items-center gap-x-4 gap-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0`}
                   >
                     <span className="flex items-center gap-1">
                       <label htmlFor={`skill-${key}`} className="text-sm font-medium text-ink">
                         {lb.playerSkill[key]}
                       </label>
                       {guide[key] && (
-                        <InfoTooltip label={`${lb.playerSkill[key]} scoring guide`}>
+                        <InfoTooltip label={p.skills.scoringGuide(lb.playerSkill[key])}>
                           <SkillGuideHint entry={guide[key]} />
                         </InfoTooltip>
                       )}
@@ -250,7 +258,7 @@ export function PlayerSkillsSection({
                         onChange={(e) => updatePriority(key, e.target.checked)}
                         className="h-4 w-4 rounded-sm border-border text-blue focus:outline-none focus:ring-2 focus:ring-blue"
                       />
-                      Focus area
+                      {p.skills.focusArea}
                     </label>
                     {suggestionFor(rating, skills[key].score) !== null && rating && value !== null && (
                       <div className="col-span-2 flex items-center gap-2 text-xs tabular-nums text-slate sm:col-span-4">
@@ -260,7 +268,7 @@ export function PlayerSkillsSection({
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label={`Use ${suggestedScore(value)} for ${lb.playerSkill[key]}`}
+                          aria-label={p.skills.useAria(lb.playerSkill[key], suggestedScore(value))}
                           onClick={() => updateScore(key, String(suggestedScore(value)))}
                           className="!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs"
                         >
@@ -275,10 +283,10 @@ export function PlayerSkillsSection({
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="ghost" onClick={() => onEditingChange(false)}>
-                Cancel
+                {t.common.cancel}
               </Button>
               <Button variant="primary" onClick={() => void handleSave()}>
-                Save skills
+                {p.skills.saveSkills}
               </Button>
             </div>
             {error && (

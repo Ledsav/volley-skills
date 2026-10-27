@@ -1,4 +1,5 @@
 import type { TrendSeries } from './physicalTestChart';
+import { useT } from '../i18n/I18nProvider';
 
 const WIDTH = 340;
 const HEIGHT = 150;
@@ -11,7 +12,10 @@ interface PhysicalTestTrendChartProps {
 }
 
 export function PhysicalTestTrendChart({ series }: PhysicalTestTrendChartProps) {
-  const { points, unit, lowerIsBetter } = series;
+  const c = useT().players.physical;
+  const { points, lowerIsBetter } = series;
+  // 'reps' is the one unit that is a word; cm, kg, s and ms read the same everywhere.
+  const unit = series.unit === 'reps' ? c.repsUnit : series.unit;
 
   if (points.length === 0) return null;
 
@@ -19,7 +23,7 @@ export function PhysicalTestTrendChart({ series }: PhysicalTestTrendChartProps) 
     return (
       <div className="mb-4 rounded-md border border-border bg-bg p-3 text-sm text-slate">
         {points[0].date}: <span className="font-medium text-ink">{points[0].value} {unit}</span>
-        <p className="mt-1 text-xs text-slate">Add another entry to see a trend.</p>
+        <p className="mt-1 text-xs text-slate">{c.chart.addAnother}</p>
       </div>
     );
   }
@@ -61,7 +65,7 @@ export function PhysicalTestTrendChart({ series }: PhysicalTestTrendChartProps) 
 
   return (
     <div className="mb-4 rounded-md border border-border bg-bg p-3">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block w-full" role="img" aria-label={`Trend: ${summary}`}>
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block w-full" role="img" aria-label={c.chart.ariaLabel(summary)}>
         <polyline points={linePoints} fill="none" className="stroke-blue" strokeWidth={2} />
         {points.map((p, i) => (
           <circle
@@ -92,7 +96,7 @@ export function PhysicalTestTrendChart({ series }: PhysicalTestTrendChartProps) 
           {latest.date}
         </text>
       </svg>
-      {lowerIsBetter && <p className="mt-1 text-xs text-slate">Lower is better</p>}
+      {lowerIsBetter && <p className="mt-1 text-xs text-slate">{c.chart.lowerIsBetter}</p>}
     </div>
   );
 }

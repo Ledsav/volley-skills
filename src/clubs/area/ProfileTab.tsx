@@ -4,6 +4,7 @@ import { FIELD_CLASS, Input } from '../../components/Input';
 import { useNotify } from '../../components/Notice';
 import { useAuth } from '../../auth/AuthContext';
 import { CLUB_COUNTRY_CODES, updateClubProfile } from '../clubAdminApi';
+import { ITALIAN_ENABLED } from '../../i18n/locales';
 import type { ClubLocale } from '../../types/club';
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
@@ -75,7 +76,7 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
         <label htmlFor="club-locale" className="text-sm font-medium text-ink">Language</label>
         <select id="club-locale" value={locale} disabled={restricted}
           onChange={(e) => setLocale(e.target.value as ClubLocale)} className={`${FIELD_CLASS} w-full`}>
-          {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+          {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en' || l.id === club.locale).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
       </div>
 

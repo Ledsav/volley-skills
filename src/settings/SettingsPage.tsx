@@ -1,6 +1,7 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { AiProviderSettings } from './AiProviderSettings';
+import { LanguageSettings } from './LanguageSettings';
 import { SettingsSection } from './SettingsSection';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { PageHeader } from '../layout/PageHeader';
@@ -18,6 +19,8 @@ export function SettingsPage() {
         <SettingsSection title="Appearance" description="Switch between light and dark mode.">
           <ThemeToggle className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-ink hover:bg-bg sm:w-auto sm:justify-start lg:self-start" />
         </SettingsSection>
+
+        <LanguageSettings />
 
         {aiEnabled && <AiProviderSettings />}
       </div>

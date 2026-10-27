@@ -9,13 +9,14 @@ import { Input } from '../components/Input';
 import { LegalLinks } from '../legal/LegalLinks';
 import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
-import { useLocale } from '../i18n/I18nProvider';
+import { useLocale, useT } from '../i18n/I18nProvider';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
 const googleProvider = new GoogleAuthProvider();
 
 export function LoginPage() {
-  usePageMeta({ title: 'Sign in', description: 'Sign in to Volley Skills, the team tool for volleyball clubs.', robots: 'index', canonicalPath: '/login' });
+  const t = useT().auth.loginPage;
+  usePageMeta({ title: t.pageTitle, description: t.pageDescription, robots: 'index', canonicalPath: '/login' });
   const navigate = useNavigate();
   const { locale } = useLocale();
   const [email, setEmail] = useState('');
@@ -34,7 +35,7 @@ export function LoginPage() {
       saveEmailForSignIn(email);
       setSent(true);
     } catch {
-      setError('Could not send sign-in link. Please check the email address and try again.');
+      setError(t.sendLinkError);
     }
   }
 
@@ -44,15 +45,15 @@ export function LoginPage() {
       await signInWithPopup(auth, googleProvider);
       navigate(takeReturnTo(), { replace: true });
     } catch {
-      setError('Could not sign in with Google. Please try again.');
+      setError(t.googleError);
     }
   }
 
   if (sent) {
     return (
-      <AuthShell title="Check your email">
+      <AuthShell title={t.checkEmail}>
         <p className="text-center text-slate">
-          We sent a sign-in link to <span className="font-medium text-ink">{email}</span>.
+          {t.sentTo}<span className="font-medium text-ink">{email}</span>.
         </p>
         <LegalLinks />
       </AuthShell>
@@ -60,29 +61,29 @@ export function LoginPage() {
   }
 
   return (
-    <AuthShell title="Welcome back" navAction={{ to: '/request-access', label: 'Request access' }}>
+    <AuthShell title={t.welcomeBack} navAction={{ to: '/request-access', label: t.requestAccess }}>
       <form onSubmit={handleSubmit}>
         <label htmlFor="email" className="mb-1 block text-sm font-medium text-ink">
-          Email
+          {t.email}
         </label>
         <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="coach@yourclub.com"
+          placeholder={t.emailPlaceholder}
           required
           className="mb-4 w-full"
         />
         <Button type="submit" variant="primary" className="w-full gap-2">
-          Send sign-in link
+          {t.sendLink}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
 
       <div className="my-4 flex items-center gap-3 text-xs text-slate">
         <div className="h-px flex-1 bg-border" />
-        or
+        {t.or}
         <div className="h-px flex-1 bg-border" />
       </div>
 
@@ -93,7 +94,7 @@ export function LoginPage() {
           <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
           <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
         </svg>
-        Continue with Google
+        {t.continueWithGoogle}
       </Button>
 
       {error && (
@@ -104,13 +105,13 @@ export function LoginPage() {
 
       <p className="mt-6 text-center text-sm">
         <Link to="/request-access" className="text-blue hover:underline">
-          Don&apos;t have access yet? Request early access
+          {t.noAccessYet}
         </Link>
       </p>
 
       <p className="mt-2 text-center text-sm">
         <Link to="/signup" className="text-blue hover:underline">
-          Create your club
+          {t.createClub}
         </Link>
       </p>
 

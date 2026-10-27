@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { AuthShell } from './AuthShell';
+import { useT } from '../i18n/I18nProvider';
 import { RequireSignedIn } from './RequireAuth';
 
 function Denied() {
+  const t = useT().auth.shared;
   return (
     <AuthShell>
-      <p role="alert" className="text-red">You don&apos;t have access to this page.</p>
+      <p role="alert" className="text-red">{t.noAccess}</p>
     </AuthShell>
   );
 }

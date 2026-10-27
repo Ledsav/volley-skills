@@ -7,23 +7,23 @@ import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
 import { takeEmailForSignIn } from './emailLinkStorage';
 import { isSignNonce } from '../legal/signDraft';
+import { useT } from '../i18n/I18nProvider';
 
 export function FinishSignInPage() {
-  usePageMeta({ title: 'Signing in' });
+  const t = useT().auth.finishSignIn;
+  usePageMeta({ title: t.pageTitle });
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'invalidLink' | 'emailNotFound' | 'linkFailed' | null>(null);
 
   useEffect(() => {
     async function completeSignIn() {
       if (!isSignInWithEmailLink(auth, window.location.href)) {
-        setError('This sign-in link is invalid or has expired.');
+        setError('invalidLink');
         return;
       }
       const email = takeEmailForSignIn();
       if (!email) {
-        setError(
-          'Could not find the email this link was sent to. Please request a new link from the same browser.'
-        );
+        setError('emailNotFound');
         return;
       }
       try {
@@ -33,7 +33,7 @@ export function FinishSignInPage() {
         const sign = new URL(window.location.href).searchParams.get('sign');
         navigate(isSignNonce(sign) ? `/sign/complete?sign=${sign}` : returnTo, { replace: true });
       } catch {
-        setError('This sign-in link could not be used. Please request a new one.');
+        setError('linkFailed');
       }
     }
     void completeSignIn();
@@ -43,10 +43,10 @@ export function FinishSignInPage() {
     <AuthShell title="Volley Skills">
       {error ? (
         <p role="alert" className="text-red">
-          {error}
+          {t[error]}
         </p>
       ) : (
-        <p className="text-slate">Signing you in...</p>
+        <p className="text-slate">{t.signingIn}</p>
       )}
     </AuthShell>
   );

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useT } from '../i18n/I18nProvider';
 import { signOutAndClearLocalData } from '../firebase/signOut';
 import { clearAiLocalData } from '../ai/aiSettings';
 import { storeClub } from '../clubs/activeClub';
@@ -16,6 +17,7 @@ function clearLocalState() {
  * not synced yet, it asks before discarding them.
  */
 export function useSignOut(): { signOut: () => void; unsyncedDialog: ReactNode } {
+  const t = useT().auth.signOut;
   const [askUnsynced, setAskUnsynced] = useState(false);
 
   async function run(force: boolean) {
@@ -25,9 +27,9 @@ export function useSignOut(): { signOut: () => void; unsyncedDialog: ReactNode }
 
   const unsyncedDialog = askUnsynced ? (
     <ConfirmDialog
-      title="Unsynced scouting actions"
-      message="Some scouting actions haven't synced yet. Sign out anyway? They will be lost."
-      confirmLabel="Sign out anyway"
+      title={t.unsyncedTitle}
+      message={t.unsyncedMessage}
+      confirmLabel={t.signOutAnyway}
       onCancel={() => setAskUnsynced(false)}
       onConfirm={() => {
         setAskUnsynced(false);

@@ -177,8 +177,8 @@ export const players = {
     viewHistory: 'Vedi storico',
     addNew: 'Aggiungi',
     summary: {
-      approachJump: (jump: number, touch: number) => `${jump} cm (tocco ${touch} cm)`,
-      shuttle: (right: number, left: number) => `D ${right}s / S ${left}s`,
+      approachJump: (jump: string, touch: string) => `${jump} cm (tocco ${touch} cm)`,
+      shuttle: (right: string, left: string) => `D ${right}s / S ${left}s`,
       reps: (n: number) => `${n} rip.`,
     },
     detail: {

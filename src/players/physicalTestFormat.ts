@@ -1,27 +1,27 @@
 import type { PhysicalTest } from '../types/physicalTest';
-import { formatNumber } from '../i18n/format';
+import { formatDecimal, formatNumber } from '../i18n/format';
 import { getT } from '../i18n/I18nProvider';
 
 export function formatPhysicalTestSummary(test: PhysicalTest): string {
   const s = getT().players.physical.summary;
   switch (test.testType) {
     case 'growth':
-      return `${test.heightCm} cm, ${test.bodyMassKg} kg`;
+      return `${formatDecimal(test.heightCm)} cm, ${formatDecimal(test.bodyMassKg)} kg`;
     case 'cmj':
-      return `${test.bestCm} cm`;
+      return `${formatDecimal(test.bestCm)} cm`;
     case 'approachJump':
-      return s.approachJump(test.approachJumpCm, test.bestTouchCm);
+      return s.approachJump(formatDecimal(test.approachJumpCm), formatDecimal(test.bestTouchCm));
     case 'broadJump':
-      return `${test.bestCm} cm`;
+      return `${formatDecimal(test.bestCm)} cm`;
     case 'sprint10m':
-      return `${test.bestSeconds} s`;
+      return `${formatDecimal(test.bestSeconds)} s`;
     case 'shuttle5105':
-      return s.shuttle(test.rightFirstSeconds, test.leftFirstSeconds);
+      return s.shuttle(formatDecimal(test.rightFirstSeconds), formatDecimal(test.leftFirstSeconds));
     case 'reaction':
       return `${formatNumber(test.reactionTimeMs, 0)} ms`;
     case 'strength':
       return test.mode === 'weighted'
-        ? `${test.weightKg} kg (${test.bodyMassRatio !== null ? formatNumber(test.bodyMassRatio, 2) : '—'})`
+        ? `${formatDecimal(test.weightKg)} kg (${test.bodyMassRatio !== null ? formatNumber(test.bodyMassRatio, 2) : '—'})`
         : s.reps(test.reps);
   }
 }
@@ -37,7 +37,7 @@ function round1(value: number): string {
 }
 
 function list(values: number[], unit: string): string {
-  return `${values.join(', ')} ${unit}`;
+  return `${values.map((v) => formatDecimal(v)).join(', ')} ${unit}`;
 }
 
 /** Every stored measurement for one entry, for the expanded history row. */
@@ -48,35 +48,35 @@ export function formatPhysicalTestDetail(test: PhysicalTest): PhysicalTestDetail
   switch (test.testType) {
     case 'growth':
       return [
-        { label: d.height, value: `${test.heightCm} cm` },
-        { label: d.bodyMass, value: `${test.bodyMassKg} kg` },
+        { label: d.height, value: `${formatDecimal(test.heightCm)} cm` },
+        { label: d.bodyMass, value: `${formatDecimal(test.bodyMassKg)} kg` },
       ];
     case 'cmj':
       return [
         { label: d.attempts, value: list(test.attemptsCm, 'cm') },
-        { label: d.best, value: `${test.bestCm} cm` },
+        { label: d.best, value: `${formatDecimal(test.bestCm)} cm` },
       ];
     case 'approachJump':
       return [
-        { label: d.standingReach, value: `${test.standingReachCm} cm` },
+        { label: d.standingReach, value: `${formatDecimal(test.standingReachCm)} cm` },
         { label: d.touchAttempts, value: list(test.attemptsTouchCm, 'cm') },
-        { label: d.bestTouch, value: `${test.bestTouchCm} cm` },
-        { label: d.approachJump, value: `${test.approachJumpCm} cm` },
+        { label: d.bestTouch, value: `${formatDecimal(test.bestTouchCm)} cm` },
+        { label: d.approachJump, value: `${formatDecimal(test.approachJumpCm)} cm` },
       ];
     case 'broadJump':
       return [
         { label: d.attempts, value: list(test.attemptsCm, 'cm') },
-        { label: d.best, value: `${test.bestCm} cm` },
+        { label: d.best, value: `${formatDecimal(test.bestCm)} cm` },
       ];
     case 'sprint10m':
       return [
         { label: d.attempts, value: list(test.attemptsSeconds, 's') },
-        { label: d.best, value: `${test.bestSeconds} s` },
+        { label: d.best, value: `${formatDecimal(test.bestSeconds)} s` },
       ];
     case 'shuttle5105':
       return [
-        { label: d.rightFirst, value: `${test.rightFirstSeconds} s` },
-        { label: d.leftFirst, value: `${test.leftFirstSeconds} s` },
+        { label: d.rightFirst, value: `${formatDecimal(test.rightFirstSeconds)} s` },
+        { label: d.leftFirst, value: `${formatDecimal(test.leftFirstSeconds)} s` },
       ];
     case 'reaction':
       return [
@@ -88,7 +88,7 @@ export function formatPhysicalTestDetail(test: PhysicalTest): PhysicalTestDetail
       return test.mode === 'weighted'
         ? [
             { label: d.exercise, value: exercises[test.exercise] },
-            { label: d.weight, value: `${test.weightKg} kg` },
+            { label: d.weight, value: `${formatDecimal(test.weightKg)} kg` },
             { label: d.reps6RM, value: String(test.reps6RM) },
             { label: d.bodyMassRatio, value: test.bodyMassRatio !== null ? formatNumber(test.bodyMassRatio, 2) : '—' },
           ]

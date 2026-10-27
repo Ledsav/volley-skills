@@ -8,6 +8,7 @@ import { MatchPage } from '../matches/MatchPage';
 import { TrainingBuilderDialog } from '../trainings/TrainingBuilderDialog';
 import { NoticeProvider } from '../components/Notice';
 import { I18nProvider } from './I18nProvider';
+import { en as enCat } from './en';
 import { it as itCat } from './it';
 import * as teamsApi from '../teams/teamsApi';
 import * as playersApi from '../players/playersApi';
@@ -61,6 +62,11 @@ function expectItalianAndClean(strings: string[]) {
   expect(text).not.toContain('undefined');
 }
 
+function expectNoEnglish(strings: string[]) {
+  const text = document.body.textContent ?? '';
+  for (const s of strings) expect(text, `English text "${s}" leaked into the Italian screen`).not.toContain(s);
+}
+
 describe('Italian smoke: main screens render Italian and never print "undefined"', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -96,6 +102,7 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     render(<MemoryRouter><I18nProvider><HomePage /></I18nProvider></MemoryRouter>);
     await screen.findByRole('link', { name: new RegExp(itCat.home.resumeScouting) });
     expectItalianAndClean([itCat.home.resumeScouting]);
+    expectNoEnglish([enCat.home.resumeScouting]);
     expect(document.body.textContent).toMatch(/Buongiorno|Buon pomeriggio|Buonasera/);
   });
 
@@ -110,6 +117,7 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     const tabs = itCat.teams.page.tabs;
     await screen.findByRole('tab', { name: tabs.matches });
     expectItalianAndClean([tabs.roster, tabs.calendar, tabs.matches, tabs.stats, tabs.settings]);
+    expectNoEnglish([enCat.teams.page.tabs.settings, enCat.teams.page.tabs.roster]);
   });
 
   it('a player card', async () => {
@@ -123,6 +131,7 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     await screen.findByRole('tablist', { name: itCat.players.card.sectionsLabel });
     const k = itCat.players.kpi;
     expectItalianAndClean([k.skillsRated, k.focusAreas, k.openObjectives, k.lastPhysicalTest, itCat.players.card.sections.skills]);
+    expectNoEnglish([enCat.players.kpi.focusAreas, enCat.players.kpi.openObjectives]);
   });
 
   it('a match report', async () => {
@@ -139,6 +148,7 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     );
     await screen.findByRole('button', { name: itCat.matches.page.reopen });
     expectItalianAndClean([itCat.matches.page.reopen, itCat.matches.page.export, '3–1']);
+    expectNoEnglish([enCat.matches.page.reopen, enCat.matches.page.export]);
   });
 
   it('the training builder', async () => {
@@ -146,5 +156,6 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     const b = itCat.trainings.builder;
     await waitFor(() => expect(screen.getByLabelText(b.name)).toBeInTheDocument());
     expectItalianAndClean([b.name, b.ageGroupTarget, b.addExercise, b.save, b.cancel]);
+    expectNoEnglish([enCat.trainings.builder.addExercise, enCat.trainings.builder.ageGroupTarget]);
   });
 });

@@ -3,6 +3,7 @@ import { Button } from '../components/Button';
 import { LegalMarkdown } from '../legal/LegalMarkdown';
 import { specificClauses } from '../legal/specificClauses';
 import type { LegalLang } from '../legal/versions';
+import { useT } from '../i18n/I18nProvider';
 
 export interface SpecificApprovalStepProps {
   termsVersion: string;
@@ -15,26 +16,27 @@ export interface SpecificApprovalStepProps {
 
 /** The clauses that need a separate, specific approval, and the button that sends the signing link. */
 export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, onSend }: SpecificApprovalStepProps) {
+  const t = useT().signup.approval;
   const clauses = useMemo(() => specificClauses(termsVersion, dpaVersion, lang), [termsVersion, dpaVersion, lang]);
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   async function send() {
     setState('sending');
-    setError(null);
+    setError(false);
     try {
       await onSend();
       setState('sent');
     } catch {
       setState('idle');
-      setError('Could not send the confirmation link. Please try again.');
+      setError(true);
     }
   }
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-slate">
-        These clauses limit liability, set how the service can change or end, or decide how disputes are handled. Each one needs your specific approval.
+        {t.intro}
       </p>
       <div lang={lang} className="flex flex-col gap-4">
         {clauses.map((c) => (
@@ -47,16 +49,16 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
 
       {state === 'sent' ? (
         <p role="status" className="text-sm text-ink">
-          We&apos;ve sent a confirmation link to {email}. Open it in this browser to sign.
+          {t.sent(email)}
         </p>
       ) : (
         <div>
           <Button variant="primary" disabled={state === 'sending'} onClick={send}>
-            Approve these clauses specifically
+            {t.approve}
           </Button>
         </div>
       )}
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red">{t.sendFailed}</p>}
     </div>
   );
 }

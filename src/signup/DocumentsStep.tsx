@@ -4,6 +4,7 @@ import { LegalLangSwitcher } from '../legal/LegalLangSwitcher';
 import { LegalMarkdown } from '../legal/LegalMarkdown';
 import { legalText } from '../legal/legalDocs';
 import type { LegalLang } from '../legal/versions';
+import { useT } from '../i18n/I18nProvider';
 
 interface DocBoxProps {
   doc: 'terms' | 'dpa';
@@ -19,6 +20,7 @@ interface DocBoxProps {
 function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }: DocBoxProps) {
   const id = `accept-${doc}`;
   const hintId = `${id}-hint`;
+  const t = useT().signup.documents;
   return (
     <section className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -30,7 +32,7 @@ function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }:
           onClick={onRead}
           className="text-sm text-blue hover:underline"
         >
-          Open in a new tab<span className="sr-only"> ({title})</span>
+          {t.openInNewTab}<span className="sr-only"> ({title})</span>
         </a>
       </div>
       <div
@@ -56,11 +58,11 @@ function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }:
           onChange={(e) => onAccept(e.target.checked)}
           className="mt-1 h-4 w-4"
         />
-        <span>I have read and accept the {title}</span>
+        <span>{t.accept(title)}</span>
       </label>
       {!read && (
         <p id={hintId} className="text-xs text-slate">
-          Scroll to the end of the text, or open it in a new tab, to enable this box.
+          {t.scrollHint}
         </p>
       )}
     </section>
@@ -77,6 +79,7 @@ export interface DocumentsStepProps {
 
 /** Terms and DPA, each read (or opened) before its checkbox can be ticked. */
 export function DocumentsStep({ termsVersion, dpaVersion, lang, onLangChange, onDone }: DocumentsStepProps) {
+  const t = useT();
   const [read, setRead] = useState({ terms: false, dpa: false });
   const [accepted, setAccepted] = useState({ terms: false, dpa: false });
 
@@ -91,27 +94,27 @@ export function DocumentsStep({ termsVersion, dpaVersion, lang, onLangChange, on
     <div className="flex flex-col gap-6">
       <LegalLangSwitcher lang={lang} onChange={changeLang} />
       <DocBox
-        doc="terms" title="Terms of Service" version={termsVersion} lang={lang}
+        doc="terms" title={t.legal.docTitles.terms} version={termsVersion} lang={lang}
         read={read.terms} accepted={accepted.terms}
         onRead={() => setRead((r) => ({ ...r, terms: true }))}
         onAccept={(v) => setAccepted((a) => ({ ...a, terms: v }))}
       />
       <DocBox
-        doc="dpa" title="Data Processing Agreement" version={dpaVersion} lang={lang}
+        doc="dpa" title={t.legal.docTitles.dpa} version={dpaVersion} lang={lang}
         read={read.dpa} accepted={accepted.dpa}
         onRead={() => setRead((r) => ({ ...r, dpa: true }))}
         onAccept={(v) => setAccepted((a) => ({ ...a, dpa: v }))}
       />
       <p className="text-sm text-slate">
-        The list of{' '}
+        {t.signup.documents.listOf}{' '}
         <a href={`/legal/subprocessors?lang=${lang}`} target="_blank" rel="noopener noreferrer" className="text-blue hover:underline">
-          Sub-processors
+          {t.legal.docTitles.subprocessors}
         </a>{' '}
-        is part of what you accept.
+        {t.signup.documents.isPart}
       </p>
       <div>
         <Button variant="primary" disabled={!(accepted.terms && accepted.dpa)} onClick={onDone}>
-          Next
+          {t.signup.shared.next}
         </Button>
       </div>
     </div>

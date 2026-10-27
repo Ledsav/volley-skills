@@ -1,6 +1,7 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageToggle } from '../i18n/LanguageToggle';
+import { useLocale, useT } from '../i18n/I18nProvider';
 import { ITALIAN_ENABLED } from '../i18n/locales';
 import { sendSigningLink } from '../auth/reauth';
 import { Button } from '../components/Button';
@@ -15,13 +16,12 @@ import { DocumentsStep } from './DocumentsStep';
 import { newClubId } from './newClubId';
 import { SpecificApprovalStep } from './SpecificApprovalStep';
 
-const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 const LOCALES: { id: ClubLocale; label: string }[] = [
   { id: 'en', label: 'English' },
   { id: 'it', label: 'Italiano' },
 ];
 
-type Errors = Partial<Record<'name' | 'country' | 'person' | 'authority', string>>;
+type Errors = Partial<Record<'name' | 'country' | 'person' | 'authority', true>>;
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   return message ? <p id={id} role="alert" className="text-sm text-red">{message}</p> : null;
@@ -29,7 +29,12 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 
 /** /signup/club: club details, then the documents, then the specific approval and the signing link. */
 export function SignupPage() {
-  usePageMeta({ title: 'Create your club' });
+  const tAll = useT();
+  const t = tAll.signup;
+  const tc = tAll.common;
+  const { locale: appLocale } = useLocale();
+  const regionNames = useMemo(() => new Intl.DisplayNames([appLocale], { type: 'region' }), [appLocale]);
+  usePageMeta({ title: t.shared.createClub });
   const { firebaseUser, appUser, memberships } = useAuth();
   const email = (appUser?.email ?? firebaseUser?.email ?? '').trim().toLowerCase();
 
@@ -60,10 +65,10 @@ export function SignupPage() {
 
   if (memberships.some((m) => m.status === 'pending')) {
     return (
-      <MinimalShell title="Create your club" actions={<LanguageToggle />}>
+      <MinimalShell title={t.shared.createClub} actions={<LanguageToggle />}>
         <div className="mx-auto max-w-2xl px-4 py-6">
-          <p className="text-ink">You already have a club waiting for activation</p>
-          <p className="mt-2 text-sm text-slate">We&apos;ll email you when it&apos;s active.</p>
+          <p className="text-ink">{t.page.alreadyPending}</p>
+          <p className="mt-2 text-sm text-slate">{t.page.emailWhenActive}</p>
         </div>
       </MinimalShell>
     );
@@ -72,11 +77,11 @@ export function SignupPage() {
   function validate(): Errors {
     const e: Errors = {};
     const n = name.trim();
-    if (n.length < 2 || n.length > 80) e.name = 'Enter a club name of 2 to 80 characters.';
-    if (!CLUB_COUNTRY_CODES.includes(country)) e.country = 'Choose a country.';
+    if (n.length < 2 || n.length > 80) e.name = true;
+    if (!CLUB_COUNTRY_CODES.includes(country)) e.country = true;
     const p = person.trim();
-    if (p.length < 1 || p.length > 100) e.person = 'Enter your name (1 to 100 characters).';
-    if (!authority) e.authority = 'Confirm that you are authorised to act for this club.';
+    if (p.length < 1 || p.length > 100) e.person = true;
+    if (!authority) e.authority = true;
     return e;
   }
 
@@ -110,55 +115,55 @@ export function SignupPage() {
     [errors[key] ? `signup-${key}-error` : null, base].filter(Boolean).join(' ') || undefined;
 
   return (
-    <MinimalShell title="Create your club" actions={<LanguageToggle />}>
+    <MinimalShell title={t.shared.createClub} actions={<LanguageToggle />}>
       <div className="mx-auto max-w-2xl px-4 py-6">
-        <p className="text-sm text-slate">Step {step} of 3</p>
+        <p className="text-sm text-slate">{t.page.step(step)}</p>
         <h1 className="mb-4 text-title font-semibold text-ink">
-          {step === 1 ? 'Your club' : step === 2 ? 'Terms and data processing' : 'Specific approval'}
+          {step === 1 ? t.page.stepTitles.details : step === 2 ? t.page.stepTitles.documents : t.page.stepTitles.approval}
         </h1>
 
         {step === 1 && (
           <form onSubmit={submitDetails} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label htmlFor="signup-name" className="text-sm font-medium text-ink">Club name</label>
+              <label htmlFor="signup-name" className="text-sm font-medium text-ink">{t.page.clubName}</label>
               <Input id="signup-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120}
                 aria-invalid={errors.name ? true : undefined} aria-describedby={describe('name')} />
-              <FieldError id="signup-name-error" message={errors.name} />
+              <FieldError id="signup-name-error" message={errors.name ? t.page.clubNameError : undefined} />
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="signup-country" className="text-sm font-medium text-ink">Country</label>
+              <label htmlFor="signup-country" className="text-sm font-medium text-ink">{t.page.country}</label>
               <select id="signup-country" value={country} onChange={(e) => setCountry(e.target.value)}
                 aria-invalid={errors.country ? true : undefined} aria-describedby={describe('country')}
                 className={`${FIELD_CLASS} w-full`}>
-                <option value="">Select a country</option>
+                <option value="">{t.page.selectCountry}</option>
                 {CLUB_COUNTRY_CODES.map((c) => <option key={c} value={c}>{regionNames.of(c) ?? c}</option>)}
               </select>
-              <FieldError id="signup-country-error" message={errors.country} />
+              <FieldError id="signup-country-error" message={errors.country ? t.page.countryError : undefined} />
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="signup-locale" className="text-sm font-medium text-ink">Club language</label>
+              <label htmlFor="signup-locale" className="text-sm font-medium text-ink">{t.page.clubLanguage}</label>
               <select id="signup-locale" value={locale} onChange={(e) => setLocale(e.target.value as ClubLocale)}
                 className={`${FIELD_CLASS} w-full`}>
                 {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en').map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="signup-person" className="text-sm font-medium text-ink">Your name</label>
+              <label htmlFor="signup-person" className="text-sm font-medium text-ink">{t.shared.yourName}</label>
               <Input id="signup-person" value={person} onChange={(e) => setPerson(e.target.value)} autoComplete="name"
                 aria-invalid={errors.person ? true : undefined} aria-describedby={describe('person')} />
-              <FieldError id="signup-person-error" message={errors.person} />
+              <FieldError id="signup-person-error" message={errors.person ? t.shared.nameRequired : undefined} />
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="signup-authority" className="flex items-start gap-2 text-sm text-ink">
                 <input id="signup-authority" type="checkbox" checked={authority} onChange={(e) => setAuthority(e.target.checked)}
                   aria-invalid={errors.authority ? true : undefined} aria-describedby={describe('authority')}
                   className="mt-1 h-4 w-4" />
-                <span>I am authorised to act for this club and accept these terms on its behalf</span>
+                <span>{t.shared.authority}</span>
               </label>
-              <FieldError id="signup-authority-error" message={errors.authority} />
+              <FieldError id="signup-authority-error" message={errors.authority ? t.shared.authorityRequired : undefined} />
             </div>
             <div>
-              <Button type="submit" variant="primary">Next</Button>
+              <Button type="submit" variant="primary">{t.shared.next}</Button>
             </div>
           </form>
         )}
@@ -172,7 +177,7 @@ export function SignupPage() {
               onLangChange={setLang}
               onDone={() => setStep(3)}
             />
-            <div><Button variant="ghost" onClick={() => setStep(1)}>Back</Button></div>
+            <div><Button variant="ghost" onClick={() => setStep(1)}>{tc.back}</Button></div>
           </div>
         )}
 
@@ -185,7 +190,7 @@ export function SignupPage() {
               email={email}
               onSend={send}
             />
-            <div><Button variant="ghost" onClick={() => setStep(2)}>Back</Button></div>
+            <div><Button variant="ghost" onClick={() => setStep(2)}>{tc.back}</Button></div>
           </div>
         )}
       </div>

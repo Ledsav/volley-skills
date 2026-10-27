@@ -146,6 +146,7 @@ export const awards = {
   },
   story: {
     finalScore: 'Final score',
+    vsOpponent: (opponent: string) => `vs ${opponent}`,
     thisSeason: 'This season',
     wins: (won: number, matches: number) =>
       `${plural('en', won, { one: 'win', other: 'wins' })} out of ${matches} ${plural('en', matches, { one: 'match', other: 'matches' })}`,

@@ -48,6 +48,7 @@ const level = (avg) => (avg < 4 ? 'Beginner' : avg < 6 ? 'Developing' : avg < 8 
 const batch = db.batch();
 batch.set(teamRef, {
   ...team,
+  gender: 'mixed',
   description: '',
   notes: '',
   developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },

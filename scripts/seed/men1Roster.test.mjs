@@ -6,6 +6,9 @@ const today = '2026-10-15';
 const players = men1Players({ team: { name: MEN1_TEAM.name, ageGroup: 'Senior', season: '2026-27' }, admin: 'coach@example.com', today });
 
 describe('men1Roster', () => {
+  it('is a men team', () => {
+    expect(MEN1_TEAM.gender).toBe('men');
+  });
   it('builds 14 adults with distinct shirt numbers', () => {
     expect(players).toHaveLength(14);
     expect(new Set(players.map((p) => p.number)).size).toBe(14);

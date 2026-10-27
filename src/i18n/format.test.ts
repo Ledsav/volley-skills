@@ -42,6 +42,11 @@ describe('formatDate and formatMonth', () => {
     expect(formatDate('2026-10-26', 'numeric', 'en')).toBe('26/10/2026');
     expect(formatDate('2026-09-12', 'short', 'en')).toBe('12 Sep 2026');
   });
+  it('keeps September whole in long English dates', () => {
+    expect(formatDate('2026-09-12', 'long', 'en')).toBe('12 September 2026');
+    expect(formatDate('2026-09-12', 'full', 'en')).toBe('Saturday, 12 September 2026');
+    expect(formatDate('2026-09-12', 'weekday', 'en')).toBe('Sat 12 Sep');
+  });
   it('formats a month label', () => {
     expect(formatMonth(2026, 8, 'en')).toBe('September 2026');
     expect(formatMonth(2026, 9, 'it')).toBe('ottobre 2026');

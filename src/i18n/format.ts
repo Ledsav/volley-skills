@@ -20,7 +20,7 @@ function dateLocale(locale: Locale): string {
 export function formatDateValue(d: Date, style: DateStyle, locale: Locale = getLocale()): string {
   const out = d.toLocaleDateString(dateLocale(locale), DATE_OPTIONS[style]);
   // en-GB abbreviates September as "Sept"; the product has always shown "Sep".
-  return locale === 'en' ? out.replace(/Sept/, 'Sep') : out;
+  return locale === 'en' ? out.replace(/\bSept\b/, 'Sep') : out;
 }
 
 /** "2026-10-26" -> "26 October 2026" (long, en) / "26 ottobre 2026" (long, it). */

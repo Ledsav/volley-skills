@@ -268,10 +268,35 @@ be queried directly. The full contract is in the
 
 ## Getting started
 
-**Prerequisites:** Node 20+. The Firestore emulator and the security-rules tests also need JDK 21+.
+**Prerequisites:** Node 20+ (CI uses 20). The Firestore emulator and the security-rules tests also
+need JDK 21+ (e.g. Temurin; `scripts/seed/jdk.mjs` finds it without `JAVA_HOME`). `firebase-tools`
+is a devDependency, so no global CLI is needed.
+
+### From a fresh clone
 
 ```bash
-npm install
+git clone https://github.com/Ledsav/volley-skills && cd volley-skills
+npm ci
+cp .env.production .env.local   # the same public Firebase web config; see .env.example for optional keys
+```
+
+Then restore the private seed files from your encrypted backup (they hold minors' data and are
+never committed):
+
+- `reference/VCB_U17_PlayerCards_2026-27.xlsx`: **required** by `dev:emulator` / `seed:emulator`,
+  which stop with "Workbook not found" without it.
+- `reference/jersey-numbers.json`: optional, skipped if missing.
+
+In VS Code, **Terminal → Run Task → Setup (fresh clone)** does all of the above (`npm ci`, creates
+`.env.local`, checks the workbook, runs the unit tests) and stops with a message on anything you
+must restore by hand.
+
+Optional `.env.local` keys (from [`.env.example`](.env.example)): `VITE_USE_EMULATOR`,
+`VITE_APPCHECK_RECAPTCHA_KEY` (Firebase console → App Check), `VITE_SITE_URL`.
+
+### Run
+
+```bash
 npm run dev:emulator   # boots Auth + Firestore emulators, seeds data, starts Vite
 ```
 
@@ -279,6 +304,19 @@ That one command is the easiest way to work locally, and nothing touches product
 everything with <kbd>Ctrl</kbd>+<kbd>C</kbd>. The Auth emulator prints the email sign-in link to
 its console, since no real email is sent. The emulator keeps data in memory, so re-seed after
 every restart. See [`scripts/seed/README.md`](scripts/seed/README.md) for the full guide.
+
+### Deploy and production scripts
+
+- **Deploy:** every push to `main` runs [`deploy.yml`](.github/workflows/deploy.yml) (Hosting,
+  Firestore rules and indexes). It needs the repo secret `FIREBASE_SERVICE_ACCOUNT_VOLLEY_SKILLS`.
+  Manual fallback: `npx firebase login`, then
+  `npx firebase deploy --only hosting,firestore:rules,firestore:indexes --project volley-skills`.
+- **Production scripts** (seed `--prod`, backup, restore, migrations) need
+  `serviceAccountKey.json.enc` plus its passphrase (password manager). On a new machine, either
+  restore the `.enc` from backup or create a new key in GCP and run `npm run key:encrypt`;
+  re-register the weekly backup with `npm run backup:task -- -Register`. Restoring a backup needs
+  the backup private key `.pem` and its passphrase. Runbook:
+  [`scripts/ops/README.md`](scripts/ops/README.md).
 
 ### Scripts
 

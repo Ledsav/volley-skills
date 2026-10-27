@@ -453,6 +453,7 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
       dispatch({ type: 'saved', idMap, committedIds });
       invalidateDiagramThumbnail(exerciseId);
     } catch (err) {
+      if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
       setSaveError(
         err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
       );

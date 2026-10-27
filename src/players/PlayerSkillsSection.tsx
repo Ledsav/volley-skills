@@ -84,6 +84,9 @@ export function PlayerSkillsSection({
   const [error, setError] = useState<string | null>(null);
   const [guide, setGuide] = useState<Record<string, SkillGuideEntry>>({});
 
+  // Follows the catalog: with no saved guide the fallback is in the active language, and the Italian
+  // catalog can arrive after first paint. A late answer for the old language must not overwrite the new one.
+  const guideCatalog = t.skillGuide;
   useEffect(() => {
     let active = true;
     getSkillGuide()
@@ -96,7 +99,7 @@ export function PlayerSkillsSection({
     return () => {
       active = false;
     };
-  }, []);
+  }, [guideCatalog]);
 
   useEffect(() => {
     if (editing) {

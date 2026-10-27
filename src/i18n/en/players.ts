@@ -174,8 +174,8 @@ export const players = {
     addNew: 'Add new',
     // One-line summaries and detail rows; units (cm, kg, s, ms) are the same in every language.
     summary: {
-      approachJump: (jump: number, touch: number) => `${jump} cm (touch ${touch} cm)`,
-      shuttle: (right: number, left: number) => `R ${right}s / L ${left}s`,
+      approachJump: (jump: string, touch: string) => `${jump} cm (touch ${touch} cm)`,
+      shuttle: (right: string, left: string) => `R ${right}s / L ${left}s`,
       reps: (n: number) => `${n} reps`,
     },
     detail: {

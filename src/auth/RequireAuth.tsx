@@ -4,16 +4,18 @@ import { ClubGate } from '../clubs/ClubGate';
 import { useAuth } from './AuthContext';
 import { AuthShell } from './AuthShell';
 import { rememberReturnTo } from './returnTo';
+import { useT } from '../i18n/I18nProvider';
 
 /** Signed in, whatever the club: loading, sign-in errors and the redirect to /login. */
 export function RequireSignedIn({ children }: { children: ReactNode }) {
   const { firebaseUser, loading, authError } = useAuth();
   const location = useLocation();
+  const t = useT().auth.requireAuth;
 
   if (loading) {
     return (
       <AuthShell>
-        <p className="text-slate">Loading...</p>
+        <p className="text-slate">{t.loading}</p>
       </AuthShell>
     );
   }
@@ -22,9 +24,9 @@ export function RequireSignedIn({ children }: { children: ReactNode }) {
     return (
       <AuthShell>
         <p role="alert" className="text-red">
-          Something went wrong signing you in.{' '}
+          {t.wentWrong}
           <a href="/login" className="font-medium text-blue hover:underline">
-            Try again
+            {t.tryAgain}
           </a>
           .
         </p>

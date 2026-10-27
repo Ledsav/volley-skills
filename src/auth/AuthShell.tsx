@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { LanguageToggle } from '../i18n/LanguageToggle';
+import { useT } from '../i18n/I18nProvider';
 import player from '../assets/player-spike.webp';
 import ball from '../assets/ball-mikasa.webp';
 
@@ -67,6 +68,7 @@ export function AuthShell({
   navAction?: { to: string; label: string };
   children: ReactNode;
 }) {
+  const t = useT().auth.shell;
   return (
     <div
       className="relative flex min-h-screen flex-col overflow-hidden text-white"
@@ -94,13 +96,12 @@ export function AuthShell({
       <main className="relative mx-auto flex w-full max-w-[82rem] flex-1 flex-col lg:flex-row">
         <section className="relative flex flex-1 flex-col px-6 pt-8 lg:px-12 lg:pt-12">
           <p className="relative z-10 text-[2rem] font-extrabold uppercase leading-[1.05] tracking-[-0.02em] sm:text-5xl lg:text-6xl">
-            Players. Progress.
+            {t.tagline1}
             <br />
-            Together.
+            {t.tagline2}
           </p>
           <p className="relative z-10 mt-4 max-w-sm text-lg leading-relaxed text-white/85">
-            Track every player&apos;s skills, plan their development and run your training sessions,
-            all in one place. Built for coaches and clubs.
+            {t.pitch}
           </p>
           <SpikingPlayer />
         </section>

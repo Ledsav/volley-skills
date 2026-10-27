@@ -7,7 +7,7 @@ import { Input } from '../components/Input';
 import { useNotify } from '../components/Notice';
 import { requestTermination } from '../clubs/clubAdminApi';
 import { otherUsableClubs } from '../clubs/activeClub';
-import { useT } from '../i18n/I18nProvider';
+import { useLocale, useT } from '../i18n/I18nProvider';
 import { MinimalShell } from '../layout/MinimalShell';
 import { DocumentsStep } from '../signup/DocumentsStep';
 import { SpecificApprovalStep } from '../signup/SpecificApprovalStep';
@@ -22,6 +22,7 @@ export function LegalReviewScreen() {
   const others = otherUsableClubs(memberships, activeClubId);
   const notify = useNotify();
   const t = useT();
+  const { locale } = useLocale();
   const email = (appUser?.email ?? firebaseUser?.email ?? '').trim().toLowerCase();
   // Frozen on mount so the draft always matches the texts shown, even across an effective date.
   const [versions] = useState(() => {
@@ -91,8 +92,8 @@ export function LegalReviewScreen() {
       <div className="mx-auto max-w-2xl px-4 py-6">
         <h1 className="mb-2 text-title font-semibold text-ink">{title}</h1>
         <ul className="mb-4 list-disc pl-5 text-sm text-ink">
-          <li>{versions.terms.summary}</li>
-          <li>{versions.dpa.summary}</li>
+          <li>{locale === 'it' ? versions.terms.summaries?.it ?? versions.terms.summary : versions.terms.summary}</li>
+          <li>{locale === 'it' ? versions.dpa.summaries?.it ?? versions.dpa.summary : versions.dpa.summary}</li>
         </ul>
 
         {step === 1 && (

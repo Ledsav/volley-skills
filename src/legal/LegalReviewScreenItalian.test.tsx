@@ -31,6 +31,9 @@ describe('LegalReviewScreen in Italian', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
 
+    expect(screen.getByText('Prima versione delle Condizioni di servizio.')).toBeInTheDocument();
+    expect(screen.getByText("Prima versione dell'Accordo sul trattamento dei dati.")).toBeInTheDocument();
+    expect(screen.queryByText('First version of the Terms of Service.')).not.toBeInTheDocument();
     // The document language is its own switch, independent of the app language.
     fireEvent.click(screen.getByRole('button', { name: 'Italiano' }));
     expect(screen.getByRole('group', { name: 'Lingua del testo legale' })).toBeInTheDocument();

@@ -35,7 +35,7 @@ export const layout = {
   notFound: {
     title: 'Non trovata',
     heading: 'Questa pagina è fuori campo',
-    nothingLivesAt: 'Non c’è nulla in ',
+    nothingLivesAt: "Non c'è nulla in ",
     goHome: 'Vai alla home',
   },
 } satisfies Catalog['layout'];

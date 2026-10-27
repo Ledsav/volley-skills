@@ -5,5 +5,7 @@ import { layout } from './layout';
 import { labels } from './labels';
 import { settings } from './settings';
 import { teams } from './teams';
+import { theme } from './theme';
 
-export const it = { common, home, labels, layout, settings, teams } satisfies Catalog;
+
+export const it = { common, home, labels, layout, settings, teams, theme } satisfies Catalog;

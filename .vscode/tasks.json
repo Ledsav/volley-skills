@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "setup:install",
+      "type": "shell",
+      "command": "npm ci",
+      "problemMatcher": []
+    },
+    {
+      "label": "setup:env",
+      "type": "shell",
+      "command": "node -e \"const fs=require('fs');if(fs.existsSync('.env.local')){console.log('.env.local already exists')}else{fs.copyFileSync('.env.production','.env.local');console.log('Created .env.local from .env.production')}\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "setup:check-private",
+      "type": "shell",
+      "command": "node -e \"const fs=require('fs');const f='reference/VCB_U17_PlayerCards_2026-27.xlsx';if(!fs.existsSync(f)){console.error('Missing '+f+': restore it from your encrypted backup (README > From a fresh clone). The emulator seed needs it.');process.exit(1)}if(!fs.existsSync('reference/jersey-numbers.json'))console.log('Optional reference/jersey-numbers.json not found (skipped by the seed).');console.log('Private seed files OK')\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "setup:verify",
+      "type": "shell",
+      "command": "npm test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Setup (fresh clone)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["setup:install", "setup:env", "setup:check-private", "setup:verify"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev (emulators)",
+      "type": "shell",
+      "command": "npm run dev:emulator",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

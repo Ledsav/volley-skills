@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
+import { I18nProvider } from './i18n/I18nProvider';
 import { RequireAuth, RequireSignedIn } from './auth/RequireAuth';
 import { SignupInfoPage } from './signup/SignupInfoPage';
 import { SignupPage } from './signup/SignupPage';
@@ -51,6 +52,7 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <I18nProvider>
         <NoticeProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -159,6 +161,7 @@ export function App() {
             />
           </Routes>
         </NoticeProvider>
+        </I18nProvider>
       </AuthProvider>
     </BrowserRouter>
   );

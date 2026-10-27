@@ -1,0 +1,16 @@
+export const common = {
+  save: 'Save',
+  cancel: 'Cancel',
+  delete: 'Delete',
+  close: 'Close',
+  back: 'Back',
+  loading: 'Loading…',
+  retry: 'Retry',
+  couldNotSave: 'Could not save. Please try again.',
+  couldNotValidate: 'Could not validate the data. Please try again.',
+  couldNotUpdateClub: 'Could not update the club. Please try again.',
+  couldNotLoadTeam: 'Could not load the team. Please try again.',
+  couldNotDeleteSession: 'Could not delete the session. Please try again.',
+  couldNotChangeRole: 'Could not change the role. Please try again.',
+  couldNotUpdateMembership: 'Could not update membership. Please try again.',
+};

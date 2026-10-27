@@ -7,4 +7,8 @@ import { setActiveClubId } from '../src/firebase/activeClub';
 // over the 1 s default to settle on a busy machine. Passing waits return at once.
 configure({ asyncUtilTimeout: 4000 });
 
-beforeEach(() => setActiveClubId('club-1'));
+beforeEach(() => {
+  setActiveClubId('club-1');
+  // Node-environment tests have no localStorage.
+  if (typeof localStorage !== 'undefined') localStorage.setItem('vcb.locale', 'en');
+});

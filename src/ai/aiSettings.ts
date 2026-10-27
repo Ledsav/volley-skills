@@ -1,3 +1,5 @@
+import { getT } from '../i18n/I18nProvider';
+
 export type AiProvider = 'groq' | 'openrouter' | 'local' | 'custom';
 
 export interface AiSettings {
@@ -11,50 +13,40 @@ export interface AiSettings {
 
 export const AI_PROVIDERS: Record<
   AiProvider,
-  { label: string; baseUrl: string; defaultModel: string; needsKey: boolean; editableUrl: boolean; note: string; keyUrl?: string }
+  { baseUrl: string; defaultModel: string; needsKey: boolean; editableUrl: boolean; keyUrl?: string }
 > = {
   groq: {
-    label: 'Groq (recommended)',
     baseUrl: 'https://api.groq.com/openai/v1',
     defaultModel: 'openai/gpt-oss-120b',
     needsKey: true,
     editableUrl: false,
     keyUrl: 'https://console.groq.com/keys',
-    note: 'Free tier. Groq does not keep your requests by default; turn on Zero Data Retention in its Data Controls.',
   },
   openrouter: {
-    label: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
     defaultModel: '',
     needsKey: true,
     editableUrl: false,
     keyUrl: 'https://openrouter.ai/keys',
-    note: 'Many free models. Requests only go to providers that keep nothing and never train on your notes, so some models are unavailable.',
   },
   local: {
-    label: 'Local (Ollama / LM Studio)',
     baseUrl: 'http://localhost:11434/v1',
     defaultModel: 'qwen2.5:7b-instruct',
     needsKey: false,
     editableUrl: true,
-    note: 'Runs on this computer; nothing leaves it. Allow this site in Ollama (OLLAMA_ORIGINS) or enable CORS in LM Studio.',
   },
   custom: {
-    label: 'Custom (OpenAI-compatible)',
     baseUrl: '',
     defaultModel: '',
     needsKey: true,
     editableUrl: true,
-    note: 'Any OpenAI-compatible endpoint that allows browser requests. Only works when running the app locally: the published app only allows Groq, OpenRouter and models on this computer.',
   },
 };
 
-/** Provider label without its parenthetical, for inline messages ("Groq", "Local"). */
+/** Provider name for inline messages ("Groq", "Local"), in the active language. */
 export function providerName(provider: AiProvider): string {
-  return AI_PROVIDERS[provider].label.replace(/\s*\(.*\)$/, '');
+  return getT().ai.providers[provider].name;
 }
-
-export const LOCAL_UNREACHABLE_HINT = 'Is Ollama / LM Studio running and allowing this site?';
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   provider: 'groq',

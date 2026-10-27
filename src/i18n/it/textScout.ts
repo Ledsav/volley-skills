@@ -29,7 +29,6 @@ export const textScout = {
     wentWrong: 'Qualcosa è andato storto. Le note sono state conservate.',
     retryIn: (provider, sec) => `Limite di richieste di ${provider} raggiunto: riprova tra ${sec} s.`,
     tryAgainSoon: (provider) => `Limite di richieste di ${provider} raggiunto: riprova tra un momento.`,
-    localHint: 'Ollama / LM Studio è in esecuzione e consente questo sito?',
     errors: {
       notConfigured: 'Configura prima un provider IA nelle Impostazioni.',
       unauthorized: 'Chiave rifiutata: controllala nelle Impostazioni.',

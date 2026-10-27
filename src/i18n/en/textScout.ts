@@ -24,7 +24,6 @@ export const textScout = {
     wentWrong: 'Something went wrong. Your notes are kept.',
     retryIn: (provider: string, sec: number) => `${provider} rate limit reached — retry in ${sec} s.`,
     tryAgainSoon: (provider: string) => `${provider} rate limit reached — try again in a moment.`,
-    localHint: 'Is Ollama / LM Studio running and allowing this site?',
     errors: {
       notConfigured: 'Set up an AI provider in Settings first.',
       unauthorized: 'Key rejected — check it in Settings.',

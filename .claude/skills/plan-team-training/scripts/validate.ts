@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
+import { en } from '../../../../src/i18n/en';
 import { validateExerciseRows } from '../../../../src/exercises/exercisesImport';
 import { EXERCISE_FOCUSES, followsExerciseNaming } from '../../../../src/trainings/naming';
 import { buildTrainingDocDefinition } from '../../../../src/trainings/pdf/buildTrainingPdf';
@@ -108,6 +109,7 @@ if (args.out) {
     return { exerciseId: id, order: i + 1, durationMinutes: s.minutes };
   });
   const def = buildTrainingDocDefinition({
+    t: en,
     training: { id: 'preview', businessId: 'TR-NEW', name: training.name, description: training.description, ageGroupTarget: training.ageGroupTarget, suggestedPlayers: training.suggestedPlayers, targets: training.targets, exercises: steps, exerciseIds: [], createdBy: '', createdAt: null },
     exercisesById,
     diagramsById,

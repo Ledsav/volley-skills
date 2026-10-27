@@ -30,7 +30,7 @@ describe('weekdayNames and monthNames', () => {
     expect(monthNames('it')[9]).toBe('ottobre');
   });
   it('matches the former English short month abbreviations', () => {
-    const short = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) => formatDate(`2026-${String(m + 1).padStart(2, '0')}-12`, 'short', 'en').split(' ')[0]);
+    const short = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) => formatDate(`2026-${String(m + 1).padStart(2, '0')}-12`, 'short', 'en').split(' ')[1]);
     expect(short).toEqual(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
   });
 });
@@ -38,7 +38,9 @@ describe('weekdayNames and monthNames', () => {
 describe('formatDate and formatMonth', () => {
   it('formats long dates', () => {
     expect(formatDate('2026-10-26', 'long', 'it')).toBe('26 ottobre 2026');
-    expect(formatDate('2026-10-26', 'long', 'en')).toBe('October 26, 2026');
+    expect(formatDate('2026-10-26', 'long', 'en')).toBe('26 October 2026');
+    expect(formatDate('2026-10-26', 'numeric', 'en')).toBe('26/10/2026');
+    expect(formatDate('2026-09-12', 'short', 'en')).toBe('12 Sep 2026');
   });
   it('formats a month label', () => {
     expect(formatMonth(2026, 8, 'en')).toBe('September 2026');

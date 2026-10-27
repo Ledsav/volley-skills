@@ -11,9 +11,16 @@ const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   full: { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' },
 };
 
+/** English dates are day-first (R19: the product is EU-only); name lists stay on plain 'en'. */
+function dateLocale(locale: Locale): string {
+  return locale === 'en' ? 'en-GB' : locale;
+}
+
 /** Formats a calendar date (local noon, so the day never shifts with the time zone). */
 export function formatDateValue(d: Date, style: DateStyle, locale: Locale = getLocale()): string {
-  return d.toLocaleDateString(locale, DATE_OPTIONS[style]);
+  const out = d.toLocaleDateString(dateLocale(locale), DATE_OPTIONS[style]);
+  // en-GB abbreviates September as "Sept"; the product has always shown "Sep".
+  return locale === 'en' ? out.replace(/Sept/, 'Sep') : out;
 }
 
 /** "2026-10-26" -> "26 October 2026" (long, en) / "26 ottobre 2026" (long, it). */

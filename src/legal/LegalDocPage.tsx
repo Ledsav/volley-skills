@@ -5,6 +5,7 @@ import { Logo } from '../components/Logo';
 import { LegalLangSwitcher } from './LegalLangSwitcher';
 import { LanguageToggle } from '../i18n/LanguageToggle';
 import { useLocale, useT } from '../i18n/I18nProvider';
+import type { Locale } from '../i18n/locales';
 import { LegalLinks } from './LegalLinks';
 import { LegalMarkdown } from './LegalMarkdown';
 import { legalText, rawLegalText } from './legalDocs';
@@ -17,8 +18,8 @@ const VERSIONED: readonly string[] = ['terms', 'dpa', 'subprocessors'];
 /** Documents served at /legal/:doc (the privacy notice keeps its own /privacy route). */
 const ROUTED: readonly string[] = ['terms', 'dpa', 'subprocessors', 'dpia-pack'];
 
-function formatDate(iso: string, lang: string): string {
-  return new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+function formatDate(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 }
 
 /** One legal text with its language switcher, shared by /legal/:doc and /privacy. */

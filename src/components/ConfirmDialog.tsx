@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { useModalLayer } from './useModalLayer';
+import { useT } from '../i18n/I18nProvider';
 
 interface ConfirmDialogProps {
   title: string;
@@ -12,6 +13,7 @@ interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel, error }: ConfirmDialogProps) {
+  const c = useT().common;
   const panelRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   useModalLayer(onCancel, panelRef);
@@ -35,7 +37,7 @@ export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCance
         <p className="text-slate">{message}</p>
         <div className="mt-6 flex justify-end gap-3">
           <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
-            Cancel
+            {c.cancel}
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
             {confirmLabel}

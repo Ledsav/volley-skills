@@ -4,6 +4,7 @@ import { SearchX } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from './Button';
 import { otherUsableClubs } from '../clubs/activeClub';
+import { useT } from '../i18n/I18nProvider';
 
 interface NotFoundStateProps {
   title: string;
@@ -20,6 +21,7 @@ export function isNotFoundError(e: unknown): boolean {
 }
 
 export function NotFoundState({ title, message, backTo, backLabel, illustration }: NotFoundStateProps) {
+  const t = useT().components.notFound;
   const { memberships, activeClubId, switchClub } = useAuth();
   const otherClubs = otherUsableClubs(memberships, activeClubId);
   return (
@@ -29,10 +31,10 @@ export function NotFoundState({ title, message, backTo, backLabel, illustration 
       {message && <p className="mt-2 text-slate">{message}</p>}
       {otherClubs.length > 0 && (
         <div className="mt-4 flex flex-col items-center gap-2">
-          <p className="text-slate">This may belong to another of your clubs.</p>
+          <p className="text-slate">{t.otherClub}</p>
           {otherClubs.map((m) => (
             <Button key={m.clubId} variant="secondary" size="sm" onClick={() => switchClub(m.clubId)}>
-              Switch to {m.clubName}
+              {t.switchTo(m.clubName)}
             </Button>
           ))}
         </div>

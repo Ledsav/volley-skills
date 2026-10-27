@@ -19,6 +19,7 @@ import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
+import type { Gender } from '../i18n/catalog';
 import type { Team } from '../types/team';
 import type { DevelopmentPlan } from '../types/developmentPlan';
 
@@ -29,6 +30,7 @@ export interface NewTeamInput {
   ageGroup: string;
   season: string;
   description: string;
+  gender: Gender;
 }
 
 export async function createTeam(input: NewTeamInput, creatorUid: string, creatorEmail: string): Promise<string> {
@@ -94,7 +96,7 @@ export async function getTeam(teamId: string): Promise<Team | null> {
 
 export async function updateTeamInfo(
   teamId: string,
-  updates: Partial<Pick<Team, 'name' | 'description' | 'notes'>>
+  updates: Partial<Pick<Team, 'name' | 'description' | 'notes' | 'gender'>>
 ): Promise<void> {
   await updateDoc(clubDoc('teams', teamId), updates);
 }

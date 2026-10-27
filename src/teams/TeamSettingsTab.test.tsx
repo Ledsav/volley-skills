@@ -28,6 +28,7 @@ const baseTeam: Team = {
   season: '2026-27',
   description: '',
   notes: '',
+  gender: 'women',
   adminEmails: ['coach@example.com'],
   developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
   createdBy: 'coach-uid',
@@ -63,9 +64,20 @@ describe('TeamSettingsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save team info' }));
 
     await waitFor(() =>
-      expect(updateSpy).toHaveBeenCalledWith('team-1', { name: 'U17 Elite', description: '', notes: '' })
+      expect(updateSpy).toHaveBeenCalledWith('team-1', { name: 'U17 Elite', description: '', notes: '', gender: 'women' })
     );
     expect(onTeamUpdated).toHaveBeenCalledWith(expect.objectContaining({ name: 'U17 Elite' }));
+  });
+
+  it('requires a team type on a team without one before saving', async () => {
+    const updateSpy = vi.spyOn(teamsApi, 'updateTeamInfo').mockResolvedValue(undefined);
+    const { gender: _unused, ...old } = baseTeam;
+    void _unused;
+    renderSettings(old, vi.fn());
+    expect(screen.getByRole('button', { name: 'Save team info' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Team type'), { target: { value: 'men' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save team info' }));
+    await waitFor(() => expect(updateSpy).toHaveBeenCalledWith('team-1', expect.objectContaining({ gender: 'men' })));
   });
 
   it('shows Delete team to a club admin', () => {

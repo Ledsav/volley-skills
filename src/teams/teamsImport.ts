@@ -1,3 +1,5 @@
+import { getT } from '../i18n/I18nProvider';
+import { isGender } from './teamGender';
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
 import type { NewTeamInput } from './teamsApi';
@@ -7,7 +9,8 @@ export const TEAM_IMPORT_EXAMPLE = `[
     "name": "U15 Girls",
     "ageGroup": "U15",
     "season": "2026-27",
-    "description": ""
+    "description": "",
+    "gender": "women"
   }
 ]`;
 
@@ -27,6 +30,11 @@ export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput
     const name = typeof row.name === 'string' ? row.name.trim() : '';
     if (name === '') errors.push(`row ${n}: "name" is required`);
 
+    const rawGender = typeof row.gender === 'string' ? row.gender.trim().toLowerCase() : row.gender;
+    const gender = isGender(rawGender) ? rawGender : null;
+    if (rawGender === undefined || rawGender === '') errors.push(getT().teams.gender.importRequired(n));
+    else if (gender === null) errors.push(getT().teams.gender.importInvalid(n));
+
     const optionals: Record<string, string> = {};
     for (const field of OPTIONAL_TEXT_FIELDS) {
       if (row[field] === undefined) {
@@ -38,12 +46,13 @@ export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput
       }
     }
 
-    if (name !== '' && Object.keys(optionals).length === OPTIONAL_TEXT_FIELDS.length) {
+    if (name !== '' && gender !== null && Object.keys(optionals).length === OPTIONAL_TEXT_FIELDS.length) {
       inputs.push({
         name,
         ageGroup: optionals.ageGroup,
         season: optionals.season,
         description: optionals.description,
+        gender,
       });
     }
   });

@@ -79,6 +79,34 @@ describe('TeamPage', () => {
     expect(await screen.findByRole('tab', { name: 'Stats' })).toBeInTheDocument();
   });
 
+  it('asks a team admin once whether the team is women, men or mixed when gender is missing', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    const updateSpy = vi.spyOn(teamsApi, 'updateTeamInfo').mockResolvedValue(undefined);
+    renderTeamPage();
+    expect(await screen.findByText("Is this a women's, men's or mixed team?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Women' }));
+    await waitFor(() => expect(updateSpy).toHaveBeenCalledWith('team-1', { gender: 'women' }));
+    await waitFor(() => expect(screen.queryByText("Is this a women's, men's or mixed team?")).not.toBeInTheDocument());
+  });
+
+  it('does not ask when the team has a gender, or when the person is not a team admin', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, gender: 'men', adminEmails: ['coach@example.com'] });
+    const { unmount } = renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    expect(screen.queryByText("Is this a women's, men's or mixed team?")).not.toBeInTheDocument();
+    unmount();
+
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'm' } as never, appUser: { uid: 'm', email: 'member@example.com' } })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    expect(screen.queryByText("Is this a women's, men's or mixed team?")).not.toBeInTheDocument();
+  });
+
   it('shows the not-found state when the team cannot be read', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
     renderTeamPage();

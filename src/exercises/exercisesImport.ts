@@ -1,6 +1,6 @@
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
-import { parseScene } from '../diagrams/parseScene';
+import { parseScene, type SceneIssue } from '../diagrams/parseScene';
 import { SCENE_LIMITS, type Scene } from '../types/diagram';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type NewExerciseInput } from '../types/exercise';
 
@@ -17,6 +17,19 @@ export interface ImportedDiagram {
 export interface ExerciseImportInput extends NewExerciseInput {
   diagrams: ImportedDiagram[];
 }
+
+/** What is wrong with a row; `exerciseImportIssueText` turns it into text. */
+export type ExerciseImportIssue =
+  | { code: 'notObject'; row: number }
+  | { code: 'nameRequired'; row: number }
+  | { code: 'categoryInvalid'; row: number; options: string[] }
+  | { code: 'descriptionText'; row: number }
+  | { code: 'minPlayersRange'; row: number; min: number; max: number }
+  | { code: 'diagramsNotArray'; row: number }
+  | { code: 'tooManyDiagrams'; row: number; max: number }
+  | { code: 'diagramNotObject'; row: number; diagram: number }
+  | { code: 'diagramTitle'; row: number; diagram: number; max: number }
+  | { code: 'diagramScene'; row: number; diagram: number; scene: SceneIssue };
 
 export const EXERCISE_IMPORT_EXAMPLE = `[
   {
@@ -45,61 +58,61 @@ export const EXERCISE_IMPORT_EXAMPLE = `[
   }
 ]`;
 
-export function validateExerciseRows(rows: unknown[]): ValidationResult<ExerciseImportInput> {
+export function validateExerciseRows(rows: unknown[]): ValidationResult<ExerciseImportInput, ExerciseImportIssue> {
   const inputs: ExerciseImportInput[] = [];
-  const errors: string[] = [];
+  const errors: ExerciseImportIssue[] = [];
 
   rows.forEach((row, index) => {
     const n = index + 1;
     if (!isPlainObject(row)) {
-      errors.push(`row ${n}: each entry must be a JSON object`);
+      errors.push({ code: 'notObject', row: n });
       return;
     }
 
     const errorsBefore = errors.length;
 
     const name = typeof row.name === 'string' ? row.name.trim() : '';
-    if (name === '') errors.push(`row ${n}: "name" is required`);
+    if (name === '') errors.push({ code: 'nameRequired', row: n });
 
     if (!(typeof row.category === 'string' && (CATEGORY_KEYS as string[]).includes(row.category))) {
-      errors.push(`row ${n}: "category" must be one of ${CATEGORY_KEYS.join(', ')}`);
+      errors.push({ code: 'categoryInvalid', row: n, options: CATEGORY_KEYS });
     }
 
     let description = '';
     if (row.description !== undefined) {
       if (typeof row.description === 'string') description = row.description;
-      else errors.push(`row ${n}: "description" must be text`);
+      else errors.push({ code: 'descriptionText', row: n });
     }
 
     const { min, max } = PLAYER_LIMITS.minPlayers;
     const minPlayers = row.minPlayers;
     if (minPlayers !== undefined && !(Number.isInteger(minPlayers) && (minPlayers as number) >= min && (minPlayers as number) <= max)) {
-      errors.push(`row ${n}: "minPlayers" must be a whole number from ${min} to ${max}`);
+      errors.push({ code: 'minPlayersRange', row: n, min, max });
     }
 
     const diagrams: ImportedDiagram[] = [];
     if (row.diagrams !== undefined) {
       if (!Array.isArray(row.diagrams)) {
-        errors.push(`row ${n}: "diagrams" must be an array`);
+        errors.push({ code: 'diagramsNotArray', row: n });
       } else if (row.diagrams.length > SCENE_LIMITS.diagramsPerExercise) {
-        errors.push(`row ${n}: at most ${SCENE_LIMITS.diagramsPerExercise} diagrams per exercise`);
+        errors.push({ code: 'tooManyDiagrams', row: n, max: SCENE_LIMITS.diagramsPerExercise });
       } else {
         row.diagrams.forEach((d, di) => {
           const m = di + 1;
           if (!isPlainObject(d)) {
-            errors.push(`row ${n}: diagram ${m} must be an object`);
+            errors.push({ code: 'diagramNotObject', row: n, diagram: m });
             return;
           }
 
           const title = typeof d.title === 'string' ? d.title.trim() : '';
           const titleOk = title.length >= 1 && title.length <= SCENE_LIMITS.titleLength;
           if (!titleOk) {
-            errors.push(`row ${n}: diagram ${m}: "title" must be 1–${SCENE_LIMITS.titleLength} characters`);
+            errors.push({ code: 'diagramTitle', row: n, diagram: m, max: SCENE_LIMITS.titleLength });
           }
 
           const parsed = parseScene(d.scene);
           if (!parsed.ok) {
-            errors.push(`row ${n}: diagram ${m}: scene is invalid (${parsed.error})`);
+            errors.push({ code: 'diagramScene', row: n, diagram: m, scene: parsed.error });
           }
 
           if (titleOk && parsed.ok) {

@@ -25,25 +25,25 @@ describe('validateExerciseRows', () => {
 
   it('reports a missing or empty name', () => {
     const result = validateExerciseRows([{ category: 'warmup' }, { name: '   ', category: 'warmup' }]);
-    expect(result.errors).toEqual(['row 1: "name" is required', 'row 2: "name" is required']);
+    expect(result.errors).toEqual([{ code: 'nameRequired', row: 1 }, { code: 'nameRequired', row: 2 }]);
     expect(result.inputs).toEqual([]);
   });
 
   it('reports an unknown category', () => {
     const result = validateExerciseRows([{ name: 'X', category: 'nonsense' }]);
     expect(result.errors).toEqual([
-      'row 1: "category" must be one of warmup, physical, service, setting, defense, reception, attack, compound, game',
+      { code: 'categoryInvalid', row: 1, options: ['warmup', 'physical', 'service', 'setting', 'defense', 'reception', 'attack', 'compound', 'game'] },
     ]);
   });
 
   it('reports a non-object row', () => {
     const result = validateExerciseRows(['nope', 42]);
-    expect(result.errors).toEqual(['row 1: each entry must be a JSON object', 'row 2: each entry must be a JSON object']);
+    expect(result.errors).toEqual([{ code: 'notObject', row: 1 }, { code: 'notObject', row: 2 }]);
   });
 
   it('reports a wrong-typed description', () => {
     const result = validateExerciseRows([{ name: 'X', category: 'warmup', description: 5 }]);
-    expect(result.errors).toEqual(['row 1: "description" must be text']);
+    expect(result.errors).toEqual([{ code: 'descriptionText', row: 1 }]);
   });
 });
 
@@ -76,20 +76,20 @@ describe('validateExerciseRows — diagrams', () => {
 
   it('rejects a non-array diagrams field with a row-numbered error and no inputs', () => {
     const result = validateExerciseRows([{ name: 'A', category: 'game', diagrams: 'nope' }]);
-    expect(result.errors).toEqual(['row 1: "diagrams" must be an array']);
+    expect(result.errors).toEqual([{ code: 'diagramsNotArray', row: 1 }]);
     expect(result.inputs).toEqual([]);
   });
 
   it('rejects more than 12 diagrams on a single exercise', () => {
     const diagrams = Array.from({ length: 13 }, (_, i) => ({ title: `d${i}`, scene: emptyScene }));
     const result = validateExerciseRows([{ name: 'A', category: 'game', diagrams }]);
-    expect(result.errors).toEqual(['row 1: at most 12 diagrams per exercise']);
+    expect(result.errors).toEqual([{ code: 'tooManyDiagrams', row: 1, max: 12 }]);
     expect(result.inputs).toEqual([]);
   });
 
   it('rejects a non-object diagram entry', () => {
     const result = validateExerciseRows([{ name: 'A', category: 'game', diagrams: ['nope'] }]);
-    expect(result.errors).toEqual(['row 1: diagram 1 must be an object']);
+    expect(result.errors).toEqual([{ code: 'diagramNotObject', row: 1, diagram: 1 }]);
     expect(result.inputs).toEqual([]);
   });
 
@@ -97,7 +97,7 @@ describe('validateExerciseRows — diagrams', () => {
     const result = validateExerciseRows([
       { name: 'A', category: 'game', diagrams: [{ title: 'Bad', scene: { v: 2 } }] },
     ]);
-    expect(result.errors).toEqual(['row 1: diagram 1: scene is invalid (unsupported scene version)']);
+    expect(result.errors).toEqual([{ code: 'diagramScene', row: 1, diagram: 1, scene: { code: 'unsupportedVersion' } }]);
     expect(result.inputs).toEqual([]);
   });
 
@@ -107,8 +107,8 @@ describe('validateExerciseRows — diagrams', () => {
       { name: 'B', category: 'game', diagrams: [{ title: 'x'.repeat(41), scene: emptyScene }] },
     ]);
     expect(result.errors).toEqual([
-      'row 1: diagram 1: "title" must be 1–40 characters',
-      'row 2: diagram 1: "title" must be 1–40 characters',
+      { code: 'diagramTitle', row: 1, diagram: 1, max: 40 },
+      { code: 'diagramTitle', row: 2, diagram: 1, max: 40 },
     ]);
     expect(result.inputs).toEqual([]);
   });
@@ -148,7 +148,7 @@ describe('validateExerciseRows — diagrams', () => {
 
     it.each([0, 31, 2.5, '6', null])('rejects minPlayers %s', (minPlayers) => {
       const result = validateExerciseRows([{ name: 'X', category: 'game', minPlayers }]);
-      expect(result.errors).toEqual(['row 1: "minPlayers" must be a whole number from 1 to 30']);
+      expect(result.errors).toEqual([{ code: 'minPlayersRange', row: 1, min: 1, max: 30 }]);
       expect(result.inputs).toEqual([]);
     });
   });

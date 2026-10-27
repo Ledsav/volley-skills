@@ -20,6 +20,12 @@
       "problemMatcher": []
     },
     {
+      "label": "setup:check-prod-key",
+      "type": "shell",
+      "command": "node -e \"const fs=require('fs');if(fs.existsSync('serviceAccountKey.json.enc'))console.log('serviceAccountKey.json.enc found (production scripts will ask for its passphrase)');else console.warn('WARNING serviceAccountKey.json.enc missing: only needed for production scripts (seed --prod, backup, restore). Restore it from your backup or create a new key and run npm run key:encrypt (scripts/ops/README.md).')\"",
+      "problemMatcher": []
+    },
+    {
       "label": "setup:verify",
       "type": "shell",
       "command": "npm test",
@@ -28,7 +34,13 @@
     {
       "label": "Setup (fresh clone)",
       "dependsOrder": "sequence",
-      "dependsOn": ["setup:install", "setup:env", "setup:check-private", "setup:verify"],
+      "dependsOn": [
+        "setup:install",
+        "setup:env",
+        "setup:check-private",
+        "setup:check-prod-key",
+        "setup:verify"
+      ],
       "problemMatcher": []
     },
     {

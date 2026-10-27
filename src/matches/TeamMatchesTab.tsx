@@ -6,12 +6,12 @@ import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { useAuth } from '../auth/AuthContext';
 import type { Match, MatchStatus } from '../types/match';
+import { getT, useT } from '../i18n/I18nProvider';
 import { todayIso } from '../calendar/monthGrid';
 import { createMatch, listMatches } from './matchesApi';
 import { DvwImportDialog } from './dvw/DvwImportDialog';
 import { MatchSetupForm } from './MatchSetupForm';
 
-const STATUS_LABEL: Record<MatchStatus, string> = { setup: 'Setup', live: 'Live', finished: 'Finished' };
 const STATUS_CLASS: Record<MatchStatus, string> = {
   setup: 'bg-border/60 text-ink',
   live: 'bg-orange/15 text-orange-strong',
@@ -27,6 +27,8 @@ interface TeamMatchesTabProps {
 
 export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMatchHandled }: TeamMatchesTabProps) {
   const navigate = useNavigate();
+  const t = useT();
+  const l = t.matches.list;
   const { firebaseUser } = useAuth();
   const [matches, setMatches] = useState<Match[]>([]);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot | null>(null);
@@ -58,7 +60,7 @@ export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMat
   );
 
   useEffect(() => {
-    loadPage(null).catch(() => setError('Could not load matches.'));
+    loadPage(null).catch(() => setError(getT().matches.list.loadError));
   }, [loadPage]);
 
   useEffect(() => {
@@ -73,19 +75,19 @@ export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMat
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-        {!online && <span className="text-xs text-slate">Connect to the internet to import.</span>}
+        {!online && <span className="text-xs text-slate">{l.offlineImport}</span>}
         <Button variant="secondary" size="sm" disabled={!online} onClick={() => setImporting(true)}>
           <FileUp size={16} aria-hidden="true" className="mr-1" />
-          Import from DataVolley (.dvw)
+          {l.importDvw}
         </Button>
         <Button variant="primary" size="sm" onClick={() => setCreatingDate(todayIso())}>
           <Plus size={16} aria-hidden="true" className="mr-1" />
-          New match
+          {l.newMatch}
         </Button>
       </div>
       {error && <p role="alert" className="mb-3 text-sm text-red">{error}</p>}
       {matches.length === 0 && !error ? (
-        <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-slate">No matches yet.</p>
+        <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-slate">{l.none}</p>
       ) : (
         <ul className="space-y-2">
           {matches.map((m) => (
@@ -97,10 +99,10 @@ export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMat
               <span className="text-lg font-semibold tabular-nums text-ink">
                 {m.result.setsUs}–{m.result.setsThem}
               </span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[m.status]}`}>{STATUS_LABEL[m.status]}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[m.status]}`}>{t.labels.matchStatus[m.status]}</span>
               {m.status === 'live' && (
                 <Link to={`/teams/${teamId}/matches/${m.id}/scout`} className="text-sm font-medium text-blue hover:underline">
-                  Resume
+                  {l.resume}
                 </Link>
               )}
             </li>
@@ -109,7 +111,7 @@ export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMat
       )}
       {hasMore && (
         <div className="mt-3 flex justify-center">
-          <Button variant="secondary" size="sm" onClick={() => void loadPage(cursor)}>Load more</Button>
+          <Button variant="secondary" size="sm" onClick={() => void loadPage(cursor)}>{l.loadMore}</Button>
         </div>
       )}
       {importing && (
@@ -124,17 +126,17 @@ export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMat
         />
       )}
       {creatingDate && firebaseUser && (
-        <Dialog title="New match" onClose={closeCreate} size="lg" mobileSheet guardUnsaved>
+        <Dialog title={l.createTitle} onClose={closeCreate} size="lg" mobileSheet guardUnsaved>
           <MatchSetupForm
             teamId={teamId}
             defaultDate={creatingDate}
-            submitLabel="Create match"
+            submitLabel={l.createSubmit}
             onCancel={closeCreate}
             onSubmit={(input) => {
               // Not awaited: offline the write only resolves on server ack. The
               // match page reads it back from the local cache meanwhile.
               const { id, written } = createMatch(teamId, input, firebaseUser.uid);
-              written.catch(() => setError('A new match could not be saved. Check your connection.'));
+              written.catch(() => setError(l.createError));
               closeCreate();
               navigate(`/teams/${teamId}/matches/${id}`);
             }}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { MatchEvent } from '../types/match';
+import { getT } from '../i18n/I18nProvider';
 import { subscribeEvents } from './matchesApi';
 
 /** `enabled: false` skips the listener entirely — reading the event log is the
@@ -18,7 +19,7 @@ export function useMatchEvents(teamId: string, matchId: string, enabled = true) 
         setEvents(next);
         setPending(pendingCount);
       },
-      () => setError('Could not load match events. Check your connection.'),
+      () => setError(getT().matches.engine.loadEventsError),
     );
   }, [teamId, matchId, enabled]);
 

@@ -22,25 +22,26 @@ export function playerLabel(entry: RosterEntry | undefined): string {
 }
 
 export function describeEvent(ev: MatchEvent, roster: Map<string, RosterEntry>): string {
+  const t = getT();
   switch (ev.type) {
     case 'action':
       return `${playerLabel(roster.get(ev.playerId))} ${labelSkill(ev.skill)} ${ev.grade} ${labelGrade(ev.skill, ev.grade)}`.trim();
     case 'point':
-      return `Point ${ev.winner}${ev.reason ? ` · ${getT().labels.pointReason[ev.reason]}` : ''}`;
+      return t.matches.event.point(ev.winner, ev.reason ? t.labels.pointReason[ev.reason] : null);
     case 'sub':
-      return `Sub ${playerLabel(roster.get(ev.inPlayerId))} in for ${playerLabel(roster.get(ev.outPlayerId))}`;
+      return t.matches.event.sub(playerLabel(roster.get(ev.inPlayerId)), playerLabel(roster.get(ev.outPlayerId)));
     case 'timeout':
-      return `Timeout ${ev.team}`;
+      return t.matches.event.timeout(ev.team);
     case 'setStart':
-      return `Set ${ev.set} · ${ev.serving === 'us' ? 'we serve' : 'they serve'}`;
+      return t.matches.event.setStart(ev.set, ev.serving);
     case 'setEnd':
-      return `Set ${ev.set} end`;
+      return t.matches.event.setEnd(ev.set);
     case 'correction': {
       const parts: string[] = [];
-      if (ev.score) parts.push(`score ${ev.score.us}–${ev.score.them}`);
-      if (ev.rotation !== null) parts.push(`rotation ${ev.rotation}`);
-      if (ev.serving) parts.push(ev.serving === 'us' ? 'we serve' : 'they serve');
-      return `Correction · ${parts.join(', ')}`;
+      if (ev.score) parts.push(t.matches.event.correctionScore(ev.score.us, ev.score.them));
+      if (ev.rotation !== null) parts.push(t.matches.event.correctionRotation(ev.rotation));
+      if (ev.serving) parts.push(t.matches.event.correctionServing(ev.serving));
+      return t.matches.event.correction(parts);
     }
   }
 }

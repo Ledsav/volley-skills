@@ -1,5 +1,6 @@
 import type { LiberoConfig, MatchSetupInput, RosterEntry } from '../types/match';
 import type { Player, PositionCategory } from '../types/player';
+import { getT } from '../i18n/I18nProvider';
 
 export const MAX_ROSTER = 14;
 
@@ -29,28 +30,56 @@ export function buildRoster(
     }));
 }
 
-export function validateSetup(input: MatchSetupInput): string | null {
-  if (!input.date) return 'Pick a date.';
-  if (!input.opponent.trim()) return 'Enter the opponent.';
+/** Why a setup cannot be saved; the UI maps the code to text (`setupProblemMessage`). */
+export type SetupProblem =
+  | { code: 'noDate' }
+  | { code: 'noOpponent' }
+  | { code: 'tooManyLiberos' }
+  | { code: 'liberoTwice' }
+  | { code: 'liberoNotInRoster' }
+  | { code: 'tooFewPlayers' }
+  | { code: 'rosterTooLarge'; max: number }
+  | { code: 'badNumber'; name: string }
+  | { code: 'duplicateNumber'; number: number }
+  | { code: 'badFormat' };
+
+/** The text for a setup problem, in the active language. */
+export function setupProblemMessage(problem: SetupProblem): string {
+  const p = getT().matches.setup.problem;
+  switch (problem.code) {
+    case 'rosterTooLarge':
+      return p.rosterTooLarge(problem.max);
+    case 'badNumber':
+      return p.badNumber(problem.name);
+    case 'duplicateNumber':
+      return p.duplicateNumber(problem.number);
+    default:
+      return p[problem.code];
+  }
+}
+
+export function validateSetup(input: MatchSetupInput): SetupProblem | null {
+  if (!input.date) return { code: 'noDate' };
+  if (!input.opponent.trim()) return { code: 'noOpponent' };
   const liberoIds = new Set(input.liberos.map((l) => l.playerId));
-  if (input.liberos.length > 2) return 'At most two liberos.';
-  if (liberoIds.size < input.liberos.length) return 'Pick two different players as liberos.';
+  if (input.liberos.length > 2) return { code: 'tooManyLiberos' };
+  if (liberoIds.size < input.liberos.length) return { code: 'liberoTwice' };
   if (input.liberos.some((l) => !input.roster.some((r) => r.playerId === l.playerId))) {
-    return 'Each libero must be in the match roster.';
+    return { code: 'liberoNotInRoster' };
   }
   if (input.roster.filter((r) => !liberoIds.has(r.playerId)).length < 6) {
-    return 'Pick at least 6 players besides the libero(s).';
+    return { code: 'tooFewPlayers' };
   }
-  if (input.roster.length > MAX_ROSTER) return `A match roster has at most ${MAX_ROSTER} players.`;
+  if (input.roster.length > MAX_ROSTER) return { code: 'rosterTooLarge', max: MAX_ROSTER };
   const seen = new Set<number>();
   for (const r of input.roster) {
-    if (!Number.isInteger(r.number) || r.number < 1 || r.number > 99) return `Check the shirt number for ${r.name}.`;
-    if (seen.has(r.number)) return `Two players share #${r.number}.`;
+    if (!Number.isInteger(r.number) || r.number < 1 || r.number > 99) return { code: 'badNumber', name: r.name };
+    if (seen.has(r.number)) return { code: 'duplicateNumber', number: r.number };
     seen.add(r.number);
   }
   const f = input.format;
   if ([f.setPoints, f.decidingSetPoints, f.subsPerSet, f.timeoutsPerSet].some((v) => !Number.isFinite(v) || v < 0) || f.setPoints < 1) {
-    return 'Check the match format numbers.';
+    return { code: 'badFormat' };
   }
   return null;
 }

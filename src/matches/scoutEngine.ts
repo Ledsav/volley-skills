@@ -1,3 +1,4 @@
+import { getT } from '../i18n/I18nProvider';
 import { rallyOutcome } from './skillGrades';
 import type {
   ActionEvent,
@@ -229,7 +230,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
 
   for (const ev of sortEvents(events)) {
     if (ev.type !== 'setStart' && !s.inSet) {
-      warn(ev, 'noSet', 'Recorded while no set was running — ignored.');
+      warn(ev, 'noSet', getT().matches.engine.noSet);
       continue;
     }
     switch (ev.type) {
@@ -252,11 +253,11 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       }
       case 'action': {
         if (!rosterIds.has(ev.playerId)) {
-          warn(ev, 'unknownPlayer', 'Player is not in this match roster — ignored.');
+          warn(ev, 'unknownPlayer', getT().matches.engine.unknownPlayer);
           break;
         }
         if (!s.court.includes(ev.playerId)) {
-          warn(ev, 'offCourt', 'Credited to a player the app shows off court.');
+          warn(ev, 'offCourt', getT().matches.engine.offCourt);
         }
         s.actions.push({
           eventId: ev.id,
@@ -277,13 +278,13 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       case 'sub': {
         const zone = s.lineup.indexOf(ev.outPlayerId);
         if (zone < 0) {
-          warn(ev, 'subNotOnCourt', 'Outgoing player is not in the lineup — ignored.');
+          warn(ev, 'subNotOnCourt', getT().matches.engine.subNotOnCourt);
           break;
         }
         const outPartner = pairs[ev.outPlayerId];
         const inPartner = pairs[ev.inPlayerId];
         if ((outPartner && outPartner !== ev.inPlayerId) || (inPartner && inPartner !== ev.outPlayerId)) {
-          warn(ev, 'illegalReentry', 'A player can only re-enter for the player who replaced them.');
+          warn(ev, 'illegalReentry', getT().matches.engine.illegalReentry);
         } else {
           pairs[ev.outPlayerId] = ev.inPlayerId;
           pairs[ev.inPlayerId] = ev.outPlayerId;
@@ -297,7 +298,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
         );
         s.subsUsed += 1;
         if (s.subsUsed > match.format.subsPerSet) {
-          warn(ev, 'subLimit', `More than ${match.format.subsPerSet} substitutions this set.`);
+          warn(ev, 'subLimit', getT().matches.engine.subLimit(match.format.subsPerSet));
         }
         break;
       }
@@ -311,7 +312,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
           eventId: ev.id,
         });
         if (s.timeoutsUsed[ev.team] > match.format.timeoutsPerSet) {
-          warn(ev, 'timeoutLimit', `More than ${match.format.timeoutsPerSet} timeouts this set.`);
+          warn(ev, 'timeoutLimit', getT().matches.engine.timeoutLimit(match.format.timeoutsPerSet));
         }
         break;
       }
@@ -328,7 +329,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       }
       case 'setEnd': {
         if (s.score.us === s.score.them) {
-          warn(ev, 'setEndTie', 'A set cannot end tied — ignored.');
+          warn(ev, 'setEndTie', getT().matches.engine.setEndTie);
           break;
         }
         s.setScores.push({ ...s.score });

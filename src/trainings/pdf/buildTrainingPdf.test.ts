@@ -256,6 +256,11 @@ describe('in Italian', () => {
     expect(build()).toContain('Senza livello');
   });
 
+  it('reads the dialog roster counter as "n di total"', () => {
+    expect(itCatalog.trainings.teamNotes.expectedCount(3, 12)).toBe('3 di 12');
+    expect(en.trainings.teamNotes.expectedCount(3, 12)).toBe('3 of 12');
+  });
+
   it('footer is Italian too', () => {
     const def = buildWith({ t: itCatalog, training: training(), exercisesById, diagramsById: new Map(), svgFor });
     const footer = def.footer as (page: number, count: number) => unknown;

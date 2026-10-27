@@ -84,6 +84,7 @@ export const trainings = {
     generalNotes: 'Note generali',
     loadingTeam: 'Caricamento della squadra…',
     expectedPlayers: (g: Gender) => agree(g, 'Giocatori attesi', 'Giocatrici attese', 'Giocatori/trici attesi/e'),
+    expectedCount: (n: number, total: number) => `${n} di ${total}`,
     playerNoteLabel: (name: string) => `Su cosa lavorare con ${name}`,
     playerNotePlaceholder: 'Su cosa lavorare',
   },

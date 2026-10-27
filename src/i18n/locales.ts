@@ -7,7 +7,7 @@ export const LOCALE_KEY = 'vcb.locale';
 
 export interface ResolveInput {
   stored: string | null;
-  clubLocale: Locale | null;
+  clubLocale: Locale | null | string;
   browser: readonly string[];
   devParam: string | null;
   dev: boolean;
@@ -15,7 +15,7 @@ export interface ResolveInput {
   enabled?: boolean;
 }
 
-function isLocale(v: string | null): v is Locale {
+function isLocale(v: string | null | undefined): v is Locale {
   return v === 'en' || v === 'it';
 }
 
@@ -25,7 +25,7 @@ export function resolveLocale(input: ResolveInput): Locale {
   if (input.dev && input.devParam === 'it') return 'it';
   let result: Locale;
   if (isLocale(input.stored)) result = input.stored;
-  else if (input.clubLocale) result = input.clubLocale;
+  else if (isLocale(input.clubLocale)) result = input.clubLocale;
   else if (input.browser.some((l) => l.toLowerCase().startsWith('it'))) result = 'it';
   else result = 'en';
   return result === 'it' && !enabled ? 'en' : result;

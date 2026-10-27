@@ -11,6 +11,10 @@ describe('resolveLocale', () => {
   it('club locale comes next', () => {
     expect(resolveLocale({ ...base, clubLocale: 'it', browser: ['en-US'] })).toBe('it');
   });
+  it('ignores an unknown club locale', () => {
+    expect(resolveLocale({ ...base, clubLocale: 'fr', browser: ['it'] })).toBe('it');
+    expect(resolveLocale({ ...base, clubLocale: 'fr' })).toBe('en');
+  });
   it('an Italian browser gives it, others give en', () => {
     expect(resolveLocale({ ...base, browser: ['it-IT'] })).toBe('it');
     expect(resolveLocale({ ...base, browser: ['de-DE'] })).toBe('en');

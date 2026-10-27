@@ -9,4 +9,8 @@ describe('plural', () => {
     expect(plural('it', 0, forms)).toBe('n giocatori');
     expect(plural('en', 2, forms)).toBe('n giocatori');
   });
+  it('treats non-integers as other', () => {
+    expect(plural('en', 1.5, forms)).toBe('n giocatori');
+    expect(plural('it', 0.5, forms)).toBe('n giocatori');
+  });
 });

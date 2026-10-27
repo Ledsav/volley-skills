@@ -141,7 +141,7 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
         {players && (
           <div>
             <p className="mb-2 text-sm font-medium text-ink">
-              {m.expectedPlayers(gender)} <span className="tabular-nums text-slate">({expectedCount} of {players.length})</span>
+              {m.expectedPlayers(gender)} <span className="tabular-nums text-slate">({m.expectedCount(expectedCount, players.length)})</span>
             </p>
             <ul aria-label={m.expectedPlayers(gender)} className="divide-y divide-border rounded-md border border-border">
               {players.map((p) => {

@@ -83,6 +83,7 @@ export const trainings = {
     generalNotes: 'General notes',
     loadingTeam: 'Loading the team…',
     expectedPlayers: sameForAll('Expected players'),
+    expectedCount: (n: number, total: number) => `${n} of ${total}`,
     playerNoteLabel: (name: string) => `What to look at for ${name}`,
     playerNotePlaceholder: 'What to look at',
   },

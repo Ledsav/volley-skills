@@ -4,6 +4,7 @@ import { ArrowDown } from 'lucide-react';
 import { fmtEff, fmtPct } from '../../matches/format';
 import type { TeamPlayerRow } from './teamSeason';
 import { isWeakAttack, isWeakReception, WEAK_CLASS } from '../../matches/statFlags';
+import { formatNumber } from '../../i18n/format';
 
 type SortKey = 'number' | 'matchesPlayed' | 'points' | 'errors' | 'mvpAvg' | 'attackEff' | 'serveEff' | 'receptionPos';
 // `weak` uses the same thresholds as the live panel and match report. Season error
@@ -12,7 +13,7 @@ const COLS: { key: SortKey; label: string; fmt: (r: TeamPlayerRow) => string; we
   { key: 'matchesPlayed', label: 'MP', fmt: (r) => String(r.matchesPlayed) },
   { key: 'points', label: 'Points', fmt: (r) => String(r.points) },
   { key: 'errors', label: 'Errors', fmt: (r) => String(r.errors) },
-  { key: 'mvpAvg', label: 'MVP', fmt: (r) => (r.mvpAvg === null ? '—' : r.mvpAvg.toFixed(1)) },
+  { key: 'mvpAvg', label: 'MVP', fmt: (r) => (r.mvpAvg === null ? '—' : formatNumber(r.mvpAvg, 1)) },
   { key: 'attackEff', label: 'Att. eff.', fmt: (r) => fmtEff(r.attackEff), weak: (r) => isWeakAttack(r.attackEff) },
   { key: 'serveEff', label: 'Serve eff.', fmt: (r) => fmtEff(r.serveEff) },
   { key: 'receptionPos', label: 'Rec. +', fmt: (r) => fmtPct(r.receptionPos), weak: (r) => isWeakReception(r.receptionPos) },
@@ -52,7 +53,7 @@ export function PlayerStatsTable({ teamId, rows }: { teamId: string; rows: TeamP
                 {r.current ? <Link to={`/teams/${teamId}/players/${r.playerId}`} className="text-ink hover:underline">{r.name}</Link> : <span className="text-ink">{r.name}</span>}
               </th>
               {COLS.map((c) => <td key={c.key} className={`py-2 pr-2 text-right ${c.weak?.(r) ? WEAK_CLASS : 'text-ink'}`}>{c.fmt(r)}</td>)}
-              {RATED.map((k) => <td key={k} className="py-2 pr-2 text-right text-ink">{r.ratings[k]?.rating?.toFixed(1) ?? '—'}</td>)}
+              {RATED.map((k) => <td key={k} className="py-2 pr-2 text-right text-ink">{r.ratings[k]?.rating != null ? formatNumber(r.ratings[k]!.rating!, 1) : '—'}</td>)}
             </tr>
           ))}
         </tbody>

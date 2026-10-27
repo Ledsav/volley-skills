@@ -2,19 +2,18 @@ import { focusAreaKeys, latestTestDate, openObjectiveCount, ratedSkillCount } fr
 import { SKILL_KEYS, type Player } from '../types/player';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import { StatTile } from '../components/StatTile';
+import { monthNames } from '../i18n/format';
 
 interface PlayerKpiTilesProps {
   player: Player;
   latestByType: Partial<Record<PhysicalTestType, PhysicalTest | null>>;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 // "2026-08-12" -> { day: "12 Aug", year: "2026" }. The full ISO date is too wide
 // for a quarter-width tile at display size and wrapped at its hyphens.
 function splitIsoDate(iso: string): { day: string; year: string } {
   const [year, month, day] = iso.split('-');
-  return { day: `${Number(day)} ${MONTHS[Number(month) - 1]}`, year };
+  return { day: `${Number(day)} ${monthNames(undefined, 'short')[Number(month) - 1]}`, year };
 }
 
 export function PlayerKpiTiles({ player, latestByType }: PlayerKpiTilesProps) {

@@ -7,6 +7,7 @@ import {
 } from './interestApi';
 import { notifySignupsChanged } from './signupEvents';
 import type { InterestSignup, InterestSignupRole } from '../types/interestSignup';
+import { formatDateValue } from '../i18n/format';
 
 const ROLE_LABEL: Record<InterestSignupRole, string> = {
   coach: 'Coach', guardian: 'Guardian', player: 'Player', other: 'Other',
@@ -14,7 +15,7 @@ const ROLE_LABEL: Record<InterestSignupRole, string> = {
 
 function formatRequestDate(value: unknown): string | null {
   if (value && typeof (value as { toDate?: unknown }).toDate === 'function') {
-    return (value as { toDate: () => Date }).toDate().toLocaleDateString();
+    return formatDateValue((value as { toDate: () => Date }).toDate(), 'numeric');
   }
   return null;
 }

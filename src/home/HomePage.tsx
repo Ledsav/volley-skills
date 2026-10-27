@@ -8,6 +8,7 @@ import { LiveNowBlock } from './LiveNowBlock';
 import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
 import { useHomeFeed } from './useHomeFeed';
+import { formatDateValue } from '../i18n/format';
 
 function greeting(now = new Date()): string {
   const h = now.getHours();
@@ -54,7 +55,7 @@ export function HomePage() {
             {greeting()}{name ? `, ${name.charAt(0).toUpperCase()}${name.slice(1)}` : ''}
           </h1>
           <p className="mt-1 text-sm text-white/80">
-            {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {formatDateValue(new Date(), 'full')}
           </p>
         </div>
       </section>

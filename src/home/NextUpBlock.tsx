@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import type { FeedItem } from './homeFeed';
+import { formatDate } from '../i18n/format';
 
 const fmtDay = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  formatDate(iso, 'weekday');
 
 export function NextUpBlock({ items, failed }: { items: FeedItem[]; failed: boolean }) {
   return (

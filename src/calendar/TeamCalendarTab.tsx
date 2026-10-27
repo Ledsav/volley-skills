@@ -17,8 +17,8 @@ import {
   monthRange,
   todayIso,
 } from './monthGrid';
+import { weekdayNames } from '../i18n/format';
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MAX_DOTS = 3;
 
@@ -206,7 +206,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
 function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, teamId, matchesByDate, onNewMatch }: ViewProps) {
   return (
     <div className="grid grid-cols-7 gap-px border border-border bg-border text-sm">
-      {WEEKDAYS.map((d) => (
+      {weekdayNames('short').map((d) => (
         <div key={d} className="bg-surface px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate">
           {d}
         </div>

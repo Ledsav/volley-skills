@@ -13,6 +13,7 @@ import { suggestedScore, type MatchRatings } from './matchRating';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SkillRadarChart } from './SkillRadarChart';
 import { useNotify } from '../components/Notice';
+import { formatNumber } from '../i18n/format';
 
 const SKILL_LABELS: Record<SkillKey, string> = {
   serve: 'Serve',
@@ -51,7 +52,7 @@ function SkillGuideHint({ entry }: { entry: SkillGuideEntry }) {
 function matchLine(rating: { rating: number | null; attempts: number }): string {
   return rating.rating === null
     ? `Match — · ${rating.attempts} att. (not enough data)`
-    : `Match ${rating.rating.toFixed(1)} · ${rating.attempts} att.`;
+    : `Match ${formatNumber(rating.rating, 1)} · ${rating.attempts} att.`;
 }
 
 interface PlayerSkillsSectionProps {
@@ -163,7 +164,7 @@ export function PlayerSkillsSection({
             level={player.level}
           />
           <p className="mt-2 text-center text-sm text-slate">
-            Average: <span className="font-semibold tabular-nums text-ink">{player.avgScore?.toFixed(1) ?? '—'}</span>{' '}
+            Average: <span className="font-semibold tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</span>{' '}
             ({player.level ?? 'No scores yet'})
           </p>
         </div>
@@ -217,7 +218,7 @@ export function PlayerSkillsSection({
         <Dialog title="Edit skills" onClose={() => onEditingChange(false)} guardUnsaved>
           <div aria-label="Edit skills">
             <p className="mb-4 text-sm text-slate">
-              Average: <span className="font-semibold tabular-nums text-ink">{previewAvg?.toFixed(1) ?? '—'}</span>{' '}
+              Average: <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
               ({previewLevel ?? 'No scores yet'})
             </p>
             <div className="flex flex-col gap-4">

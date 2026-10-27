@@ -1,5 +1,6 @@
 import { getInitials } from './nameFormat';
 import { POSITION_CATEGORIES, type Player } from '../types/player';
+import { formatNumber } from '../i18n/format';
 
 const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.value, c.label]));
 
@@ -28,7 +29,7 @@ export function PlayerIdentityCard({ player }: PlayerIdentityCardProps) {
 
       <div className="flex items-end gap-3 border-y border-white/15 py-4">
         <span className="text-4xl font-extrabold tabular-nums leading-none">
-          {hasScores ? player.avgScore!.toFixed(1) : '—'}
+          {hasScores ? formatNumber(player.avgScore!, 1) : '—'}
         </span>
         <div className="pb-0.5">
           <p className="text-xs uppercase tracking-wide text-white/60">Avg skill score</p>

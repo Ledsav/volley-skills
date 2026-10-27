@@ -8,8 +8,9 @@ import { OPERATOR_CONTACT_EMAIL } from '../../legal/operator';
 import { parseVersionKey } from '../../legal/versions';
 import { CLUB_STATUS_LABEL } from '../statusLabels';
 import { requestTermination } from '../clubAdminApi';
+import { formatDateValue } from '../../i18n/format';
 
-const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+const fmt = (d: Date) => formatDateValue(d, 'long');
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (

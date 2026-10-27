@@ -1,6 +1,7 @@
 import { useAuth } from '../auth/AuthContext';
+import { formatDateValue } from '../i18n/format';
 
-const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+const fmt = (d: Date) => formatDateValue(d, 'long');
 
 /** Shown above the app while the club's contract is running out. */
 export function ContractEndingBanner() {

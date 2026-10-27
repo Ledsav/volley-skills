@@ -32,6 +32,7 @@ import { knockOutBackground, MAX_SPONSORS } from './card/branding';
 import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
 import { ageFromDob } from '../players/age';
 import { photoAllowed } from './photoGate';
+import { formatDate } from '../i18n/format';
 
 type Load =
   | { state: 'loading' }
@@ -76,7 +77,7 @@ export function exportIncludesMinors(keys: string[], awards: ResolvedAward[], ad
   return awards.some((a) => keys.includes(a.key) && a.winner !== null && !adults.has(a.winner.playerId));
 }
 
-const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const fmtDate = (iso: string) => formatDate(iso, 'short');
 
 export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const { teamId = '', matchId = '' } = useParams();

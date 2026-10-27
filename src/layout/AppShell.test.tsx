@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Timestamp } from 'firebase/firestore';
 import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 import { useNotify } from '../components/Notice';
+import { formatDateValue } from '../i18n/format';
 
 const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
@@ -149,7 +150,7 @@ describe('AppShell', () => {
 
   describe('club state', () => {
     const DAY = 86_400_000;
-    const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    const fmt = (d: Date) => formatDateValue(d, 'long', 'en');
     const effective = new Date(Date.now() + 10 * DAY);
     const retrieval = new Date(Date.now() + 40 * DAY);
     const ending = () =>

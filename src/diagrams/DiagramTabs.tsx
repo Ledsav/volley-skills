@@ -2,6 +2,7 @@ import type { Dispatch } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { SCENE_LIMITS } from '../types/diagram';
 import type { EditorAction, EditorDiagram } from './useDiagramEditor';
+import { useT } from '../i18n/I18nProvider';
 
 interface Props {
   diagrams: EditorDiagram[];
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: Props) {
+  const t = useT().diagrams.tabs;
   return (
     <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-surface px-3 py-2 lg:flex-wrap lg:overflow-visible">
       {diagrams.map((d) => {
@@ -25,7 +27,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
           >
             {active ? (
               <input
-                aria-label="Diagram title"
+                aria-label={t.title}
                 value={d.title}
                 onChange={(e) => dispatch({ type: 'renameDiagram', id: d.id, title: e.target.value })}
                 maxLength={SCENE_LIMITS.titleLength}
@@ -45,7 +47,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
               <>
                 <button
                   type="button"
-                  aria-label="Move diagram left"
+                  aria-label={t.moveLeft}
                   className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'left' })}
                 >
@@ -53,7 +55,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 </button>
                 <button
                   type="button"
-                  aria-label="Move diagram right"
+                  aria-label={t.moveRight}
                   className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'right' })}
                 >
@@ -61,7 +63,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 </button>
                 <button
                   type="button"
-                  aria-label="Delete diagram"
+                  aria-label={t.delete}
                   className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'deleteDiagram', id: d.id })}
                 >
@@ -74,7 +76,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
       })}
       <button
         type="button"
-        aria-label="Add diagram"
+        aria-label={t.add}
         disabled={!canAdd}
         onClick={() => dispatch({ type: 'addDiagram' })}
         className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-border p-1 text-slate disabled:opacity-40"

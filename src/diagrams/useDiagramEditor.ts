@@ -4,6 +4,8 @@ import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '..
 import { listDiagrams, saveDiagramSet, type DiagramSaveOps } from './diagramsApi';
 import { invalidateDiagramThumbnail } from './DiagramThumbnail';
 import { emptyScene, newId } from './sceneFactory';
+import { DiagramSaveError, diagramSaveErrorText } from './diagramSaveError';
+import { getT } from '../i18n/I18nProvider';
 
 const UNDO_LIMIT = 30;
 
@@ -426,7 +428,7 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
       .catch((e) => {
         if (cancelled) return;
         if (isNotFoundError(e)) setNotFound(true);
-        else setLoadError('Could not load diagrams. Please refresh.');
+        else setLoadError(getT().diagrams.loadError);
       });
     return () => {
       cancelled = true;
@@ -451,7 +453,9 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
       dispatch({ type: 'saved', idMap, committedIds });
       invalidateDiagramThumbnail(exerciseId);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Could not save diagrams. Please try again.');
+      setSaveError(
+        err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
+      );
     } finally {
       savingRef.current = false;
       setSaving(false);

@@ -10,7 +10,16 @@ import {
   type Scene,
 } from '../types/diagram';
 
-type ParseSceneResult = { ok: true; scene: Scene } | { ok: false; error: string };
+/** What is wrong with a scene; `sceneIssueText` turns it into text. */
+export type SceneIssue =
+  | { code: 'notObject' }
+  | { code: 'unsupportedVersion' }
+  | { code: 'badCourt' }
+  | { code: 'itemsNotArray' }
+  | { code: 'tooManyItems'; max: number }
+  | { code: 'itemMissingField' };
+
+type ParseSceneResult = { ok: true; scene: Scene } | { ok: false; error: SceneIssue };
 
 const COURTS: CourtPreset[] = ['full', 'half', 'blank'];
 const COLORS = new Set<string>(PALETTE_COLORS);
@@ -105,14 +114,14 @@ function repairItem(raw: unknown): DiagramItem | null {
 }
 
 export function parseScene(input: unknown): ParseSceneResult {
-  if (!isPlainObject(input)) return { ok: false, error: 'scene must be an object' };
-  if (input.v !== 1) return { ok: false, error: 'unsupported scene version' };
+  if (!isPlainObject(input)) return { ok: false, error: { code: 'notObject' } };
+  if (input.v !== 1) return { ok: false, error: { code: 'unsupportedVersion' } };
   if (typeof input.court !== 'string' || !COURTS.includes(input.court as CourtPreset)) {
-    return { ok: false, error: 'court must be one of full, half, blank' };
+    return { ok: false, error: { code: 'badCourt' } };
   }
-  if (!Array.isArray(input.items)) return { ok: false, error: 'scene.items must be an array' };
+  if (!Array.isArray(input.items)) return { ok: false, error: { code: 'itemsNotArray' } };
   if (input.items.length > SCENE_LIMITS.itemsPerScene) {
-    return { ok: false, error: `a scene may hold at most ${SCENE_LIMITS.itemsPerScene} items` };
+    return { ok: false, error: { code: 'tooManyItems', max: SCENE_LIMITS.itemsPerScene } };
   }
 
   const items: DiagramItem[] = [];
@@ -122,7 +131,7 @@ export function parseScene(input: unknown): ParseSceneResult {
       if (isPlainObject(raw) && typeof raw.type === 'string' && !KNOWN_TYPES.has(raw.type as DiagramItem['type'])) {
         continue; // unknown type: drop silently
       }
-      return { ok: false, error: 'a scene item is missing a required field' };
+      return { ok: false, error: { code: 'itemMissingField' } };
     }
     items.push(repaired);
   }

@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useModalLayer } from '../components/useModalLayer';
 import { DiagramSvg } from './DiagramSvg';
 import type { Diagram } from '../types/diagram';
+import { useT } from '../i18n/I18nProvider';
 
 interface Props {
   diagrams: Diagram[];
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
+  const t = useT();
   const [i, setI] = useState(startIndex);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -44,7 +46,7 @@ export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
     >
       <div className="flex w-full max-w-3xl items-center justify-between text-white">
         <span className="font-medium">{current.title}</span>
-        <button ref={closeRef} type="button" aria-label="Close" onClick={onClose}>
+        <button ref={closeRef} type="button" aria-label={t.common.close} onClick={onClose}>
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -55,17 +57,17 @@ export function DiagramLightbox({ diagrams, startIndex, onClose }: Props) {
         <div className="flex gap-4 text-white">
           <button
             type="button"
-            aria-label="Previous diagram"
+            aria-label={t.diagrams.nav.previous}
             onClick={() => setI((n) => (n - 1 + diagrams.length) % diagrams.length)}
           >
-            ‹ Prev
+            {t.diagrams.nav.prevShort}
           </button>
           <button
             type="button"
-            aria-label="Next diagram"
+            aria-label={t.diagrams.nav.next}
             onClick={() => setI((n) => (n + 1) % diagrams.length)}
           >
-            Next ›
+            {t.diagrams.nav.nextShort}
           </button>
         </div>
       )}

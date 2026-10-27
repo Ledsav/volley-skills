@@ -39,33 +39,33 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
       const done = await save(() => createTeam({ name, ageGroup, season, description, gender }, uid, email));
       if (!done) return;
     } catch {
-      setError('Could not create the team. Please try again.');
+      setError(t.teams.create.error);
       return;
     }
     onCreated();
   }
 
   return (
-    <Dialog title="Create team" onClose={onClose} guardUnsaved>
-      <form onSubmit={handleSubmit} aria-label="Create team">
+    <Dialog title={t.teams.create.title} onClose={onClose} guardUnsaved>
+      <form onSubmit={handleSubmit} aria-label={t.teams.create.title}>
 
         <div className={fieldClass}>
           <label htmlFor="team-name" className={labelClass}>
-            Name
+            {t.teams.create.name}
           </label>
           <Input id="team-name" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-age-group" className={labelClass}>
-            Age group
+            {t.teams.create.ageGroup}
           </label>
           <Input id="team-age-group" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-season" className={labelClass}>
-            Season
+            {t.teams.create.season}
           </label>
           <Input id="team-season" value={season} onChange={(e) => setSeason(e.target.value)} required />
         </div>
@@ -94,7 +94,7 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
 
         <div className={fieldClass}>
           <label htmlFor="team-description" className={labelClass}>
-            Description
+            {t.teams.create.description}
           </label>
           <Textarea
             id="team-description"
@@ -106,10 +106,10 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button variant="primary" type="submit" disabled={saving || gender === ''}>
-            {saving ? 'Saving…' : 'Create'}
+            {saving ? t.teams.shared.saving : t.teams.create.submit}
           </Button>
         </div>
         {error && (

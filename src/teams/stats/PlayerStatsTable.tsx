@@ -5,22 +5,29 @@ import { fmtEff, fmtPct } from '../../matches/format';
 import type { TeamPlayerRow } from './teamSeason';
 import { isWeakAttack, isWeakReception, WEAK_CLASS } from '../../matches/statFlags';
 import { formatNumber } from '../../i18n/format';
+import { useT } from '../../i18n/I18nProvider';
 
 type SortKey = 'number' | 'matchesPlayed' | 'points' | 'errors' | 'mvpAvg' | 'attackEff' | 'serveEff' | 'receptionPos';
 // `weak` uses the same thresholds as the live panel and match report. Season error
 // totals aren't flagged: the per-match threshold doesn't apply to a sum.
-const COLS: { key: SortKey; label: string; fmt: (r: TeamPlayerRow) => string; weak?: (r: TeamPlayerRow) => boolean }[] = [
-  { key: 'matchesPlayed', label: 'MP', fmt: (r) => String(r.matchesPlayed) },
-  { key: 'points', label: 'Points', fmt: (r) => String(r.points) },
-  { key: 'errors', label: 'Errors', fmt: (r) => String(r.errors) },
-  { key: 'mvpAvg', label: 'MVP', fmt: (r) => (r.mvpAvg === null ? '—' : formatNumber(r.mvpAvg, 1)) },
-  { key: 'attackEff', label: 'Att. eff.', fmt: (r) => fmtEff(r.attackEff), weak: (r) => isWeakAttack(r.attackEff) },
-  { key: 'serveEff', label: 'Serve eff.', fmt: (r) => fmtEff(r.serveEff) },
-  { key: 'receptionPos', label: 'Rec. +', fmt: (r) => fmtPct(r.receptionPos), weak: (r) => isWeakReception(r.receptionPos) },
+const COLS: { key: SortKey; fmt: (r: TeamPlayerRow) => string; weak?: (r: TeamPlayerRow) => boolean }[] = [
+  { key: 'matchesPlayed', fmt: (r) => String(r.matchesPlayed) },
+  { key: 'points', fmt: (r) => String(r.points) },
+  { key: 'errors', fmt: (r) => String(r.errors) },
+  { key: 'mvpAvg', fmt: (r) => (r.mvpAvg === null ? '—' : formatNumber(r.mvpAvg, 1)) },
+  { key: 'attackEff', fmt: (r) => fmtEff(r.attackEff), weak: (r) => isWeakAttack(r.attackEff) },
+  { key: 'serveEff', fmt: (r) => fmtEff(r.serveEff) },
+  { key: 'receptionPos', fmt: (r) => fmtPct(r.receptionPos), weak: (r) => isWeakReception(r.receptionPos) },
 ];
 const RATED = ['serve', 'reception', 'attack', 'block', 'set', 'defence'] as const;
 
 export function PlayerStatsTable({ teamId, rows }: { teamId: string; rows: TeamPlayerRow[] }) {
+  const tt = useT();
+  const t = tt.teams.stats;
+  const colLabel: Record<SortKey, string> = {
+    number: '#', matchesPlayed: t.table.mp, points: t.table.points, errors: t.table.errors, mvpAvg: t.table.mvp,
+    attackEff: t.table.attEff, serveEff: t.table.serveEff, receptionPos: t.table.recPos,
+  };
   const [sort, setSort] = useState<SortKey>('number');
   const sorted = [...rows].sort((a, b) => {
     if (sort === 'number') return (a.number ?? 999) - (b.number ?? 999);
@@ -32,16 +39,16 @@ export function PlayerStatsTable({ teamId, rows }: { teamId: string; rows: TeamP
         <thead>
           <tr className="border-b border-border text-left text-slate">
             <th scope="col" className="py-2 pr-2"><button type="button" onClick={() => setSort('number')} className="font-medium">#</button></th>
-            <th scope="col" className="py-2 pr-2">Name</th>
+            <th scope="col" className="py-2 pr-2">{t.table.name}</th>
             {COLS.map((c) => (
               <th key={c.key} scope="col" className="py-2 pr-2 text-right" aria-sort={sort === c.key ? 'descending' : 'none'}>
                 <button type="button" onClick={() => setSort(c.key)} className="inline-flex items-center gap-1 font-medium">
-                  {c.label}{sort === c.key && <ArrowDown size={12} aria-hidden="true" />}
+                  {colLabel[c.key]}{sort === c.key && <ArrowDown size={12} aria-hidden="true" />}
                 </button>
               </th>
             ))}
             {RATED.map((k) => (
-              <th key={k} scope="col" className="py-2 pr-2 text-right font-medium">{k[0].toUpperCase() + k.slice(1)}</th>
+              <th key={k} scope="col" className="py-2 pr-2 text-right font-medium">{tt.labels.playerSkill[k]}</th>
             ))}
           </tr>
         </thead>

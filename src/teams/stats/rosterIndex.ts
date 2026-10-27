@@ -1,9 +1,10 @@
+import { getT } from '../../i18n/I18nProvider';
 import type { Match } from '../../types/match';
 import type { Player } from '../../types/player';
 
 export interface Person { playerId: string; name: string; number: number | null; current: boolean }
 
-export const UNKNOWN_PERSON = (playerId: string): Person => ({ playerId, name: 'Unknown player', number: null, current: false });
+export const UNKNOWN_PERSON = (playerId: string): Person => ({ playerId, name: getT().teams.stats.unknownPlayer, number: null, current: false });
 
 /** Name/number per player from the newest match roster that lists them (survives number changes and departures). */
 export function latestRosterIndex(matches: Match[]): Map<string, Person> {

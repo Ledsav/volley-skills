@@ -7,6 +7,8 @@ import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { bulkCreateTeams, listMyTeams } from './teamsApi';
 import { TEAM_IMPORT_EXAMPLE, validateTeamRows } from './teamsImport';
+import { teamImportIssueText } from './teamsImportMessages';
+import { useT } from '../i18n/I18nProvider';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
@@ -21,7 +23,8 @@ function teamMonogram(name: string): string {
 }
 
 export function TeamsListPage() {
-  usePageMeta({ title: 'Teams' });
+  const t = useT();
+  usePageMeta({ title: t.teams.list.title });
   const { appUser, access } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -54,15 +57,15 @@ export function TeamsListPage() {
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <PageHeader
-        title="Teams"
+        title={t.teams.list.title}
         actions={
           access?.isClubAdmin ? (
             <>
               <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowImport(true)}>
-                Import
+                {t.teams.list.import}
               </Button>
               <Button variant="primary" size="sm" className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-                Create team
+                {t.teams.list.create}
               </Button>
             </>
           ) : undefined
@@ -72,7 +75,7 @@ export function TeamsListPage() {
 
       {teams.length === 0 ? (
         <div className="rounded-lg border border-border bg-surface p-6 text-center text-sm text-slate shadow-card">
-          {access?.isClubAdmin ? 'No teams yet.' : 'No teams assigned yet — ask your club admin.'}
+          {access?.isClubAdmin ? t.teams.list.none : t.teams.list.noneAssigned}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -97,7 +100,7 @@ export function TeamsListPage() {
                 </div>
               </div>
               <span className="mt-3 inline-flex w-fit rounded-full bg-bg px-2 py-0.5 text-xs font-medium tabular-nums text-slate">
-                Season {team.season}
+                {t.teams.list.season(team.season)}
               </span>
               {team.description && <p className="mt-2 line-clamp-2 text-sm text-slate">{team.description}</p>}
             </Link>
@@ -108,7 +111,7 @@ export function TeamsListPage() {
       {hasMore && (
         <div className="mt-4 flex justify-center">
           <Button variant="secondary" onClick={() => void loadMore()}>
-            Load more
+            {t.teams.shared.loadMore}
           </Button>
         </div>
       )}
@@ -125,14 +128,15 @@ export function TeamsListPage() {
 
       {showImport && appUser && (
         <BulkImportDialog
-          title="Import teams"
+          title={t.teams.list.importTitle}
           exampleJson={TEAM_IMPORT_EXAMPLE}
           validate={validateTeamRows}
+          formatIssue={(issue) => teamImportIssueText(issue, t)}
           commit={(inputs) => bulkCreateTeams(inputs, appUser.uid, appUser.email)}
           onClose={() => setShowImport(false)}
           onImported={(n) => {
             setShowImport(false);
-            notify(`Imported ${n} team${n === 1 ? '' : 's'}.`);
+            notify(t.teams.list.imported(n));
             void loadFirstPage();
           }}
         />

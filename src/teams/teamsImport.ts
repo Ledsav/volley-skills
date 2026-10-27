@@ -1,4 +1,3 @@
-import { getT } from '../i18n/I18nProvider';
 import { isGender } from './teamGender';
 import { isPlainObject } from '../bulkImport/parseJsonArray';
 import type { ValidationResult } from '../bulkImport/types';
@@ -14,26 +13,34 @@ export const TEAM_IMPORT_EXAMPLE = `[
   }
 ]`;
 
+/** What is wrong with a row; `teamImportIssueText` turns it into text. */
+export type TeamImportIssue =
+  | { code: 'notObject'; row: number }
+  | { code: 'nameRequired'; row: number }
+  | { code: 'genderRequired'; row: number }
+  | { code: 'genderInvalid'; row: number }
+  | { code: 'mustBeText'; row: number; field: string };
+
 const OPTIONAL_TEXT_FIELDS = ['ageGroup', 'season', 'description'] as const;
 
-export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput> {
+export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput, TeamImportIssue> {
   const inputs: NewTeamInput[] = [];
-  const errors: string[] = [];
+  const errors: TeamImportIssue[] = [];
 
   rows.forEach((row, index) => {
     const n = index + 1;
     if (!isPlainObject(row)) {
-      errors.push(`row ${n}: each entry must be a JSON object`);
+      errors.push({ code: 'notObject', row: n });
       return;
     }
 
     const name = typeof row.name === 'string' ? row.name.trim() : '';
-    if (name === '') errors.push(`row ${n}: "name" is required`);
+    if (name === '') errors.push({ code: 'nameRequired', row: n });
 
     const rawGender = typeof row.gender === 'string' ? row.gender.trim().toLowerCase() : row.gender;
     const gender = isGender(rawGender) ? rawGender : null;
-    if (rawGender === undefined || rawGender === '') errors.push(getT().teams.gender.importRequired(n));
-    else if (gender === null) errors.push(getT().teams.gender.importInvalid(n));
+    if (rawGender === undefined || rawGender === '') errors.push({ code: 'genderRequired', row: n });
+    else if (gender === null) errors.push({ code: 'genderInvalid', row: n });
 
     const optionals: Record<string, string> = {};
     for (const field of OPTIONAL_TEXT_FIELDS) {
@@ -42,7 +49,7 @@ export function validateTeamRows(rows: unknown[]): ValidationResult<NewTeamInput
       } else if (typeof row[field] === 'string') {
         optionals[field] = row[field] as string;
       } else {
-        errors.push(`row ${n}: "${field}" must be text`);
+        errors.push({ code: 'mustBeText', row: n, field });
       }
     }
 

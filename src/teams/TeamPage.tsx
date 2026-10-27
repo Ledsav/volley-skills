@@ -25,6 +25,8 @@ import { TeamPhysicalSessionTab } from '../physicalSessions/TeamPhysicalSessionT
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
+import { useT } from '../i18n/I18nProvider';
+import { teamGender } from './teamGender';
 
 const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
@@ -51,33 +53,34 @@ export function TeamPage() {
   const notify = useNotify();
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
-  usePageMeta({ title: team?.name ?? 'Team' });
+  const t = useT();
+  usePageMeta({ title: team?.name ?? t.teams.page.pageTitle });
 
   useEffect(() => {
     if (!teamId) return;
     setNotFound(false);
     setLoadError(false);
     void getTeam(teamId)
-      .then((t) => (t ? setTeam(t) : setNotFound(true)))
+      .then((loaded) => (loaded ? setTeam(loaded) : setNotFound(true)))
       .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setLoadError(true)));
   }, [teamId, loadAttempt]);
 
   if (notFound) {
-    return <NotFoundState title="Team not found" message="It may have been deleted, or you don't have access." backTo="/teams" backLabel="All teams" />;
+    return <NotFoundState title={t.teams.page.notFoundTitle} message={t.teams.page.notFoundMessage} backTo="/teams" backLabel={t.teams.page.allTeams} />;
   }
 
   if (loadError && !team) {
     return (
       <div role="alert" className="p-6">
-        <p className="text-red">Could not load this team.</p>
+        <p className="text-red">{t.teams.page.loadError}</p>
         <Button variant="secondary" size="sm" className="mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
-          Try again
+          {t.teams.page.tryAgain}
         </Button>
       </div>
     );
   }
 
-  if (!team || !teamId) return <PageSkeleton layout="team" label="Loading team..." />;
+  if (!team || !teamId) return <PageSkeleton layout="team" label={t.teams.page.loading} />;
 
   const changeTab = (next: TeamTab) => {
     const p = new URLSearchParams(params);
@@ -87,16 +90,17 @@ export function TeamPage() {
     setParams(p, { replace: true });
   };
   const admin = isTeamAdmin(team, appUser?.email, access);
+  const gender = teamGender(team);
   const activeTab = (tab === 'calendar' && !canCalendar) || (tab === 'stats' && !admin) ? 'roster' : tab;
   // Ordered by how often a coach reaches for them; Settings stays last.
   const tabs: { id: TeamTab; label: string }[] = [
-    { id: 'roster', label: 'Roster' },
-    ...(canCalendar ? [{ id: 'calendar' as const, label: 'Calendar' }] : []),
-    { id: 'matches', label: 'Matches' },
-    ...(admin ? [{ id: 'stats' as const, label: 'Stats' }] : []),
-    { id: 'plan', label: 'Development plan' },
-    { id: 'physical', label: 'Physical testing' },
-    { id: 'settings', label: 'Settings' },
+    { id: 'roster', label: t.teams.page.tabs.roster },
+    ...(canCalendar ? [{ id: 'calendar' as const, label: t.teams.page.tabs.calendar }] : []),
+    { id: 'matches', label: t.teams.page.tabs.matches },
+    ...(admin ? [{ id: 'stats' as const, label: t.teams.page.tabs.stats }] : []),
+    { id: 'plan', label: t.teams.page.tabs.plan },
+    { id: 'physical', label: t.teams.page.tabs.physical },
+    { id: 'settings', label: t.teams.page.tabs.settings },
   ];
 
   return (
@@ -108,7 +112,7 @@ export function TeamPage() {
         className="mb-4"
       />
 
-      <SectionTabs label="Team section" tabs={tabs} active={activeTab} onChange={changeTab} className="print:hidden" />
+      <SectionTabs label={t.teams.page.sectionLabel} tabs={tabs} active={activeTab} onChange={changeTab} className="print:hidden" />
 
       <div className="mt-6">
         {activeTab === 'roster' && (
@@ -116,7 +120,7 @@ export function TeamPage() {
             {admin && !team.gender && (
               <TeamGenderPrompt teamId={teamId} onSaved={(gender) => setTeam({ ...team, gender })} />
             )}
-            <RetentionNotice teamId={teamId} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />
+            <RetentionNotice teamId={teamId} gender={gender} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />
             <TeamStatsRow players={rosterPlayers} />
             <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
               <Button
@@ -125,7 +129,7 @@ export function TeamPage() {
                 className="w-full sm:w-auto"
                 onClick={() => setShowImportPlayers(true)}
               >
-                Import players
+                {t.teams.page.importPlayers}
               </Button>
               <Button
                 variant="primary"
@@ -133,15 +137,16 @@ export function TeamPage() {
                 className="w-full sm:w-auto"
                 onClick={() => setShowAddPlayer(true)}
               >
-                + Add player
+                {t.teams.page.addPlayer}
               </Button>
             </div>
             <TeamRosterTable
               key={rosterRefreshKey}
               teamId={teamId}
+              gender={gender}
               onPlayersChange={setRosterPlayers}
               onRosterChanged={() => {
-                notify('Player removed.');
+                notify(t.teams.page.playerRemoved);
               }}
             />
           </>
@@ -159,7 +164,7 @@ export function TeamPage() {
           <TeamMatchesTab teamId={teamId} teamName={team.name} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
         )}
         {activeTab === 'stats' && admin && (
-          <Suspense fallback={<p className="text-slate">Loading team stats…</p>}>
+          <Suspense fallback={<p className="text-slate">{t.teams.shared.loadingStats}</p>}>
             <TeamStatsTab team={team} />
           </Suspense>
         )}
@@ -194,18 +199,15 @@ export function TeamPage() {
       )}
       {showImportPlayers && firebaseUser && (
         <BulkImportDialog
-          title="Import players"
-          hint="Imported players start with consent not given — confirm each one on their card."
+          title={t.teams.page.importPlayersTitle}
+          hint={t.teams.page.importPlayersHint}
           exampleJson={PLAYER_IMPORT_EXAMPLE}
           validate={validatePlayerRows}
           commit={(inputs) => bulkCreatePlayers(teamId, team, inputs, firebaseUser.uid)}
           onClose={() => setShowImportPlayers(false)}
           onImported={(n) => {
             setShowImportPlayers(false);
-            notify(
-              `Imported ${n} player${n === 1 ? '' : 's'} with consent not given — confirm each one on their card.`,
-              { durationMs: 6000 },
-            );
+            notify(t.teams.page.playersImported(n, gender), { durationMs: 6000 });
             setRosterRefreshKey((k) => k + 1);
           }}
         />

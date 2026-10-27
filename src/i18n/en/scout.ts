@@ -53,6 +53,9 @@ export const scout = {
     player: (number: number, name: string, libero: boolean) => `#${number} ${name}${libero ? ', libero' : ''}`,
     liberoTile: { receiving: 'L·rec', serving: 'L·def', always: 'L' } as Record<LiberoMode, string>,
     auto: 'auto',
+    net: 'Net',
+    serving: 'serving',
+    form: { bad: '3+ errors this set', good: 'scoring well this set' } as Record<'good' | 'bad', string>,
   },
   correction: {
     title: 'Correct the game state',

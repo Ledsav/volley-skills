@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MatchEvent, RosterEntry } from '../types/match';
-import { describeEvent, fmtEff, fmtPct, rosterMap } from './format';
+import { describeEvent, fmtEff, fmtPct, rosterMap, shortNames } from './format';
 
 const roster: RosterEntry[] = [
   { playerId: 'p7', number: 7, name: 'Ana', positionCategory: 'OH' },
@@ -26,5 +26,23 @@ describe('format', () => {
     expect(describeEvent(ev({ type: 'setStart', set: 2, lineup: [], serving: 'them' }), map)).toBe('Set 2 · they serve');
     expect(describeEvent(ev({ type: 'correction', score: { us: 3, them: 4 }, rotation: null, serving: null }), map))
       .toBe('Correction · score 3–4');
+  });
+
+  it('shortens names to the first name, adding the surname initial only to tell players apart', () => {
+    const entry = (playerId: string, name: string): RosterEntry => ({ playerId, number: 1, name, positionCategory: 'OH' });
+    const names = shortNames([
+      entry('a', 'Ana García López'),
+      entry('b', 'Lucía Martín'),
+      entry('c', 'Lucía Pérez'),
+      entry('d', 'Eva Ruiz'),
+      entry('e', 'Eva Romero'),
+      entry('f', 'Sofía'),
+    ]);
+    expect(names.get('a')).toBe('Ana');
+    expect(names.get('b')).toBe('Lucía M.');
+    expect(names.get('c')).toBe('Lucía P.');
+    expect(names.get('d')).toBe('Eva Ruiz');
+    expect(names.get('e')).toBe('Eva Romero');
+    expect(names.get('f')).toBe('Sofía');
   });
 });

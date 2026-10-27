@@ -4,6 +4,7 @@ import { Dialog } from '../../components/Dialog';
 import { FIELD_CLASS } from '../../components/Input';
 import type { LiberoConfig, RoleMap, RosterEntry, Side } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
+import { shortNames } from '../format';
 import { SLOT_ROLE, build51, check51, lineup51Message, slotsFromLineup, type SlotKey, type Slots51 } from '../rotation';
 
 interface SetStartDialogProps {
@@ -81,6 +82,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
   const liberoIds = new Set(liberos.map((l) => l.playerId));
   const eligible = roster.filter((r) => !liberoIds.has(r.playerId));
   const byId = new Map(roster.map((r) => [r.playerId, r]));
+  const names = shortNames(roster);
   const [mode, setMode] = useState<'role' | 'manual'>('role');
   const [init] = useState(() => initialSlots(eligible, roles, initialLineup));
   const [slots, setSlots] = useState<Slots51>(init.slots);
@@ -194,11 +196,13 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
                 const role = entry ? slotRoles[entry.playerId] : null;
                 const was = entry ? roles[entry.playerId] : null;
                 return (
-                  <div key={zone} className="flex min-h-12 flex-col items-center justify-center rounded-sm bg-surface text-xs">
+                  <div key={zone} className="flex min-h-12 min-w-0 flex-col items-center justify-center rounded-sm bg-surface px-1 text-xs">
                     <span className="text-[11px] text-slate">P{zone + 1}</span>
                     {entry ? (
                       <>
-                        <span className="font-bold tabular-nums text-ink">#{entry.number}</span>
+                        <span className="max-w-full truncate text-ink">
+                          <span className="font-bold">{names.get(entry.playerId)}</span> <span className="tabular-nums">#{entry.number}</span>
+                        </span>
                         <span className={role !== was ? 'font-medium text-blue-strong' : 'text-slate'}>
                           {role}{role !== was && was ? t.was(was) : ''}
                         </span>

@@ -1,6 +1,8 @@
 import { Dialog } from '../../components/Dialog';
 import type { RosterEntry } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
+import { shortNames } from '../format';
+import { RoleChip } from './RoleChip';
 
 interface SubDialogProps {
   outPlayer: RosterEntry;
@@ -11,22 +13,31 @@ interface SubDialogProps {
 
 export function SubDialog({ outPlayer, candidates, onSub, onCancel }: SubDialogProps) {
   const t = useT();
+  const names = shortNames([outPlayer, ...candidates]);
+  // Like-for-like first: a middle usually comes off for a middle.
+  const sorted = [...candidates].sort(
+    (a, b) =>
+      Number(b.positionCategory === outPlayer.positionCategory) - Number(a.positionCategory === outPlayer.positionCategory) || a.number - b.number,
+  );
   return (
     <Dialog title={t.scout.sub.title(outPlayer.number, outPlayer.name)} onClose={onCancel}>
       {candidates.length === 0 ? (
         <p className="text-sm text-slate">{t.scout.sub.nobody}</p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
-          {candidates.map((c) => (
+          {sorted.map((c) => (
             <button
               key={c.playerId}
               type="button"
               aria-label={t.scout.sub.bringOn(c.number, c.name)}
               onClick={() => onSub(c.playerId)}
-              className="flex min-h-14 flex-col items-center justify-center rounded-md border border-border bg-surface text-ink hover:bg-blue/10"
+              className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-md border border-border bg-surface px-1 text-ink hover:bg-blue/10"
             >
-              <span className="text-lg font-bold tabular-nums">{c.number}</span>
-              <span className="max-w-full truncate px-1 text-xs text-slate">{c.name}</span>
+              <span className="max-w-full truncate text-base font-bold leading-tight">{names.get(c.playerId)}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-sm font-bold tabular-nums leading-none">#{c.number}</span>
+                <RoleChip role={c.positionCategory} />
+              </span>
             </button>
           ))}
         </div>

@@ -12,6 +12,7 @@ import { findTrainingByBusinessId, listTrainings } from '../trainings/trainingsA
 import type { Training } from '../types/training';
 import { createCalendarSession } from './calendarApi';
 import { HealthHint } from '../components/HealthHint';
+import { useT } from '../i18n/I18nProvider';
 
 interface ExerciseRow {
   exerciseId: string;
@@ -28,6 +29,7 @@ interface AssignTrainingDialogProps {
 }
 
 export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignTrainingDialogProps) {
+  const t = useT();
   const { firebaseUser } = useAuth();
   const [sessionDate, setSessionDate] = useState(date);
   const [options, setOptions] = useState<Training[]>([]);
@@ -80,7 +82,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
         setOptionsLoaded(true);
       })
-      .catch(() => setError('Could not load trainings. Please try again.'));
+      .catch(() => setError(t.calendar.assign.loadError));
   }, []);
 
   async function loadMoreOptions() {
@@ -91,7 +93,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
       setOptionsLastDoc(page.lastDoc);
       setOptionsHasMore(page.trainings.length > 0 && page.lastDoc !== null);
     } catch {
-      setError('Could not load more trainings. Please try again.');
+      setError(t.calendar.assign.loadMoreError);
     }
   }
 
@@ -105,7 +107,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
       setSelected(found);
       setOptionsLoaded(true);
     } catch {
-      setError('Could not search for that training. Please try again.');
+      setError(t.calendar.assign.searchError);
     }
   }
 
@@ -114,7 +116,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!selected) {
-      setError('Pick a training to assign.');
+      setError(t.calendar.assign.pickTraining);
       return;
     }
     if (!firebaseUser) return;
@@ -134,16 +136,16 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
       if (!done) return;
       onSaved();
     } catch {
-      setError('Could not assign the training. Please try again.');
+      setError(t.calendar.assign.assignError);
     }
   }
 
   return (
-    <Dialog title="Assign training" onClose={onClose} guardUnsaved mobileSheet>
-      <form onSubmit={handleSubmit} aria-label="Assign training">
+    <Dialog title={t.calendar.assign.title} onClose={onClose} guardUnsaved mobileSheet>
+      <form onSubmit={handleSubmit} aria-label={t.calendar.assign.title}>
 
         <label htmlFor="session-date" className="mb-1 block text-sm font-medium text-ink">
-          Date
+          {t.calendar.assign.date}
         </label>
         <Input
           id="session-date"
@@ -153,7 +155,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         />
 
         <label htmlFor="session-bid" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Find by business ID
+          {t.calendar.assign.findByBusinessId}
         </label>
         <div className="flex gap-2">
           <Input
@@ -163,15 +165,15 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
             placeholder="TR-0007"
           />
           <Button variant="secondary" size="sm" onClick={() => void searchByBusinessId()}>
-            Find
+            {t.calendar.assign.find}
           </Button>
         </div>
 
         <fieldset className="mt-4">
-          <legend className="mb-1 text-sm font-medium text-ink">Training</legend>
+          <legend className="mb-1 text-sm font-medium text-ink">{t.calendar.assign.training}</legend>
           <ul className="divide-y divide-border rounded-md border border-border">
             {optionsLoaded && options.length === 0 && (
-              <li className="p-2 text-sm text-slate">No trainings available.</li>
+              <li className="p-2 text-sm text-slate">{t.calendar.assign.noneAvailable}</li>
             )}
             {options.map((training) => (
               <li key={training.id} className="p-2">
@@ -195,15 +197,15 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
               onClick={() => void loadMoreOptions()}
               className="mt-2"
             >
-              Load more
+              {t.calendar.assign.loadMore}
             </Button>
           )}
         </fieldset>
 
         {selected && selectedExercises.length > 0 && (
           <div className="mt-4">
-            <p className="mb-1 text-sm font-medium text-ink">Exercises in {selected.name}</p>
-            <ul aria-label="Training exercises" className="divide-y divide-border rounded-md border border-border">
+            <p className="mb-1 text-sm font-medium text-ink">{t.calendar.assign.exercisesIn(selected.name)}</p>
+            <ul aria-label={t.calendar.assign.exercisesLabel} className="divide-y divide-border rounded-md border border-border">
               {selectedExercises.map((row) => {
                 const expanded = expandedId === row.exerciseId;
                 return (
@@ -213,7 +215,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
                         type="button"
                         aria-expanded={expanded}
                         aria-label={
-                          row.name ? (expanded ? `Collapse ${row.name}` : `Expand ${row.name}`) : undefined
+                          row.name ? (expanded ? t.calendar.assign.collapse(row.name) : t.calendar.assign.expand(row.name)) : undefined
                         }
                         onClick={() => setExpandedId(expanded ? null : row.exerciseId)}
                         disabled={!row.name}
@@ -233,14 +235,14 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
                         {row.name ?? (
                           <span className="inline-flex items-center gap-1">
                             <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                            Deleted exercise
+                            {t.calendar.assign.deletedExercise}
                           </span>
                         )}
                       </span>
-                      <span className="shrink-0 text-xs tabular-nums text-slate">{row.durationMinutes} min</span>
+                      <span className="shrink-0 text-xs tabular-nums text-slate">{t.calendar.assign.minutes(row.durationMinutes)}</span>
                     </div>
                     {expanded && (
-                      <p className="mt-2 pl-6 text-xs text-slate">{row.description || 'No description.'}</p>
+                      <p className="mt-2 pl-6 text-xs text-slate">{row.description || t.calendar.assign.noDescription}</p>
                     )}
                   </li>
                 );
@@ -250,7 +252,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         )}
 
         <label htmlFor="session-notes" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Notes
+          {t.calendar.assign.notes}
         </label>
         <Textarea id="session-notes" aria-describedby="session-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         <HealthHint id="session-notes-hint" />
@@ -263,10 +265,10 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Assign'}
+            {saving ? t.calendar.assign.saving : t.calendar.assign.assign}
           </Button>
         </div>
       </form>

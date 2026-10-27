@@ -1,0 +1,52 @@
+import { plural } from '../plural';
+
+export const calendar = {
+  tab: {
+    matchVs: (opponent: string) => `vs ${opponent}`,
+    matchResult: (opponent: string, setsUs: number, setsThem: number) => `vs ${opponent} ${setsUs}–${setsThem}`,
+    loadError: 'Could not load calendar sessions. Please refresh the page.',
+    removeError: 'Could not remove the session. Please try again.',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    removeTitle: 'Remove this session?',
+    removeMessage: (label: string, date: string) => `${label} on ${date}`,
+    removeConfirm: 'Yes, remove',
+    todayDate: (date: string) => `Today, ${date}`,
+    removeSession: (businessId: string, date: string) => `Remove ${businessId} on ${date}`,
+    addTrainingOn: (date: string) => `Add training on ${date}`,
+    addMatchOn: (date: string) => `Add match on ${date}`,
+    add: 'Add',
+    match: 'Match',
+    addTraining: 'Add training',
+    dayLabel: (isToday: boolean, day: string, count: number) =>
+      `${isToday ? 'Today, ' : ''}${day}${
+        count ? `, ${count} ${plural('en', count, { one: 'training', other: 'trainings' })}` : ''
+      }`,
+    trainingsOn: (day: string) => `Trainings on ${day}`,
+    noTrainings: 'No trainings scheduled.',
+  },
+  assign: {
+    title: 'Assign training',
+    loadError: 'Could not load trainings. Please try again.',
+    loadMoreError: 'Could not load more trainings. Please try again.',
+    searchError: 'Could not search for that training. Please try again.',
+    pickTraining: 'Pick a training to assign.',
+    assignError: 'Could not assign the training. Please try again.',
+    date: 'Date',
+    findByBusinessId: 'Find by business ID',
+    find: 'Find',
+    training: 'Training',
+    noneAvailable: 'No trainings available.',
+    loadMore: 'Load more',
+    exercisesIn: (name: string) => `Exercises in ${name}`,
+    exercisesLabel: 'Training exercises',
+    collapse: (name: string) => `Collapse ${name}`,
+    expand: (name: string) => `Expand ${name}`,
+    deletedExercise: 'Deleted exercise',
+    minutes: (n: number) => `${n} min`,
+    noDescription: 'No description.',
+    notes: 'Notes',
+    saving: 'Saving…',
+    assign: 'Assign',
+  },
+};

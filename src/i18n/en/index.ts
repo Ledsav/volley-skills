@@ -1,4 +1,5 @@
 import { admin } from './admin';
+import { calendar } from './calendar';
 import { components } from './components';
 import { diagrams } from './diagrams';
 import { exercises } from './exercises';
@@ -21,4 +22,4 @@ import { skillGuide } from './skillGuide';
 import { teams } from './teams';
 import { theme } from './theme';
 
-export const en = { admin, auth, bulkImport, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme };
+export const en = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme };

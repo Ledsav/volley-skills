@@ -18,8 +18,9 @@ import {
   todayIso,
 } from './monthGrid';
 import { weekdayNames } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
+import type { Catalog } from '../i18n/catalog';
 
-const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MAX_DOTS = 3;
 
 type Grid = ReturnType<typeof buildMonthGrid>;
@@ -47,8 +48,8 @@ function sessionLabel(session: CalendarSession): string {
   return `${session.trainingBusinessId} · ${session.trainingName}`;
 }
 
-function matchLabel(m: Match): string {
-  return m.status === 'setup' ? `vs ${m.opponent}` : `vs ${m.opponent} ${m.result.setsUs}–${m.result.setsThem}`;
+function matchLabel(m: Match, t: Catalog): string {
+  return m.status === 'setup' ? t.calendar.tab.matchVs(m.opponent) : t.calendar.tab.matchResult(m.opponent, m.result.setsUs, m.result.setsThem);
 }
 
 /** Opens the session's training with its team context, so the PDF export can add team notes. */
@@ -58,21 +59,23 @@ function sessionLink(teamId: string, session: CalendarSession): string {
 }
 
 function MatchChip({ teamId, match, touch = false }: { teamId: string; match: Match; touch?: boolean }) {
+  const t = useT();
   return (
     <Link
       to={`/teams/${teamId}/matches/${match.id}`}
       className={`flex items-center gap-1 truncate rounded-sm bg-orange/15 font-medium text-orange-strong hover:underline ${
         touch ? 'min-h-11 px-3 text-sm' : 'px-1.5 py-0.5 text-xs'
       }`}
-      title={matchLabel(match)}
+      title={matchLabel(match, t)}
     >
       <Trophy size={11} aria-hidden="true" />
-      <span className="truncate">{matchLabel(match)}</span>
+      <span className="truncate">{matchLabel(match, t)}</span>
     </Link>
   );
 }
 
 export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewMatch?: (date: string) => void }) {
+  const t = useT();
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selectedDate, setSelectedDate] = useState(() => defaultSelection(view.year, view.month));
@@ -96,8 +99,8 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
 
   useEffect(() => {
     setError(null);
-    load().catch(() => setError('Could not load calendar sessions. Please refresh the page.'));
-  }, [load]);
+    load().catch(() => setError(t.calendar.tab.loadError));
+  }, [load, t]);
 
   const grid = buildMonthGrid(view.year, view.month);
   const todayStr = todayIso();
@@ -122,7 +125,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
     try {
       await deleteCalendarSession(teamId, pendingDelete.id);
     } catch {
-      setDeleteError('Could not remove the session. Please try again.');
+      setDeleteError(t.calendar.tab.removeError);
       return;
     }
     setPendingDelete(null);
@@ -148,7 +151,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
       <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
-          aria-label="Previous month"
+          aria-label={t.calendar.tab.previousMonth}
           onClick={() => goToMonth(-1)}
           className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
         >
@@ -157,7 +160,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
         <span className="text-base font-semibold text-ink">{formatMonthLabel(view.year, view.month)}</span>
         <button
           type="button"
-          aria-label="Next month"
+          aria-label={t.calendar.tab.nextMonth}
           onClick={() => goToMonth(1)}
           className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
         >
@@ -191,9 +194,9 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
 
       {pendingDelete && (
         <ConfirmDialog
-          title="Remove this session?"
-          message={`${sessionLabel(pendingDelete)} on ${pendingDelete.date}`}
-          confirmLabel="Yes, remove"
+          title={t.calendar.tab.removeTitle}
+          message={t.calendar.tab.removeMessage(sessionLabel(pendingDelete), pendingDelete.date)}
+          confirmLabel={t.calendar.tab.removeConfirm}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setPendingDelete(null)}
           error={deleteError}
@@ -204,6 +207,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
 }
 
 function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, teamId, matchesByDate, onNewMatch }: ViewProps) {
+  const t = useT();
   return (
     <div className="grid grid-cols-7 gap-px border border-border bg-border text-sm">
       {weekdayNames('short').map((d) => (
@@ -225,7 +229,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
             {cell.inMonth ? (
               <>
                 <span
-                  aria-label={isToday ? `Today, ${cell.date}` : undefined}
+                  aria-label={isToday ? t.calendar.tab.todayDate(cell.date) : undefined}
                   className={`block w-full text-right text-xs tabular-nums ${
                     isToday ? 'font-semibold text-blue' : 'text-slate'
                   }`}
@@ -253,7 +257,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                       </Link>
                       <button
                         type="button"
-                        aria-label={`Remove ${session.trainingBusinessId} on ${session.date}`}
+                        aria-label={t.calendar.tab.removeSession(session.trainingBusinessId, session.date)}
                         onClick={() => onRemove(session)}
                         className="shrink-0 rounded-sm p-0.5 text-red hover:bg-red/10 hover:text-red-strong"
                       >
@@ -265,20 +269,20 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                 <button
                   type="button"
                   onClick={() => onAdd(cell.date)}
-                  aria-label={`Add training on ${cell.date}`}
+                  aria-label={t.calendar.tab.addTrainingOn(cell.date)}
                   className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate transition-colors hover:bg-blue/10 hover:text-blue focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue group-hover:text-blue"
                 >
                   <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
-                  <span>Add</span>
+                  <span>{t.calendar.tab.add}</span>
                 </button>
                 {onNewMatch && (
                   <button
                     type="button"
                     onClick={() => onNewMatch(cell.date)}
-                    aria-label={`Add match on ${cell.date}`}
+                    aria-label={t.calendar.tab.addMatchOn(cell.date)}
                     className="flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate hover:bg-orange/10 hover:text-orange-strong group-hover:text-orange-strong"
                   >
-                    <Trophy size={12} aria-hidden="true" /> Match
+                    <Trophy size={12} aria-hidden="true" /> {t.calendar.tab.match}
                   </button>
                 )}
               </>
@@ -311,6 +315,8 @@ function MobileMonthView({
   selectedDate,
   onSelect,
 }: ViewProps & { selectedDate: string; onSelect: (date: string) => void }) {
+  const t = useT();
+  const weekdayInitials = weekdayNames('narrow');
   const selectedSessions = sessionsByDate[selectedDate] ?? [];
   const selectedMatches = matchesByDate[selectedDate] ?? [];
 
@@ -318,7 +324,7 @@ function MobileMonthView({
     <div>
       <div className="rounded-lg border border-border bg-surface p-2 shadow-card">
         <div className="grid grid-cols-7" aria-hidden="true">
-          {WEEKDAY_INITIALS.map((d, i) => (
+          {weekdayInitials.map((d, i) => (
             <div key={i} className="py-1 text-center text-xs font-medium text-slate">
               {d}
             </div>
@@ -340,9 +346,7 @@ function MobileMonthView({
             const matchDots = Math.min(matchCount, MAX_DOTS - sessionDots);
             const isToday = cell.date === todayStr;
             const isSelected = cell.date === selectedDate;
-            const label = `${isToday ? 'Today, ' : ''}${formatDayLabel(cell.date)}${
-              count ? `, ${count} training${count > 1 ? 's' : ''}` : ''
-            }`;
+            const label = t.calendar.tab.dayLabel(isToday, formatDayLabel(cell.date), count);
             return (
               <button
                 key={cell.date}
@@ -377,17 +381,17 @@ function MobileMonthView({
         </div>
       </div>
 
-      <section aria-label={`Trainings on ${formatDayLabel(selectedDate)}`} className="mt-4">
+      <section aria-label={t.calendar.tab.trainingsOn(formatDayLabel(selectedDate))} className="mt-4">
         <div className="mb-2 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-ink">{formatDayLabel(selectedDate)}</h3>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => onAdd(selectedDate)} aria-label={`Add training on ${selectedDate}`}>
+            <Button variant="secondary" size="sm" onClick={() => onAdd(selectedDate)} aria-label={t.calendar.tab.addTrainingOn(selectedDate)}>
               <Plus size={16} strokeWidth={2.5} aria-hidden="true" className="mr-1" />
-              Add training
+              {t.calendar.tab.addTraining}
             </Button>
             {onNewMatch && (
-              <Button variant="secondary" size="sm" onClick={() => onNewMatch(selectedDate)} aria-label={`Add match on ${selectedDate}`}>
-                <Trophy size={16} aria-hidden="true" className="mr-1" /> Match
+              <Button variant="secondary" size="sm" onClick={() => onNewMatch(selectedDate)} aria-label={t.calendar.tab.addMatchOn(selectedDate)}>
+                <Trophy size={16} aria-hidden="true" className="mr-1" /> {t.calendar.tab.match}
               </Button>
             )}
           </div>
@@ -401,7 +405,7 @@ function MobileMonthView({
         )}
         {selectedSessions.length === 0 ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-slate">
-            No trainings scheduled.
+            {t.calendar.tab.noTrainings}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -417,7 +421,7 @@ function MobileMonthView({
                 </Link>
                 <button
                   type="button"
-                  aria-label={`Remove ${session.trainingBusinessId} on ${session.date}`}
+                  aria-label={t.calendar.tab.removeSession(session.trainingBusinessId, session.date)}
                   onClick={() => onRemove(session)}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-red hover:bg-red/10"
                 >

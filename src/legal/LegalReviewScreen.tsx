@@ -7,19 +7,21 @@ import { Input } from '../components/Input';
 import { useNotify } from '../components/Notice';
 import { requestTermination } from '../clubs/clubAdminApi';
 import { otherUsableClubs } from '../clubs/activeClub';
+import { useT } from '../i18n/I18nProvider';
 import { MinimalShell } from '../layout/MinimalShell';
 import { DocumentsStep } from '../signup/DocumentsStep';
 import { SpecificApprovalStep } from '../signup/SpecificApprovalStep';
 import { newSignNonce, saveSignDraft } from './signDraft';
 import { defaultLegalLang, inForce, type LegalLang } from './versions';
 
-type Errors = Partial<Record<'person' | 'authority', string>>;
+type Errors = Partial<Record<'person' | 'authority', true>>;
 
 /** Blocks a club admin until they accept the Terms and DPA versions now in force. */
 export function LegalReviewScreen() {
   const { club, activeClubId, firebaseUser, appUser, memberships, switchClub } = useAuth();
   const others = otherUsableClubs(memberships, activeClubId);
   const notify = useNotify();
+  const t = useT();
   const email = (appUser?.email ?? firebaseUser?.email ?? '').trim().toLowerCase();
   // Frozen on mount so the draft always matches the texts shown, even across an effective date.
   const [versions] = useState(() => {
@@ -40,17 +42,17 @@ export function LegalReviewScreen() {
     defaultLegalLang(typeof navigator === 'undefined' ? undefined : navigator.language),
   );
   const [confirming, setConfirming] = useState(false);
-  const [endError, setEndError] = useState<string | null>(null);
+  const [endError, setEndError] = useState(false);
 
-  const title = club?.legal ? 'Review the updated Terms and DPA' : 'Accept the Terms and DPA';
+  const title = club?.legal ? t.legal.review.titleUpdated : t.legal.review.titleFirst;
   const canEnd = (club?.status === 'active' || club?.status === 'suspended') && !club.termination.requestedAt;
 
   function submitDetails(event: FormEvent) {
     event.preventDefault();
     const e: Errors = {};
     const p = person.trim();
-    if (p.length < 1 || p.length > 100) e.person = 'Enter your name (1 to 100 characters).';
-    if (!authority) e.authority = 'Confirm that you are authorised to act for this club.';
+    if (p.length < 1 || p.length > 100) e.person = true;
+    if (!authority) e.authority = true;
     setErrors(e);
     if (Object.keys(e).length === 0) setStep(2);
   }
@@ -74,18 +76,18 @@ export function LegalReviewScreen() {
   }
 
   async function endContract() {
-    setEndError(null);
+    setEndError(false);
     try {
       await requestTermination(email);
       setConfirming(false);
-      notify('End of contract requested');
+      notify(t.clubs.contract.requested);
     } catch {
-      setEndError("Couldn't send the request. Try again.");
+      setEndError(true);
     }
   }
 
   return (
-    <MinimalShell title={club?.name ?? 'Club'}>
+    <MinimalShell title={club?.name ?? t.clubs.clubFallback}>
       <div className="mx-auto max-w-2xl px-4 py-6">
         <h1 className="mb-2 text-title font-semibold text-ink">{title}</h1>
         <ul className="mb-4 list-disc pl-5 text-sm text-ink">
@@ -96,11 +98,11 @@ export function LegalReviewScreen() {
         {step === 1 && (
           <form onSubmit={submitDetails} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label htmlFor="review-person" className="text-sm font-medium text-ink">Your name</label>
+              <label htmlFor="review-person" className="text-sm font-medium text-ink">{t.signup.shared.yourName}</label>
               <Input id="review-person" value={person} onChange={(e) => setPerson(e.target.value)} autoComplete="name"
                 aria-invalid={errors.person ? true : undefined}
                 aria-describedby={errors.person ? 'review-person-error' : undefined} />
-              {errors.person && <p id="review-person-error" role="alert" className="text-sm text-red">{errors.person}</p>}
+              {errors.person && <p id="review-person-error" role="alert" className="text-sm text-red">{t.signup.shared.nameRequired}</p>}
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="review-authority" className="flex items-start gap-2 text-sm text-ink">
@@ -108,11 +110,11 @@ export function LegalReviewScreen() {
                   aria-invalid={errors.authority ? true : undefined}
                   aria-describedby={errors.authority ? 'review-authority-error' : undefined}
                   className="mt-1 h-4 w-4" />
-                <span>I am authorised to act for this club and accept these terms on its behalf</span>
+                <span>{t.signup.shared.authority}</span>
               </label>
-              {errors.authority && <p id="review-authority-error" role="alert" className="text-sm text-red">{errors.authority}</p>}
+              {errors.authority && <p id="review-authority-error" role="alert" className="text-sm text-red">{t.signup.shared.authorityRequired}</p>}
             </div>
-            <div><Button type="submit" variant="primary">Next</Button></div>
+            <div><Button type="submit" variant="primary">{t.signup.shared.next}</Button></div>
           </form>
         )}
 
@@ -125,7 +127,7 @@ export function LegalReviewScreen() {
               onLangChange={setLang}
               onDone={() => setStep(3)}
             />
-            <div><Button variant="ghost" onClick={() => setStep(1)}>Back</Button></div>
+            <div><Button variant="ghost" onClick={() => setStep(1)}>{t.common.back}</Button></div>
           </div>
         )}
 
@@ -138,7 +140,7 @@ export function LegalReviewScreen() {
               email={email}
               onSend={send}
             />
-            <div><Button variant="ghost" onClick={() => setStep(2)}>Back</Button></div>
+            <div><Button variant="ghost" onClick={() => setStep(2)}>{t.common.back}</Button></div>
           </div>
         )}
 
@@ -146,7 +148,7 @@ export function LegalReviewScreen() {
           <div className="mt-6 flex flex-wrap gap-2">
             {others.map((m) => (
               <Button key={m.clubId} variant="secondary" onClick={() => switchClub(m.clubId)}>
-                Switch to {m.clubName}
+                {t.clubs.statusScreen.switchTo(m.clubName)}
               </Button>
             ))}
           </div>
@@ -154,17 +156,17 @@ export function LegalReviewScreen() {
 
         {canEnd && (
           <div className="mt-8 border-t border-border pt-4">
-            <p className="mb-2 text-sm text-slate">Don&apos;t agree?</p>
-            <Button variant="destructive" onClick={() => setConfirming(true)}>End our contract</Button>
+            <p className="mb-2 text-sm text-slate">{t.legal.review.dontAgree}</p>
+            <Button variant="destructive" onClick={() => setConfirming(true)}>{t.clubs.contract.endOurContract}</Button>
           </div>
         )}
         {confirming && (
           <ConfirmDialog
-            title="End your club's contract?"
-            message="We'll be told you want to leave. Your club keeps full use and a window to export your data until the end date we confirm."
-            confirmLabel="Request end of contract"
-            error={endError}
-            onCancel={() => { setConfirming(false); setEndError(null); }}
+            title={t.clubs.contract.confirmTitle}
+            message={t.clubs.contract.confirmMessage}
+            confirmLabel={t.clubs.contract.confirmLabel}
+            error={endError ? t.clubs.contract.requestFailed : null}
+            onCancel={() => { setConfirming(false); setEndError(false); }}
             onConfirm={() => void endContract()}
           />
         )}

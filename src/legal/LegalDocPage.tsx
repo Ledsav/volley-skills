@@ -4,6 +4,7 @@ import { usePageMeta } from '../layout/usePageMeta';
 import { Logo } from '../components/Logo';
 import { LegalLangSwitcher } from './LegalLangSwitcher';
 import { LanguageToggle } from '../i18n/LanguageToggle';
+import { useLocale, useT } from '../i18n/I18nProvider';
 import { LegalLinks } from './LegalLinks';
 import { LegalMarkdown } from './LegalMarkdown';
 import { legalText, rawLegalText } from './legalDocs';
@@ -12,25 +13,20 @@ import {
   type LegalDocId, type LegalLang, type VersionedDoc,
 } from './versions';
 
-const TITLES: Record<LegalDocId, string> = {
-  terms: 'Terms of Service',
-  dpa: 'Data Processing Agreement',
-  subprocessors: 'Sub-processors',
-  privacy: 'Privacy',
-  'dpia-pack': 'DPIA pack',
-};
-
 const VERSIONED: readonly string[] = ['terms', 'dpa', 'subprocessors'];
 /** Documents served at /legal/:doc (the privacy notice keeps its own /privacy route). */
 const ROUTED: readonly string[] = ['terms', 'dpa', 'subprocessors', 'dpia-pack'];
 
-function formatDate(iso: string, lang: LegalLang): string {
+function formatDate(iso: string, lang: string): string {
   return new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 }
 
 /** One legal text with its language switcher, shared by /legal/:doc and /privacy. */
 export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; canonicalPath: string }) {
   const { firebaseUser } = useAuth();
+  const t = useT();
+  const { locale } = useLocale();
+  const titles: Record<LegalDocId, string> = { ...t.legal.docTitles, 'dpia-pack': t.legal.docTitles.dpiaPack };
   const [params, setParams] = useSearchParams();
   const requestedVersion = params.get('v');
   const langParam = params.get('lang');
@@ -52,8 +48,8 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
   const indexable = found && !requestedVersion;
 
   usePageMeta({
-    title: found && doc ? TITLES[doc] : 'Not found',
-    description: found && doc ? `${TITLES[doc]} of Volley Skills.` : undefined,
+    title: found && doc ? titles[doc] : t.layout.notFound.title,
+    description: found && doc ? t.legal.page.description(titles[doc]) : undefined,
     robots: indexable ? 'index' : 'noindex',
     canonicalPath: indexable ? canonicalPath : undefined,
   });
@@ -72,9 +68,9 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
           <div className="flex items-center gap-4">
           <LanguageToggle />
           {firebaseUser ? (
-            <Link to="/" className="text-sm text-white/90 hover:underline">Back to the app</Link>
+            <Link to="/" className="text-sm text-white/90 hover:underline">{t.legal.page.backToApp}</Link>
           ) : (
-            <Link to="/login" className="text-sm text-white/90 hover:underline">Sign in</Link>
+            <Link to="/login" className="text-sm text-white/90 hover:underline">{t.signup.info.signIn}</Link>
           )}
           </div>
         </div>
@@ -85,7 +81,7 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
             <LegalLangSwitcher lang={lang} onChange={changeLang} />
             {(VERSIONED.includes(doc) || requestedVersion) && (
               <p className="mt-3 text-sm text-slate">
-                {inForceSince ? `Version ${version}, in force since ${formatDate(inForceSince, lang)}` : `Version ${version}`}
+                {inForceSince ? t.legal.page.versionInForce(version, formatDate(inForceSince, locale)) : t.legal.page.version(version)}
               </p>
             )}
             <div lang={lang}>
@@ -94,8 +90,8 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
           </>
         ) : (
           <>
-            <h1 className="text-title font-semibold">Not found</h1>
-            <p className="mt-2 text-slate">We could not find that legal text.</p>
+            <h1 className="text-title font-semibold">{t.layout.notFound.title}</h1>
+            <p className="mt-2 text-slate">{t.legal.page.notFound}</p>
           </>
         )}
         <LegalLinks />

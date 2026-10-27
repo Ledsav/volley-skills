@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { OPERATOR } from './operator';
 import { upcoming, type VersionedDoc } from './versions';
 import { formatDate } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
 
 const keyOf = (doc: VersionedDoc, version: string) => `vcb.legalNoticeDismissed.${doc}.${version}`;
 
@@ -15,17 +16,14 @@ function isDismissed(key: string): boolean {
   }
 }
 
-const DOC_NAME: Record<'terms' | 'dpa', { title: string; verb: string }> = {
-  terms: { title: 'Terms of Service', verb: 'take' },
-  dpa: { title: 'Data Processing Agreement', verb: 'takes' },
-};
-
 const fmt = (iso: string) =>
   formatDate(iso, 'long');
 
 /** For club admins: announces upcoming Terms, DPA and sub-processor versions. Dismissible per session. */
 export function LegalNoticeBanner() {
   const { role } = useAuth();
+  const tAll = useT();
+  const t = tAll.legal.banner;
   const [dismissed, setDismissed] = useState<string[]>([]);
   if (role !== 'admin') return null;
 
@@ -38,9 +36,9 @@ export function LegalNoticeBanner() {
       key: keyOf(doc, v.version),
       node: (
         <>
-          Updated {DOC_NAME[doc].title} {DOC_NAME[doc].verb} effect on {fmt(v.effectiveFrom)} —{' '}
+          {doc === 'terms' ? t.termsUpdated(fmt(v.effectiveFrom)) : t.dpaUpdated(fmt(v.effectiveFrom))}
           <Link className="text-blue underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>
-            review<span className="sr-only"> the {DOC_NAME[doc].title}</span>
+            {t.review}<span className="sr-only">{doc === 'terms' ? t.reviewTerms : t.reviewDpa}</span>
           </Link>
         </>
       ),
@@ -52,10 +50,10 @@ export function LegalNoticeBanner() {
       key: keyOf('subprocessors', sub.version),
       node: (
         <>
-          The sub-processor list changes on {fmt(sub.effectiveFrom)}. You can object within 15 days of this notice.{' '}
-          <Link className="text-blue underline" to={`/legal/subprocessors?v=${encodeURIComponent(sub.version)}`}>See the list</Link>
+          {t.subprocessorsChange(fmt(sub.effectiveFrom))}{' '}
+          <Link className="text-blue underline" to={`/legal/subprocessors?v=${encodeURIComponent(sub.version)}`}>{t.seeList}</Link>
           {' · '}
-          <a className="text-blue underline" href={`mailto:${OPERATOR.contactEmail}`}>Contact the operator</a>
+          <a className="text-blue underline" href={`mailto:${OPERATOR.contactEmail}`}>{t.contactOperator}</a>
         </>
       ),
     });
@@ -79,7 +77,7 @@ export function LegalNoticeBanner() {
         <div key={i.key} role="status"
           className="flex items-start justify-between gap-3 border-b border-blue bg-blue/10 px-4 py-2 text-sm text-ink print:hidden">
           <span>{i.node}</span>
-          <button type="button" onClick={() => dismiss(i.key)} aria-label="Dismiss" className="shrink-0 text-slate hover:text-ink">×</button>
+          <button type="button" onClick={() => dismiss(i.key)} aria-label={tAll.components.dismiss} className="shrink-0 text-slate hover:text-ink">×</button>
         </div>
       ))}
     </>

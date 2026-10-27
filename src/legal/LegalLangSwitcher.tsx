@@ -1,3 +1,4 @@
+import { useT } from '../i18n/I18nProvider';
 import { LEGAL_LANGS, type LegalLang } from './versions';
 
 const LABELS: Record<LegalLang, string> = {
@@ -5,8 +6,9 @@ const LABELS: Record<LegalLang, string> = {
 };
 
 export function LegalLangSwitcher({ lang, onChange }: { lang: LegalLang; onChange: (lang: LegalLang) => void }) {
+  const t = useT();
   return (
-    <div role="group" aria-label="Language of the legal text" className="flex flex-wrap gap-2">
+    <div role="group" aria-label={t.legal.langSwitcher} className="flex flex-wrap gap-2">
       {LEGAL_LANGS.map((l) => (
         <button
           key={l}

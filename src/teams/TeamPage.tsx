@@ -8,6 +8,7 @@ import { TeamRosterTable } from './TeamRosterTable';
 import { TeamStatsRow } from './TeamStatsRow';
 import { RetentionNotice } from './RetentionNotice';
 import { TeamGenderPrompt } from './TeamGenderPrompt';
+import { ITALIAN_ENABLED } from '../i18n/locales';
 import { AddPlayerDialog } from '../players/AddPlayerDialog';
 import { useAuth } from '../auth/AuthContext';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
@@ -118,7 +119,7 @@ export function TeamPage() {
       <div className="mt-6">
         {activeTab === 'roster' && (
           <>
-            {admin && !team.gender && (
+            {ITALIAN_ENABLED && admin && !team.gender && (
               <TeamGenderPrompt teamId={teamId} onSaved={(gender) => setTeam({ ...team, gender })} />
             )}
             <RetentionNotice teamId={teamId} gender={gender} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />

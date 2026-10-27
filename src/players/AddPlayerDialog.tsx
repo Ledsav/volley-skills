@@ -240,7 +240,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             required
             className="mt-1"
           />
-          {p.shared.consent}
+          {p.shared.consent(g)}
         </label>
 
         <div className="mt-2 flex justify-end gap-3">

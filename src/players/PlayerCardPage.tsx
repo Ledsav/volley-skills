@@ -135,7 +135,7 @@ export function PlayerCardPage() {
   const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
 
   if (notFound) {
-    return <NotFoundState title={c.notFoundTitle(gender)} message={c.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={c.backToTeam} />;
+    return <NotFoundState title={c.notFoundTitle(gender)} message={c.notFoundMessage(gender)} backTo={`/teams/${teamId}`} backLabel={c.backToTeam} />;
   }
 
   if (error) {
@@ -200,7 +200,7 @@ export function PlayerCardPage() {
       ]);
       downloadPlayerExport(player!, tests, footprint);
     } catch {
-      setExportError(c.exportError);
+      setExportError(c.exportError(gender));
       return;
     }
   }
@@ -274,7 +274,7 @@ export function PlayerCardPage() {
         {isAdmin && (
           <div role="tabpanel" aria-label={SECTION_LABEL.matches} hidden={section !== 'matches'}>
           <Tile title={c.tiles.matchStats}>
-            <PlayerMatchStatsSection teamId={teamId} season={season} error={matchStatsError} />
+            <PlayerMatchStatsSection gender={gender} teamId={teamId} season={season} error={matchStatsError} />
           </Tile>
         </div>
         )}
@@ -352,7 +352,7 @@ export function PlayerCardPage() {
                         onChange={(e) => setConsentChecked(e.target.checked)}
                         className="mt-1"
                       />
-                      {t.players.shared.consent}
+                      {t.players.shared.consent(gender)}
                     </label>
                     <Button
                       variant="secondary"
@@ -394,7 +394,7 @@ export function PlayerCardPage() {
                   </div>
                 )}
                 <p className="text-sm text-slate">
-                  {c.exportInfo}
+                  {c.exportInfo(gender)}
                 </p>
                 {player.leftClubAt ? (
                   <div className="mt-3 text-sm text-ink">
@@ -412,7 +412,7 @@ export function PlayerCardPage() {
                     className="mt-3 self-start"
                     onClick={() => void handleLeftClub(todayIso())}
                   >
-                    {c.markLeft}
+                    {c.markLeft(gender)}
                   </Button>
                 )}
                 {leftError && (
@@ -443,7 +443,7 @@ export function PlayerCardPage() {
       {showDeleteConfirm && (
         <ConfirmDialog
           title={c.deleteTitle(player.fullName)}
-          message={c.deleteMessage}
+          message={c.deleteMessage(gender)}
           confirmLabel={c.deleteConfirm(gender)}
           onConfirm={() => void handleDelete()}
           onCancel={() => setShowDeleteConfirm(false)}

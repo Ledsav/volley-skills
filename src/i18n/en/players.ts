@@ -1,4 +1,4 @@
-import type { Gender } from '../catalog';
+import { sameForAll } from '../agree';
 
 const CONSENT_TEXT =
   "I confirm a parent or legal guardian has consented to storing this player's data, including physical-test measurements and match statistics.";
@@ -22,17 +22,17 @@ export const players = {
     guardianEmail: 'Guardian email',
     removeGuardian: 'Remove guardian',
     addGuardian: '+ Add guardian',
-    consent: CONSENT_TEXT,
+    consent: sameForAll(CONSENT_TEXT),
     noScores: 'No scores yet',
   },
   addPlayer: {
-    title: ((): string => 'Add player') as (g: Gender) => string,
+    title: sameForAll('Add player'),
     fullName: 'Full name',
     dob: 'Date of birth',
     licenseNumber: 'License #',
     guardians: 'Guardians',
     create: 'Create',
-    error: ((): string => 'Could not create the player. Please try again.') as (g: Gender) => string,
+    error: sameForAll('Could not create the player. Please try again.'),
   },
   identity: {
     avgSkillScore: 'Avg skill score',
@@ -94,7 +94,7 @@ export const players = {
   matchStats: {
     loadError: 'Could not load match stats.',
     loading: 'Loading match stats…',
-    none: 'No scouted matches for this player yet.',
+    none: sameForAll('No scouted matches for this player yet.'),
     matches: 'Matches',
     attackEff: 'Attack eff.',
     serveEff: 'Serve eff.',
@@ -108,8 +108,8 @@ export const players = {
   },
   card: {
     pageTitle: 'Player',
-    notFoundTitle: ((): string => 'Player not found') as (g: Gender) => string,
-    notFoundMessage: "It may have been deleted, or you don't have access.",
+    notFoundTitle: sameForAll('Player not found'),
+    notFoundMessage: sameForAll("It may have been deleted, or you don't have access."),
     backToTeam: 'Back to team',
     loadError: 'Could not load this player.',
     loading: 'Loading player...',
@@ -148,22 +148,24 @@ export const players = {
     photoConsent: 'Guardian consent to use photos in award cards',
     photoRecordedBy: (who: string) => `Recorded by ${who}.`,
     photoError: 'Could not update photo consent. Please try again.',
-    exportInfo:
-      'Export produces a JSON file with everything stored about this player: their record, physical tests, testing-session entries and match stats. Deleting a player erases all of it and removes their name and number from past match reports.',
+    exportInfo: sameForAll(
+      'Export produces a JSON file with everything stored about this player: their record, physical tests, testing-session entries and match stats. Deleting a player erases all of it and removes their name and number from past match reports.'
+    ),
     leftBefore: 'Left the club on ',
     leftMiddle: '. Their data is due for deletion on ',
     leftAfter: '.',
     stillInClub: 'Still in the club',
-    markLeft: 'Mark as left the club',
+    markLeft: sameForAll('Mark as left the club'),
     leftError: 'Could not update membership. Please try again.',
     exportButton: 'Export data (JSON)',
-    exportError: "Could not export this player's data. Please try again.",
-    deleteButton: ((): string => 'Delete player') as (g: Gender) => string,
+    exportError: sameForAll("Could not export this player's data. Please try again."),
+    deleteButton: sameForAll('Delete player'),
     deleteTitle: (name: string) => `Delete ${name}?`,
-    deleteMessage:
-      "This will permanently delete this player's card (contact info, skills, development plan), their physical tests and testing-session entries, and remove their name and number from past match reports. This cannot be undone.",
-    deleteConfirm: ((): string => 'Yes, delete player') as (g: Gender) => string,
-    deleteError: ((): string => 'Could not delete this player. Please try again.') as (g: Gender) => string,
+    deleteMessage: sameForAll(
+      "This will permanently delete this player's card (contact info, skills, development plan), their physical tests and testing-session entries, and remove their name and number from past match reports. This cannot be undone."
+    ),
+    deleteConfirm: sameForAll('Yes, delete player'),
+    deleteError: sameForAll('Could not delete this player. Please try again.'),
   },
   physical: {
     loadError: 'Could not load physical testing data. Please refresh the page.',

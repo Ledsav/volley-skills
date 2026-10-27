@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom';
 import { fmtEff, fmtPct } from '../matches/format';
 import type { SeasonStats } from './matchRating';
 import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
 
 interface PlayerMatchStatsSectionProps {
   teamId: string;
   /** null while loading. */
   season: SeasonStats | null;
   error: boolean;
+  gender?: Gender;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -19,11 +21,11 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PlayerMatchStatsSection({ teamId, season, error }: PlayerMatchStatsSectionProps) {
+export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed' }: PlayerMatchStatsSectionProps) {
   const m = useT().players.matchStats;
   if (error) return <p role="alert" className="text-sm text-red">{m.loadError}</p>;
   if (!season) return <p className="text-sm text-slate">{m.loading}</p>;
-  if (season.matchesPlayed === 0) return <p className="text-sm text-slate">{m.none}</p>;
+  if (season.matchesPlayed === 0) return <p className="text-sm text-slate">{m.none(gender)}</p>;
 
   return (
     <div className="flex flex-col gap-4">

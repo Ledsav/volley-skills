@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageToggle } from '../i18n/LanguageToggle';
+import { ITALIAN_ENABLED } from '../i18n/locales';
 import { sendSigningLink } from '../auth/reauth';
 import { Button } from '../components/Button';
 import { FIELD_CLASS, Input } from '../components/Input';
@@ -138,7 +139,7 @@ export function SignupPage() {
               <label htmlFor="signup-locale" className="text-sm font-medium text-ink">Club language</label>
               <select id="signup-locale" value={locale} onChange={(e) => setLocale(e.target.value as ClubLocale)}
                 className={`${FIELD_CLASS} w-full`}>
-                {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en').map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">

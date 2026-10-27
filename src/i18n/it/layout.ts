@@ -1,0 +1,41 @@
+import type { Catalog } from '../catalog';
+
+export const layout = {
+  nav: {
+    home: 'Home',
+    coaching: 'Coaching',
+    teams: 'Squadre',
+    trainings: 'Allenamenti',
+    exercises: 'Esercizi',
+    club: 'Club',
+    guides: 'Guide',
+    membersAndSettings: 'Membri e impostazioni',
+    platform: 'Piattaforma',
+    clubsAndSignups: 'Club e iscrizioni',
+    more: 'Altro',
+  },
+  appShell: {
+    droppedClub: 'Non hai più accesso al club precedente.',
+    skipToContent: 'Vai al contenuto',
+    homeLabel: 'Home di Volley Skills',
+    clubMenu: (club: string) => `Club: ${club}`,
+    switchTo: (club: string) => `Passa a ${club}`,
+    mainNav: 'Principale',
+    phoneNav: 'Principale (telefono)',
+    accountMenu: (email: string) => `Account: ${email}`,
+    settings: 'Impostazioni',
+    termsAndPrivacy: 'Termini e privacy',
+    signOut: 'Esci',
+  },
+  morePage: {
+    title: 'Altro',
+    pendingSignups: ' iscrizioni in attesa',
+    account: 'Account',
+  },
+  notFound: {
+    title: 'Non trovata',
+    heading: 'Questa pagina è fuori campo',
+    nothingLivesAt: 'Non c’è nulla in ',
+    goHome: 'Vai alla home',
+  },
+} satisfies Catalog['layout'];

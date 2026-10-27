@@ -2,6 +2,7 @@ import type { Catalog } from '../catalog';
 import { admin } from './admin';
 import { components } from './components';
 import { auth } from './auth';
+import { bulkImport } from './bulkImport';
 import { clubs } from './clubs';
 import { common } from './common';
 import { home } from './home';
@@ -15,4 +16,4 @@ import { signup } from './signup';
 import { teams } from './teams';
 import { theme } from './theme';
 
-export const it = { admin, auth, clubs, common, components, home, interest, labels, legal, layout, platform, settings, signup, teams, theme } satisfies Catalog;
+export const it = { admin, auth, bulkImport, clubs, common, components, home, interest, labels, legal, layout, platform, settings, signup, teams, theme } satisfies Catalog;

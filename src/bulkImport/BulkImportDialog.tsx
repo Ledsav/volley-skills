@@ -3,6 +3,8 @@ import { Button } from '../components/Button';
 import { CodeBlock } from '../components/CodeBlock';
 import { Dialog } from '../components/Dialog';
 import { Textarea } from '../components/Input';
+import { useT } from '../i18n/I18nProvider';
+import { parseIssueText } from './importMessages';
 import { parseJsonArray } from './parseJsonArray';
 import type { ValidationResult } from './types';
 
@@ -13,25 +15,29 @@ function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   );
 }
 
-interface BulkImportDialogProps<TInput> {
+interface BulkImportDialogProps<TInput, TIssue = string> {
   title: string;
   hint?: string;
   exampleJson: string;
-  validate: (rows: unknown[]) => ValidationResult<TInput> | Promise<ValidationResult<TInput>>;
+  validate: (rows: unknown[]) => ValidationResult<TInput, TIssue> | Promise<ValidationResult<TInput, TIssue>>;
+  /** Turns a validator's issue into text; not needed when it already returns strings. */
+  formatIssue?: (issue: TIssue) => string;
   commit: (inputs: TInput[]) => Promise<number>;
   onClose: () => void;
   onImported: (count: number) => void;
 }
 
-export function BulkImportDialog<TInput>({
+export function BulkImportDialog<TInput, TIssue = string>({
   title,
   hint,
   exampleJson,
   validate,
+  formatIssue,
   commit,
   onClose,
   onImported,
-}: BulkImportDialogProps<TInput>) {
+}: BulkImportDialogProps<TInput, TIssue>) {
+  const t = useT();
   const [text, setText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -60,8 +66,8 @@ export function BulkImportDialog<TInput>({
     resetResults();
   }
 
-  function applyResult(result: ValidationResult<TInput>) {
-    if (result.errors.length > 0) setErrors(result.errors);
+  function applyResult(result: ValidationResult<TInput, TIssue>) {
+    if (result.errors.length > 0) setErrors(result.errors.map((issue) => (formatIssue ? formatIssue(issue) : String(issue))));
     else setReady(result.inputs);
   }
 
@@ -69,7 +75,7 @@ export function BulkImportDialog<TInput>({
     resetResults();
     const parsed = parseJsonArray(text);
     if (!parsed.ok) {
-      setParseError(parsed.error);
+      setParseError(parseIssueText(parsed.error, t));
       return;
     }
     // A stale async validation must not arm Import under superseded text: any
@@ -91,7 +97,7 @@ export function BulkImportDialog<TInput>({
           })
           .catch(() => {
             if (validationGen.current !== gen) return;
-            setParseError('Could not validate the data. Please try again.');
+            setParseError(t.common.couldNotValidate);
           })
           .finally(() => {
             if (validationGen.current !== gen) return;
@@ -102,7 +108,7 @@ export function BulkImportDialog<TInput>({
       }
     } catch {
       if (validationGen.current === gen) {
-        setParseError('Could not validate the data. Please try again.');
+        setParseError(t.common.couldNotValidate);
       }
     }
   }
@@ -115,7 +121,7 @@ export function BulkImportDialog<TInput>({
       const count = await commit(ready);
       onImported(count);
     } catch {
-      setCommitError('Could not import. Nothing was saved. Please try again.');
+      setCommitError(t.bulkImport.importError);
     } finally {
       setCommitting(false);
     }
@@ -127,14 +133,14 @@ export function BulkImportDialog<TInput>({
         {hint && <p className="mb-3 text-sm text-slate">{hint}</p>}
 
         <details className="mb-3 text-sm text-slate">
-          <summary className="cursor-pointer select-none">Example format</summary>
+          <summary className="cursor-pointer select-none">{t.bulkImport.exampleFormat}</summary>
           <div className="mt-2">
             <CodeBlock code={exampleJson} language="JSON" />
           </div>
         </details>
 
         <label htmlFor="bulk-json" className="mb-1 block text-sm font-medium text-ink">
-          Paste JSON
+          {t.bulkImport.pasteJson}
         </label>
         <Textarea
           id="bulk-json"
@@ -147,7 +153,7 @@ export function BulkImportDialog<TInput>({
         />
 
         <label htmlFor="bulk-file" className="mt-3 block text-sm text-slate">
-          …or choose a file
+          {t.bulkImport.chooseFile}
         </label>
         <input
           id="bulk-file"
@@ -159,7 +165,7 @@ export function BulkImportDialog<TInput>({
 
         <div className="mt-3">
           <Button variant="secondary" size="sm" onClick={handleValidate} disabled={validating || committing}>
-            {validating ? 'Checking…' : 'Validate'}
+            {validating ? t.bulkImport.checking : t.bulkImport.validate}
           </Button>
         </div>
 
@@ -179,7 +185,7 @@ export function BulkImportDialog<TInput>({
 
         {ready && (
           <p className="mt-3 text-sm text-green-strong">
-            {ready.length} {ready.length === 1 ? 'entry' : 'entries'} ready to import.
+            {t.bulkImport.ready(ready.length)}
           </p>
         )}
 
@@ -191,14 +197,14 @@ export function BulkImportDialog<TInput>({
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose} disabled={committing}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button
             variant="primary"
             onClick={handleImport}
             disabled={!ready || ready.length === 0 || committing}
           >
-            {committing ? 'Importing…' : 'Import'}
+            {committing ? t.bulkImport.importing : t.bulkImport.import}
           </Button>
         </div>
       </div>

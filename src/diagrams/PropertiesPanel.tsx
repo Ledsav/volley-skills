@@ -4,12 +4,14 @@ import {
   PALETTE_COLORS,
   PLAYER_VIEWS,
   SCENE_LIMITS,
+
   type BallStyle,
   type DiagramItem,
   type PlayerView,
 } from '../types/diagram';
 import { tokenColor } from './tokenColor';
 import type { EditorAction } from './useDiagramEditor';
+import { useT } from '../i18n/I18nProvider';
 
 interface Props {
   item: DiagramItem | null;
@@ -20,31 +22,18 @@ interface Props {
 const nudgeBtn =
   'inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1';
 
-const PLAYER_VIEW_LABELS: Record<PlayerView, string> = {
-  token: 'Token (disc)',
-  above: 'Top-down',
-  aboveMale: 'Top-down — male',
-  aboveFemale: 'Top-down — female',
-  front: 'Front view',
-  dig: 'Bagher / dig',
-  spike: 'Spike',
-  set: 'Set',
-};
 
-const BALL_STYLE_LABELS: Record<BallStyle, string> = {
-  plain: 'Plain',
-  mikasa: 'Mikasa',
-};
 
 export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
+  const p = useT().diagrams.properties;
   if (selectedCount > 1) {
     return (
       <div className="flex flex-col gap-3 p-3 text-sm">
-        <p className="font-medium text-ink">{selectedCount} elements selected</p>
+        <p className="font-medium text-ink">{p.selected(selectedCount)}</p>
         <div className="flex flex-wrap gap-1">
           <button
             type="button"
-            aria-label="Nudge left"
+            aria-label={p.nudgeLeft}
             className={nudgeBtn}
             onClick={() => dispatch({ type: 'translateSelected', dx: -1, dy: 0 })}
           >
@@ -52,7 +41,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           </button>
           <button
             type="button"
-            aria-label="Nudge right"
+            aria-label={p.nudgeRight}
             className={nudgeBtn}
             onClick={() => dispatch({ type: 'translateSelected', dx: 1, dy: 0 })}
           >
@@ -60,7 +49,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           </button>
           <button
             type="button"
-            aria-label="Nudge up"
+            aria-label={p.nudgeUp}
             className={nudgeBtn}
             onClick={() => dispatch({ type: 'translateSelected', dx: 0, dy: -1 })}
           >
@@ -68,7 +57,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           </button>
           <button
             type="button"
-            aria-label="Nudge down"
+            aria-label={p.nudgeDown}
             className={nudgeBtn}
             onClick={() => dispatch({ type: 'translateSelected', dx: 0, dy: 1 })}
           >
@@ -80,14 +69,14 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           onClick={() => dispatch({ type: 'deleteSelected' })}
           className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
         >
-          Delete
+          {p.delete}
         </button>
       </div>
     );
   }
 
   if (!item) {
-    return <p className="p-3 text-sm text-slate">Select an element to edit its properties.</p>;
+    return <p className="p-3 text-sm text-slate">{p.selectPrompt}</p>;
   }
   const set = (patch: Partial<DiagramItem>) => dispatch({ type: 'setItemProp', id: item.id, patch });
 
@@ -95,13 +84,13 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
     <div className="flex flex-col gap-3 p-3 text-sm">
       {'color' in item && (
         <div>
-          <span className="mb-1 block font-medium text-ink">Colour</span>
+          <span className="mb-1 block font-medium text-ink">{p.colour}</span>
           <div className="flex gap-1">
             {PALETTE_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
-                aria-label={c}
+                aria-label={p.colours[c]}
                 aria-pressed={item.color === c}
                 onClick={() => set({ color: c })}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md"
@@ -120,7 +109,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
 
       {item.type === 'player' && (
         <label className="block">
-          <span className="mb-1 block font-medium text-ink">Role</span>
+          <span className="mb-1 block font-medium text-ink">{p.role}</span>
           <input
             value={item.label}
             maxLength={SCENE_LIMITS.labelLength}
@@ -132,7 +121,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
 
       {item.type === 'player' && (
         <label className="block">
-          <span className="mb-1 block font-medium text-ink">View</span>
+          <span className="mb-1 block font-medium text-ink">{p.view}</span>
           <select
             value={item.view}
             onChange={(e) => set({ view: e.target.value as PlayerView })}
@@ -140,7 +129,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           >
             {PLAYER_VIEWS.map((v) => (
               <option key={v} value={v}>
-                {PLAYER_VIEW_LABELS[v]}
+                {p.views[v]}
               </option>
             ))}
           </select>
@@ -149,21 +138,21 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
 
       {item.type === 'player' && item.view === 'token' && (
         <label className="block">
-          <span className="mb-1 block font-medium text-ink">Shape</span>
+          <span className="mb-1 block font-medium text-ink">{p.shape}</span>
           <select
             value={item.shape}
             onChange={(e) => set({ shape: e.target.value as 'circle' | 'square' })}
             className="w-full rounded-md border border-border bg-surface px-2 py-1"
           >
-            <option value="circle">Circle</option>
-            <option value="square">Square</option>
+            <option value="circle">{p.circle}</option>
+            <option value="square">{p.square}</option>
           </select>
         </label>
       )}
 
       {item.type === 'ball' && (
         <label className="block">
-          <span className="mb-1 block font-medium text-ink">Style</span>
+          <span className="mb-1 block font-medium text-ink">{p.style}</span>
           <select
             value={item.style}
             onChange={(e) => set({ style: e.target.value as BallStyle })}
@@ -171,7 +160,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           >
             {BALL_STYLES.map((s) => (
               <option key={s} value={s}>
-                {BALL_STYLE_LABELS[s]}
+                {p.ballStyles[s]}
               </option>
             ))}
           </select>
@@ -181,7 +170,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
       {item.type === 'text' && (
         <>
           <label className="block">
-            <span className="mb-1 block font-medium text-ink">Text</span>
+            <span className="mb-1 block font-medium text-ink">{p.text}</span>
             <input
               value={item.content}
               maxLength={SCENE_LIMITS.textLength}
@@ -190,7 +179,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block font-medium text-ink">Font size: {item.fontSize}</span>
+            <span className="mb-1 block font-medium text-ink">{p.fontSize(item.fontSize)}</span>
             <input
               type="range"
               min={2}
@@ -206,7 +195,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
 
       {item.type === 'ladder' && (
         <label className="block">
-          <span className="mb-1 block font-medium text-ink">Rungs: {item.rungs}</span>
+          <span className="mb-1 block font-medium text-ink">{p.rungs(item.rungs)}</span>
           <input
             type="range"
             min={3}
@@ -221,15 +210,15 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
       {item.type === 'arrow' && (
         <>
           <label className="block">
-            <span className="mb-1 block font-medium text-ink">Style</span>
+            <span className="mb-1 block font-medium text-ink">{p.style}</span>
             <select
               value={item.style}
               onChange={(e) => set({ style: e.target.value as 'pass' | 'shot' | 'run' })}
               className="w-full rounded-md border border-border bg-surface px-2 py-1"
             >
-              <option value="pass">Pass</option>
-              <option value="shot">Shot</option>
-              <option value="run">Run</option>
+              <option value="pass">{p.arrowStyles.pass}</option>
+              <option value="shot">{p.arrowStyles.shot}</option>
+              <option value="run">{p.arrowStyles.run}</option>
             </select>
           </label>
           <label className="flex items-center gap-2">
@@ -239,17 +228,17 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
               onChange={(e) => set({ curved: e.target.checked })}
               className="h-4 w-4 rounded-sm border-border text-blue focus:outline-none focus:ring-2 focus:ring-blue"
             />
-            <span className="font-medium text-ink">Curved</span>
+            <span className="font-medium text-ink">{p.curved}</span>
           </label>
           <label className="block">
-            <span className="mb-1 block font-medium text-ink">Arrowhead</span>
+            <span className="mb-1 block font-medium text-ink">{p.arrowhead}</span>
             <select
               value={item.head}
               onChange={(e) => set({ head: e.target.value as 'single' | 'double' })}
               className="w-full rounded-md border border-border bg-surface px-2 py-1"
             >
-              <option value="single">Single</option>
-              <option value="double">Double</option>
+              <option value="single">{p.single}</option>
+              <option value="double">{p.double}</option>
             </select>
           </label>
         </>
@@ -257,7 +246,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
 
       {item.type === 'zoneLabel' && (
         <label className="block">
-          <span className="mb-1 block font-medium text-ink">Zone</span>
+          <span className="mb-1 block font-medium text-ink">{p.zone}</span>
           <select
             value={item.zone}
             onChange={(e) => set({ zone: Number(e.target.value) })}
@@ -274,9 +263,9 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
 
       <label className="block">
         <span className="mb-1 block font-medium text-ink">
-          Size
+          {p.size}
           {(item.type === 'line' || item.type === 'arrow') && (
-            <span className="ml-1 font-normal text-slate">— scales the width</span>
+            <span className="ml-1 font-normal text-slate">{p.scalesWidth}</span>
           )}
         </span>
         <input
@@ -295,7 +284,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
         item.type !== 'line' &&
         item.type !== 'arrow' && (
           <label className="block">
-            <span className="mb-1 block font-medium text-ink">Rotation</span>
+            <span className="mb-1 block font-medium text-ink">{p.rotation}</span>
             <input
               type="range"
               min={-180}
@@ -310,7 +299,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
       <div className="flex flex-wrap gap-1">
         <button
           type="button"
-          aria-label="Nudge left"
+          aria-label={p.nudgeLeft}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: -1, dy: 0 })}
         >
@@ -318,7 +307,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
         </button>
         <button
           type="button"
-          aria-label="Nudge right"
+          aria-label={p.nudgeRight}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 1, dy: 0 })}
         >
@@ -326,7 +315,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
         </button>
         <button
           type="button"
-          aria-label="Nudge up"
+          aria-label={p.nudgeUp}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 0, dy: -1 })}
         >
@@ -334,7 +323,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
         </button>
         <button
           type="button"
-          aria-label="Nudge down"
+          aria-label={p.nudgeDown}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1"
           onClick={() => dispatch({ type: 'translateItem', id: item.id, dx: 0, dy: 1 })}
         >
@@ -348,14 +337,14 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1 text-xs"
           onClick={() => dispatch({ type: 'reorderItem', id: item.id, to: 'backward' })}
         >
-          Back
+          {p.back}
         </button>
         <button
           type="button"
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2 py-1 text-xs"
           onClick={() => dispatch({ type: 'reorderItem', id: item.id, to: 'forward' })}
         >
-          Forward
+          {p.forward}
         </button>
       </div>
 
@@ -364,7 +353,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
         onClick={() => dispatch({ type: 'deleteItem', id: item.id })}
         className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
       >
-        Delete element
+        {p.deleteElement}
       </button>
     </div>
   );

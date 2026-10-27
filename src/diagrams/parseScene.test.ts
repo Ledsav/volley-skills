@@ -21,6 +21,19 @@ describe('parseScene', () => {
     expect(parseScene({ v: 1, court: 'full', showZones: false, items: {} }).ok).toBe(false);
   });
 
+  it('reports why a scene was rejected as a code, never as text', () => {
+    const issue = (input: unknown) => {
+      const result = parseScene(input);
+      return result.ok ? null : result.error;
+    };
+    expect(issue(null)).toEqual({ code: 'notObject' });
+    expect(issue({ ...(scene([]) as object), v: 2 })).toEqual({ code: 'unsupportedVersion' });
+    expect(issue({ ...(scene([]) as object), court: 'oval' })).toEqual({ code: 'badCourt' });
+    expect(issue({ v: 1, court: 'full', showZones: false, items: {} })).toEqual({ code: 'itemsNotArray' });
+    expect(issue(scene(Array.from({ length: 61 }, (_, i) => ({ ...player, id: `p${i}` }))))).toEqual({ code: 'tooManyItems', max: 60 });
+    expect(issue(scene([{ id: 'l1', type: 'ladder', x: 0, y: 0, rotation: 0, size: 1, color: 'ink' }]))).toEqual({ code: 'itemMissingField' });
+  });
+
   it('rejects a scene with more than 60 items', () => {
     const items = Array.from({ length: 61 }, (_, i) => ({ ...player, id: `p${i}` }));
     expect(parseScene(scene(items)).ok).toBe(false);

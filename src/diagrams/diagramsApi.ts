@@ -10,6 +10,7 @@ import {
 import { db } from '../firebase/config';
 import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { withBackoff } from '../firebase/withBackoff';
+import { DiagramSaveError } from './diagramSaveError';
 import { parseScene } from './parseScene';
 import { emptyScene } from './sceneFactory';
 import type { Diagram, Scene } from '../types/diagram';
@@ -64,12 +65,10 @@ export async function saveDiagramSet(
   const repaired = new Map<object, Scene>();
   for (const entry of [...ops.creates, ...ops.updates]) {
     if (entry.title.trim().length < 1 || entry.title.length > 40) {
-      throw new Error(
-        `Diagram "${entry.title || '(untitled)'}" needs a title of 1–40 characters.`,
-      );
+      throw new DiagramSaveError({ code: 'titleLength', title: entry.title });
     }
     const parsed = parseScene(entry.scene);
-    if (!parsed.ok) throw new Error(`Diagram "${entry.title}" is invalid: ${parsed.error}`);
+    if (!parsed.ok) throw new DiagramSaveError({ code: 'invalidScene', title: entry.title, scene: parsed.error });
     repaired.set(entry, parsed.scene);
   }
 

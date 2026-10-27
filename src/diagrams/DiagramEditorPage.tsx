@@ -33,6 +33,7 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { cloneItemAt, createItem } from './sceneFactory';
 import { computeHandleTransform } from './transformMath';
 import { useDiagramEditor } from './useDiagramEditor';
+import { useT } from '../i18n/I18nProvider';
 
 const SNAP = 2.5;
 
@@ -44,6 +45,7 @@ const zoomBtn =
 /** Non-modal panel pinned to the bottom of the canvas on phones — the court
  *  stays visible (and editable) above it so changes show up live. */
 function BottomPanel({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const t = useT().diagrams.editor;
   return (
     <section
       aria-label={title}
@@ -53,7 +55,7 @@ function BottomPanel({ title, onClose, children }: { title: string; onClose: () 
         <h2 className="text-sm font-semibold text-ink">{title}</h2>
         <button
           type="button"
-          aria-label={`Close ${title.toLowerCase()}`}
+          aria-label={t.closePanel(title)}
           onClick={onClose}
           className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink"
         >
@@ -73,7 +75,9 @@ function intersects(a: Rect, b: Rect): boolean {
 }
 
 export function DiagramEditorPage() {
-  usePageMeta({ title: 'Court diagram' });
+  const t = useT();
+  const ed = t.diagrams.editor;
+  usePageMeta({ title: ed.pageTitle });
   const { exerciseId = '' } = useParams();
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();
@@ -380,14 +384,14 @@ export function DiagramEditorPage() {
 
   const menuActions: MenuAction[] = [
     {
-      label: `Copy${suffix}`,
+      label: `${t.diagrams.menu.copy}${suffix}`,
       disabled: selectedCount < 1,
       onSelect: () => {
         if (selectedItems.length) setDiagramClipboard(selectedItems);
       },
     },
     {
-      label: 'Paste',
+      label: t.diagrams.menu.paste,
       disabled: getDiagramClipboard().length === 0,
       onSelect: () => {
         const clip = getDiagramClipboard();
@@ -396,7 +400,7 @@ export function DiagramEditorPage() {
       },
     },
     {
-      label: `Duplicate${suffix}`,
+      label: `${t.diagrams.menu.duplicate}${suffix}`,
       disabled: selectedCount < 1,
       onSelect: () => {
         if (selectedItems.length)
@@ -407,14 +411,14 @@ export function DiagramEditorPage() {
       },
     },
     {
-      label: `Delete${suffix}`,
+      label: `${t.diagrams.menu.delete}${suffix}`,
       disabled: selectedCount < 1,
       onSelect: () => {
         if (selectedCount) dispatch({ type: 'deleteSelected' });
       },
     },
     {
-      label: 'Bring forward',
+      label: t.diagrams.menu.bringForward,
       disabled: selectedCount !== 1,
       onSelect: () => {
         if (state.selectedItemId)
@@ -422,7 +426,7 @@ export function DiagramEditorPage() {
       },
     },
     {
-      label: 'Send backward',
+      label: t.diagrams.menu.sendBackward,
       disabled: selectedCount !== 1,
       onSelect: () => {
         if (state.selectedItemId)
@@ -432,14 +436,14 @@ export function DiagramEditorPage() {
   ];
 
   if (notFound) {
-    return <NotFoundState title="Exercise not found" message="It may have been deleted, or you don't have access." backTo="/exercises" backLabel="All exercises" />;
+    return <NotFoundState title={ed.notFoundTitle} message={ed.notFoundMessage} backTo="/exercises" backLabel={ed.allExercises} />;
   }
 
   if (loadError) {
     return (
       <div className="p-6">
         <p role="alert" className="text-red">{loadError}</p>
-        <Link to="/exercises" className="mt-3 inline-block text-blue underline">Back to exercises</Link>
+        <Link to="/exercises" className="mt-3 inline-block text-blue underline">{ed.backToExercisesLink}</Link>
       </div>
     );
   }
@@ -447,19 +451,19 @@ export function DiagramEditorPage() {
   const courtSettings = activeDiagram && (
     <>
       <label className="flex items-center gap-2 text-sm text-slate lg:gap-1 lg:text-xs">
-        <input type="checkbox" checked={snapOn} onChange={(e) => setSnapOn(e.target.checked)} /> Snap
+        <input type="checkbox" checked={snapOn} onChange={(e) => setSnapOn(e.target.checked)} /> {ed.snap}
       </label>
       <label className="flex items-center gap-2 text-sm text-slate lg:gap-1 lg:text-xs">
-        Court
+        {ed.court}
         <select
-          aria-label="Court preset"
+          aria-label={ed.courtPreset}
           value={activeDiagram.scene.court}
           onChange={(e) => dispatch({ type: 'setCourt', court: e.target.value as CourtPreset })}
           className="min-h-11 rounded-md border border-border bg-surface px-2 py-1 text-ink lg:min-h-0"
         >
-          <option value="full">Full</option>
-          <option value="half">Half</option>
-          <option value="blank">Blank</option>
+          <option value="full">{ed.full}</option>
+          <option value="half">{ed.half}</option>
+          <option value="blank">{ed.blank}</option>
         </select>
       </label>
       <label className="flex items-center gap-2 text-sm text-slate lg:gap-1 lg:text-xs">
@@ -468,7 +472,7 @@ export function DiagramEditorPage() {
           checked={activeDiagram.scene.showZones}
           onChange={() => dispatch({ type: 'toggleZones' })}
         />
-        Zones
+        {ed.zones}
       </label>
     </>
   );
@@ -479,7 +483,7 @@ export function DiagramEditorPage() {
     <div className="fixed inset-0 z-40 flex flex-col bg-bg lg:static lg:z-auto lg:h-screen">
       {isDesktop ? (
         <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2">
-          <button type="button" onClick={leaveEditor} className="text-sm text-blue">‹ Exercises</button>
+          <button type="button" onClick={leaveEditor} className="text-sm text-blue">{ed.exercises}</button>
           <div className="flex items-center gap-3">
             {courtSettings}
             {saveError && <span role="alert" className="text-xs text-red">{saveError}</span>}
@@ -489,7 +493,7 @@ export function DiagramEditorPage() {
               disabled={state.undo.length === 0}
               onClick={() => dispatch({ type: 'undo' })}
             >
-              Undo
+              {ed.undo}
             </Button>
             <Button
               variant="secondary"
@@ -497,10 +501,10 @@ export function DiagramEditorPage() {
               disabled={state.redo.length === 0}
               onClick={() => dispatch({ type: 'redo' })}
             >
-              Redo
+              {ed.redo}
             </Button>
             <Button variant="primary" size="sm" disabled={!dirty || saving} onClick={() => void save()}>
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? ed.saving : t.common.save}
             </Button>
           </div>
         </header>
@@ -510,17 +514,17 @@ export function DiagramEditorPage() {
             <button
               type="button"
               onClick={leaveEditor}
-              aria-label="Back to exercises"
+              aria-label={ed.backToExercises}
               className="inline-flex h-11 w-11 items-center justify-center rounded-md text-blue hover:bg-bg"
             >
               <ChevronLeft className="h-6 w-6" aria-hidden="true" />
             </button>
             <span className="min-w-0 flex-1 truncate text-sm text-slate">
-              {saving ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved'}
+              {saving ? ed.saving : dirty ? ed.unsaved : ed.allSaved}
             </span>
             <button
               type="button"
-              aria-label="Undo"
+              aria-label={ed.undo}
               disabled={state.undo.length === 0}
               onClick={() => dispatch({ type: 'undo' })}
               className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-bg disabled:opacity-30"
@@ -529,7 +533,7 @@ export function DiagramEditorPage() {
             </button>
             <button
               type="button"
-              aria-label="Redo"
+              aria-label={ed.redo}
               disabled={state.redo.length === 0}
               onClick={() => dispatch({ type: 'redo' })}
               className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-bg disabled:opacity-30"
@@ -539,7 +543,7 @@ export function DiagramEditorPage() {
             {activeDiagram && (
               <button
                 type="button"
-                aria-label="Court settings"
+                aria-label={ed.courtSettings}
                 aria-expanded={settingsOpen}
                 onClick={() => setSettingsOpen((v) => !v)}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-bg aria-expanded:bg-blue/10 aria-expanded:text-blue"
@@ -548,7 +552,7 @@ export function DiagramEditorPage() {
               </button>
             )}
             <Button variant="primary" size="sm" disabled={!dirty || saving} onClick={() => void save()}>
-              Save
+              {t.common.save}
             </Button>
           </div>
           {saveError && (
@@ -611,19 +615,19 @@ export function DiagramEditorPage() {
             </CanvasStage>
 
             <div className="absolute right-2 top-2 flex flex-col overflow-hidden rounded-md border border-border bg-surface shadow-card">
-              <button type="button" aria-label="Zoom in" onClick={() => stageApi.current?.zoomBy(1.25)} className={zoomBtn}>
+              <button type="button" aria-label={ed.zoomIn} onClick={() => stageApi.current?.zoomBy(1.25)} className={zoomBtn}>
                 <ZoomIn className="h-4 w-4" aria-hidden="true" />
               </button>
-              <button type="button" aria-label="Zoom out" onClick={() => stageApi.current?.zoomBy(0.8)} className={`${zoomBtn} border-t border-border`}>
+              <button type="button" aria-label={ed.zoomOut} onClick={() => stageApi.current?.zoomBy(0.8)} className={`${zoomBtn} border-t border-border`}>
                 <ZoomOut className="h-4 w-4" aria-hidden="true" />
               </button>
-              <button type="button" aria-label="Fit court" onClick={() => stageApi.current?.resetView()} className={`${zoomBtn} border-t border-border`}>
+              <button type="button" aria-label={ed.fitCourt} onClick={() => stageApi.current?.resetView()} className={`${zoomBtn} border-t border-border`}>
                 <Maximize className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
             {!isDesktop && mobilePanel === 'add' && (
-              <BottomPanel title="Add element" onClose={() => setMobilePanel(null)}>
+              <BottomPanel title={ed.addElement} onClose={() => setMobilePanel(null)}>
                 <div className="p-3">
                   <Palette onAdd={addFromPalette} variant="grid" />
                 </div>
@@ -631,7 +635,7 @@ export function DiagramEditorPage() {
             )}
             {!isDesktop && mobilePanel === 'edit' && selectedCount > 0 && (
               <BottomPanel
-                title={selectedCount > 1 ? `${selectedCount} elements` : 'Edit element'}
+                title={selectedCount > 1 ? ed.elements(selectedCount) : ed.editElement}
                 onClose={() => setMobilePanel(null)}
               >
                 <PropertiesPanel item={selectedItem} dispatch={dispatch} selectedCount={selectedCount} />
@@ -658,7 +662,7 @@ export function DiagramEditorPage() {
             </aside>
           ) : (
             <nav
-              aria-label="Diagram tools"
+              aria-label={ed.toolsNav}
               className="flex shrink-0 items-center justify-around gap-1 border-t border-border bg-surface px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1"
             >
               <button
@@ -668,7 +672,7 @@ export function DiagramEditorPage() {
                 className={toolBtn}
               >
                 <Plus className="h-5 w-5" aria-hidden="true" />
-                Add
+                {ed.add}
               </button>
               <button
                 type="button"
@@ -677,7 +681,7 @@ export function DiagramEditorPage() {
                 className={toolBtn}
               >
                 <BoxSelect className="h-5 w-5" aria-hidden="true" />
-                Multi
+                {ed.multi}
               </button>
               <button
                 type="button"
@@ -687,7 +691,7 @@ export function DiagramEditorPage() {
                 className={toolBtn}
               >
                 <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-                Edit
+                {ed.edit}
               </button>
               <button
                 type="button"
@@ -698,7 +702,7 @@ export function DiagramEditorPage() {
                 className={toolBtn}
               >
                 <Copy className="h-5 w-5" aria-hidden="true" />
-                Duplicate
+                {ed.duplicate}
               </button>
               <button
                 type="button"
@@ -709,7 +713,7 @@ export function DiagramEditorPage() {
                 className={toolBtn}
               >
                 <ArrowUpToLine className="h-5 w-5" aria-hidden="true" />
-                Forward
+                {ed.forward}
               </button>
               <button
                 type="button"
@@ -721,22 +725,22 @@ export function DiagramEditorPage() {
                 className={`${toolBtn} text-red`}
               >
                 <Trash2 className="h-5 w-5" aria-hidden="true" />
-                Delete
+                {t.common.delete}
               </button>
             </nav>
           )}
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate">
-          <p>No diagrams yet.</p>
-          <Button variant="primary" size="sm" onClick={() => dispatch({ type: 'addDiagram' })}>Add the first diagram</Button>
+          <p>{ed.noDiagrams}</p>
+          <Button variant="primary" size="sm" onClick={() => dispatch({ type: 'addDiagram' })}>{ed.addFirst}</Button>
         </div>
       )}
       {confirmLeave && (
         <ConfirmDialog
-          title="Leave without saving?"
-          message="You have unsaved diagram changes."
-          confirmLabel="Leave"
+          title={ed.leaveTitle}
+          message={ed.leaveMessage}
+          confirmLabel={ed.leave}
           onCancel={() => setConfirmLeave(false)}
           onConfirm={() => navigate('/exercises')}
         />

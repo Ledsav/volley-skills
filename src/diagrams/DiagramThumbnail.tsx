@@ -3,6 +3,7 @@ import { getFirstDiagram, listDiagrams } from './diagramsApi';
 import { DiagramLightbox } from './DiagramLightbox';
 import { DiagramSvg } from './DiagramSvg';
 import type { Diagram } from '../types/diagram';
+import { useT } from '../i18n/I18nProvider';
 
 const cache = new Map<string, Diagram | null>();
 
@@ -25,6 +26,7 @@ interface DiagramThumbnailProps {
 }
 
 export function DiagramThumbnail({ exerciseId, className, interactive = true }: DiagramThumbnailProps) {
+  const t = useT();
   const [diagram, setDiagram] = useState<Diagram | null | undefined>(
     cache.has(exerciseId) ? cache.get(exerciseId) : undefined,
   );
@@ -77,7 +79,7 @@ export function DiagramThumbnail({ exerciseId, className, interactive = true }: 
       <button
         type="button"
         onClick={() => void openLightbox()}
-        aria-label={`Expand diagram ${diagram.title}`}
+        aria-label={t.diagrams.thumbnail.expand(diagram.title)}
         className={boxClass}
       >
         <DiagramSvg scene={diagram.scene} />

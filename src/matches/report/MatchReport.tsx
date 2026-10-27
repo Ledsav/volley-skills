@@ -24,7 +24,9 @@ interface MatchReportProps {
 }
 
 export function MatchReport({ match, report, set: setProp, onSetChange }: MatchReportProps) {
-  const lb = useT().labels;
+  const tt = useT();
+  const lb = tt.labels;
+  const rp = tt.matches.report;
   const [localSet, setLocalSet] = useState<number | 'all'>('all');
   const set = setProp ?? localSet;
   const setSet = onSetChange ?? setLocalSet;
@@ -37,9 +39,9 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
   const imported = stats.sourceCounts.import ?? 0;
   const totalSource = stats.sourceCounts.tap + stats.sourceCounts.text + imported;
   const sourceParts = [
-    stats.sourceCounts.tap > 0 && `${Math.round((stats.sourceCounts.tap / totalSource) * 100)}% tapped`,
-    stats.sourceCounts.text > 0 && `${Math.round((stats.sourceCounts.text / totalSource) * 100)}% from text`,
-    imported > 0 && 'Imported from DataVolley',
+    stats.sourceCounts.tap > 0 && rp.tapped(Math.round((stats.sourceCounts.tap / totalSource) * 100)),
+    stats.sourceCounts.text > 0 && rp.fromText(Math.round((stats.sourceCounts.text / totalSource) * 100)),
+    imported > 0 && rp.imported,
   ].filter(Boolean);
   const setNumbers = report.sets;
 
@@ -49,12 +51,12 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
         <div>
           <p className="text-stat font-extrabold tabular-nums text-ink">{report.setsWon.us}–{report.setsWon.them}</p>
           <p className="text-sm tabular-nums text-slate">{report.setScores.map((s) => `${s.us}–${s.them}`).join(' · ')}</p>
-          {set !== 'all' && <p className="hidden text-sm font-semibold text-ink print:block">Set {set} only</p>}
+          {set !== 'all' && <p className="hidden text-sm font-semibold text-ink print:block">{rp.setOnly(set)}</p>}
         </div>
         <label className="flex items-center gap-2 text-sm text-ink print:hidden">
-          Set
-          <select aria-label="Set" className={FIELD_CLASS} value={set} onChange={(e) => setSet(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-            <option value="all">All</option>
+          {rp.set}
+          <select aria-label={rp.set} className={FIELD_CLASS} value={set} onChange={(e) => setSet(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
+            <option value="all">{rp.all}</option>
             {setNumbers.map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
@@ -63,27 +65,27 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
       </div>
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Kpi label="Side-out" value={fmtPct(t.sideOut.total ? t.sideOut.won / t.sideOut.total : null)} />
-        <Kpi label="Break point" value={fmtPct(t.breakPoint.total ? t.breakPoint.won / t.breakPoint.total : null)} />
-        <Kpi label="Reception +" value={fmtPct(t.receptionPos)} />
-        <Kpi label="Attack eff." value={fmtEff(t.attackEff)} />
-        <Kpi label="Aces / serve errors" value={`${t.aces} / ${t.serveErrors}`} />
-        <Kpi label="Opp. errors" value={String(t.oppErrorPoints)} />
+        <Kpi label={rp.sideOut} value={fmtPct(t.sideOut.total ? t.sideOut.won / t.sideOut.total : null)} />
+        <Kpi label={rp.breakPoint} value={fmtPct(t.breakPoint.total ? t.breakPoint.won / t.breakPoint.total : null)} />
+        <Kpi label={rp.receptionPos} value={fmtPct(t.receptionPos)} />
+        <Kpi label={rp.attackEff} value={fmtEff(t.attackEff)} />
+        <Kpi label={rp.acesErrors} value={`${t.aces} / ${t.serveErrors}`} />
+        <Kpi label={rp.oppErrors} value={String(t.oppErrorPoints)} />
       </section>
 
       <section>
-        <h2 className="mb-2 font-semibold text-ink">Players</h2>
+        <h2 className="mb-2 font-semibold text-ink">{rp.players}</h2>
         <div className="overflow-x-auto rounded-lg border border-border print:overflow-visible">
           <table className="w-full text-sm tabular-nums">
             <thead className="bg-bg text-left text-xs uppercase text-slate">
               <tr>
-                <th scope="col" className="px-2 py-2 font-medium">Player</th>
+                <th scope="col" className="px-2 py-2 font-medium">{rp.player}</th>
                 {SKILLS.map((s) => (
                   <th scope="col" key={s} className="px-2 py-2 font-medium">{lb.skill[s]}</th>
                 ))}
-                <th scope="col" className="px-2 py-2 font-medium">Att. eff</th>
-                <th scope="col" className="px-2 py-2 font-medium">Rec +</th>
-                <th scope="col" className="px-2 py-2 font-medium">Pts / Err</th>
+                <th scope="col" className="px-2 py-2 font-medium">{rp.attEff}</th>
+                <th scope="col" className="px-2 py-2 font-medium">{rp.recPos}</th>
+                <th scope="col" className="px-2 py-2 font-medium">{rp.ptsErr}</th>
               </tr>
             </thead>
             <tbody>
@@ -122,14 +124,14 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
       </section>
 
       <section>
-        <h2 className="mb-2 font-semibold text-ink">Rotations</h2>
+        <h2 className="mb-2 font-semibold text-ink">{rp.rotations}</h2>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {[1, 6, 5, 4, 3, 2].map((r) => {
             const rot = t.rotations[r] ?? { won: 0, lost: 0 };
             const weakest = t.weakestRotation === r;
             return (
               <div key={r} className={`rounded-md border p-2 text-center ${weakest ? 'border-red bg-red/10' : 'border-border'}`}>
-                <p className="text-xs text-slate">Rot {r}</p>
+                <p className="text-xs text-slate">{rp.rot(r)}</p>
                 <p className="font-semibold tabular-nums text-ink">{rot.won - rot.lost > 0 ? '+' : ''}{rot.won - rot.lost}</p>
                 <p className="text-xs tabular-nums text-slate">{rot.won}–{rot.lost}</p>
               </div>
@@ -140,11 +142,11 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
 
       {stats.timeoutEffects.length > 0 && (
         <section>
-          <h2 className="mb-2 font-semibold text-ink">Timeouts</h2>
+          <h2 className="mb-2 font-semibold text-ink">{rp.timeouts}</h2>
           <ul className="space-y-1 text-sm text-ink">
             {stats.timeoutEffects.map((e, i) => (
               <li key={i} className="tabular-nums">
-                Set {e.set} · T/O {e.team} at {e.score.us}–{e.score.them} → next rallies {e.won}–{e.lost}
+                {rp.timeoutLine(e.set, e.team, e.score.us, e.score.them, e.won, e.lost)}
               </li>
             ))}
           </ul>

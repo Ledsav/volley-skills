@@ -26,7 +26,7 @@ function recordStat(scope: AwardScope, matches: Match[], s: TeamSeason): StorySt
     const m = matches[0];
     return {
       id: 'record', kicker: story().finalScore, big: m.result.setsUs, bigSuffix: `–${m.result.setsThem}`,
-      caption: `vs ${m.opponent}`,
+      caption: story().vsOpponent(m.opponent),
       detail: m.result.sets.length ? m.result.sets.map((x) => `${x.us}–${x.them}`).join(' · ') : null,
     };
   }

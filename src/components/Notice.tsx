@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
+import { useT } from '../i18n/I18nProvider';
 
 /**
  * The one way to confirm that something worked ("Imported 12 players.").
@@ -17,6 +18,7 @@ export function useNotify(): Notify {
 const DEFAULT_MS = 4000;
 
 export function NoticeProvider({ children }: { children: ReactNode }) {
+  const t = useT().components;
   const [notice, setNotice] = useState<{ id: number; message: string } | null>(null);
   const timer = useRef<number>();
   const nextId = useRef(0);
@@ -53,7 +55,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={dismiss}
-              aria-label="Dismiss"
+              aria-label={t.dismiss}
               className="-m-1 shrink-0 rounded-sm p-1 opacity-70 hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue"
             >
               <X size={16} aria-hidden="true" />

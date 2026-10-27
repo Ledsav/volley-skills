@@ -1,5 +1,6 @@
 import { Button } from './Button';
 import { Input } from './Input';
+import { useT } from '../i18n/I18nProvider';
 
 interface AttemptsInputProps {
   name: string;
@@ -11,6 +12,7 @@ interface AttemptsInputProps {
 }
 
 export function AttemptsInput({ name, label, values, onChange, minCount, maxCount }: AttemptsInputProps) {
+  const t = useT().components.attempts;
   function updateAt(index: number, raw: string) {
     const next = [...values];
     next[index] = raw === '' ? NaN : Number(raw);
@@ -45,12 +47,12 @@ export function AttemptsInput({ name, label, values, onChange, minCount, maxCoun
       ))}
       {maxCount !== undefined && values.length < maxCount && (
         <Button variant="secondary" size="sm" onClick={addAttempt} className="mb-3">
-          + Add attempt
+          {t.add}
         </Button>
       )}
       {maxCount !== undefined && values.length > minCount && (
         <Button variant="ghost" size="sm" onClick={removeLast} className="mb-3 ml-2">
-          Remove last attempt
+          {t.removeLast}
         </Button>
       )}
     </div>

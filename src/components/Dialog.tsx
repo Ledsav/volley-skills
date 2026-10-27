@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useModalLayer } from './useModalLayer';
+import { useT } from '../i18n/I18nProvider';
 
 interface DialogProps {
   title: string;
@@ -46,6 +47,7 @@ const MOBILE_SHEET_SIZE_CLASS: Record<NonNullable<DialogProps['size']>, string> 
 };
 
 export function Dialog({ title, onClose, children, size = 'md', mobileSheet = false, footer, dirty = false, guardUnsaved = false }: DialogProps) {
+  const t = useT().components;
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [edited, setEdited] = useState(false);
@@ -92,7 +94,7 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
             <button
               type="button"
               onClick={requestClose}
-              aria-label="Close"
+              aria-label={t.close}
               className="-mr-2 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate transition-colors hover:bg-bg hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue sm:h-9 sm:w-9"
             >
               <X className="h-5 w-5" aria-hidden="true" />
@@ -120,9 +122,9 @@ export function Dialog({ title, onClose, children, size = 'md', mobileSheet = fa
       </div>
       {confirmDiscard && (
         <ConfirmDialog
-          title="Discard changes?"
-          message="Your changes haven't been saved."
-          confirmLabel="Discard"
+          title={t.discardTitle}
+          message={t.discardMessage}
+          confirmLabel={t.discard}
           onCancel={() => setConfirmDiscard(false)}
           onConfirm={() => {
             setConfirmDiscard(false);

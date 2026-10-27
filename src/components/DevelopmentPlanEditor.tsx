@@ -48,10 +48,11 @@ function ObjectiveCard({
   targetLabel: string;
   coachComment: string;
 }) {
+  const t = useT().components.plan;
   return (
     <div className={`rounded-md border border-l-[3px] border-border bg-bg/40 p-3 ${STATUS_ACCENT[status]}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-ink">{title || 'Untitled objective'}</p>
+        <p className="text-sm font-medium text-ink">{title || t.untitled}</p>
         <StatusChip status={status} />
       </div>
       <p className="mt-1.5 flex items-center gap-1 text-xs text-slate">
@@ -82,6 +83,8 @@ export function DevelopmentPlanEditor({
   onEditingChange,
 }: DevelopmentPlanEditorProps) {
   const lb = useT().labels;
+  const c = useT().common;
+  const t = useT().components.plan;
   const isControlled = editingProp !== undefined;
   const [internalEditing, setInternalEditing] = useState(false);
   const editing = isControlled ? editingProp : internalEditing;
@@ -133,7 +136,7 @@ export function DevelopmentPlanEditor({
     try {
       await onSave({ shortTermObjectives, seasonObjectives, generalNotes });
     } catch {
-      setError('Could not save the development plan. Please try again.');
+      setError(t.saveError);
       return;
     }
     setEditing(false);
@@ -149,9 +152,9 @@ export function DevelopmentPlanEditor({
   return (
     <div className="flex h-full flex-col gap-5">
       <section>
-        <GroupHeading label="Short-term objectives" count={plan.shortTermObjectives.length} />
+        <GroupHeading label={t.shortTerm} count={plan.shortTermObjectives.length} />
         {plan.shortTermObjectives.length === 0 ? (
-          <p className="text-sm text-slate">No short-term objectives yet.</p>
+          <p className="text-sm text-slate">{t.noShortTerm}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {plan.shortTermObjectives.map((o, i) => (
@@ -159,7 +162,7 @@ export function DevelopmentPlanEditor({
                 key={i}
                 title={o.objective}
                 status={o.status}
-                targetLabel={o.targetDate ? `Target date ${o.targetDate}` : 'No target date'}
+                targetLabel={o.targetDate ? t.targetDate(o.targetDate) : t.noTargetDate}
                 coachComment={o.coachComment}
               />
             ))}
@@ -168,9 +171,9 @@ export function DevelopmentPlanEditor({
       </section>
 
       <section>
-        <GroupHeading label="Season objectives" count={plan.seasonObjectives.length} />
+        <GroupHeading label={t.season} count={plan.seasonObjectives.length} />
         {plan.seasonObjectives.length === 0 ? (
-          <p className="text-sm text-slate">No season objectives yet.</p>
+          <p className="text-sm text-slate">{t.noSeason}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {plan.seasonObjectives.map((o, i) => (
@@ -178,7 +181,7 @@ export function DevelopmentPlanEditor({
                 key={i}
                 title={o.objective}
                 status={o.status}
-                targetLabel={o.target ? `Target ${o.target}` : 'No target set'}
+                targetLabel={o.target ? t.target(o.target) : t.noTarget}
                 coachComment={o.coachComment}
               />
             ))}
@@ -187,8 +190,8 @@ export function DevelopmentPlanEditor({
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-ink">General notes</h3>
-        <p className="whitespace-pre-wrap text-sm text-slate">{plan.generalNotes || 'No notes yet.'}</p>
+        <h3 className="mb-2 text-sm font-semibold text-ink">{t.generalNotes}</h3>
+        <p className="whitespace-pre-wrap text-sm text-slate">{plan.generalNotes || t.noNotes}</p>
       </section>
 
       {!isControlled && isAdmin && (
@@ -196,13 +199,13 @@ export function DevelopmentPlanEditor({
       )}
 
       {editing && isAdmin && (
-        <Dialog title="Edit development plan" size="lg" onClose={handleCancel} guardUnsaved>
-          <form onSubmit={handleSave} aria-label="Edit development plan">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate">Short-term objectives</h3>
+        <Dialog title={t.editTitle} size="lg" onClose={handleCancel} guardUnsaved>
+          <form onSubmit={handleSave} aria-label={t.editTitle}>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate">{t.shortTerm}</h3>
             {shortTermObjectives.map((o, i) => (
               <div key={i} className="mt-3 rounded-md border border-border p-3">
                 <label htmlFor={`short-term-objective-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Objective
+                  {t.objective}
                 </label>
                 <Input
                   id={`short-term-objective-${i}`}
@@ -212,7 +215,7 @@ export function DevelopmentPlanEditor({
                 />
 
                 <label htmlFor={`short-term-date-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Target date
+                  {t.targetDateLabel}
                 </label>
                 <Input
                   id={`short-term-date-${i}`}
@@ -223,7 +226,7 @@ export function DevelopmentPlanEditor({
                 />
 
                 <label htmlFor={`short-term-status-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Status
+                  {t.status}
                 </label>
                 <select
                   id={`short-term-status-${i}`}
@@ -239,7 +242,7 @@ export function DevelopmentPlanEditor({
                 </select>
 
                 <label htmlFor={`short-term-comment-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Coach comment
+                  {t.coachComment}
                 </label>
                 <Textarea
                   id={`short-term-comment-${i}`}
@@ -251,19 +254,19 @@ export function DevelopmentPlanEditor({
                 <HealthHint id={`short-term-comment-${i}-hint`} />
 
                 <Button variant="dangerGhost" size="sm" onClick={() => removeShortTerm(i)} className="mt-2">
-                  Remove
+                  {t.remove}
                 </Button>
               </div>
             ))}
             <Button variant="secondary" size="sm" onClick={addShortTerm} className="mt-3">
-              + Add short-term objective
+              {t.addShortTerm}
             </Button>
 
-            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">Season objectives</h3>
+            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{t.season}</h3>
             {seasonObjectives.map((o, i) => (
               <div key={i} className="mt-3 rounded-md border border-border p-3">
                 <label htmlFor={`season-objective-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Objective
+                  {t.objective}
                 </label>
                 <Input
                   id={`season-objective-${i}`}
@@ -273,7 +276,7 @@ export function DevelopmentPlanEditor({
                 />
 
                 <label htmlFor={`season-target-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Target
+                  {t.targetLabel}
                 </label>
                 <Input
                   id={`season-target-${i}`}
@@ -283,7 +286,7 @@ export function DevelopmentPlanEditor({
                 />
 
                 <label htmlFor={`season-status-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Status
+                  {t.status}
                 </label>
                 <select
                   id={`season-status-${i}`}
@@ -299,7 +302,7 @@ export function DevelopmentPlanEditor({
                 </select>
 
                 <label htmlFor={`season-comment-${i}`} className="mb-1 block text-sm font-medium text-ink">
-                  Coach comment
+                  {t.coachComment}
                 </label>
                 <Textarea
                   id={`season-comment-${i}`}
@@ -311,15 +314,15 @@ export function DevelopmentPlanEditor({
                 <HealthHint id={`season-comment-${i}-hint`} />
 
                 <Button variant="dangerGhost" size="sm" onClick={() => removeSeason(i)} className="mt-2">
-                  Remove
+                  {t.remove}
                 </Button>
               </div>
             ))}
             <Button variant="secondary" size="sm" onClick={addSeason} className="mt-3">
-              + Add season objective
+              {t.addSeason}
             </Button>
 
-            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">General notes</h3>
+            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{t.generalNotes}</h3>
             <Textarea
               aria-describedby="general-notes-hint"
               value={generalNotes}
@@ -330,10 +333,10 @@ export function DevelopmentPlanEditor({
 
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="ghost" onClick={handleCancel}>
-                Cancel
+                {c.cancel}
               </Button>
               <Button variant="primary" type="submit">
-                Save
+                {c.save}
               </Button>
             </div>
             {error && (

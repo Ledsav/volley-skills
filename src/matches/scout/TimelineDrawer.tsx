@@ -1,7 +1,8 @@
 import { CornerDownRight, FileDown, Pencil, PenLine, Trash2, TriangleAlert } from 'lucide-react';
 import type { ActionEvent, MatchEvent, RosterEntry } from '../../types/match';
+import { useT } from '../../i18n/I18nProvider';
 import { describeEvent } from '../format';
-import { sortEvents, type MatchState } from '../scoutEngine';
+import { engineWarningText, sortEvents, type MatchState } from '../scoutEngine';
 
 interface TimelineDrawerProps {
   events: MatchEvent[];
@@ -13,12 +14,13 @@ interface TimelineDrawerProps {
 }
 
 export function TimelineDrawer({ events, state, roster, onDelete, onEdit, onInsertAfter }: TimelineDrawerProps) {
+  const t = useT();
   const scoreAfter = new Map(state.rallies.map((r) => [r.endEventId, r.scoreAfter]));
   const warnings = new Map<string, string[]>();
-  for (const w of state.warnings) warnings.set(w.eventId, [...(warnings.get(w.eventId) ?? []), w.message]);
+  for (const w of state.warnings) warnings.set(w.eventId, [...(warnings.get(w.eventId) ?? []), engineWarningText(w, t)]);
   const rows = sortEvents(events).reverse();
 
-  if (rows.length === 0) return <p className="p-4 text-center text-sm text-slate">Nothing recorded yet.</p>;
+  if (rows.length === 0) return <p className="p-4 text-center text-sm text-slate">{t.scout.timeline.empty}</p>;
 
   return (
     <ol className="divide-y divide-border rounded-lg border border-border bg-surface">
@@ -30,8 +32,8 @@ export function TimelineDrawer({ events, state, roster, onDelete, onEdit, onInse
           <li key={ev.id} className={`flex items-center gap-2 px-3 py-2 text-sm ${isHeader ? 'bg-bg font-semibold' : ''}`}>
             <div className="min-w-0 flex-1">
               <span className="text-ink">
-                {ev.source === 'text' && <PenLine role="img" aria-label="From text" className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
-                {ev.source === 'import' && <FileDown role="img" aria-label="Imported" className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
+                {ev.source === 'text' && <PenLine role="img" aria-label={t.scout.timeline.fromText} className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
+                {ev.source === 'import' && <FileDown role="img" aria-label={t.scout.timeline.imported} className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate" />}
                 {describeEvent(ev, roster)}
               </span>
               {warn && (
@@ -46,15 +48,15 @@ export function TimelineDrawer({ events, state, roster, onDelete, onEdit, onInse
                 {score.us}–{score.them}
               </span>
             )}
-            <button type="button" aria-label="Insert after" onClick={() => onInsertAfter(ev.id)} className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg">
+            <button type="button" aria-label={t.scout.timeline.insertAfter} onClick={() => onInsertAfter(ev.id)} className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg">
               <CornerDownRight size={16} aria-hidden="true" />
             </button>
             {ev.type === 'action' && (
-              <button type="button" aria-label="Edit" onClick={() => onEdit(ev)} className="flex h-11 w-11 items-center justify-center rounded-md text-blue hover:bg-blue/10">
+              <button type="button" aria-label={t.scout.timeline.edit} onClick={() => onEdit(ev)} className="flex h-11 w-11 items-center justify-center rounded-md text-blue hover:bg-blue/10">
                 <Pencil size={16} aria-hidden="true" />
               </button>
             )}
-            <button type="button" aria-label="Delete" onClick={() => onDelete([ev.id])} className="flex h-11 w-11 items-center justify-center rounded-md text-red hover:bg-red/10">
+            <button type="button" aria-label={t.scout.timeline.delete} onClick={() => onDelete([ev.id])} className="flex h-11 w-11 items-center justify-center rounded-md text-red hover:bg-red/10">
               <Trash2 size={16} aria-hidden="true" />
             </button>
           </li>

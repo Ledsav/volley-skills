@@ -1,13 +1,15 @@
 import { Dialog } from '../../components/Dialog';
+import { useT } from '../../i18n/I18nProvider';
 import { HOTKEY_GROUPS, KEY_MAP } from './hotkeys';
 
 export function HotkeyCheatSheet({ onClose }: { onClose: () => void }) {
+  const t = useT().scout;
   return (
-    <Dialog title="Keyboard shortcuts" onClose={onClose}>
+    <Dialog title={t.page.shortcuts} onClose={onClose}>
       <div className="flex flex-col gap-4">
         {HOTKEY_GROUPS.map((group) => (
-          <section key={group} aria-label={group}>
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate">{group}</h3>
+          <section key={group} aria-label={t.hotkeys.groups[group]}>
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate">{t.hotkeys.groups[group]}</h3>
             <dl className="flex flex-col gap-1.5">
               {KEY_MAP.filter((b) => b.group === group).map((b) => (
                 <div key={b.id} className="flex items-start justify-between gap-3 text-sm">
@@ -18,7 +20,7 @@ export function HotkeyCheatSheet({ onClose }: { onClose: () => void }) {
                       </kbd>
                     ))}
                   </dt>
-                  <dd className="text-right text-slate">{b.description}</dd>
+                  <dd className="text-right text-slate">{t.hotkeys.desc[b.id]}</dd>
                 </div>
               ))}
             </dl>

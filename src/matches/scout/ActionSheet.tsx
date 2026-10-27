@@ -29,20 +29,20 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
 
   return (
     <section
-      aria-label={`Actions for #${player.number} ${player.name}`}
+      aria-label={t.scout.actionSheet.actionsFor(player.number, player.name)}
       className="rounded-lg border border-border bg-surface p-3 shadow-pop"
     >
       <div className="mb-2 flex items-center gap-2">
         <p className="min-w-0 flex-1 truncate font-semibold text-ink">
           #{player.number} {player.name}
-          <span className="ml-2 text-xs font-normal text-slate">{isLibero ? 'Libero' : player.positionCategory}</span>
+          <span className="ml-2 text-xs font-normal text-slate">{isLibero ? t.labels.position.L('mixed') : player.positionCategory}</span>
         </p>
         {!isLibero && (
           <button type="button" onClick={onSub} className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-blue hover:bg-blue/10">
-            <ArrowLeftRight size={16} aria-hidden="true" /> Substitute
+            <ArrowLeftRight size={16} aria-hidden="true" /> {t.scout.actionSheet.substitute}
           </button>
         )}
-        <button type="button" aria-label="Close actions" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg">
+        <button type="button" aria-label={t.scout.actionSheet.close} onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg">
           <X size={18} aria-hidden="true" />
         </button>
       </div>

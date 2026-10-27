@@ -1,5 +1,6 @@
 import { Moon, Sun } from 'lucide-react';
 import type { Theme } from './theme';
+import { useT } from '../i18n/I18nProvider';
 import { useTheme } from './useTheme';
 
 interface ThemeToggleProps {
@@ -9,10 +10,11 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '', compact = false }: ThemeToggleProps) {
+  const t = useT().theme;
   const [theme, toggle] = useTheme();
   const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
   const Icon = theme === 'dark' ? Sun : Moon;
-  const label = nextTheme === 'dark' ? 'Dark mode' : 'Light mode';
+  const label = nextTheme === 'dark' ? t.dark : t.light;
 
   return (
     <button type="button" onClick={toggle} className={className}>

@@ -20,13 +20,19 @@ describe('reauth', () => {
     send.mockResolvedValue(undefined);
     await sendSigningLink('a@b.c', '0123456789abcdef0123456789abcdef');
     expect(send).toHaveBeenCalledWith(
-      { name: 'auth' },
+      expect.objectContaining({ name: 'auth' }),
       'a@b.c',
       expect.objectContaining({ handleCodeInApp: true, url: `${window.location.origin}/finish-sign-in?sign=0123456789abcdef0123456789abcdef` }),
     );
     // No return path: an ordinary sign-in later must never land on /sign/complete.
     expect(localStorage.getItem('vcb.auth.returnTo')).toBeNull();
     expect(localStorage.getItem('emailForSignIn')).toBe('a@b.c');
+  });
+  it('sets auth.languageCode to the active locale before sending', async () => {
+    const seen: unknown[] = [];
+    send.mockImplementation(async (a: { languageCode?: string }) => { seen.push(a.languageCode); });
+    await sendSigningLink('a@b.c', '0123456789abcdef0123456789abcdef');
+    expect(seen).toEqual(['en']);
   });
   it('does not remember anything when sending fails', async () => {
     send.mockRejectedValue(new Error('x'));

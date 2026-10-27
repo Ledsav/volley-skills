@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
+import { LanguageToggle } from '../i18n/LanguageToggle';
 import player from '../assets/player-spike.webp';
 import ball from '../assets/ball-mikasa.webp';
 
@@ -76,6 +77,8 @@ export function AuthShell({
       <header className="relative border-b border-white/15 py-4">
         <div className="mx-auto flex max-w-[82rem] items-center justify-between px-6 lg:px-12">
           <Logo className="text-[30px]" />
+          <div className="flex items-center gap-3">
+          <LanguageToggle />
           {navAction && (
             <Link
               to={navAction.to}
@@ -84,6 +87,7 @@ export function AuthShell({
               {navAction.label}
             </Link>
           )}
+          </div>
         </div>
       </header>
 

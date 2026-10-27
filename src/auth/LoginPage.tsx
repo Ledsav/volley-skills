@@ -9,6 +9,7 @@ import { Input } from '../components/Input';
 import { LegalLinks } from '../legal/LegalLinks';
 import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
+import { useLocale } from '../i18n/I18nProvider';
 import { saveEmailForSignIn } from './emailLinkStorage';
 
 const googleProvider = new GoogleAuthProvider();
@@ -16,6 +17,7 @@ const googleProvider = new GoogleAuthProvider();
 export function LoginPage() {
   usePageMeta({ title: 'Sign in', description: 'Sign in to Volley Skills, the team tool for volleyball clubs.', robots: 'index', canonicalPath: '/login' });
   const navigate = useNavigate();
+  const { locale } = useLocale();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +26,7 @@ export function LoginPage() {
     event.preventDefault();
     setError(null);
     try {
+      auth.languageCode = locale;
       await sendSignInLinkToEmail(auth, email, {
         url: `${window.location.origin}/finish-sign-in`,
         handleCodeInApp: true,

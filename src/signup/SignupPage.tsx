@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { LanguageToggle } from '../i18n/LanguageToggle';
 import { sendSigningLink } from '../auth/reauth';
 import { Button } from '../components/Button';
 import { FIELD_CLASS, Input } from '../components/Input';
@@ -58,7 +59,7 @@ export function SignupPage() {
 
   if (memberships.some((m) => m.status === 'pending')) {
     return (
-      <MinimalShell title="Create your club">
+      <MinimalShell title="Create your club" actions={<LanguageToggle />}>
         <div className="mx-auto max-w-2xl px-4 py-6">
           <p className="text-ink">You already have a club waiting for activation</p>
           <p className="mt-2 text-sm text-slate">We&apos;ll email you when it&apos;s active.</p>
@@ -108,7 +109,7 @@ export function SignupPage() {
     [errors[key] ? `signup-${key}-error` : null, base].filter(Boolean).join(' ') || undefined;
 
   return (
-    <MinimalShell title="Create your club">
+    <MinimalShell title="Create your club" actions={<LanguageToggle />}>
       <div className="mx-auto max-w-2xl px-4 py-6">
         <p className="text-sm text-slate">Step {step} of 3</p>
         <h1 className="mb-4 text-title font-semibold text-ink">

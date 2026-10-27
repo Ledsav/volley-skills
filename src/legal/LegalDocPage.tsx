@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { usePageMeta } from '../layout/usePageMeta';
 import { Logo } from '../components/Logo';
 import { LegalLangSwitcher } from './LegalLangSwitcher';
+import { LanguageToggle } from '../i18n/LanguageToggle';
 import { LegalLinks } from './LegalLinks';
 import { LegalMarkdown } from './LegalMarkdown';
 import { legalText, rawLegalText } from './legalDocs';
@@ -68,11 +69,14 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
       <header className="bg-navy text-white">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3">
           <Logo className="text-[22px]" />
+          <div className="flex items-center gap-4">
+          <LanguageToggle />
           {firebaseUser ? (
             <Link to="/" className="text-sm text-white/90 hover:underline">Back to the app</Link>
           ) : (
             <Link to="/login" className="text-sm text-white/90 hover:underline">Sign in</Link>
           )}
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-2xl p-6">

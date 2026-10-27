@@ -13,7 +13,7 @@ vi.mock('firebase/auth', () => ({
   GoogleAuthProvider: vi.fn().mockImplementation(() => ({})),
 }));
 
-vi.mock('../firebase/config', () => ({ auth: {} }));
+vi.mock('../firebase/config', () => ({ auth: {} as { languageCode?: string } }));
 
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
@@ -45,11 +45,21 @@ describe('LoginPage', () => {
 
     await waitFor(() => expect(screen.getByText(/check your email/i)).toBeInTheDocument());
     expect(mockSendSignInLinkToEmail).toHaveBeenCalledWith(
-      {},
+      expect.objectContaining({}),
       'coach@example.com',
       expect.objectContaining({ handleCodeInApp: true })
     );
     expect(window.localStorage.getItem('emailForSignIn')).toBe('coach@example.com');
+  });
+
+  it('sets auth.languageCode to the active locale before sending the link', async () => {
+    const { auth } = await import('../firebase/config');
+    let seen: string | null | undefined;
+    mockSendSignInLinkToEmail.mockImplementation(async () => { seen = auth.languageCode; });
+    renderLoginPage();
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'coach@example.com' } });
+    fireEvent.click(screen.getByText('Send sign-in link'));
+    await waitFor(() => expect(seen).toBe('en'));
   });
 
   it('shows an error message when sending the link fails', async () => {
@@ -68,7 +78,7 @@ describe('LoginPage', () => {
 
     fireEvent.click(screen.getByText('Continue with Google'));
 
-    await waitFor(() => expect(mockSignInWithPopup).toHaveBeenCalledWith({}, {}));
+    await waitFor(() => expect(mockSignInWithPopup).toHaveBeenCalledWith(expect.objectContaining({}), {}));
   });
 
   it('navigates to / after a successful Google sign-in', async () => {

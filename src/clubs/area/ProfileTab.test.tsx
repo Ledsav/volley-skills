@@ -38,6 +38,19 @@ describe('ProfileTab', () => {
     expect(notify).toHaveBeenCalledWith('Club details saved');
   });
 
+  it('offers Italiano only to a club that already stores it while Italian is off', () => {
+    render(<ProfileTab />);
+    expect(screen.getByRole('option', { name: 'Italiano' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Language')).toHaveValue('it');
+  });
+
+  it('hides the Italiano option while Italian is off and the club stores en', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ club: testClub({ locale: 'en' }) }));
+    render(<ProfileTab />);
+    expect(screen.queryByRole('option', { name: 'Italiano' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Language')).toHaveValue('en');
+  });
+
   it('refuses a name under 2 characters inline without saving', () => {
     render(<ProfileTab />);
     fireEvent.change(screen.getByLabelText('Club name'), { target: { value: ' A ' } });

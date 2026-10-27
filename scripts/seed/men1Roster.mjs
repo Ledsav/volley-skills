@@ -7,6 +7,7 @@ import { SKILL_KEYS } from './parseWorkbook.mjs';
 export const MEN1_TEAM = {
   name: 'Men 1',
   ageGroup: 'Senior',
+  gender: 'men',
   description: 'Senior men — first team',
   notes: '',
   developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },

@@ -204,6 +204,7 @@ async function main() {
   const teamRef = root.collection('teams').doc();
   batch.set(teamRef, {
     ...team,
+    gender: 'mixed', // the workbook does not say; the app requires a team type
     adminEmails: [args.admin],
     createdBy: 'seed-script',
     createdAt: now,

@@ -1,11 +1,11 @@
 {
   "terms": [
-    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First version of the Terms of Service." }
+    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First version of the Terms of Service.", "summaries": { "it": "Prima versione delle Condizioni di servizio." } }
   ],
   "dpa": [
-    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First version of the Data Processing Agreement." }
+    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First version of the Data Processing Agreement.", "summaries": { "it": "Prima versione dell'Accordo sul trattamento dei dati." } }
   ],
   "subprocessors": [
-    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First list of sub-processors." }
+    { "version": "2026-10-22", "announcedAt": "2026-10-22", "effectiveFrom": "2026-10-22", "material": true, "summary": "First list of sub-processors.", "summaries": { "it": "Primo elenco dei sub-responsabili." } }
   ]
 }

@@ -12,6 +12,8 @@ export interface LegalVersion {
   effectiveFrom: string;
   material: boolean;
   summary: string;
+  /** Optional summaries in the app's UI language; `summary` (English) is the fallback. */
+  summaries?: { it?: string };
 }
 
 export type VersionTable = Record<VersionedDoc, LegalVersion[]>;

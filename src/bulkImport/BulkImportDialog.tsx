@@ -15,17 +15,25 @@ function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   );
 }
 
-interface BulkImportDialogProps<TInput, TIssue = string> {
+interface BulkImportDialogBaseProps<TInput, TIssue> {
   title: string;
   hint?: string;
   exampleJson: string;
   validate: (rows: unknown[]) => ValidationResult<TInput, TIssue> | Promise<ValidationResult<TInput, TIssue>>;
-  /** Turns a validator's issue into text; not needed when it already returns strings. */
-  formatIssue?: (issue: TIssue) => string;
   commit: (inputs: TInput[]) => Promise<number>;
   onClose: () => void;
   onImported: (count: number) => void;
 }
+
+/**
+ * A validator that returns `{ code, … }` issues needs a `formatIssue` to turn them into text;
+ * only a validator whose issues are already strings may leave it out. Forgetting it fails `tsc`
+ * instead of rendering "[object Object]".
+ */
+type BulkImportDialogProps<TInput, TIssue> = BulkImportDialogBaseProps<TInput, TIssue> &
+  ([TIssue] extends [string]
+    ? { formatIssue?: (issue: TIssue) => string }
+    : { formatIssue: (issue: TIssue) => string });
 
 export function BulkImportDialog<TInput, TIssue = string>({
   title,
@@ -67,7 +75,7 @@ export function BulkImportDialog<TInput, TIssue = string>({
   }
 
   function applyResult(result: ValidationResult<TInput, TIssue>) {
-    if (result.errors.length > 0) setErrors(result.errors.map((issue) => (formatIssue ? formatIssue(issue) : String(issue))));
+    if (result.errors.length > 0) setErrors(result.errors.map((issue) => (formatIssue ? formatIssue(issue) : (issue as string))));
     else setReady(result.inputs);
   }
 

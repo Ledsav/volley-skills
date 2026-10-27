@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
-import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
 import type { TrendSeries } from './physicalTestChart';
 import { buildTrendSeries } from './physicalTestChart';
 import { formatPhysicalTestDetail, formatPhysicalTestSummary } from './physicalTestFormat';
 import { deletePhysicalTest, listHistoryByType, listSeriesByType } from './physicalTestsApi';
 import { PhysicalTestTrendChart } from './PhysicalTestTrendChart';
+import { useT } from '../i18n/I18nProvider';
 
 interface PhysicalTestHistoryListProps {
   teamId: string;
@@ -22,6 +22,8 @@ interface PhysicalTestHistoryListProps {
 }
 
 export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, onClose, onDeleted }: PhysicalTestHistoryListProps) {
+  const t = useT();
+  const h = t.players.physical.history;
   const [tests, setTests] = useState<PhysicalTest[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -67,16 +69,16 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
       onDeleted?.();
       await Promise.all([loadFirstPage(), loadSeries()]);
     } catch {
-      setDeleteError('Could not delete this entry. Please try again.');
+      setDeleteError(h.deleteError);
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-surface py-6 pl-6 pr-3 shadow-pop [scrollbar-gutter:stable]">
-        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">{PHYSICAL_TEST_LABELS[testType]} history</h2>
+        <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-ink">{h.title(t.labels.physicalTest[testType])}</h2>
         {series && <PhysicalTestTrendChart series={series} />}
-        {loaded && tests.length === 0 && <p className="text-slate">No entries yet.</p>}
+        {loaded && tests.length === 0 && <p className="text-slate">{h.none}</p>}
         <ul className="divide-y divide-border">
           {tests.map((test) => {
             const isExpanded = expandedId === test.id;
@@ -108,7 +110,7 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
                       ))}
                       {test.notes && (
                         <div className="contents">
-                          <dt className="text-slate">Notes</dt>
+                          <dt className="text-slate">{h.notes}</dt>
                           <dd className="text-ink">{test.notes}</dd>
                         </div>
                       )}
@@ -121,7 +123,7 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
                         className="mt-2"
                       >
                         <Trash2 size={14} className="mr-1" />
-                        Delete entry
+                        {h.deleteEntry}
                       </Button>
                     )}
                   </div>
@@ -132,20 +134,20 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
         </ul>
         {hasMore && (
           <Button variant="secondary" size="sm" onClick={() => void loadMore()} className="mt-3">
-            Load more
+            {t.players.shared.loadMore}
           </Button>
         )}
         <div className="mt-6 flex justify-end">
           <Button variant="ghost" onClick={onClose}>
-            Close
+            {t.common.close}
           </Button>
         </div>
       </div>
       {pendingDeleteId && (
         <ConfirmDialog
-          title="Delete this entry?"
-          message="This can't be undone."
-          confirmLabel="Delete"
+          title={h.deleteTitle}
+          message={h.deleteMessage}
+          confirmLabel={t.common.delete}
           onConfirm={() => void handleDelete(pendingDeleteId)}
           onCancel={() => {
             setPendingDeleteId(null);

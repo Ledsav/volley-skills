@@ -1,5 +1,6 @@
 import type { Level } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
 
 const LEVEL_PILL_CLASS: Record<Level, string> = {
   Beginner: 'bg-red/10 text-red-strong',
@@ -12,13 +13,13 @@ export function levelPillClass(level: Level | null): string {
   return level ? LEVEL_PILL_CLASS[level] : 'bg-bg text-slate';
 }
 
-export function LevelPill({ level, className = '' }: { level: Level | null; className?: string }) {
+export function LevelPill({ level, className = '', gender = 'mixed' }: { level: Level | null; className?: string; gender?: Gender }) {
   const lb = useT().labels;
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${levelPillClass(level)} ${className}`.trim()}
     >
-      {level ? lb.level[level]('mixed') /* TODO(i18n T8): teamGender(team) */ : '—'}
+      {level ? lb.level[level](gender) : '—'}
     </span>
   );
 }

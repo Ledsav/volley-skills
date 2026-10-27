@@ -182,7 +182,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
                 )}
                 <span className="font-medium text-ink">{player.fullName}</span>
               </Link>
-              <LevelPill level={player.level} />
+              <LevelPill level={player.level} gender={gender} />
             </div>
 
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -274,7 +274,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
                 </td>
                 <td className={NUMERIC_CELL_CLASS}>{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</td>
                 <td className="px-3 py-2">
-                  <LevelPill level={player.level} />
+                  <LevelPill level={player.level} gender={gender} />
                 </td>
                 <td className="px-3 py-2 text-right">
                   <Button

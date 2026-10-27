@@ -12,6 +12,7 @@ import { AddPlayerDialog } from '../players/AddPlayerDialog';
 import { useAuth } from '../auth/AuthContext';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImport';
+import { playerImportIssueText } from '../players/playersImportMessages';
 import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { SectionTabs } from '../components/SectionTabs';
@@ -203,6 +204,7 @@ export function TeamPage() {
           hint={t.teams.page.importPlayersHint}
           exampleJson={PLAYER_IMPORT_EXAMPLE}
           validate={validatePlayerRows}
+          formatIssue={(issue) => playerImportIssueText(issue, t)}
           commit={(inputs) => bulkCreatePlayers(teamId, team, inputs, firebaseUser.uid)}
           onClose={() => setShowImportPlayers(false)}
           onImported={(n) => {

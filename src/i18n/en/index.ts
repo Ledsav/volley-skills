@@ -10,9 +10,10 @@ import { interest } from './interest';
 import { labels } from './labels';
 import { legal } from './legal';
 import { platform } from './platform';
+import { players } from './players';
 import { settings } from './settings';
 import { signup } from './signup';
 import { teams } from './teams';
 import { theme } from './theme';
 
-export const en = { admin, auth, bulkImport, clubs, common, components, home, interest, labels, legal, layout, platform, settings, signup, teams, theme };
+export const en = { admin, auth, bulkImport, clubs, common, components, home, interest, labels, legal, layout, platform, players, settings, signup, teams, theme };

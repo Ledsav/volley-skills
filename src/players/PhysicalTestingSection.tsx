@@ -3,12 +3,13 @@ import { useAuth } from '../auth/AuthContext';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { Button } from '../components/Button';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
-import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER, visibleTestTypes } from '../types/physicalTest';
+import { PHYSICAL_TEST_ORDER, visibleTestTypes } from '../types/physicalTest';
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
 import { formatPhysicalTestSummary } from './physicalTestFormat';
 import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
 import { fetchLatestTests, loadLatestTests } from './physicalTestsApi';
 import type { LatestTests } from '../types/player';
+import { useT } from '../i18n/I18nProvider';
 
 interface PhysicalTestingSectionProps {
   teamId: string;
@@ -21,6 +22,8 @@ interface PhysicalTestingSectionProps {
 }
 
 export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest, onLatestLoaded }: PhysicalTestingSectionProps) {
+  const t = useT();
+  const p = t.players.physical;
   const { firebaseUser } = useAuth();
   const { growthTestsEnabled } = useClubFeatures();
   const visible = visibleTestTypes(growthTestsEnabled);
@@ -38,14 +41,14 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
     setLoadError(null);
     fetchLatestTests(teamId, playerId, isAdmin)
       .then(apply)
-      .catch(() => setLoadError('Could not load physical testing data. Please refresh the page.'));
+      .catch(() => setLoadError(p.loadError));
   }
 
   useEffect(() => {
     setLoadError(null);
     loadLatestTests(teamId, playerId, storedLatest, isAdmin)
       .then(apply)
-      .catch(() => setLoadError('Could not load physical testing data. Please refresh the page.'));
+      .catch(() => setLoadError(p.loadError));
     // Only on player change: later updates come from reload(), not the stale prop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, playerId]);
@@ -59,24 +62,24 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
       )}
       {!loadError && (
         <ul className="divide-y divide-border">
-          {PHYSICAL_TEST_ORDER.filter((t) => visible.includes(t) || !!latestByType[t]).map((testType) => {
+          {PHYSICAL_TEST_ORDER.filter((type) => visible.includes(type) || !!latestByType[type]).map((testType) => {
             const latest = latestByType[testType];
             const canAdd = isAdmin && visible.includes(testType);
             return (
               <li key={testType} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">{PHYSICAL_TEST_LABELS[testType]}</p>
+                  <p className="text-sm font-medium text-ink">{t.labels.physicalTest[testType]}</p>
                   <p className="text-xs text-slate">
-                    {latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : 'No data yet'}
+                    {latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : p.noData}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button variant="ghost" size="sm" onClick={() => setHistoryType(testType)}>
-                    View history
+                    {p.viewHistory}
                   </Button>
                   {canAdd && (
                     <Button variant="secondary" size="sm" onClick={() => setActiveDialogType(testType)}>
-                      Add new
+                      {p.addNew}
                     </Button>
                   )}
                 </div>

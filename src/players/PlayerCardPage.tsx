@@ -11,6 +11,9 @@ import { EditButton } from '../components/EditButton';
 import { StatusChip } from '../components/StatusChip';
 import { listFinishedMatches } from '../matches/matchesApi';
 import { getTeam } from '../teams/teamsApi';
+import { teamGender } from '../teams/teamGender';
+import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import type { Player } from '../types/player';
 import { GuardiansSection } from './GuardiansSection';
@@ -60,22 +63,17 @@ function Tile({
 type PlayerSection = 'skills' | 'matches' | 'physical' | 'plan' | 'contact' | 'privacy';
 const SECTION_ORDER: PlayerSection[] = ['skills', 'matches', 'physical', 'plan', 'contact', 'privacy'];
 const ADMIN_SECTIONS: PlayerSection[] = ['matches', 'privacy'];
-const SECTION_LABEL: Record<PlayerSection, string> = {
-  skills: 'Skills',
-  matches: 'Matches',
-  physical: 'Physical',
-  plan: 'Plan',
-  contact: 'Contact',
-  privacy: 'Privacy',
-};
-
 export function PlayerCardPage() {
-  usePageMeta({ title: 'Player' });
+  const t = useT();
+  const c = t.players.card;
+  const SECTION_LABEL = c.sections;
+  usePageMeta({ title: c.pageTitle });
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const navigate = useNavigate();
   const { appUser, access } = useAuth();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [gender, setGender] = useState<Gender>('mixed');
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -102,9 +100,10 @@ export function PlayerCardPage() {
         }
         setPlayer(fetchedPlayer);
         setIsAdmin(!!fetchedTeam && isTeamAdmin(fetchedTeam, appUser?.email, access));
+        setGender(fetchedTeam ? teamGender(fetchedTeam) : 'mixed');
       })
-      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this player.')));
-  }, [teamId, playerId, appUser?.email, access]);
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError(c.loadError)));
+  }, [teamId, playerId, appUser?.email, access, c.loadError]);
 
   const handleLatestLoaded = useCallback(
     (next: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => setLatestByType(next),
@@ -136,7 +135,7 @@ export function PlayerCardPage() {
   const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
 
   if (notFound) {
-    return <NotFoundState title="Player not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+    return <NotFoundState title={c.notFoundTitle(gender)} message={c.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={c.backToTeam} />;
   }
 
   if (error) {
@@ -147,14 +146,14 @@ export function PlayerCardPage() {
     );
   }
 
-  if (!player || !teamId || !playerId) return <PageSkeleton layout="player" label="Loading player..." />;
+  if (!player || !teamId || !playerId) return <PageSkeleton layout="player" label={c.loading} />;
 
   async function handleDelete() {
     setDeleteError(null);
     try {
       await deletePlayer(teamId!, playerId!);
     } catch {
-      setDeleteError('Could not delete this player. Please try again.');
+      setDeleteError(c.deleteError(gender));
       return;
     }
     navigate(`/teams/${teamId}`, { replace: true });
@@ -167,7 +166,7 @@ export function PlayerCardPage() {
       const consent = await recordPlayerConsent(teamId!, playerId!, appUser.email);
       setPlayer({ ...player!, consent });
     } catch {
-      setConsentError('Could not record consent. Please try again.');
+      setConsentError(c.consentError);
     }
   }
 
@@ -178,7 +177,7 @@ export function PlayerCardPage() {
       await setPhotoConsent(teamId!, playerId!, given, appUser.email);
       setPlayer({ ...player, photoConsent: given, photoConsentAt: given ? new Date() : null, photoConsentBy: given ? appUser.email : null });
     } catch {
-      setPhotoError('Could not update photo consent. Please try again.');
+      setPhotoError(c.photoError);
     }
   }
 
@@ -188,7 +187,7 @@ export function PlayerCardPage() {
       await setPlayerLeftClub(teamId!, playerId!, date);
       setPlayer({ ...player!, leftClubAt: date });
     } catch {
-      setLeftError('Could not update membership. Please try again.');
+      setLeftError(c.leftError);
     }
   }
 
@@ -201,7 +200,7 @@ export function PlayerCardPage() {
       ]);
       downloadPlayerExport(player!, tests, footprint);
     } catch {
-      setExportError("Could not export this player's data. Please try again.");
+      setExportError(c.exportError);
       return;
     }
   }
@@ -216,27 +215,27 @@ export function PlayerCardPage() {
         {/* Always in view: who this is and the numbers at a glance. */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <PlayerIdentityCard player={player} />
+            <PlayerIdentityCard player={player} gender={gender} />
           </div>
           <div className="lg:col-span-8">
             <PlayerKpiTiles player={player} latestByType={latestByType} />
           </div>
         </div>
 
-        <SectionTabs label="Player sections" tabs={sections} active={section} onChange={setSection} />
+        <SectionTabs label={c.sectionsLabel} tabs={sections} active={section} onChange={setSection} />
 
         {/* Every section stays mounted (hidden when inactive): switching never
             refetches, and Physical keeps feeding the KPI tiles above. */}
         <div role="tabpanel" aria-label={SECTION_LABEL.skills} hidden={section !== 'skills'}>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Tile
-              title="Skills"
+              title={c.tiles.skills}
               action={
                 <div className="flex items-center gap-1">
                   {hasSuggestions && (
                     <SuggestionToggle on={showSuggestions} onChange={(on) => { setShowSuggestions(on); writeSuggestionPref(on); }} />
                   )}
-                  {editAction('skills', 'Edit skills')}
+                  {editAction('skills', c.editSkills)}
                 </div>
               }
               className="lg:col-span-2"
@@ -249,37 +248,38 @@ export function PlayerCardPage() {
                 isAdmin={isAdmin}
                 ratings={isAdmin ? ratings : undefined}
                 showSuggestions={showSuggestions}
+                gender={gender}
                 editing={editingSection === 'skills'}
                 onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
               />
             </Tile>
-            <Tile title="Next objective">
+            <Tile title={c.tiles.nextObjective}>
               {next ? (
                 <div>
                   <p className="font-medium text-ink">{next.objective}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <StatusChip status={next.status} />
                     <span className="text-xs text-slate">
-                      {next.targetDate ? `Due ${next.targetDate}` : 'No target date'}
+                      {next.targetDate ? c.due(next.targetDate) : c.noTargetDate}
                     </span>
                   </div>
                   {next.coachComment && <p className="mt-2 text-sm text-slate">{next.coachComment}</p>}
                 </div>
               ) : (
-                <p className="text-sm text-slate">No open short-term objectives.</p>
+                <p className="text-sm text-slate">{c.noOpenObjectives}</p>
               )}
             </Tile>
           </div>
         </div>
         {isAdmin && (
           <div role="tabpanel" aria-label={SECTION_LABEL.matches} hidden={section !== 'matches'}>
-          <Tile title="Match stats">
+          <Tile title={c.tiles.matchStats}>
             <PlayerMatchStatsSection teamId={teamId} season={season} error={matchStatsError} />
           </Tile>
         </div>
         )}
         <div role="tabpanel" aria-label={SECTION_LABEL.physical} hidden={section !== 'physical'}>
-          <Tile title="Physical testing">
+          <Tile title={c.tiles.physicalTesting}>
             <PhysicalTestingSection
               teamId={teamId}
               playerId={playerId}
@@ -290,7 +290,7 @@ export function PlayerCardPage() {
           </Tile>
         </div>
         <div role="tabpanel" aria-label={SECTION_LABEL.plan} hidden={section !== 'plan'}>
-          <Tile title="Development plan" action={editAction('plan', 'Edit plan')}>
+          <Tile title={c.tiles.developmentPlan} action={editAction('plan', c.editPlan)}>
             <DevelopmentPlanEditor
               plan={player.developmentPlan}
               onSave={(plan) =>
@@ -306,18 +306,19 @@ export function PlayerCardPage() {
         </div>
         <div role="tabpanel" aria-label={SECTION_LABEL.contact} hidden={section !== 'contact'}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Tile title="Contact & registration" action={editAction('contact', 'Edit')}>
+            <Tile title={c.tiles.contact} action={editAction('contact', c.edit)}>
               <PlayerContactSection
                 teamId={teamId}
                 playerId={playerId}
                 player={player}
                 onPlayerUpdated={setPlayer}
                 isAdmin={isAdmin}
+                gender={gender}
                 editing={editingSection === 'contact'}
                 onEditingChange={(v) => setEditingSection(v ? 'contact' : null)}
               />
             </Tile>
-            <Tile title="Guardians" action={editAction('guardians', 'Edit')}>
+            <Tile title={c.tiles.guardians} action={editAction('guardians', c.edit)}>
               <GuardiansSection
                 teamId={teamId}
                 playerId={playerId}
@@ -333,17 +334,17 @@ export function PlayerCardPage() {
         {isAdmin && (
           <div role="tabpanel" aria-label={SECTION_LABEL.privacy} hidden={section !== 'privacy'}>
           <div className="max-w-xl">
-            <Tile title="Data & privacy">
+            <Tile title={c.tiles.privacy}>
               <div className="flex h-full flex-col">
                 {player.consent?.given ? (
                   <p className="mb-2 text-sm text-ink">
-                    Guardian consent recorded
-                    {player.consent.date && <span className="tabular-nums"> on {player.consent.date}</span>}
-                    {player.consent.confirmedBy && <> by {player.consent.confirmedBy}</>}.
+                    {c.consentRecorded}
+                    {player.consent.date && <span className="tabular-nums">{c.consentOn}{player.consent.date}</span>}
+                    {player.consent.confirmedBy && <>{c.consentBy}{player.consent.confirmedBy}</>}.
                   </p>
                 ) : (
                   <div className="mb-3 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink">
-                    <p className="font-medium">Guardian consent not recorded</p>
+                    <p className="font-medium">{c.consentMissing}</p>
                     <label className="mt-2 flex items-start gap-2">
                       <input
                         type="checkbox"
@@ -351,7 +352,7 @@ export function PlayerCardPage() {
                         onChange={(e) => setConsentChecked(e.target.checked)}
                         className="mt-1"
                       />
-                      I confirm a parent or legal guardian has consented to storing this player's data, including physical-test measurements and match statistics.
+                      {t.players.shared.consent}
                     </label>
                     <Button
                       variant="secondary"
@@ -360,7 +361,7 @@ export function PlayerCardPage() {
                       disabled={!consentChecked}
                       onClick={() => void handleRecordConsent()}
                     >
-                      Record consent
+                      {c.recordConsent}
                     </Button>
                     {consentError && (
                       <p role="alert" className="mt-2 text-sm text-red">
@@ -370,7 +371,7 @@ export function PlayerCardPage() {
                   </div>
                 )}
                 {(ageFromDob(player.dob ?? '') ?? 0) >= 18 ? (
-                  <p className="mb-3 text-sm text-slate">Adult: photos follow the club's own agreement with the player</p>
+                  <p className="mb-3 text-sm text-slate">{c.adultPhotos}</p>
                 ) : (
                   <div className="mb-3 text-sm text-ink">
                     <label className="flex items-start gap-2">
@@ -380,10 +381,10 @@ export function PlayerCardPage() {
                         onChange={(e) => void handlePhotoConsent(e.target.checked)}
                         className="mt-1"
                       />
-                      Guardian consent to use photos in award cards
+                      {c.photoConsent}
                     </label>
                     {player.photoConsent === true && player.photoConsentBy && (
-                      <p className="mt-1 text-caption text-slate">Recorded by {player.photoConsentBy}.</p>
+                      <p className="mt-1 text-caption text-slate">{c.photoRecordedBy(player.photoConsentBy)}</p>
                     )}
                     {photoError && (
                       <p role="alert" className="mt-2 text-sm text-red">
@@ -393,18 +394,15 @@ export function PlayerCardPage() {
                   </div>
                 )}
                 <p className="text-sm text-slate">
-                  Export produces a JSON file with everything stored about this player: their record, physical tests,
-                  testing-session entries and match stats. Deleting a player erases all of it and removes their name
-                  and number from past match reports.
+                  {c.exportInfo}
                 </p>
                 {player.leftClubAt ? (
                   <div className="mt-3 text-sm text-ink">
                     <p>
-                      Left the club on <span className="tabular-nums">{player.leftClubAt}</span>. Their data is due for
-                      deletion on <span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>.
+                      {c.leftBefore}<span className="tabular-nums">{player.leftClubAt}</span>{c.leftMiddle}<span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>{c.leftAfter}
                     </p>
                     <Button variant="ghost" size="sm" className="mt-1" onClick={() => void handleLeftClub(null)}>
-                      Still in the club
+                      {c.stillInClub}
                     </Button>
                   </div>
                 ) : (
@@ -414,7 +412,7 @@ export function PlayerCardPage() {
                     className="mt-3 self-start"
                     onClick={() => void handleLeftClub(todayIso())}
                   >
-                    Mark as left the club
+                    {c.markLeft}
                   </Button>
                 )}
                 {leftError && (
@@ -424,10 +422,10 @@ export function PlayerCardPage() {
                 )}
                 <div className="mt-auto flex flex-col gap-2 pt-3">
                   <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
-                    Export data (JSON)
+                    {c.exportButton}
                   </Button>
                   <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
-                    Delete player
+                    {c.deleteButton(gender)}
                   </Button>
                 </div>
                 {exportError && (
@@ -444,9 +442,9 @@ export function PlayerCardPage() {
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          title={`Delete ${player.fullName}?`}
-          message="This will permanently delete this player's card (contact info, skills, development plan), their physical tests and testing-session entries, and remove their name and number from past match reports. This cannot be undone."
-          confirmLabel="Yes, delete player"
+          title={c.deleteTitle(player.fullName)}
+          message={c.deleteMessage}
+          confirmLabel={c.deleteConfirm(gender)}
           onConfirm={() => void handleDelete()}
           onCancel={() => setShowDeleteConfirm(false)}
           error={deleteError}

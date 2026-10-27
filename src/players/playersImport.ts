@@ -23,6 +23,23 @@ export interface PlayerImportInput {
   skills: Record<SkillKey, number | null>;
 }
 
+/** What is wrong with a row; `playerImportIssueText` turns it into text. */
+export type PlayerImportIssue =
+  | { code: 'notObject'; row: number }
+  | { code: 'numberRequired'; row: number }
+  | { code: 'fullNameRequired'; row: number }
+  | { code: 'dobFormat'; row: number }
+  | { code: 'mustBeText'; row: number; field: string }
+  | { code: 'positionInvalid'; row: number; allowed: readonly string[] }
+  | { code: 'shirtSizeInvalid'; row: number; allowed: readonly string[] }
+  | { code: 'guardiansNotArray'; row: number }
+  | { code: 'guardianNotObject'; row: number; guardian: number }
+  | { code: 'guardianRelation'; row: number; guardian: number }
+  | { code: 'guardianNameRequired'; row: number; guardian: number }
+  | { code: 'skillsNotObject'; row: number }
+  | { code: 'skillsUnknownKey'; row: number; key: string }
+  | { code: 'skillRange'; row: number; key: string };
+
 const RELATIONS: Guardian['relation'][] = ['mother', 'father', 'other'];
 const POSITION_CATEGORY_VALUES = POSITION_CATEGORIES.map((c) => c.value);
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -55,40 +72,40 @@ function nullSkills(): Record<SkillKey, number | null> {
   );
 }
 
-export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImportInput> {
+export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImportInput, PlayerImportIssue> {
   const inputs: PlayerImportInput[] = [];
-  const errors: string[] = [];
+  const errors: PlayerImportIssue[] = [];
 
   rows.forEach((row, index) => {
     const n = index + 1;
     if (!isPlainObject(row)) {
-      errors.push(`row ${n}: each entry must be a JSON object`);
+      errors.push({ code: 'notObject', row: n });
       return;
     }
     let rowOk = true;
-    const fail = (msg: string) => {
-      errors.push(msg);
+    const fail = (issue: PlayerImportIssue) => {
+      errors.push(issue);
       rowOk = false;
     };
 
     if (!(typeof row.number === 'number' && Number.isFinite(row.number))) {
-      fail(`row ${n}: "number" is required and must be a number`);
+      fail({ code: 'numberRequired', row: n });
     }
 
     const fullName = typeof row.fullName === 'string' ? row.fullName.trim() : '';
-    if (fullName === '') fail(`row ${n}: "fullName" is required`);
+    if (fullName === '') fail({ code: 'fullNameRequired', row: n });
 
     let dob = '';
     if (row.dob !== undefined) {
       if (typeof row.dob === 'string' && DOB_RE.test(row.dob)) dob = row.dob;
-      else fail(`row ${n}: "dob" must be YYYY-MM-DD`);
+      else fail({ code: 'dobFormat', row: n });
     }
 
     const text: Record<string, string> = {};
     for (const field of OPTIONAL_TEXT_FIELDS) {
       if (row[field] === undefined) text[field] = '';
       else if (typeof row[field] === 'string') text[field] = row[field] as string;
-      else fail(`row ${n}: "${field}" must be text`);
+      else fail({ code: 'mustBeText', row: n, field });
     }
 
     let positionCategory: PositionCategory = 'TBD';
@@ -96,7 +113,7 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
       if (POSITION_CATEGORY_VALUES.includes(row.positionCategory as PositionCategory)) {
         positionCategory = row.positionCategory as PositionCategory;
       } else {
-        fail(`row ${n}: "positionCategory" must be one of ${POSITION_CATEGORY_VALUES.join(', ')}`);
+        fail({ code: 'positionInvalid', row: n, allowed: POSITION_CATEGORY_VALUES });
       }
     }
 
@@ -105,26 +122,26 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
       if (SHIRT_SIZES.includes(row.shirtSize as ShirtSize)) {
         shirtSize = row.shirtSize as ShirtSize;
       } else {
-        fail(`row ${n}: "shirtSize" must be one of ${SHIRT_SIZES.join(', ')}`);
+        fail({ code: 'shirtSizeInvalid', row: n, allowed: SHIRT_SIZES });
       }
     }
 
     const guardians: Guardian[] = [];
     if (row.guardians !== undefined) {
       if (!Array.isArray(row.guardians)) {
-        fail(`row ${n}: "guardians" must be an array`);
+        fail({ code: 'guardiansNotArray', row: n });
       } else {
         row.guardians.forEach((g, j) => {
           const gn = j + 1;
           if (!isPlainObject(g)) {
-            fail(`row ${n}: guardian ${gn} must be an object`);
+            fail({ code: 'guardianNotObject', row: n, guardian: gn });
             return;
           }
           if (!(typeof g.relation === 'string' && RELATIONS.includes(g.relation as Guardian['relation']))) {
-            fail(`row ${n}: guardian ${gn} "relation" must be mother, father, or other`);
+            fail({ code: 'guardianRelation', row: n, guardian: gn });
           }
           const gName = typeof g.name === 'string' ? g.name.trim() : '';
-          if (gName === '') fail(`row ${n}: guardian ${gn} "name" is required`);
+          if (gName === '') fail({ code: 'guardianNameRequired', row: n, guardian: gn });
           const gPhone = typeof g.phone === 'string' ? g.phone : '';
           const gEmail = typeof g.email === 'string' ? g.email : '';
           if (rowOk) {
@@ -137,11 +154,11 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
     const skills = nullSkills();
     if (row.skills !== undefined) {
       if (!isPlainObject(row.skills)) {
-        fail(`row ${n}: "skills" must be an object`);
+        fail({ code: 'skillsNotObject', row: n });
       } else {
         for (const [key, value] of Object.entries(row.skills)) {
           if (!(SKILL_KEYS as readonly string[]).includes(key)) {
-            fail(`row ${n}: "skills" has an unknown key "${key}"`);
+            fail({ code: 'skillsUnknownKey', row: n, key });
             continue;
           }
           if (value === null) {
@@ -149,7 +166,7 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
           } else if (typeof value === 'number' && value >= 1 && value <= 10) {
             skills[key as SkillKey] = value;
           } else {
-            fail(`row ${n}: "skills.${key}" must be a number from 1 to 10, or null`);
+            fail({ code: 'skillRange', row: n, key });
           }
         }
       }

@@ -4,6 +4,7 @@ import { Dialog } from '../components/Dialog';
 import { Input, FIELD_CLASS } from '../components/Input';
 import { updatePlayerGuardians } from './playersApi';
 import type { Guardian, Player } from '../types/player';
+import { useT } from '../i18n/I18nProvider';
 
 interface GuardiansSectionProps {
   teamId: string;
@@ -15,12 +16,6 @@ interface GuardiansSectionProps {
   onEditingChange: (editing: boolean) => void;
 }
 
-const RELATION_LABEL: Record<Guardian['relation'], string> = {
-  mother: 'Mother',
-  father: 'Father',
-  other: 'Other',
-};
-
 export function GuardiansSection({
   teamId,
   playerId,
@@ -30,6 +25,8 @@ export function GuardiansSection({
   editing,
   onEditingChange,
 }: GuardiansSectionProps) {
+  const t = useT();
+  const p = t.players;
   const [guardians, setGuardians] = useState<Guardian[]>(player.guardians);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +55,7 @@ export function GuardiansSection({
     try {
       await updatePlayerGuardians(teamId, playerId, guardians);
     } catch {
-      setError('Could not save guardians. Please try again.');
+      setError(p.guardians.error);
       return;
     }
     onPlayerUpdated({ ...player, guardians });
@@ -73,14 +70,14 @@ export function GuardiansSection({
   return (
     <div className="flex h-full flex-col">
       {player.guardians.length === 0 ? (
-        <p className="text-sm text-slate">No guardians on file.</p>
+        <p className="text-sm text-slate">{p.guardians.none}</p>
       ) : (
         <ul className="space-y-3 text-sm">
           {player.guardians.map((guardian, index) => (
             <li key={index} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
               <p className="font-medium text-ink">
                 {guardian.name}
-                <span className="ml-2 font-normal text-slate">{RELATION_LABEL[guardian.relation]}</span>
+                <span className="ml-2 font-normal text-slate">{p.shared.relations[guardian.relation]}</span>
               </p>
               <p className="text-slate">{guardian.phone || '—'}</p>
               <p className="break-all text-slate">{guardian.email || '—'}</p>
@@ -90,12 +87,12 @@ export function GuardiansSection({
       )}
 
       {editing && isAdmin && (
-        <Dialog title="Edit guardians" onClose={handleCancel} guardUnsaved>
-          <form onSubmit={handleSave} aria-label="Edit guardians">
+        <Dialog title={p.guardians.dialogTitle} onClose={handleCancel} guardUnsaved>
+          <form onSubmit={handleSave} aria-label={p.guardians.dialogTitle}>
             {guardians.map((guardian, index) => (
               <div key={index} className="mb-4 rounded-md border border-border p-3">
                 <label htmlFor={`edit-guardian-relation-${index}`} className="mb-1 block text-sm font-medium text-ink">
-                  Relation
+                  {p.shared.relation}
                 </label>
                 <select
                   id={`edit-guardian-relation-${index}`}
@@ -103,13 +100,13 @@ export function GuardiansSection({
                   value={guardian.relation}
                   onChange={(e) => updateGuardian(index, { relation: e.target.value as Guardian['relation'] })}
                 >
-                  <option value="mother">Mother</option>
-                  <option value="father">Father</option>
-                  <option value="other">Other</option>
+                  <option value="mother">{p.shared.relations.mother}</option>
+                  <option value="father">{p.shared.relations.father}</option>
+                  <option value="other">{p.shared.relations.other}</option>
                 </select>
 
                 <label htmlFor={`edit-guardian-name-${index}`} className="mb-1 block text-sm font-medium text-ink">
-                  Guardian name
+                  {p.shared.guardianName}
                 </label>
                 <Input
                   id={`edit-guardian-name-${index}`}
@@ -120,7 +117,7 @@ export function GuardiansSection({
                 />
 
                 <label htmlFor={`edit-guardian-phone-${index}`} className="mb-1 block text-sm font-medium text-ink">
-                  Guardian phone
+                  {p.shared.guardianPhone}
                 </label>
                 <Input
                   id={`edit-guardian-phone-${index}`}
@@ -130,7 +127,7 @@ export function GuardiansSection({
                 />
 
                 <label htmlFor={`edit-guardian-email-${index}`} className="mb-1 block text-sm font-medium text-ink">
-                  Guardian email
+                  {p.shared.guardianEmail}
                 </label>
                 <Input
                   id={`edit-guardian-email-${index}`}
@@ -142,21 +139,21 @@ export function GuardiansSection({
 
                 {guardians.length > 1 && (
                   <Button variant="dangerGhost" size="sm" onClick={() => removeGuardian(index)}>
-                    Remove guardian
+                    {p.shared.removeGuardian}
                   </Button>
                 )}
               </div>
             ))}
             <Button variant="secondary" size="sm" onClick={addGuardian} className="mb-4">
-              + Add guardian
+              {p.shared.addGuardian}
             </Button>
 
             <div className="flex justify-end gap-3">
               <Button variant="ghost" onClick={handleCancel}>
-                Cancel
+                {t.common.cancel}
               </Button>
               <Button variant="primary" type="submit">
-                Save
+                {t.common.save}
               </Button>
             </div>
             {error && (

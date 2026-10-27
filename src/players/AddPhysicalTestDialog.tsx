@@ -8,9 +8,9 @@ import { AttemptsInput } from '../components/AttemptsInput';
 import { computeBodyMassRatio } from './physicalTestMath';
 import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from './physicalTestFieldLogic';
 import { createPhysicalTest, getLatestByType } from './physicalTestsApi';
-import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
 import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
 import { formatNumber } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -29,6 +29,9 @@ export function AddPhysicalTestDialog({
   onClose,
   onSaved,
 }: AddPhysicalTestDialogProps) {
+  const t = useT();
+  const a = t.players.physical.add;
+  const testName = t.labels.physicalTest[testType];
   const [date, setDate] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +88,7 @@ export function AddPhysicalTestDialog({
     };
 
     if (!isPhysicalTestReady(testType, fields)) {
-      setError('Please fill in every attempt before saving.');
+      setError(a.fillAll);
       return;
     }
 
@@ -95,19 +98,19 @@ export function AddPhysicalTestDialog({
       const done = await save(() => createPhysicalTest(teamId, playerId, input, recordedByUid));
       if (!done) return;
     } catch {
-      setError('Could not save the test entry. Please try again.');
+      setError(a.saveError);
       return;
     }
     onSaved();
   }
 
   return (
-    <Dialog title={`Add ${PHYSICAL_TEST_LABELS[testType]}`} onClose={onClose} guardUnsaved mobileSheet>
-      <form onSubmit={handleSubmit} aria-label={`Add ${PHYSICAL_TEST_LABELS[testType]} entry`}>
+    <Dialog title={a.title(testName)} onClose={onClose} guardUnsaved mobileSheet>
+      <form onSubmit={handleSubmit} aria-label={a.formLabel(testName)}>
 
         <div className="mb-4">
           <label htmlFor="physical-test-date" className="mb-1 block text-sm font-medium text-ink">
-            Date
+            {a.date}
           </label>
           <Input id="physical-test-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="w-full" />
         </div>
@@ -116,7 +119,7 @@ export function AddPhysicalTestDialog({
           <>
             <div className="mb-4">
               <label htmlFor="growth-height" className="mb-1 block text-sm font-medium text-ink">
-                Height (cm)
+                {a.heightCm}
               </label>
               <Input
                 id="growth-height"
@@ -130,7 +133,7 @@ export function AddPhysicalTestDialog({
             </div>
             <div className="mb-4">
               <label htmlFor="growth-body-mass" className="mb-1 block text-sm font-medium text-ink">
-                Body mass (kg)
+                {a.bodyMassKg}
               </label>
               <Input
                 id="growth-body-mass"
@@ -146,13 +149,13 @@ export function AddPhysicalTestDialog({
         )}
 
         {testType === 'cmj' && (
-          <AttemptsInput name="cmj" label="Attempt (cm)" values={cmjAttempts} onChange={setCmjAttempts} minCount={3} />
+          <AttemptsInput name="cmj" label={a.attemptCm} values={cmjAttempts} onChange={setCmjAttempts} minCount={3} />
         )}
 
         {testType === 'broadJump' && (
           <AttemptsInput
             name="broad-jump"
-            label="Attempt (cm)"
+            label={a.attemptCm}
             values={broadJumpAttempts}
             onChange={setBroadJumpAttempts}
             minCount={3}
@@ -163,7 +166,7 @@ export function AddPhysicalTestDialog({
           <>
             <div className="mb-4">
               <label htmlFor="standing-reach" className="mb-1 block text-sm font-medium text-ink">
-                Standing reach (cm)
+                {a.standingReachCm}
               </label>
               <Input
                 id="standing-reach"
@@ -177,7 +180,7 @@ export function AddPhysicalTestDialog({
             </div>
             <AttemptsInput
               name="approach-touch"
-              label="Touch attempt (cm)"
+              label={a.touchAttemptCm}
               values={touchAttempts}
               onChange={setTouchAttempts}
               minCount={3}
@@ -188,7 +191,7 @@ export function AddPhysicalTestDialog({
         {testType === 'sprint10m' && (
           <AttemptsInput
             name="sprint"
-            label="Attempt (s)"
+            label={a.attemptS}
             values={sprintAttempts}
             onChange={setSprintAttempts}
             minCount={2}
@@ -200,7 +203,7 @@ export function AddPhysicalTestDialog({
           <>
             <div className="mb-4">
               <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">
-                Right-first (s)
+                {a.rightFirstS}
               </label>
               <Input
                 id="shuttle-right"
@@ -214,7 +217,7 @@ export function AddPhysicalTestDialog({
             </div>
             <div className="mb-4">
               <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">
-                Left-first (s)
+                {a.leftFirstS}
               </label>
               <Input
                 id="shuttle-left"
@@ -232,7 +235,7 @@ export function AddPhysicalTestDialog({
         {testType === 'reaction' && (
           <AttemptsInput
             name="reaction"
-            label="Drop attempt (cm)"
+            label={a.dropAttemptCm}
             values={reactionAttempts}
             onChange={setReactionAttempts}
             minCount={5}
@@ -243,7 +246,7 @@ export function AddPhysicalTestDialog({
           <>
             <div className="mb-4">
               <label htmlFor="strength-mode" className="mb-1 block text-sm font-medium text-ink">
-                Mode
+                {a.mode}
               </label>
               <select
                 id="strength-mode"
@@ -251,15 +254,15 @@ export function AddPhysicalTestDialog({
                 value={strengthMode}
                 onChange={(e) => setStrengthMode(e.target.value as 'weighted' | 'bodyweight')}
               >
-                <option value="weighted">Weighted</option>
-                <option value="bodyweight">Bodyweight</option>
+                <option value="weighted">{a.weighted}</option>
+                <option value="bodyweight">{a.bodyweight}</option>
               </select>
             </div>
             {strengthMode === 'weighted' ? (
               <>
                 <div className="mb-4">
                   <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">
-                    Exercise
+                    {a.exercise}
                   </label>
                   <select
                     id="strength-exercise"
@@ -267,14 +270,14 @@ export function AddPhysicalTestDialog({
                     value={weightedExercise}
                     onChange={(e) => setWeightedExercise(e.target.value as WeightedExercise)}
                   >
-                    <option value="trapBarDeadlift">Trap-bar deadlift</option>
-                    <option value="squat">Squat</option>
-                    <option value="gobletSquat">Goblet squat</option>
+                    <option value="trapBarDeadlift">{t.labels.strengthExercise.trapBarDeadlift}</option>
+                    <option value="squat">{t.labels.strengthExercise.squat}</option>
+                    <option value="gobletSquat">{t.labels.strengthExercise.gobletSquat}</option>
                   </select>
                 </div>
                 <div className="mb-4">
                   <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">
-                    Weight (kg)
+                    {a.weightKg}
                   </label>
                   <Input
                     id="strength-weight"
@@ -288,15 +291,15 @@ export function AddPhysicalTestDialog({
                 </div>
                 <p className="mb-4 text-sm text-slate">
                   {latestBodyMassKg !== null && weightKg !== ''
-                    ? `Body-mass ratio: ${formatNumber(computeBodyMassRatio(Number(weightKg), latestBodyMassKg), 2)}`
-                    : 'Body-mass ratio needs a Growth entry with body mass on file.'}
+                    ? a.ratio(formatNumber(computeBodyMassRatio(Number(weightKg), latestBodyMassKg), 2))
+                    : a.ratioNeeds}
                 </p>
               </>
             ) : (
               <>
                 <div className="mb-4">
                   <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">
-                    Exercise
+                    {a.exercise}
                   </label>
                   <select
                     id="strength-bodyweight-exercise"
@@ -304,13 +307,13 @@ export function AddPhysicalTestDialog({
                     value={bodyweightExercise}
                     onChange={(e) => setBodyweightExercise(e.target.value as BodyweightExercise)}
                   >
-                    <option value="pushUps">Push-ups</option>
-                    <option value="splitSquat">Split squat</option>
+                    <option value="pushUps">{t.labels.strengthExercise.pushUps}</option>
+                    <option value="splitSquat">{t.labels.strengthExercise.splitSquat}</option>
                   </select>
                 </div>
                 <div className="mb-4">
                   <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">
-                    Reps
+                    {a.reps}
                   </label>
                   <Input id="strength-reps" type="number" value={reps} onChange={(e) => setReps(e.target.value)} required className="w-full" />
                 </div>
@@ -321,7 +324,7 @@ export function AddPhysicalTestDialog({
 
         <div className="mb-4 mt-4">
           <label htmlFor="physical-test-notes" className="mb-1 block text-sm font-medium text-ink">
-            Notes
+            {a.notes}
           </label>
           <Textarea id="physical-test-notes" aria-describedby="physical-test-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" />
           <HealthHint id="physical-test-notes-hint" />
@@ -329,10 +332,10 @@ export function AddPhysicalTestDialog({
 
         <div className="flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t.players.shared.saving : t.common.save}
           </Button>
         </div>
         {error && (

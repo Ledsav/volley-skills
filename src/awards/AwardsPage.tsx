@@ -33,6 +33,8 @@ import { resolveAwards, revealable, type ResolvedAward } from './resolveAwards';
 import { ageFromDob } from '../players/age';
 import { photoAllowed } from './photoGate';
 import { formatDate } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
+import { teamGender } from '../teams/teamGender';
 
 type Load =
   | { state: 'loading' }
@@ -83,6 +85,8 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const { teamId = '', matchId = '' } = useParams();
   const { firebaseUser, appUser, access, club } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
+  const ta = t.awards.page;
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [config, setConfig] = useState<AwardsInput>(EMPTY_AWARDS);
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'offline' | 'error'>('saved');
@@ -110,7 +114,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   useEffect(() => {
     target.current = { scope, teamId, matchId, uid: firebaseUser?.uid ?? '' };
   });
-  usePageMeta({ title: scope === 'season' ? 'Season awards' : 'Match awards' });
+  usePageMeta({ title: scope === 'season' ? ta.titleSeason : ta.titleMatch });
 
   useEffect(() => {
     let cancelled = false;
@@ -188,10 +192,10 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
 
   const ready = load.state === 'ready' ? load : null;
   const awards: ResolvedAward[] = useMemo(
-    () => (ready ? resolveAwards(scope, ready.matches, config, ready.people) : []),
+    () => (ready ? resolveAwards(scope, ready.matches, config, ready.people, teamGender(ready.team)) : []),
     [ready, scope, config],
   );
-  const heading = ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent} · ${fmtDate(ready.match!.date)}`) : '';
+  const heading = ready ? (scope === 'season' ? ta.seasonHeading(ready.team.season) : ta.matchHeading(ready.match!.opponent, fmtDate(ready.match!.date))) : '';
 
   const cardFor = useCallback((a: ResolvedAward): CardModel | null => {
     if (!ready || !a.winner) return null;
@@ -222,14 +226,14 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   const palette = useMemo(() => selectedPalette(palettePrefs), [palettePrefs]);
   const stats = useMemo(() => (ready ? storyStats(scope, ready.matches, ready.people) : []), [ready, scope]);
   const slides = useMemo(() => buildStory({
-    introTitle: ready ? (scope === 'season' ? `Season ${ready.team.season}` : `vs ${ready.match!.opponent}`) : '',
+    introTitle: ready ? (scope === 'season' ? ta.seasonHeading(ready.team.season) : ta.matchIntro(ready.match!.opponent)) : '',
     teamName: ready?.team.name ?? '', stats, awardCount: cards.length, includeStory,
-  }), [ready, scope, stats, cards.length, includeStory]);
+  }), [ready, scope, stats, cards.length, includeStory, ta]);
   const colorsFor = useCallback((key: string) => {
     const i = cards.findIndex((c) => c.key === key);
     return slideColors(palette, colorIndexForAward(slides, Math.max(0, i)));
   }, [cards, palette, slides]);
-  const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: club?.name ?? '' }), [palette, cards, artFor, club]);
+  const deps: StoryDeps = useMemo(() => ({ palette, cards, artFor, clubName: club?.name ?? '', winnersTitle: t.awards.present.summaryTitle }), [palette, cards, artFor, club, t]);
 
   const dropCutout = useCallback((key: string) => {
     const next = new Map(cutoutsRef.current);
@@ -273,7 +277,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       const blob = await renderPng((ctx) => { renderStoryFrame(ctx, slides, slides.length - 1, 1e9, deps, true, null); });
       await shareOrDownload([new File([blob], cardFileName('summary', fileCtx(ready)), { type: 'image/png' })], heading);
     } catch {
-      setNotice('Could not export the summary card. Please try again.');
+      setNotice(ta.exportSummaryError);
     }
   }
 
@@ -294,7 +298,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       const name = cardFileName('story', fileCtx(ready)).replace(/\.png$/, `.${videoExtension(blob.type)}`);
       setRecording((r) => (r ? { ...r, progress: 1, video: new File([blob], name, { type: blob.type }) } : r));
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') setNotice('Could not record the video. Please try again.');
+      if ((e as Error).name !== 'AbortError') setNotice(ta.recordError);
       setRecording(null);
     } finally {
       recordingCtrl.current = null;
@@ -307,7 +311,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     try {
       await doExport(ready, keys);
     } catch {
-      setNotice('Could not export the cards. Please try again.');
+      setNotice(ta.exportError);
     }
   }
 
@@ -323,14 +327,14 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     if (files.length) await shareOrDownload(files, heading);
   }
 
-  if (load.state === 'loading') return <p className="p-6 text-slate">Loading awards…</p>;
-  if (load.state === 'notFound') return <NotFoundState title="Awards not found" message="The team or match may not exist, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
-  if (load.state === 'notFinished') return <NotFoundState title="Match awards" message="Awards are available once the match is finished." backTo={`/teams/${teamId}/matches/${matchId}`} backLabel="Back to match" />;
+  if (load.state === 'loading') return <p className="p-6 text-slate">{ta.loading}</p>;
+  if (load.state === 'notFound') return <NotFoundState title={ta.notFoundTitle} message={ta.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={ta.backToTeam} />;
+  if (load.state === 'notFinished') return <NotFoundState title={ta.titleMatch} message={ta.notFinishedMessage} backTo={`/teams/${teamId}/matches/${matchId}`} backLabel={ta.backToMatch} />;
   if (load.state === 'error') {
     return (
       <div className="p-6">
-        <p role="alert" className="text-red">Could not load awards.</p>
-        <Button variant="secondary" className="mt-3" onClick={() => { setLoad({ state: 'loading' }); setAttempt((n) => n + 1); }}>Try again</Button>
+        <p role="alert" className="text-red">{ta.loadError}</p>
+        <Button variant="secondary" className="mt-3" onClick={() => { setLoad({ state: 'loading' }); setAttempt((n) => n + 1); }}>{ta.tryAgain}</Button>
       </div>
     );
   }
@@ -356,7 +360,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       onPalettePrefs={(p) => { setPalettePrefs(p); writePalettePrefs(p); }}
       includeStory={includeStory}
       onIncludeStory={(on) => { setIncludeStory(on); writeStoryPref(on); }}
-      storyLabel={scope === 'season' ? 'Include season story' : 'Include match story'}
+      storyLabel={scope === 'season' ? ta.includeSeasonStory : ta.includeMatchStory}
       colorsFor={colorsFor}
       hasBackground={!!background}
       notice={notice}
@@ -378,19 +382,19 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
           c.getContext('2d')!.drawImage(bmp, 0, 0, w, h);
           bmp.close();
           swap(c);
-        }).catch(() => setNotice('Could not load that background image.'));
+        }).catch(() => setNotice(ta.backgroundError));
       }}
       photos={livePhotos}
       branding={branding}
       onClubLogo={(file) => {
         setNotice(null);
         if (!file) { if (clubLogo) clubLogo.width = 0; setClubLogo(null); return; }
-        void loadLogos([file]).then(([c]) => setClubLogo(c)).catch(() => setNotice('Could not load that logo.'));
+        void loadLogos([file]).then(([c]) => setClubLogo(c)).catch(() => setNotice(ta.logoError));
       }}
       onAddSponsors={(files) => {
         setNotice(null);
         void loadLogos(files.slice(0, MAX_SPONSORS)).then((cs) => setSponsors((cur) => [...cur, ...cs].slice(0, MAX_SPONSORS)))
-          .catch(() => setNotice('Could not load that logo.'));
+          .catch(() => setNotice(ta.logoError));
       }}
       onRemoveSponsor={(i) => setSponsors((cur) => { cur[i].width = 0; return cur.filter((_, j) => j !== i); })}
       onLogosMono={setLogosMono}
@@ -421,32 +425,32 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />
     {recording && !recording.video && (
-      <Dialog title="Recording video" onClose={() => recording.ctrl.abort()}
-        footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>Cancel</Button>}>
-        <p className="text-sm text-slate">Playing the story once on this device. Keep this tab open.</p>
-        <progress className="mt-3 w-full" max={1} value={recording.progress} aria-label="Recording progress" />
+      <Dialog title={ta.recordingTitle} onClose={() => recording.ctrl.abort()}
+        footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>{t.common.cancel}</Button>}>
+        <p className="text-sm text-slate">{ta.recordingBody}</p>
+        <progress className="mt-3 w-full" max={1} value={recording.progress} aria-label={ta.recordingProgress} />
       </Dialog>
     )}
     {recording?.video && (
-      <Dialog title="Video ready" onClose={() => setRecording(null)}
+      <Dialog title={ta.videoReadyTitle} onClose={() => setRecording(null)}
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRecording(null)}>Close</Button>
+            <Button variant="ghost" onClick={() => setRecording(null)}>{t.common.close}</Button>
             <Button variant="primary" onClick={() => {
               const file = recording.video!;
               setRecording(null);
-              void shareOrDownload([file], heading).catch(() => setNotice('Could not share the video. Please try again.'));
-            }}>Share video</Button>
+              void shareOrDownload([file], heading).catch(() => setNotice(ta.shareVideoError));
+            }}>{ta.shareVideo}</Button>
           </div>
         }>
-        <p className="text-sm text-slate">The video is ready on this device. Share it with the team, or close to discard it.</p>
+        <p className="text-sm text-slate">{ta.videoReadyBody}</p>
       </Dialog>
     )}
     {pendingShare && (
       <ConfirmDialog
-        title="Share award cards"
-        message="You're about to share images of minors. Share them only within the team."
-        confirmLabel="Share"
+        title={ta.shareTitle}
+        message={ta.shareMessage}
+        confirmLabel={ta.share}
         onCancel={() => setPendingShare(null)}
         onConfirm={() => { markShareWarned(); const run = pendingShare; setPendingShare(null); run(); }}
       />

@@ -3,6 +3,7 @@ import type { AwardId, AwardScope, AwardsInput, CustomAward } from '../types/awa
 import type { Match } from '../types/match';
 import { AWARDS_FOR, rankAward, type Ranked } from './awardRules';
 import { getT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
 
 export interface ResolvedAward {
   key: string; title: string; kind: 'stats' | 'custom';
@@ -16,9 +17,9 @@ export function defaultOrder(scope: AwardScope, custom: CustomAward[]): string[]
   return [...stats, ...custom.map((c) => c.id), 'mvp'];
 }
 
-const statLine = (r: Ranked) => `${r.display}${r.attempts !== null ? ` · ${r.attempts} att.` : ''}`;
+const statLine = (r: Ranked) => `${r.display}${r.attempts !== null ? ` · ${getT().awards.statLine.attempts(r.attempts)}` : ''}`;
 
-export function resolveAwards(scope: AwardScope, matches: Match[], config: AwardsInput | null, people: Map<string, Person>): ResolvedAward[] {
+export function resolveAwards(scope: AwardScope, matches: Match[], config: AwardsInput | null, people: Map<string, Person>, g: Gender = 'mixed'): ResolvedAward[] {
   const cfg = config ?? { picks: {}, custom: [], order: [] };
   const person = (id: string) => people.get(id) ?? UNKNOWN_PERSON(id);
   const byKey = new Map<string, ResolvedAward>();
@@ -30,8 +31,7 @@ export function resolveAwards(scope: AwardScope, matches: Match[], config: Award
     const chosenId = pick?.playerId ?? suggested?.playerId ?? null;
     const overridden = !!pick?.playerId && pick.playerId !== suggested?.playerId;
     byKey.set(id, {
-      // TODO(i18n T8): teamGender(team)
-      key: id, title: getT().labels.awardTitle[id]('mixed'), kind: 'stats',
+      key: id, title: getT().labels.awardTitle[id](g), kind: 'stats',
       winner: chosenId ? person(chosenId) : null,
       statLine: !overridden && suggested ? statLine(suggested) : null,
       suggested, runnersUp: ranking.ranked.slice(1, 3),

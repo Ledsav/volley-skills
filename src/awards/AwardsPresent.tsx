@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Maximize, X } from 'lucide-react';
 import { CARD_H, CARD_W } from './card/drawAwardCard';
 import { renderStoryFrame, type PresentCard, type StoryDeps } from './card/drawSlide';
 import { slideColors } from './palette';
+import { useT } from '../i18n/I18nProvider';
+import type { Catalog } from '../i18n/catalog';
 import { sceneProgress, type Slide } from './story/buildStory';
 
 function useReducedMotion(): boolean {
@@ -28,18 +30,19 @@ function useWakeLock() {
 }
 
 
-function slideAnnouncement(slide: Slide, cards: PresentCard[]): string {
+function slideAnnouncement(slide: Slide, cards: PresentCard[], t: Catalog['awards']['present'], winnersTitle: string): string {
   switch (slide.kind) {
-    case 'intro': return `${slide.title} — ${slide.subtitle}`;
-    case 'stat': return `${slide.stat.kicker}: ${slide.stat.big}${slide.stat.bigSuffix} ${slide.stat.caption}`;
+    case 'intro': return t.intro(slide.title, slide.subtitle);
+    case 'stat': return t.stat(slide.stat.kicker, `${slide.stat.big}${slide.stat.bigSuffix}`, slide.stat.caption);
     case 'awardTitle':
     case 'awardSuspense': return cards[slide.awardIndex].title;
-    case 'awardReveal': return `${cards[slide.awardIndex].title}: ${cards[slide.awardIndex].model.name}`;
-    case 'summary': return `Winners: ${cards.map((c) => `${c.title} — ${c.model.name}`).join(', ')}`;
+    case 'awardReveal': return t.reveal(cards[slide.awardIndex].title, cards[slide.awardIndex].model.name);
+    case 'summary': return t.summary(winnersTitle, cards.map((c) => t.summaryRow(c.title, c.model.name)).join(', '));
   }
 }
 
 export function AwardsPresent({ slides, deps, onExit }: { slides: Slide[]; deps: StoryDeps; onExit: () => void }) {
+  const t = useT().awards.present;
   const [index, setIndex] = useState(0);
   const prevIndex = useRef<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -103,12 +106,12 @@ export function AwardsPresent({ slides, deps, onExit }: { slides: Slide[]; deps:
   return (
     <div ref={rootRef} className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: colors.bg }}
       onPointerMove={() => setControlsVisible(true)}>
-      <p role="status" aria-live="polite" className="sr-only">{slideAnnouncement(slide, deps.cards)}</p>
+      <p role="status" aria-live="polite" className="sr-only">{slideAnnouncement(slide, deps.cards, t, deps.winnersTitle)}</p>
 
       {/* Letterboxed 9:16; tap halves = back / next. */}
       <div className="relative aspect-[9/16] h-full max-w-full">
         <canvas ref={canvasRef} width={CARD_W} height={CARD_H} className="h-full w-full object-contain" aria-hidden="true" />
-        <div role="progressbar" aria-label="Presentation progress" aria-valuemin={1} aria-valuemax={progress.scenes} aria-valuenow={progress.current + 1}
+        <div role="progressbar" aria-label={t.progress} aria-valuemin={1} aria-valuemax={progress.scenes} aria-valuenow={progress.current + 1}
           className="pointer-events-none absolute inset-x-3 top-3 flex gap-1">
           {Array.from({ length: progress.scenes }, (_, i) => (
             <span key={i} className="h-1 flex-1 overflow-hidden rounded-full" style={{ background: `${colors.text}40` }}>
@@ -117,15 +120,15 @@ export function AwardsPresent({ slides, deps, onExit }: { slides: Slide[]; deps:
             </span>
           ))}
         </div>
-        <button type="button" aria-label="Previous" className="absolute inset-y-0 left-0 w-1/2 cursor-w-resize" onClick={back} />
-        <button type="button" aria-label="Next" className="absolute inset-y-0 right-0 w-1/2 cursor-e-resize" onClick={next} />
+        <button type="button" aria-label={t.previous} className="absolute inset-y-0 left-0 w-1/2 cursor-w-resize" onClick={back} />
+        <button type="button" aria-label={t.next} className="absolute inset-y-0 right-0 w-1/2 cursor-e-resize" onClick={next} />
       </div>
 
       <div className={`absolute right-4 top-4 flex gap-2 transition-opacity ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <button type="button" onClick={back} aria-label="Previous slide" className="rounded-full bg-black/40 p-3 text-white"><ChevronLeft size={20} /></button>
-        <button type="button" onClick={next} aria-label="Next slide" className="rounded-full bg-black/40 p-3 text-white"><ChevronRight size={20} /></button>
-        <button type="button" onClick={fullscreen} aria-label="Fullscreen" className="rounded-full bg-black/40 p-3 text-white"><Maximize size={20} /></button>
-        <button type="button" onClick={onExit} aria-label="Exit presentation" className="rounded-full bg-black/40 p-3 text-white"><X size={20} /></button>
+        <button type="button" onClick={back} aria-label={t.previousSlide} className="rounded-full bg-black/40 p-3 text-white"><ChevronLeft size={20} /></button>
+        <button type="button" onClick={next} aria-label={t.nextSlide} className="rounded-full bg-black/40 p-3 text-white"><ChevronRight size={20} /></button>
+        <button type="button" onClick={fullscreen} aria-label={t.fullscreen} className="rounded-full bg-black/40 p-3 text-white"><Maximize size={20} /></button>
+        <button type="button" onClick={onExit} aria-label={t.exit} className="rounded-full bg-black/40 p-3 text-white"><X size={20} /></button>
       </div>
     </div>
   );

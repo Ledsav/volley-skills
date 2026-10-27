@@ -14,7 +14,7 @@ const deps: StoryDeps = {
   palette: PRESET_PALETTES[0],
   cards: [{ key: 'mvp', title: 'MVP', model: model('mvp', 'Ana L.') }, { key: 'server', title: 'Best server', model: model('server', 'Bea S.') }],
   artFor: () => ({ photo: null, cutout: null, background: null }),
-  clubName: 'Demo VC',
+  clubName: 'Demo VC', winnersTitle: 'Winners',
 };
 const stat: StoryStat = { id: 'strength', kicker: 'Side-out', big: 68, bigSuffix: '%', caption: 'of rallies won on the opponent’s serve', detail: null };
 const slides = buildStory({ introTitle: 'Season 2026-27', teamName: 'U17', stats: [stat], awardCount: 2, includeStory: true });

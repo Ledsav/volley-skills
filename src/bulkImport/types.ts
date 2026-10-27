@@ -1,6 +1,11 @@
-export interface ValidationResult<TInput> {
+/**
+ * `TIssue` is whatever a validator reports for a row. Validators that have been
+ * converted return `{ code, … }` objects the UI maps to text; the rest still
+ * return ready-made English strings (the default).
+ */
+export interface ValidationResult<TInput, TIssue = string> {
   /** Parsed + normalised rows, order preserved. Empty when `errors` is non-empty. */
   inputs: TInput[];
-  /** Human-readable, 1-indexed messages. Empty on success. */
-  errors: string[];
+  /** One issue per problem, 1-indexed rows. Empty on success. */
+  errors: TIssue[];
 }

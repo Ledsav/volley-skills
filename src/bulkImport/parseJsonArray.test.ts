@@ -3,31 +3,31 @@ import { parseJsonArray, isPlainObject, MAX_IMPORT } from './parseJsonArray';
 
 describe('parseJsonArray', () => {
   it('rejects blank input', () => {
-    expect(parseJsonArray('   ')).toEqual({ ok: false, error: 'paste or upload some JSON first' });
+    expect(parseJsonArray('   ')).toEqual({ ok: false, error: { code: 'blank' } });
   });
 
   it('rejects invalid JSON with the parser message', () => {
     const result = parseJsonArray('[{bad}]');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/^that is not valid JSON: /i);
+    if (!result.ok) expect(result.error).toMatchObject({ code: 'invalidJson', message: expect.any(String) });
   });
 
   it('rejects a non-array top level', () => {
     expect(parseJsonArray('{"name":"x"}')).toEqual({
       ok: false,
-      error: 'the top level must be a JSON array (square brackets)',
+      error: { code: 'notArray' },
     });
   });
 
   it('rejects an empty array', () => {
-    expect(parseJsonArray('[]')).toEqual({ ok: false, error: 'the array is empty — nothing to import' });
+    expect(parseJsonArray('[]')).toEqual({ ok: false, error: { code: 'empty' } });
   });
 
   it('rejects more than MAX_IMPORT entries', () => {
     const many = JSON.stringify(new Array(MAX_IMPORT + 1).fill({ a: 1 }));
     expect(parseJsonArray(many)).toEqual({
       ok: false,
-      error: 'import is limited to 100 entries at a time; split the file into smaller batches',
+      error: { code: 'tooMany', max: 100 },
     });
   });
 

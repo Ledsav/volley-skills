@@ -26,12 +26,12 @@ describe('toDraftScene', () => {
       items: [{ type: 'ladder', x: 1, y: 1, rungs: 4, length: 10 }, { type: 'arrow', from: { x: 1 } }, { type: 'cone', x: 20, y: 30 }, 'junk'],
     });
     expect(scene?.items.map((i) => i.type)).toEqual(['cone']);
-    expect(issues).toEqual(['3 diagram items were dropped.']);
+    expect(issues).toEqual([{ code: 'itemsDropped', n: 3 }]);
   });
 
   it('keeps text when no item survives', () => {
-    expect(toDraftScene({ court: 'full', items: [{ type: 'arrow' }] })).toEqual({ scene: null, issues: ['The diagram could not be used.'] });
-    expect(toDraftScene(undefined)).toEqual({ scene: null, issues: ['No diagram was proposed.'] });
+    expect(toDraftScene({ court: 'full', items: [{ type: 'arrow' }] })).toEqual({ scene: null, issues: [{ code: 'diagramUnusable' }] });
+    expect(toDraftScene(undefined)).toEqual({ scene: null, issues: [{ code: 'noDiagram' }] });
   });
 
   it('defaults an unknown court to full and caps the item count', () => {
@@ -55,7 +55,7 @@ describe('validateExerciseDraft', () => {
   it('marks an unknown category for the coach to pick', () => {
     const d = validateExerciseDraft({ name: 'X', category: 'blocking', description: '' });
     expect(d?.category).toBeNull();
-    expect(d?.issues).toContain('Pick a category.');
+    expect(d?.issues).toContainEqual({ code: 'pickCategory' });
   });
 
   it('rejects a proposal without a name', () => {
@@ -106,7 +106,7 @@ describe('validateTrainingProposal', () => {
   it('drops unknown and whitespace-padded ids', () => {
     const d = validateTrainingProposal({ name: 'T', steps: [{ exerciseId: ' ex-1 ', minutes: 10 }, { exerciseId: 'made-up', minutes: 10 }, { exerciseId: 'ex-2', minutes: 10 }] }, opts);
     expect(d.steps).toHaveLength(1);
-    expect(d.issues).toEqual(['2 steps used exercises that are not in the library and were dropped.']);
+    expect(d.issues).toEqual([{ code: 'stepsNotInLibrary', n: 2 }]);
   });
 
   it('drops new exercises when they are not allowed or have no valid category', () => {
@@ -114,7 +114,7 @@ describe('validateTrainingProposal', () => {
     expect(validateTrainingProposal({ name: 'T', steps }, { ...opts, allowNew: false }).steps).toHaveLength(1);
     const allowed = validateTrainingProposal({ name: 'T', steps }, opts);
     expect(allowed.steps.map((s) => s.kind)).toEqual(['new', 'library']);
-    expect(allowed.issues).toContain('1 new exercise had no valid category and was dropped.');
+    expect(allowed.issues).toContainEqual({ code: 'newNoCategory', n: 1 });
   });
 
   it('falls back to a default name, caps steps at 20 and rejects an empty plan', () => {

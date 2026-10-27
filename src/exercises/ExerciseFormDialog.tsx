@@ -13,7 +13,7 @@ import { parseOptionalInt } from '../components/parseOptionalInt';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
-import { EXERCISE_FOCUSES, EXERCISE_NAME_EXAMPLE } from '../trainings/naming';
+import { exerciseFocusLabels, exerciseNameExample } from '../trainings/naming';
 import { useT } from '../i18n/I18nProvider';
 
 const FORM_ID = 'exercise-form';
@@ -135,11 +135,11 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           id="exercise-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={EXERCISE_NAME_EXAMPLE}
+          placeholder={exerciseNameExample()}
           aria-describedby="exercise-name-hint"
         />
         <p id="exercise-name-hint" className="mt-1 text-xs text-slate">
-          {f.nameHint(EXERCISE_NAME_EXAMPLE, EXERCISE_FOCUSES.join(', '))}
+          {f.nameHint(exerciseNameExample(), exerciseFocusLabels().join(', '))}
         </p>
 
         <label htmlFor="exercise-category" className="mb-1 mt-4 block text-sm font-medium text-ink">

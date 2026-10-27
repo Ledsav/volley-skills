@@ -20,6 +20,7 @@ import { TrainingProposalReview } from './TrainingProposalReview';
 import { DRAFT_LIMITS, type TrainingDraft } from './types';
 import { validateTrainingProposal } from './validateDraft';
 import { useT } from '../i18n/I18nProvider';
+import { draftSaveErrorText } from './draftMessages';
 
 interface Props {
   onClose: () => void;
@@ -47,14 +48,18 @@ function toEntries(draft: TrainingDraft): ExerciseDetailEntry[] {
   );
 }
 
-function saveErrorText(e: unknown) {
-  if (e instanceof OfflineError) return "You're offline. Saving needs a connection.";
-  if (e instanceof DraftSaveError) return e.message;
-  return 'Could not save. Please try again.';
-}
-
 export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: Props) {
-  const lb = useT().labels;
+  const catalog = useT();
+  const lb = catalog.labels;
+  const t = catalog.aiDraft;
+  const td = t.trainingDialog;
+  const cancel = catalog.common.cancel;
+  const saveErrorText = (e: unknown) =>
+    e instanceof OfflineError
+      ? t.saveErrors.offlineTraining
+      : e instanceof DraftSaveError
+        ? draftSaveErrorText(e.issue, t)
+        : catalog.common.couldNotSave;
   const { firebaseUser, access } = useAuth();
   // New exercises can only be created by coaches who can write the exercise library.
   const canWriteExercises = !!access?.sections.exercises;
@@ -156,72 +161,72 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
 
   const footer = generating ? (
     <Button variant="secondary" onClick={cancelGenerate}>
-      Cancel
+      {cancel}
     </Button>
   ) : draft ? (
     <>
       <Button variant="secondary" className="mr-auto" onClick={() => void generate()}>
-        Regenerate
+        {t.regenerate}
       </Button>
       <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        Cancel
+        {cancel}
       </Button>
       <Button variant="secondary" onClick={() => void handleOpenInBuilder()} disabled={!canSave}>
-        Open in builder
+        {td.openInBuilder}
       </Button>
       <Button variant="primary" onClick={() => void handleSave()} disabled={!canSave}>
-        {saving ? 'Saving…' : 'Save'}
+        {saving ? t.saving : catalog.common.save}
       </Button>
     </>
   ) : (
     <>
       <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        Cancel
+        {cancel}
       </Button>
       <Button variant="primary" onClick={() => void generate()} disabled={!goal.trim()}>
-        Generate
+        {t.generate}
       </Button>
     </>
   );
 
   return (
-    <Dialog title="Draft a training with AI" size="lg" mobileSheet dirty={draft !== null} onClose={onClose} footer={footer}>
+    <Dialog title={td.title} size="lg" mobileSheet dirty={draft !== null} onClose={onClose} footer={footer}>
       <div className="flex flex-col gap-4">
         {!draft && (
           <>
             <div>
               <label htmlFor="tdraft-goal" className="mb-1 block text-sm font-medium text-ink">
-                Goal
+                {td.goal}
               </label>
               <Textarea
                 id="tdraft-goal"
                 rows={3}
                 maxLength={DRAFT_LIMITS.requestMax}
-                placeholder="Serve receive under pressure, 12 players, one court"
+                placeholder={td.goalPlaceholder}
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
               />
               <p className="mt-1 text-xs text-slate">
-                Don&apos;t type names or other personal details — this text is sent to your AI provider.
+                {td.privacy}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="tdraft-age-in" className="mb-1 block text-sm font-medium text-ink">
-                  Age group
+                  {td.ageGroup}
                 </label>
                 <Input id="tdraft-age-in" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} />
               </div>
               <div>
                 <label htmlFor="tdraft-min" className="mb-1 block text-sm font-medium text-ink">
-                  Total minutes
+                  {td.totalMinutes}
                 </label>
                 <NumberField id="tdraft-min" min={30} max={180} value={minutes} onChange={setMinutes} />
               </div>
             </div>
             <div>
               <label htmlFor="tdraft-players" className="mb-1 block text-sm font-medium text-ink">
-                Suggested players
+                {td.suggestedPlayers}
               </label>
               <Input
                 id="tdraft-players"
@@ -231,11 +236,11 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                 onChange={(e) => setPlayersText(e.target.value)}
                 className="w-24"
               />
-              <p className="mt-1 text-xs text-slate">Optional. The draft only uses drills this many players (±3) can run.</p>
+              <p className="mt-1 text-xs text-slate">{td.suggestedPlayersHint}</p>
             </div>
             <div>
-              <span className="mb-1 block text-sm font-medium text-ink">Targets</span>
-              <div role="group" aria-label="Targets" className="flex flex-wrap gap-1.5">
+              <span className="mb-1 block text-sm font-medium text-ink">{td.targets}</span>
+              <div role="group" aria-label={td.targets} className="flex flex-wrap gap-1.5">
                 {EXERCISE_CATEGORIES.map((c) => {
                   const active = targets.includes(c.key);
                   return (
@@ -263,7 +268,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
             {canWriteExercises && (
               <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
                 <input type="checkbox" className="h-4 w-4" checked={allowNew} onChange={(e) => setAllowNew(e.target.checked)} />
-                Allow new exercises
+                {td.allowNew}
               </label>
             )}
           </>
@@ -271,7 +276,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
 
         {generating && (
           <p role="status" className="text-sm text-slate">
-            Drafting…
+            {t.drafting}
           </p>
         )}
 
@@ -280,7 +285,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
             {error.text}{' '}
             {error.settingsLink && (
               <Link to="/settings" className="text-blue hover:underline">
-                Open Settings
+                {t.openSettings}
               </Link>
             )}
           </p>

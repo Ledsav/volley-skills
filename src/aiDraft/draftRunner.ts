@@ -1,4 +1,5 @@
 import { AiError, type ChatMessage } from '../ai/aiClient';
+import { getT } from '../i18n/I18nProvider';
 
 export type AskFn = (messages: ChatMessage[], signal: AbortSignal) => Promise<unknown>;
 
@@ -14,20 +15,12 @@ export async function runDraft<T>(call: () => Promise<unknown>, validate: (raw: 
   }
 }
 
-const TEXT: Record<AiError['kind'], string> = {
-  notConfigured: 'Set up an AI provider in Settings first.',
-  unauthorized: 'Key rejected — check it in Settings.',
-  rateLimited: 'Rate limit reached — try again in a moment.',
-  unreachable: 'Could not reach the AI provider.',
-  badResponse: "The model's answer could not be used. Try again or rephrase the request.",
-  privacyBlocked: 'No provider for this model keeps requests private (zero data retention). Pick another model in Settings.',
-  http: 'The AI provider returned an error.',
-};
-
+/** The coach-facing text for a failed model call, in the active language. */
 export function draftErrorText(e: unknown): string {
-  if (!(e instanceof AiError)) return 'Something went wrong. Please try again.';
-  if (e.kind === 'rateLimited' && e.retryAfterSec) return `Rate limit reached — try again in ${e.retryAfterSec} s.`;
-  return TEXT[e.kind];
+  const t = getT().aiDraft.errors;
+  if (!(e instanceof AiError)) return t.generic;
+  if (e.kind === 'rateLimited' && e.retryAfterSec) return t.rateLimitedIn(e.retryAfterSec);
+  return t[e.kind];
 }
 
 export function needsSettings(e: unknown): boolean {

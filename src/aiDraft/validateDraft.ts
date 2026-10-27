@@ -4,7 +4,7 @@ import { parseScene } from '../diagrams/parseScene';
 import { newId } from '../diagrams/sceneFactory';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import { SCENE_LIMITS, type CourtPreset, type DiagramItem, type Scene } from '../types/diagram';
-import { DRAFT_ITEM_TYPES, DRAFT_LIMITS, type ExerciseDraft, type LibraryIndexEntry, type TrainingDraft, type TrainingStepDraft } from './types';
+import { DRAFT_ITEM_TYPES, DRAFT_LIMITS, type DraftIssue, type ExerciseDraft, type LibraryIndexEntry, type TrainingDraft, type TrainingStepDraft } from './types';
 
 const CATEGORY_KEYS = new Set<string>(EXERCISE_CATEGORIES.map((c) => c.key));
 const COURTS: CourtPreset[] = ['full', 'half', 'blank'];
@@ -17,8 +17,8 @@ function isCategory(v: unknown): v is ExerciseCategory {
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 /** Model diagram → repaired scene. Each item is checked on its own so one bad item doesn't sink the rest. */
-export function toDraftScene(raw: unknown): { scene: Scene | null; issues: string[] } {
-  if (!isPlainObject(raw)) return { scene: null, issues: ['No diagram was proposed.'] };
+export function toDraftScene(raw: unknown): { scene: Scene | null; issues: DraftIssue[] } {
+  if (!isPlainObject(raw)) return { scene: null, issues: [{ code: 'noDiagram' }] };
   const court = COURTS.includes(raw.court as CourtPreset) ? (raw.court as CourtPreset) : 'full';
   const rawItems = Array.isArray(raw.items) ? raw.items : [];
   const items: DiagramItem[] = [];
@@ -33,8 +33,8 @@ export function toDraftScene(raw: unknown): { scene: Scene | null; issues: strin
     if (one.ok && one.scene.items.length === 1) items.push(one.scene.items[0]);
     else dropped++;
   }
-  if (items.length === 0) return { scene: null, issues: ['The diagram could not be used.'] };
-  const issues = dropped > 0 ? [`${dropped} diagram item${dropped === 1 ? ' was' : 's were'} dropped.`] : [];
+  if (items.length === 0) return { scene: null, issues: [{ code: 'diagramUnusable' }] };
+  const issues: DraftIssue[] = dropped > 0 ? [{ code: 'itemsDropped', n: dropped }] : [];
   return { scene: { v: 1, court, showZones: raw.showZones === true, items }, issues };
 }
 
@@ -53,7 +53,7 @@ export function validateExerciseDraft(raw: unknown): ExerciseDraft | null {
     minPlayers,
     description: text(raw.description, DRAFT_LIMITS.descriptionMax),
     scene: diagram.scene,
-    issues: [...(category ? [] : ['Pick a category.']), ...diagram.issues],
+    issues: [...(category ? [] : [{ code: 'pickCategory' } as const]), ...diagram.issues],
   };
 }
 
@@ -71,8 +71,6 @@ function minutes(v: unknown): number {
   const n = typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 10;
   return Math.max(DRAFT_LIMITS.minutesMin, Math.min(DRAFT_LIMITS.minutesMax, n));
 }
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 export function validateTrainingProposal(
   raw: unknown,
@@ -109,10 +107,10 @@ export function validateTrainingProposal(
     }
   }
   if (steps.length === 0) throw new AiError('badResponse', 'The model returned no usable steps.');
-  const issues: string[] = [];
-  if (unknownIds) issues.push(`${unknownIds} ${plural(unknownIds, 'step used an exercise that is', 'steps used exercises that are')} not in the library and ${plural(unknownIds, 'was', 'were')} dropped.`);
-  if (newOff) issues.push(`${newOff} new ${plural(newOff, 'exercise was', 'exercises were')} dropped because new exercises are off.`);
-  if (newNoCategory) issues.push(`${newNoCategory} new ${plural(newNoCategory, 'exercise had', 'exercises had')} no valid category and ${plural(newNoCategory, 'was', 'were')} dropped.`);
+  const issues: DraftIssue[] = [];
+  if (unknownIds) issues.push({ code: 'stepsNotInLibrary', n: unknownIds });
+  if (newOff) issues.push({ code: 'newExercisesOff', n: newOff });
+  if (newNoCategory) issues.push({ code: 'newNoCategory', n: newNoCategory });
   return {
     name: text(obj.name, DRAFT_LIMITS.nameMax) || 'AI training',
     description: text(obj.description, DRAFT_LIMITS.descriptionMax),

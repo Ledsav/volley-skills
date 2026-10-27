@@ -52,7 +52,6 @@ export const exercises = {
     createAndAdd: 'Create & add diagrams',
     saving: 'Saving…',
     name: 'Name',
-    /** The focus words are typed in English whatever the language: the naming check reads them. */
     nameHint: (example: string, focuses: string) =>
       `Name it "Focus: what it trains", e.g. "${example}". Focus is one of: ${focuses}.`,
     category: 'Category',

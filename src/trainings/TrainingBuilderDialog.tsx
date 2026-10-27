@@ -15,7 +15,7 @@ import type { NewTrainingInput, Training, TrainingExercise } from '../types/trai
 import { PlayersNote } from './PlayersNote';
 import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
-import { TRAINING_NAME_EXAMPLE, TRAINING_NAME_HINT } from './naming';
+import { trainingNameExample, trainingNameHint } from './naming';
 import { useT } from '../i18n/I18nProvider';
 
 const chipClass = (active: boolean) =>
@@ -331,11 +331,11 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           id="training-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={TRAINING_NAME_EXAMPLE}
+          placeholder={trainingNameExample()}
           aria-describedby="training-name-hint"
         />
         <p id="training-name-hint" className="mt-1 text-xs text-slate">
-          {TRAINING_NAME_HINT}
+          {trainingNameHint()}
         </p>
 
         <label htmlFor="training-age" className="mb-1 mt-4 block text-sm font-medium text-ink">

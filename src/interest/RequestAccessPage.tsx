@@ -8,16 +8,14 @@ import { LegalLinks } from '../legal/LegalLinks';
 import { AuthShell } from '../auth/AuthShell';
 import { submitInterestSignup } from './interestApi';
 import type { InterestSignupRole } from '../types/interestSignup';
+import { useT } from '../i18n/I18nProvider';
 
-const ROLE_OPTIONS: { key: InterestSignupRole; label: string }[] = [
-  { key: 'coach', label: 'Coach' },
-  { key: 'guardian', label: 'Guardian' },
-  { key: 'player', label: 'Player' },
-  { key: 'other', label: 'Other' },
-];
+const ROLE_KEYS: InterestSignupRole[] = ['coach', 'guardian', 'player', 'other'];
 
 export function RequestAccessPage() {
-  usePageMeta({ title: 'Request access', description: 'Ask for access to Volley Skills.', robots: 'index', canonicalPath: '/request-access' });
+  const t = useT().interest;
+  const tr = t.requestAccess;
+  usePageMeta({ title: tr.pageTitle, description: tr.pageDescription, robots: 'index', canonicalPath: '/request-access' });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InterestSignupRole>('coach');
@@ -33,7 +31,7 @@ export function RequestAccessPage() {
       await submitInterestSignup({ name, email, role });
       setSent(true);
     } catch {
-      setError('Could not submit your request. Please try again.');
+      setError(tr.submitError);
     } finally {
       setSubmitting(false);
     }
@@ -41,13 +39,13 @@ export function RequestAccessPage() {
 
   if (sent) {
     return (
-      <AuthShell title="Thanks!">
+      <AuthShell title={tr.thanks}>
         <p className="text-center text-slate">
-          We&apos;ve got your request and will be in touch about early access.
+          {tr.gotRequest}
         </p>
         <p className="mt-6 text-center text-sm">
           <Link to="/login" className="text-blue hover:underline">
-            Back to sign in
+            {tr.backToSignIn}
           </Link>
         </p>
       </AuthShell>
@@ -55,38 +53,38 @@ export function RequestAccessPage() {
   }
 
   return (
-    <AuthShell title="Let's get you set up" navAction={{ to: '/login', label: 'Sign in' }}>
+    <AuthShell title={tr.heading} navAction={{ to: '/login', label: tr.signIn }}>
       <p className="mb-4 text-center text-sm text-slate">
-        Tell us a bit about you and we&apos;ll reach out when your access is ready.
+        {tr.intro}
       </p>
       <form onSubmit={handleSubmit}>
         <label htmlFor="name" className="mb-1 block text-sm font-medium text-ink">
-          Name
+          {tr.name}
         </label>
         <Input
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Jamie Smith"
+          placeholder={tr.namePlaceholder}
           required
           className="mb-4 w-full"
         />
 
         <label htmlFor="email" className="mb-1 block text-sm font-medium text-ink">
-          Email
+          {tr.email}
         </label>
         <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
+          placeholder={tr.emailPlaceholder}
           required
           className="mb-4 w-full"
         />
 
         <label htmlFor="role" className="mb-1 block text-sm font-medium text-ink">
-          I am a...
+          {tr.iAm}
         </label>
         <select
           id="role"
@@ -94,24 +92,23 @@ export function RequestAccessPage() {
           onChange={(e) => setRole(e.target.value as InterestSignupRole)}
           className="mb-4 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-blue"
         >
-          {ROLE_OPTIONS.map((r) => (
-            <option key={r.key} value={r.key}>
-              {r.label}
+          {ROLE_KEYS.map((key) => (
+            <option key={key} value={key}>
+              {t.roles[key]}
             </option>
           ))}
         </select>
 
         <p className="mb-4 text-xs text-slate">
-          We use your name and email only to review this request and contact you about access, and delete them
-          once it has been handled. If you are under 16, ask a parent or guardian to send the request for you. See the{' '}
+          {tr.privacyBefore}
           <Link to="/privacy" className="text-blue hover:underline">
-            privacy policy
+            {tr.privacyLink}
           </Link>
           .
         </p>
 
         <Button type="submit" variant="primary" className="w-full gap-2" disabled={submitting}>
-          Request access
+          {tr.submit}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
@@ -124,7 +121,7 @@ export function RequestAccessPage() {
 
       <p className="mt-6 text-center text-sm">
         <Link to="/login" className="text-slate hover:underline">
-          Already have access? Sign in
+          {tr.alreadyHaveAccess}
         </Link>
       </p>
       <LegalLinks />

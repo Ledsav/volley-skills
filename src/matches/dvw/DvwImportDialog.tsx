@@ -3,9 +3,12 @@ import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
 import { useNotify } from '../../components/Notice';
+import { useT } from '../../i18n/I18nProvider';
+import type { Gender } from '../../i18n/catalog';
 import type { Player } from '../../types/player';
 import { loadTeamRoster } from '../matchesApi';
 import { decodeDvw } from './decodeDvw';
+import { dvwMessageText } from './dvwMessage';
 import { discardImport, findImportedMatch, runImport, startImport, type ImportJob } from './dvwImportApi';
 import type { DvwPlan } from './mapDvw';
 import { parseDvw } from './parseDvw';
@@ -27,6 +30,8 @@ function readBytes(file: Blob): Promise<ArrayBuffer> {
 interface DvwImportDialogProps {
   teamId: string;
   teamName: string;
+  /** For gendered role labels in the review; mixed when unknown. */
+  gender?: Gender;
   onClose: () => void;
   onImported: (matchId: string) => void;
 }
@@ -44,7 +49,9 @@ interface Running {
   job: ImportJob;
 }
 
-export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwImportDialogProps) {
+export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported }: DvwImportDialogProps) {
+  const t = useT();
+  const d = t.dvw.dialog;
   const { firebaseUser, club } = useAuth();
   const notify = useNotify();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -67,7 +74,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
       setPickerKey((k) => k + 1);
     };
     if (picked.size > MAX_BYTES) {
-      fail('This file is larger than 2 MB.');
+      fail(d.tooLarge);
       return;
     }
     setBusy(true);
@@ -75,14 +82,14 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
       const bytes = await readBytes(picked);
       const parsed = parseDvw(decodeDvw(bytes));
       if ('error' in parsed) {
-        fail(parsed.error);
+        fail(dvwMessageText(parsed.error, t));
         return;
       }
       const sha = await sha256OfBytes(bytes);
       const [players, duplicate] = await Promise.all([loadTeamRoster(teamId), findImportedMatch(teamId, sha)]);
       setLoaded({ file: parsed, fileName: picked.name, sha, players, duplicate });
     } catch {
-      fail('Could not read this file. Check your connection and try again.');
+      fail(d.readError);
     } finally {
       setBusy(false);
     }
@@ -95,7 +102,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
       await runImport(teamId, r.plan, r.job, (done, total) => {
         if (attempt.current === id) setProgress({ done, total });
       });
-      notify('Match imported.');
+      notify(d.imported);
       onImported(r.job.matchId);
     } catch {
       if (attempt.current === id) setFailed(true);
@@ -123,7 +130,7 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
       try {
         await discardImport(teamId, running.job.matchId);
       } catch {
-        setDiscardError('Could not discard the partial import. Check your connection and try again.');
+        setDiscardError(d.discardError);
         return;
       }
     }
@@ -137,19 +144,19 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
   }
 
   return (
-    <Dialog title="Import from DataVolley (.dvw)" onClose={handleClose} size="lg" mobileSheet dirty={!!running}>
+    <Dialog title={d.title} onClose={handleClose} size="lg" mobileSheet dirty={!!running}>
       {running ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-ink tabular-nums" role="status">
-            Importing… {progress?.done ?? 0}/{progress?.total ?? 0}
+            {d.importing(progress?.done ?? 0, progress?.total ?? 0)}
           </p>
           {failed && (
             <>
-              <p role="alert" className="text-sm text-red">The import did not finish. Retry, or discard what was written.</p>
+              <p role="alert" className="text-sm text-red">{d.notFinished}</p>
               {discardError && <p role="alert" className="text-sm text-red">{discardError}</p>}
               <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => void discard()}>Discard</Button>
-                <Button variant="primary" onClick={() => void run(running)}>Retry</Button>
+                <Button variant="secondary" onClick={() => void discard()}>{d.discard}</Button>
+                <Button variant="primary" onClick={() => void run(running)}>{d.retry}</Button>
               </div>
             </>
           )}
@@ -162,24 +169,20 @@ export function DvwImportDialog({ teamId, teamName, onClose, onImported }: DvwIm
           players={loaded.players}
           appNames={[club?.name ?? '', teamName]}
           duplicate={loaded.duplicate}
+          gender={gender}
           onCancel={onClose}
           onImport={startRun}
         />
       ) : (
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-            DVW file
+            {d.fileLabel}
             <input key={pickerKey} type="file" accept=".dvw" onChange={(e) => void handleFile(e)} disabled={busy} className="text-sm" />
           </label>
-          <p className="text-sm text-slate">
-            Pick a DataVolley scout file (up to 2 MB). It is read on this device; the player names in it are only shown
-            while you review. Also works with Click&amp;Scout and VolleyStation .dvw exports.
-          </p>
-          {busy && <p className="text-sm text-slate">Reading the file…</p>}
+          <p className="text-sm text-slate">{d.help}</p>
+          {busy && <p className="text-sm text-slate">{d.reading}</p>}
           {error && <p role="alert" className="text-sm text-red">{error}</p>}
-          <p className="text-xs text-slate">
-            Not affiliated with Data Project or Genius Sports. DataVolley is a trademark of its owner.
-          </p>
+          <p className="text-xs text-slate">{d.disclaimer}</p>
         </div>
       )}
     </Dialog>

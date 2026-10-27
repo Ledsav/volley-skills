@@ -53,7 +53,7 @@ const meta = { fileName: 'x.dvw', fileSha256: 'a'.repeat(64), generator: 'DataVo
 
 function realPlan(): DvwPlan {
   const file = parseDvw(loadFixture('three-sets-home.dvw'));
-  if ('error' in file) throw new Error(file.error);
+  if ('error' in file) throw new Error(file.error.code);
   const us = pickOurSide(file.teams, ['Volley Club Test', 'U17']);
   const players = file.players
     .filter((p) => p.side === us)

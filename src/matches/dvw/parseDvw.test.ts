@@ -6,7 +6,7 @@ import type { DvwFile } from './types';
 
 function parsed(name: string): DvwFile {
   const result = parseDvw(loadFixture(name));
-  if ('error' in result) throw new Error(result.error);
+  if ('error' in result) throw new Error(result.error.code);
   return result;
 }
 
@@ -106,19 +106,19 @@ describe('parseDvw: errors and edge cases', () => {
   ])('refuses regulation %j (%s)', (code) => {
     const text = three.replace(';1252;1;', `;1252;${code};`);
     expect(parseDvw(text)).toEqual({
-      error: 'Unsupported regulation: only indoor rally-point matches can be imported.',
+      error: { code: 'unsupportedRegulation' },
     });
   });
 
   it('reads space-padded set scores', () => {
     const result = parseDvw(three.replace('6-8;16-11;21-20;25-20;', '6-8;16-11;21-20; 25 - 9 ;'));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.sets[0]).toEqual({ played: true, home: 25, visiting: 9 });
   });
 
   it('returns an error without [3SCOUT]', () => {
     const text = three.slice(0, three.indexOf('[3SCOUT]'));
-    expect(parseDvw(text)).toEqual({ error: 'This file has no scouted rallies.' });
+    expect(parseDvw(text)).toEqual({ error: { code: 'noRallies' } });
   });
 
   it('returns null for an unparseable date', () => {
@@ -142,7 +142,7 @@ describe('parseDvw: errors and edge cases', () => {
       .replace('T001;Adair;Corin;;;2;', 'T001;Adair;Corin;;;9;')
       .replace('2;3;;3;3;3;;;T002', '2;;;3;3;3;;;T002');
     const result = parseDvw(text);
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.players.find((p) => p.fileId === 'T001')?.roleCode).toBe(6);
     expect(result.players.find((p) => p.fileId === 'T002')).toBeUndefined();
     expect(result.warnings).toHaveLength(1);
@@ -150,7 +150,7 @@ describe('parseDvw: errors and edge cases', () => {
 
   it('counts a set marked True but without a final score as not played (DataVolley marks unplayed sets True)', () => {
     const result = parseDvw(three.replace('False;;;;;0;', 'True;;;;;;'));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.sets.filter((s) => s.played)).toHaveLength(3);
     expect(result.sets[3]).toEqual({ played: false, home: 0, visiting: 0 });
   });
@@ -177,19 +177,19 @@ describe('parseDvw: set numbers come from the set markers', () => {
         line('**3set', '3'),
       ]),
     );
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 3, 3]);
     expect(result.warnings).toEqual([
-      'Set 2: 2 scout lines have a missing or different set number (lines 8, 9); the set markers were used.',
+      { code: 'setNumberMismatch', set: 2, lines: [8, 9] },
     ]);
   });
 
   it('keeps lines before the first marker in set 1 and lists at most five lines', () => {
     const result = parseDvw(fileWith([...Array.from({ length: 7 }, () => line('*T', '4')), line('**1set', '1')]));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.every((l) => l.set === 1)).toBe(true);
     expect(result.warnings).toEqual([
-      'Set 1: 7 scout lines have a missing or different set number (lines 4, 5, 6, 7, 8, …); the set markers were used.',
+      { code: 'setNumberMismatch', set: 1, lines: [4, 5, 6, 7, 8, 9, 10] },
     ]);
   });
 
@@ -197,39 +197,39 @@ describe('parseDvw: set numbers come from the set markers', () => {
     const result = parseDvw(
       fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), line('*07SM#', '2'), line('**2set', '3')]),
     );
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 2, 2]);
     expect(result.warnings).toEqual([]);
   });
 
   it('skips blank lines, including a stray NUL at the end of the file', () => {
     const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), ' ', String.fromCharCode(0)]));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.map((l) => l.raw)).toEqual(['*07SM#', '*p01:00', '**1set']);
   });
 
   it('keeps rally-less lines after the last marker in the last set (no phantom set)', () => {
     const empty = '*P11>LUp;;;;;;;;4;1;1;;;;;;;;;;;;;;;';
     const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), empty, line('*T', '2')]));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 1, 1]);
     expect(result.warnings).toEqual([]);
   });
 
   it('keeps every line in set 1 when the file has no set markers', () => {
     const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('*T', '1')]));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1]);
     expect(result.warnings).toEqual([]);
   });
 
   it('refuses a scout section holding only NUL padding', () => {
-    expect(parseDvw(fileWith([String.fromCharCode(0), ' ']))).toEqual({ error: 'This file has no scouted rallies.' });
+    expect(parseDvw(fileWith([String.fromCharCode(0), ' ']))).toEqual({ error: { code: 'noRallies' } });
   });
 
   it('still starts a set after the last marker when it has rallies (a file saved mid-set)', () => {
     const result = parseDvw(fileWith([line('*07SM#', '1'), line('*p01:00', '1'), line('**1set', '2'), line('*07SM#', '2')]));
-    if ('error' in result) throw new Error(result.error);
+    if ('error' in result) throw new Error(result.error.code);
     expect(result.scout.map((l) => l.set)).toEqual([1, 1, 1, 2]);
   });
 });

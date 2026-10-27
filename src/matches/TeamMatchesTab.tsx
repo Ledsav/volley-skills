@@ -1,3 +1,4 @@
+import type { Gender } from '../i18n/catalog';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
@@ -21,11 +22,12 @@ const STATUS_CLASS: Record<MatchStatus, string> = {
 interface TeamMatchesTabProps {
   teamId: string;
   teamName: string;
+  gender?: Gender;
   newMatchDate?: string | null;
   onNewMatchHandled?: () => void;
 }
 
-export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMatchHandled }: TeamMatchesTabProps) {
+export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, onNewMatchHandled }: TeamMatchesTabProps) {
   const navigate = useNavigate();
   const t = useT();
   const l = t.matches.list;
@@ -118,6 +120,7 @@ export function TeamMatchesTab({ teamId, teamName, newMatchDate = null, onNewMat
         <DvwImportDialog
           teamId={teamId}
           teamName={teamName}
+          gender={gender}
           onClose={() => setImporting(false)}
           onImported={(matchId) => {
             setImporting(false);

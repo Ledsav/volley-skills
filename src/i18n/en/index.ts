@@ -7,6 +7,7 @@ import { auth } from './auth';
 import { bulkImport } from './bulkImport';
 import { clubs } from './clubs';
 import { common } from './common';
+import { dvw } from './dvw';
 import { home } from './home';
 import { layout } from './layout';
 import { interest } from './interest';
@@ -26,4 +27,4 @@ import { textScout } from './textScout';
 import { theme } from './theme';
 import { trainings } from './trainings';
 
-export const en = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, settings, signup, skillGuide, teams, textScout, theme, trainings };
+export const en = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, dvw, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, settings, signup, skillGuide, teams, textScout, theme, trainings };

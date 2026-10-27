@@ -2,17 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { FIELD_CLASS, Input } from '../../components/Input';
+import { useT } from '../../i18n/I18nProvider';
+import type { Gender } from '../../i18n/catalog';
 import type { Competition, MatchSetupInput, SetScore } from '../../types/match';
 import type { Player } from '../../types/player';
 import { setupProblemMessage, validateSetup } from '../matchSetup';
 import { autoMapPlayers, mapDvw, ourFilePlayers, type DvwPlan, type PlayerMapping } from './mapDvw';
+import { dvwMessageText } from './dvwMessage';
 import { pickOurSide } from './pickSide';
 import type { DvwFile, DvwPlayer, DvwSide } from './types';
-
-const ROLE_LABEL: Record<DvwPlayer['roleCode'], string> = {
-  1: 'Libero', 2: 'Outside', 3: 'Opposite', 4: 'Middle', 5: 'Setter', 6: 'Unknown',
-};
-const roleLabel = (p: DvwPlayer) => (p.specialRole === 'L' ? 'Libero' : ROLE_LABEL[p.roleCode]);
 
 const scoreText = (s: SetScore | undefined) => (s ? `${s.us}–${s.them}` : '–');
 const sameSets = (a: SetScore[], b: SetScore[]) =>
@@ -25,6 +23,8 @@ interface DvwReviewProps {
   players: Player[];
   appNames: string[];
   duplicate: { id: string; date: string; opponent: string } | null;
+  /** For gendered role labels; the import dialog gets it from the team page. */
+  gender?: Gender;
   onCancel: () => void;
   /** Called with the plan whose setup already carries the edited match fields. */
   onImport: (plan: DvwPlan) => void;
@@ -32,7 +32,17 @@ interface DvwReviewProps {
 
 type Edits = Partial<Pick<MatchSetupInput, 'date' | 'opponent' | 'competition'>> & { bestOf?: 3 | 5 };
 
-export function DvwReview({ teamId, file, fileName, players, appNames, duplicate, onCancel, onImport }: DvwReviewProps) {
+export function DvwReview({ teamId, file, fileName, players, appNames, duplicate, gender = 'mixed', onCancel, onImport }: DvwReviewProps) {
+  const t = useT();
+  const d = t.dvw.review;
+  const roleLabel = (p: DvwPlayer) =>
+    p.specialRole === 'L' || p.roleCode === 1
+      ? t.labels.position.L(gender)
+      : p.roleCode === 2 ? t.labels.position.OH(gender)
+      : p.roleCode === 3 ? t.labels.position.O(gender)
+      : p.roleCode === 4 ? t.labels.position.MB(gender)
+      : p.roleCode === 5 ? t.labels.position.S(gender)
+      : d.unknownRole;
   const [side, setSide] = useState<DvwSide>(() => pickOurSide(file.teams, appNames));
   const [mapping, setMapping] = useState<PlayerMapping>(() => autoMapPlayers(file, side, players));
   const [edits, setEdits] = useState<Edits>({});
@@ -50,11 +60,11 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
   const plan: DvwPlan = { ...base, setup };
   const setupProblem = validateSetup(setup);
   const blocking = [
-    ...base.issues.filter((i) => i.kind === 'blocking').map((i) => i.message),
+    ...base.issues.filter((i) => i.kind === 'blocking').map((i) => dvwMessageText(i.message, t)),
     ...(setupProblem ? [setupProblemMessage(setupProblem)] : []),
   ];
   // Parse warnings first, then the mapping's; every message names its lines.
-  const warnings = [...file.warnings, ...base.issues.filter((i) => i.kind === 'warning').map((i) => i.message)];
+  const warnings = [...file.warnings, ...base.issues.filter((i) => i.kind === 'warning').map((i) => i.message)].map((m) => dvwMessageText(m, t));
   const { checks } = base;
   const scoresDiffer = !sameSets(checks.replaySets, checks.fileSets);
 
@@ -78,76 +88,76 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
 
       {duplicate && (
         <p className="rounded-md border border-orange bg-orange/10 px-3 py-2 text-sm text-ink">
-          This file was already imported on {duplicate.date} against {duplicate.opponent}.{' '}
+          {d.alreadyImported(duplicate.date, duplicate.opponent)}{' '}
           <Link to={`/teams/${teamId}/matches/${duplicate.id}`} className="font-medium text-blue hover:underline">
-            Open the existing match
+            {d.openExisting}
           </Link>
         </p>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Date
+          {d.date}
           <Input type="date" value={setup.date} onChange={(e) => setEdits((c) => ({ ...c, date: e.target.value }))} />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Opponent
+          {d.opponent}
           <Input value={setup.opponent} onChange={(e) => setEdits((c) => ({ ...c, opponent: e.target.value }))} />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Competition
+          {d.competition}
           <select
             className={FIELD_CLASS}
             value={setup.competition}
             onChange={(e) => setEdits((c) => ({ ...c, competition: e.target.value as Competition }))}>
-            <option value="league">League</option>
-            <option value="cup">Cup</option>
-            <option value="friendly">Friendly</option>
-            <option value="tournament">Tournament</option>
+            <option value="league">{d.league}</option>
+            <option value="cup">{d.cup}</option>
+            <option value="friendly">{d.friendly}</option>
+            <option value="tournament">{d.tournament}</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Format
+          {d.format}
           <select
             className={FIELD_CLASS}
             value={setup.format.bestOf}
             onChange={(e) => setEdits((c) => ({ ...c, bestOf: Number(e.target.value) as 3 | 5 }))}>
-            <option value={3}>Best of 3</option>
-            <option value={5}>Best of 5</option>
+            <option value={3}>{d.bestOf3}</option>
+            <option value={5}>{d.bestOf5}</option>
           </select>
         </label>
       </div>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-ink">Which team is us</legend>
+        <legend className="mb-2 text-sm font-semibold text-ink">{d.whichTeam}</legend>
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-6">
           {(['*', 'a'] as const).map((s) => (
             <label key={s} className="flex items-center gap-2 text-sm text-ink">
               <input type="radio" name="dvw-side" checked={side === s} onChange={() => flip(s)} />
               {file.teams[s].name}
-              <span className="text-slate">({s === '*' ? 'home' : 'visiting'})</span>
+              <span className="text-slate">({s === '*' ? d.home : d.visiting})</span>
             </label>
           ))}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-ink">Roster</legend>
+        <legend className="mb-2 text-sm font-semibold text-ink">{d.roster}</legend>
         <ul className="flex flex-col gap-2">
           {ourFilePlayers(file, side).map((p) => {
             const key = `${side}${p.jersey}`;
-            const name = `${p.firstName} ${p.lastName}`.trim() || 'Not in the player list';
+            const name = `${p.firstName} ${p.lastName}`.trim() || d.notInList;
             return (
               <li key={key} className="flex items-center gap-2 text-sm">
                 <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-ink">#{p.jersey}</span>
                 <span className="min-w-0 flex-1 truncate text-ink">{name}</span>
                 <span className="hidden w-20 shrink-0 text-xs text-slate sm:block">{roleLabel(p)}</span>
                 <select
-                  aria-label={`Map #${p.jersey} ${name}`}
+                  aria-label={d.mapAria(p.jersey, name)}
                   className={`${FIELD_CLASS} w-40 shrink-0`}
                   value={mapping[key] ?? ''}
                   onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value || null }))}>
-                  <option value="">Skip</option>
+                  <option value="">{d.skip}</option>
                   {players.map((a) => (
                     <option key={a.id} value={a.id}>
                       #{a.number} {a.fullName}
@@ -160,21 +170,21 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
         </ul>
       </fieldset>
 
-      <section data-testid="checks" aria-label="Checks" className="rounded-md border border-border bg-surface p-3 text-sm">
-        <h3 className="mb-2 font-semibold text-ink">Checks</h3>
+      <section data-testid="checks" aria-label={d.checks} className="rounded-md border border-border bg-surface p-3 text-sm">
+        <h3 className="mb-2 font-semibold text-ink">{d.checks}</h3>
         <table className="mb-3 w-full tabular-nums">
           <thead>
             <tr className="text-left text-xs text-slate">
-              <th scope="col" className="font-medium">Set</th>
-              <th scope="col" className="font-medium">File</th>
-              <th scope="col" className="font-medium">Point lines</th>
-              <th scope="col" className="font-medium">Replayed</th>
+              <th scope="col" className="font-medium">{d.set}</th>
+              <th scope="col" className="font-medium">{d.file}</th>
+              <th scope="col" className="font-medium">{d.pointLines}</th>
+              <th scope="col" className="font-medium">{d.replayed}</th>
             </tr>
           </thead>
           <tbody>
             {Array.from({ length: sets }, (_, i) => (
               <tr key={i} className="text-ink">
-                <td>Set {i + 1}</td>
+                <td>{d.setN(i + 1)}</td>
                 <td>{scoreText(checks.fileSets[i])}</td>
                 <td>{scoreText(checks.pointLineSets[i])}</td>
                 <td>{scoreText(checks.replaySets[i])}</td>
@@ -183,17 +193,17 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
           </tbody>
         </table>
         <p className="text-ink">
-          {checks.corrections.length} score corrections
-          {checks.corrections.length > 0 && <> (lines {checks.corrections.slice(0, 5).join(', ')}{checks.corrections.length > 5 ? ', …' : ''})</>}
+          {d.corrections(checks.corrections.length)}
+          {checks.corrections.length > 0 && <> {d.correctionLines(checks.corrections)}</>}
         </p>
         <p className="text-slate">
-          Events:{' '}
+          {d.events}{' '}
           {Object.entries(checks.eventCounts)
             .filter(([, n]) => n > 0)
-            .map(([type, n]) => `${type} ${n}`)
-            .join(', ') || 'none'}
+            .map(([type, n]) => `${d.eventTypes[type as keyof typeof d.eventTypes]} ${n}`)
+            .join(', ') || d.none}
         </p>
-        <p className="text-slate">{checks.ignoredLines} lines ignored</p>
+        <p className="text-slate">{d.ignored(checks.ignoredLines)}</p>
         {warnings.length > 0 && (
           <ul className="mt-2 list-disc pl-5 text-ink">
             {warnings.map((w, i) => (
@@ -205,10 +215,10 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
 
       {scoresDiffer && (
         <div className="rounded-md border border-orange bg-orange/10 px-3 py-2 text-sm text-ink">
-          <p className="mb-2 font-medium">The replayed set scores differ from the file&apos;s set scores.</p>
+          <p className="mb-2 font-medium">{d.scoresDiffer}</p>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-            I checked the scores
+            {d.checkedScores}
           </label>
         </div>
       )}
@@ -222,8 +232,8 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
       )}
 
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" disabled={!canImport} onClick={() => onImport(plan)}>Import</Button>
+        <Button variant="secondary" onClick={onCancel}>{d.cancel}</Button>
+        <Button variant="primary" disabled={!canImport} onClick={() => onImport(plan)}>{d.import}</Button>
       </div>
     </div>
   );

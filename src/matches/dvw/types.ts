@@ -1,4 +1,4 @@
-import type { Grade, Skill } from '../../types/match';
+import type { Grade, Side, Skill } from '../../types/match';
 
 export type DvwSide = '*' | 'a'; // '*' home, 'a' visiting
 
@@ -55,9 +55,34 @@ export interface DvwFile {
   sets: DvwSet[];
   players: DvwPlayer[];
   scout: ScoutLine[];
-  warnings: string[];
+  warnings: DvwMessage[];
 }
 
 export interface DvwError {
-  error: string;
+  error: DvwMessage;
 }
+
+/**
+ * Everything the import tells the coach: parse errors and warnings, and the mapping's issues.
+ * Pure modules return these codes with their parameters; `dvwMessageText` words them in the
+ * active language. Line lists carry every line (the text shows the first five).
+ */
+export type DvwMessage =
+  | { code: 'notDvw' }
+  | { code: 'unsupportedRegulation' }
+  | { code: 'noRallies' }
+  | { code: 'playerNoJersey'; line: string }
+  | { code: 'setNumberMismatch'; set: number; lines: number[] }
+  | { code: 'sameAppPlayer'; first: number; second: number }
+  | { code: 'tooManyLiberos' }
+  | { code: 'liberoReplaces'; jerseys: number[] }
+  | { code: 'liberoNeverOnCourt' }
+  | { code: 'startersUnmapped'; set: number }
+  | { code: 'tooLong' }
+  | { code: 'unlistedJersey'; jersey: number; line: number }
+  | { code: 'droppedGrade'; skill: Skill; grade: Grade; lines: number[] }
+  | { code: 'droppedUnknownPlayer'; lines: number[] }
+  | { code: 'droppedForJersey'; reason: 'unmapped' | 'decided'; jersey: number; lines: number[] }
+  | { code: 'subUnmapped'; line: number; out: number; in: number }
+  | { code: 'endedOtherWay'; line: number; pointLine: number; winner: Side }
+  | { code: 'scoreDiffers' };

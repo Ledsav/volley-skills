@@ -40,12 +40,14 @@ interface PromptPlayer {
   isLibero: boolean;
 }
 
-export interface BatchIssue {
-  rally: number;
-  kind: 'unknownNumber' | 'invalidGrade' | 'missingGrade' | 'noWinner' | 'conflictingWinner';
-  blocking: boolean;
-  message: string;
-}
+/** A coach-facing problem found while turning a batch into events; the UI words it from the textScout catalog. */
+export type BatchIssue = { rally: number; blocking: boolean } & (
+  | { kind: 'unknownNumber'; number: number }
+  | { kind: 'missingGrade'; number: number; skill: Skill }
+  | { kind: 'invalidGrade'; skill: Skill; grade: Grade }
+  | { kind: 'conflictingWinner'; actions: Side; notes: Side }
+  | { kind: 'noWinner' }
+);
 
 function normalize(s: string): string {
   return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -207,7 +209,7 @@ export function batchToPayloads(batch: ParsedBatch, roster: RosterEntry[]): { pa
   const payloads: MatchEventPayload[] = [];
   const issues: BatchIssue[] = [];
   const unknown = (rally: number, n: number) =>
-    issues.push({ rally, kind: 'unknownNumber', blocking: true, message: `#${n} is not in this match's roster.` });
+    issues.push({ rally, kind: 'unknownNumber', blocking: true, number: n });
 
   batch.rallies.forEach((r, i) => {
     for (const s of r.subs) {
@@ -222,13 +224,13 @@ export function batchToPayloads(batch: ParsedBatch, roster: RosterEntry[]): { pa
     for (const a of r.actions) {
       const playerId = byNumber.get(a.number);
       if (a.grade === null) {
-        issues.push({ rally: i, kind: 'missingGrade', blocking: true, message: `Pick a grade for #${a.number} ${SKILL_LABELS[a.skill]}.` });
+        issues.push({ rally: i, kind: 'missingGrade', blocking: true, number: a.number, skill: a.skill });
         if (!playerId) unknown(i, a.number);
         continue;
       }
       const gradeOk = validGrades(a.skill).includes(a.grade);
       if (!gradeOk) {
-        issues.push({ rally: i, kind: 'invalidGrade', blocking: true, message: `${SKILL_LABELS[a.skill]} has no grade "${a.grade}".` });
+        issues.push({ rally: i, kind: 'invalidGrade', blocking: true, skill: a.skill, grade: a.grade });
       }
       if (!playerId) {
         unknown(i, a.number);
@@ -240,13 +242,13 @@ export function batchToPayloads(batch: ParsedBatch, roster: RosterEntry[]): { pa
     }
     if (r.point) {
       if (decided && decided !== r.point.winner) {
-        issues.push({ rally: i, kind: 'conflictingWinner', blocking: false, message: `The actions give the point to ${decided}, the notes to ${r.point.winner}.` });
+        issues.push({ rally: i, kind: 'conflictingWinner', blocking: false, actions: decided, notes: r.point.winner });
       } else if (!decided) {
         payloads.push({ type: 'point', winner: r.point.winner, reason: r.point.reason });
       }
     } else if (r.actions.length > 0 && (!decided || r.actions[r.actions.length - 1].grade === null)) {
       // An ungraded last action may still decide the rally, so an earlier decision is not trusted.
-      issues.push({ rally: i, kind: 'noWinner', blocking: false, message: 'No winner for this rally.' });
+      issues.push({ rally: i, kind: 'noWinner', blocking: false });
     }
   });
   return { payloads, issues };

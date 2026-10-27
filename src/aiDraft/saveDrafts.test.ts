@@ -40,7 +40,7 @@ describe('saveExerciseDrafts', () => {
   it('retry does not re-create exercises', async () => {
     const created = new Map<string, string>();
     vi.mocked(exercisesApi.createExercise).mockResolvedValueOnce('id-1').mockRejectedValueOnce(new Error('net'));
-    await expect(saveExerciseDrafts([draft('a'), draft('b')], 'u1', created)).rejects.toThrow('Could not add “Name b”. Already added: Name a.');
+    await expect(saveExerciseDrafts([draft('a'), draft('b')], 'u1', created)).rejects.toMatchObject({ issue: { code: 'addFailed', name: 'Name b', added: ['Name a'] } });
     vi.mocked(exercisesApi.createExercise).mockResolvedValueOnce('id-2');
     await expect(saveExerciseDrafts([draft('a'), draft('b')], 'u1', created)).resolves.toEqual(['id-1', 'id-2']);
     expect(exercisesApi.createExercise).toHaveBeenCalledTimes(3);
@@ -50,12 +50,12 @@ describe('saveExerciseDrafts', () => {
     vi.mocked(diagramsApi.saveDiagramSet).mockRejectedValueOnce(new Error('rules'));
     const err = await saveExerciseDrafts([draft('a'), draft('b')], 'u1', new Map()).catch((e) => e);
     expect(err).toBeInstanceOf(DraftSaveError);
-    expect(err.message).toBe('“Name a” was added without its diagram — add one in the diagram editor.');
+    expect(err.issue).toEqual({ code: 'diagramMissing', name: 'Name a', added: [] });
     expect(exercisesApi.createExercise).toHaveBeenCalledTimes(1);
   });
 
   it('refuses a draft without a category before writing anything', async () => {
-    await expect(saveExerciseDrafts([{ ...draft('a'), category: null }], 'u1', new Map())).rejects.toThrow('“Name a” needs a category.');
+    await expect(saveExerciseDrafts([{ ...draft('a'), category: null }], 'u1', new Map())).rejects.toMatchObject({ issue: { code: 'needsCategory', name: 'Name a', added: [] } });
     expect(exercisesApi.createExercise).not.toHaveBeenCalled();
   });
 });
@@ -100,7 +100,7 @@ describe('saveTrainingDraft', () => {
   it('says the exercises were kept when only the training failed', async () => {
     vi.mocked(trainingsApi.createTraining).mockRejectedValueOnce(new Error('tx'));
     const created = new Map<string, string>();
-    await expect(saveTrainingDraft(training, 'u1', created)).rejects.toThrow('The new exercises were saved, but the training was not. Try Save again.');
+    await expect(saveTrainingDraft(training, 'u1', created)).rejects.toMatchObject({ issue: { code: 'trainingFailedKept' } });
     await saveTrainingDraft(training, 'u1', created);
     expect(exercisesApi.createExercise).toHaveBeenCalledTimes(1);
   });

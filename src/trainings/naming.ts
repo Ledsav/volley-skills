@@ -1,7 +1,11 @@
+import { getT } from '../i18n/I18nProvider';
+
 /**
  * The club's naming convention, shown in the create forms and given to the AI drafts.
  * Exercises: "Focus: what it trains / how it runs". Trainings: "Focus + focus: objective".
  * Levels, age groups and player counts live in their own fields, not in names.
+ * The focus words below are the English codes; the active language's words (`t.labels.exerciseFocus`)
+ * are accepted too, and the examples and hints come from the catalog.
  */
 export const EXERCISE_FOCUSES = [
   'Warm-up',
@@ -18,13 +22,26 @@ export const EXERCISE_FOCUSES = [
   'Game',
 ] as const;
 
-export const EXERCISE_NAME_EXAMPLE = 'Reception: mixed serves to target';
-export const TRAINING_NAME_EXAMPLE = 'Reception + free ball: control and convert';
+export type ExerciseFocus = (typeof EXERCISE_FOCUSES)[number];
 
-export const EXERCISE_NAME_HINT = `Name it "Focus: what it trains", e.g. "${EXERCISE_NAME_EXAMPLE}". Focus is one of: ${EXERCISE_FOCUSES.join(', ')}.`;
-export const TRAINING_NAME_HINT = `Name it "Focus + focus: objective", e.g. "${TRAINING_NAME_EXAMPLE}". Age group and players have their own fields.`;
+/** The focus words in the active language, in convention order. */
+export function exerciseFocusLabels(): string[] {
+  const labels = getT().labels.exerciseFocus;
+  return EXERCISE_FOCUSES.map((f) => labels[f]);
+}
+
+export const exerciseNameExample = (): string => getT().aiDraft.naming.exerciseExample;
+export const trainingNameExample = (): string => getT().aiDraft.naming.trainingExample;
+
+export function exerciseNameHint(): string {
+  return getT().exercises.form.nameHint(exerciseNameExample(), exerciseFocusLabels().join(', '));
+}
+
+export const trainingNameHint = (): string => getT().aiDraft.naming.trainingHint(trainingNameExample());
 
 export function followsExerciseNaming(name: string): boolean {
   const m = /^([^:]+):\s*(\S.*)$/.exec(name.trim());
-  return m !== null && (EXERCISE_FOCUSES as readonly string[]).includes(m[1].trim());
+  if (m === null) return false;
+  const focus = m[1].trim();
+  return (EXERCISE_FOCUSES as readonly string[]).includes(focus) || exerciseFocusLabels().includes(focus);
 }

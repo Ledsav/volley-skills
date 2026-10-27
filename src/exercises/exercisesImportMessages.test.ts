@@ -30,7 +30,7 @@ describe('exercise import issue texts', () => {
 
 describe('exercise name hint', () => {
   it('reads the same in English as the shared naming hint', async () => {
-    const { EXERCISE_FOCUSES, EXERCISE_NAME_EXAMPLE, EXERCISE_NAME_HINT } = await import('../trainings/naming');
-    expect(en.exercises.form.nameHint(EXERCISE_NAME_EXAMPLE, EXERCISE_FOCUSES.join(', '))).toBe(EXERCISE_NAME_HINT);
+    const { EXERCISE_FOCUSES, exerciseNameExample, exerciseNameHint } = await import('../trainings/naming');
+    expect(en.exercises.form.nameHint(exerciseNameExample(), EXERCISE_FOCUSES.join(', '))).toBe(exerciseNameHint());
   });
 });

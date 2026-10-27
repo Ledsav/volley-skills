@@ -4,9 +4,14 @@ import { createTraining } from '../trainings/trainingsApi';
 import type { NewTrainingInput } from '../types/training';
 import type { ExerciseDraft, TrainingDraft } from './types';
 
+/** What went wrong while saving drafts; the UI turns it into text (`draftSaveErrorText`). */
+export type DraftSaveIssue =
+  | { code: 'needsCategory' | 'addFailed' | 'diagramMissing'; name: string; added: string[] }
+  | { code: 'trainingFailedKept' | 'trainingFailed' };
+
 export class DraftSaveError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(readonly issue: DraftSaveIssue) {
+    super(issue.code);
     this.name = 'DraftSaveError';
   }
 }
@@ -20,19 +25,20 @@ const DRAFT_DIAGRAM_TITLE = 'AI draft';
 export async function saveExerciseDrafts(drafts: ExerciseDraft[], uid: string, created: Map<string, string>): Promise<string[]> {
   const ids: string[] = [];
   const addedNow: string[] = [];
-  const withAdded = (msg: string) => (addedNow.length ? `${msg} Already added: ${addedNow.join(', ')}.` : msg);
+  const fail = (code: 'needsCategory' | 'addFailed' | 'diagramMissing', name: string) =>
+    new DraftSaveError({ code, name, added: [...addedNow] });
   for (const d of drafts) {
     const existing = created.get(d.key);
     if (existing) {
       ids.push(existing);
       continue;
     }
-    if (!d.category) throw new DraftSaveError(withAdded(`“${d.name}” needs a category.`));
+    if (!d.category) throw fail('needsCategory', d.name);
     let id: string;
     try {
       id = await createExercise({ name: d.name, description: d.description, category: d.category, minPlayers: d.minPlayers ?? undefined }, uid);
     } catch {
-      throw new DraftSaveError(withAdded(`Could not add “${d.name}”.`));
+      throw fail('addFailed', d.name);
     }
     created.set(d.key, id);
     ids.push(id);
@@ -44,7 +50,7 @@ export async function saveExerciseDrafts(drafts: ExerciseDraft[], uid: string, c
           uid,
         );
       } catch {
-        throw new DraftSaveError(withAdded(`“${d.name}” was added without its diagram — add one in the diagram editor.`));
+        throw fail('diagramMissing', d.name);
       }
     }
     addedNow.push(d.name);
@@ -78,8 +84,6 @@ export async function saveTrainingDraft(draft: TrainingDraft, uid: string, creat
   try {
     return await createTraining(trainingDraftToInput(draft, created), uid);
   } catch {
-    throw new DraftSaveError(
-      fresh.length ? 'The new exercises were saved, but the training was not. Try Save again.' : 'Could not save the training. Please try again.',
-    );
+    throw new DraftSaveError({ code: fresh.length ? 'trainingFailedKept' : 'trainingFailed' });
   }
 }

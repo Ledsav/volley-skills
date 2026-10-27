@@ -16,6 +16,16 @@ export const DRAFT_LIMITS = {
 /** Item types the model may place; the rest stay editor-only. */
 export const DRAFT_ITEM_TYPES: readonly DiagramItemType[] = ['player', 'ball', 'cone', 'arrow', 'text', 'zoneLabel'];
 
+/** Why the model's proposal was repaired; the UI turns the code into text (`draftIssueText`). */
+export type DraftIssue =
+  | { code: 'pickCategory' }
+  | { code: 'noDiagram' }
+  | { code: 'diagramUnusable' }
+  | { code: 'itemsDropped'; n: number }
+  | { code: 'stepsNotInLibrary'; n: number }
+  | { code: 'newExercisesOff'; n: number }
+  | { code: 'newNoCategory'; n: number };
+
 export interface ExerciseDraft {
   /** Local id; also the key that remembers the saved exercise id across a retry. */
   key: string;
@@ -27,7 +37,7 @@ export interface ExerciseDraft {
   minPlayers: number | null;
   /** null => no usable diagram. */
   scene: Scene | null;
-  issues: string[];
+  issues: DraftIssue[];
 }
 
 export interface LibraryIndexEntry {
@@ -51,5 +61,5 @@ export interface TrainingDraft {
   targets: ExerciseCategory[];
   suggestedPlayers: number | null;
   steps: TrainingStepDraft[];
-  issues: string[];
+  issues: DraftIssue[];
 }

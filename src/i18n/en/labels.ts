@@ -1,6 +1,7 @@
 import type { Gender } from '../catalog';
 import type { AwardId } from '../../types/awards';
 import type { ExerciseCategory } from '../../types/exercise';
+import type { ExerciseFocus } from '../../trainings/naming';
 import type { ObjectiveStatus } from '../../types/developmentPlan';
 import type { Competition, Grade, MatchStatus, PointReason, Skill } from '../../types/match';
 import type { Level, PositionCategory, SkillKey } from '../../types/player';
@@ -93,7 +94,7 @@ export const labels = {
     Transition: 'Transition',
     Combination: 'Combination',
     Game: 'Game',
-  } as Record<string, string>,
+  } as Record<ExerciseFocus, string>,
   awardTitle: {
     mvp: () => 'MVP',
     topScorer: () => 'Top scorer',

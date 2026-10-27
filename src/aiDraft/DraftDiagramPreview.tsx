@@ -1,5 +1,6 @@
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import type { Scene } from '../types/diagram';
+import { useT } from '../i18n/I18nProvider';
 
 interface Props {
   scene: Scene | null;
@@ -11,10 +12,11 @@ interface Props {
 
 /** Small read-only preview of a draft diagram; a dashed box when there is none. */
 export function DraftDiagramPreview({ scene, label, onOpen, className = 'h-32 w-32' }: Props) {
+  const t = useT().aiDraft;
   const box = `${className} shrink-0 overflow-hidden rounded-md border`;
   if (!scene) {
     return (
-      <div className={`${box} flex items-center justify-center border-dashed border-border text-xs text-slate`}>No diagram</div>
+      <div className={`${box} flex items-center justify-center border-dashed border-border text-xs text-slate`}>{t.noDiagram}</div>
     );
   }
   if (!onOpen) {

@@ -56,7 +56,7 @@ export const exercises = {
     saving: 'Salvataggio…',
     name: 'Nome',
     nameHint: (example: string, focuses: string) =>
-      `Scrivilo come "Focus: cosa si allena", ad es. "${example}". Il focus è uno tra (in inglese): ${focuses}.`,
+      `Scrivilo come "Focus: cosa si allena", ad es. "${example}". Il focus è uno tra: ${focuses}.`,
     category: 'Categoria',
     minPlayers: 'Giocatori minimi',
     minPlayersHint: 'Il numero minimo di persone per farlo. Facoltativo.',

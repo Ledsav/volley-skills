@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EXERCISE_FOCUSES, EXERCISE_NAME_HINT, followsExerciseNaming, TRAINING_NAME_HINT } from './naming';
+import { EXERCISE_FOCUSES, exerciseNameHint, followsExerciseNaming, trainingNameHint } from './naming';
 
 describe('naming convention', () => {
   it('recognises "Focus: detail" exercise names', () => {
@@ -10,7 +10,7 @@ describe('naming convention', () => {
   });
 
   it('lists every focus in the hint, and gives a training example', () => {
-    for (const f of EXERCISE_FOCUSES) expect(EXERCISE_NAME_HINT).toContain(f);
-    expect(TRAINING_NAME_HINT).toContain('Focus + focus: objective');
+    for (const f of EXERCISE_FOCUSES) expect(exerciseNameHint()).toContain(f);
+    expect(trainingNameHint()).toContain('Focus + focus: objective');
   });
 });

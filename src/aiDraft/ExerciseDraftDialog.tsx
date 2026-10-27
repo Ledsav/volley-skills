@@ -16,6 +16,7 @@ import { DraftSaveError, saveExerciseDrafts } from './saveDrafts';
 import { DRAFT_LIMITS, type ExerciseDraft } from './types';
 import { validateExerciseProposals } from './validateDraft';
 import { useT } from '../i18n/I18nProvider';
+import { draftSaveErrorText } from './draftMessages';
 
 interface Props {
   onClose: () => void;
@@ -27,7 +28,10 @@ interface Props {
 type DraftError = { text: string; settingsLink: boolean };
 
 export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
-  const lb = useT().labels;
+  const catalog = useT();
+  const lb = catalog.labels;
+  const t = catalog.aiDraft;
+  const cancel = catalog.common.cancel;
   const { firebaseUser } = useAuth();
   const [settings] = useState(readAiSettings);
   const askModel: AskFn =
@@ -105,7 +109,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
         ? cur.map((d) =>
             d.key !== key
               ? d
-              : { ...d, ...patch, issues: patch.category ? d.issues.filter((i) => i !== 'Pick a category.') : d.issues },
+              : { ...d, ...patch, issues: patch.category ? d.issues.filter((i) => i.code !== 'pickCategory') : d.issues },
           )
         : cur,
     );
@@ -126,10 +130,10 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
       setError({
         text:
           e instanceof OfflineError
-            ? "You're offline. Saving drafts needs a connection."
+            ? t.saveErrors.offlineExercises
             : e instanceof DraftSaveError
-              ? e.message
-              : 'Could not save. Please try again.',
+              ? draftSaveErrorText(e.issue, t)
+              : catalog.common.couldNotSave,
         settingsLink: false,
       });
     }
@@ -137,56 +141,56 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
 
   const footer = generating ? (
     <Button variant="secondary" onClick={cancelGenerate}>
-      Cancel
+      {cancel}
     </Button>
   ) : drafts ? (
     <>
       <Button variant="secondary" className="mr-auto" onClick={() => void generate(true)} disabled={kept.size >= count}>
-        Regenerate
+        {t.regenerate}
       </Button>
       <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        Cancel
+        {cancel}
       </Button>
       <Button variant="primary" onClick={() => void handleSave()} disabled={!canSave}>
-        {saving ? 'Saving…' : `Save ${toSave.length} kept`}
+        {saving ? t.saving : t.exerciseDialog.saveKept(toSave.length)}
       </Button>
     </>
   ) : (
     <>
       <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        Cancel
+        {cancel}
       </Button>
       <Button variant="primary" onClick={() => void generate(false)} disabled={!request.trim()}>
-        Generate
+        {t.generate}
       </Button>
     </>
   );
 
   return (
-    <Dialog title="Draft exercises with AI" size="lg" mobileSheet dirty={drafts !== null} onClose={onClose} footer={footer}>
+    <Dialog title={t.exerciseDialog.title} size="lg" mobileSheet dirty={drafts !== null} onClose={onClose} footer={footer}>
       <div className="flex flex-col gap-4">
         {!drafts && (
           <>
             <div>
               <label htmlFor="draft-request" className="mb-1 block text-sm font-medium text-ink">
-                What do you need?
+                {t.exerciseDialog.request}
               </label>
               <Textarea
                 id="draft-request"
                 rows={3}
                 maxLength={DRAFT_LIMITS.requestMax}
-                placeholder="Serve-receive drills for 9 players, U15, one court"
+                placeholder={t.exerciseDialog.requestPlaceholder}
                 value={request}
                 onChange={(e) => setRequest(e.target.value)}
               />
               <p className="mt-1 text-xs text-slate">
-                Don&apos;t type names or other personal details — this text is sent to your AI provider.
+                {t.exerciseDialog.privacy}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="draft-category" className="mb-1 block text-sm font-medium text-ink">
-                  Category
+                  {t.exerciseDialog.category}
                 </label>
                 <select
                   id="draft-category"
@@ -194,7 +198,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
                   value={category}
                   onChange={(e) => setCategory(e.target.value as ExerciseCategory | '')}
                 >
-                  <option value="">Any</option>
+                  <option value="">{t.exerciseDialog.any}</option>
                   {EXERCISE_CATEGORIES.map((c) => (
                     <option key={c.key} value={c.key}>
                       {lb.exerciseCategory[c.key]}
@@ -204,7 +208,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
               </div>
               <div>
                 <label htmlFor="draft-count" className="mb-1 block text-sm font-medium text-ink">
-                  How many
+                  {t.exerciseDialog.howMany}
                 </label>
                 <Input
                   id="draft-count"
@@ -223,7 +227,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
 
         {generating && (
           <p role="status" className="text-sm text-slate">
-            Drafting…
+            {t.drafting}
           </p>
         )}
 
@@ -232,7 +236,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
             {error.text}{' '}
             {error.settingsLink && (
               <Link to="/settings" className="text-blue hover:underline">
-                Open Settings
+                {t.openSettings}
               </Link>
             )}
           </p>

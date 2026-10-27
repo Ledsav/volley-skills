@@ -14,8 +14,8 @@ export const labels = {
   grade: {
     S: { '#': 'Ace', '+': 'Pressione', '!': 'OK', '-': 'Facile', '/': 'Palla facile', '=': 'Errore' },
     R: { '#': 'Perfetta', '+': 'Buona', '!': 'OK', '-': 'Scarsa', '/': 'Oltre rete', '=': 'Ace subito' },
-    A: { '#': 'Punto', '+': 'Buono', '!': 'Coperto', '-': 'Difesa facile', '/': 'Murato', '=': 'Errore' },
-    B: { '#': 'Muro punto', '+': 'Tocco nostro', '-': 'Tocco loro', '/': 'Muro sfruttato', '=': 'Rete' },
+    A: { '#': 'Punto', '+': 'Buono', '!': 'Coperto', '-': 'Dif. facile', '/': 'Murato', '=': 'Errore' },
+    B: { '#': 'Muro punto', '+': 'Tocco nostro', '-': 'Tocco loro', '/': 'Mani-out', '=': 'Rete' },
     D: { '#': 'Perfetta', '+': 'Buona', '!': 'OK', '-': 'Scarsa', '/': 'Oltre rete', '=': 'Errore' },
     E: { '#': 'Perfetta', '+': 'Buona', '!': 'OK', '-': 'Scarsa', '=': 'Errore' },
     F: { '#': 'Perfetta', '+': 'Buona', '!': 'OK', '-': 'Scarsa', '/': 'Oltre rete', '=': 'Errore' },

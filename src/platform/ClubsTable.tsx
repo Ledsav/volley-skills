@@ -5,14 +5,14 @@ import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { FIELD_CLASS } from '../components/Input';
 import { Menu } from '../components/Menu';
-import { CLUB_STATUS_LABEL } from '../clubs/statusLabels';
 import type { Club, ClubStatus } from '../types/club';
 import { ClubActionDialog } from './ClubActionDialog';
 import { clubActions, type ClubAction } from './clubActions';
 import { listClubs } from './platformApi';
 import { formatDateValue } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
 
-const STATUSES = Object.keys(CLUB_STATUS_LABEL) as ClubStatus[];
+const STATUSES: ClubStatus[] = ['pending', 'active', 'suspended', 'terminating', 'deleted'];
 
 function day(value: unknown): string {
   if (value && typeof (value as { toDate?: unknown }).toDate === 'function') {
@@ -33,13 +33,15 @@ const SUB = 'mt-0.5 text-xs text-slate tabular-nums';
 /** Club-doc fields only: the operator never sees club data, so no row links anywhere. */
 export function ClubsTable() {
   const { appUser } = useAuth();
+  const t = useT();
+  const p = t.platform.table;
   const operatorEmail = (appUser?.email ?? '').toLowerCase();
   const [status, setStatus] = useState<ClubStatus | null>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'loadMoreFailed' | 'loadFailed' | null>(null);
   const [active, setActive] = useState<{ club: Club; action: ClubAction } | null>(null);
   const request = useRef(0);
 
@@ -54,7 +56,7 @@ export function ClubsTable() {
       setHasMore(page.hasMore);
     } catch {
       if (mine !== request.current) return;
-      setError(after ? 'Could not load more clubs. Please try again.' : 'Could not load clubs. Please refresh the page.');
+      setError(after ? 'loadMoreFailed' : 'loadFailed');
     } finally {
       if (mine === request.current) setLoaded(true);
     }
@@ -72,22 +74,22 @@ export function ClubsTable() {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <label htmlFor="club-status-filter" className="text-sm font-medium text-ink">Status</label>
+        <label htmlFor="club-status-filter" className="text-sm font-medium text-ink">{p.status}</label>
         <select id="club-status-filter" className={`${FIELD_CLASS} min-h-11 cursor-pointer`}
           value={status ?? ''} onChange={(e) => setStatus((e.target.value || null) as ClubStatus | null)}>
-          <option value="">All</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{CLUB_STATUS_LABEL[s]}</option>)}
+          <option value="">{p.all}</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{t.clubs.status[s]}</option>)}
         </select>
       </div>
 
-      {error && <p role="alert" className="mb-3 text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-red">{p[error]}</p>}
 
       {/* pb-24: room for the row menu to open below the last row inside the scroller. */}
       <div className="overflow-x-auto rounded-lg border border-border bg-surface pb-24 shadow-card">
         <table className="w-full border-collapse">
           <thead className="border-b border-border">
             <tr>
-              {['Club', 'Owner', 'Status', 'Terms', 'Actions']
+              {([p.columns.club, p.columns.owner, p.columns.status, p.columns.terms, p.columns.actions])
                 .map((h) => <th key={h} scope="col" className={TH}>{h}</th>)}
             </tr>
           </thead>
@@ -100,17 +102,17 @@ export function ClubsTable() {
                 <tr key={club.id}>
                   <th scope="row" className={`${TD} text-left font-medium`}>
                     {club.name}
-                    <p className={`${SUB} font-normal`}>{club.country} · created {day(club.createdAt)}</p>
+                    <p className={`${SUB} font-normal`}>{p.created(club.country, day(club.createdAt))}</p>
                   </th>
                   <td className={`${TD} break-all`}>{club.ownerEmail}</td>
                   <td className={TD}>
-                    {CLUB_STATUS_LABEL[club.status]}
+                    {t.clubs.status[club.status]}
                     {club.status === 'terminating' && (
-                      <p className={SUB}>Ends {day(club.termination?.effectiveAt)} · export until {day(club.termination?.retrievalEndsAt)}</p>
+                      <p className={SUB}>{p.endsAndExport(day(club.termination?.effectiveAt), day(club.termination?.retrievalEndsAt))}</p>
                     )}
                   </td>
                   <td className={`${TD} tabular-nums`}>
-                    {club.legal ? `Accepted ${termsVersion(club.legal.versionKey)}` : <span className="text-slate">Not accepted</span>}
+                    {club.legal ? p.termsAccepted(termsVersion(club.legal.versionKey)) : <span className="text-slate">{p.notAccepted}</span>}
                   </td>
                   <td className="px-3 py-1 align-top">
                     <div className="flex flex-wrap items-center gap-1">
@@ -120,7 +122,7 @@ export function ClubsTable() {
                         </Button>
                       ))}
                       {secondary.length > 0 && (
-                        <Menu label={`More actions for ${club.name}`}
+                        <Menu label={p.moreActionsFor(club.name)}
                           triggerClassName="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-slate hover:bg-bg"
                           trigger={<MoreHorizontal size={18} aria-hidden="true" />}
                           items={secondary.map((a) => ({
@@ -135,13 +137,13 @@ export function ClubsTable() {
           </tbody>
         </table>
         {loaded && clubs.length === 0 && !error && (
-          <p className="p-4 text-sm text-slate">No clubs{status ? ' with this status' : ' yet'}.</p>
+          <p className="p-4 text-sm text-slate">{p.noClubs(status !== null)}</p>
         )}
       </div>
 
       {hasMore && (
         <div className="mt-3 flex justify-center">
-          <Button variant="secondary" size="sm" onClick={() => void load(status, lastDoc)}>Load more</Button>
+          <Button variant="secondary" size="sm" onClick={() => void load(status, lastDoc)}>{p.loadMore}</Button>
         </div>
       )}
 

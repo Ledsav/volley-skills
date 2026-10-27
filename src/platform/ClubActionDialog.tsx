@@ -4,27 +4,16 @@ import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input, Textarea } from '../components/Input';
 import { useNotify } from '../components/Notice';
-import { CLUB_STATUS_LABEL } from '../clubs/statusLabels';
 import type { Club } from '../types/club';
 import { changeClubStatus, type StatusChange } from './platformApi';
 import { defaultTerminationDates, type ClubAction } from './clubActions';
 import { endOfLocalDay, retrievalLongEnough, startOfLocalDay } from './dates';
+import { useT } from '../i18n/I18nProvider';
 
 const REASON_MAX = 300;
 
 const toIso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-const DATES_INTRO = 'The club keeps full use until the end date, then can only export its data until the export date.';
-
-const INTRO: Record<ClubAction['kind'], string> = {
-  activate: 'The club will be able to use the app.',
-  deactivate: 'The club is paused: its people can no longer use the app. You can activate it again later.',
-  endContract: DATES_INTRO,
-  changeDates: DATES_INTRO,
-  reject: 'The club request is rejected.',
-  reinstate: 'The end of the contract is cancelled and the club becomes active again.',
-};
 
 interface Props {
   club: Club;
@@ -37,13 +26,20 @@ interface Props {
 
 export function ClubActionDialog({ club, action, operatorEmail, onClose, onChanged }: Props) {
   const notify = useNotify();
+  const t = useT();
+  const d = t.platform.dialog;
+  const intro: Record<ClubAction['kind'], string> = {
+    ...d.intro,
+    endContract: d.datesIntro,
+    changeDates: d.datesIntro,
+  };
   const [initial] = useState(() => {
     const current = club.termination;
     if (action.kind === 'changeDates' && current?.effectiveAt && current.retrievalEndsAt) {
       return { effective: toIso(current.effectiveAt.toDate()), retrieval: toIso(current.retrievalEndsAt.toDate()) };
     }
-    const d = defaultTerminationDates(new Date(), club.status);
-    return { effective: toIso(d.effectiveAt), retrieval: toIso(d.retrievalEndsAt) };
+    const defaults = defaultTerminationDates(new Date(), club.status);
+    return { effective: toIso(defaults.effectiveAt), retrieval: toIso(defaults.retrievalEndsAt) };
   });
   const [reason, setReason] = useState('');
   const [effective, setEffective] = useState(initial.effective);
@@ -59,11 +55,11 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
   const keptEffective = stored && effective === initial.effective ? stored : null;
   let dateError: string | null = null;
   if (action.needsDates) {
-    if (!effective || !retrieval) dateError = 'Choose both dates.';
+    if (!effective || !retrieval) dateError = d.chooseBothDates;
     else if (!keptEffective && startOfLocalDay(effective) < startOfLocalDay(toIso(new Date()))) {
-      dateError = "The end date can't be in the past.";
+      dateError = d.endDatePast;
     } else if (!retrievalLongEnough(keptEffective?.toDate() ?? startOfLocalDay(effective), endOfLocalDay(retrieval))) {
-      dateError = 'Data export must stay open at least 30 days after the end date.';
+      dateError = d.exportTooShort;
     }
   }
   const canConfirm = !saving && !dateError && (!action.reasonRequired || trimmed.length > 0);
@@ -81,7 +77,7 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
     try {
       await changeClubStatus(change, operatorEmail.toLowerCase());
     } catch {
-      setError('Could not update the club. Please try again.');
+      setError(t.common.couldNotUpdateClub);
       setSaving(false);
       inFlight.current = false;
       return;
@@ -96,16 +92,16 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
     } else if (club.status === 'terminating' && action.to === 'active') {
       patch.termination = { requestedAt: null, requestedBy: null, effectiveAt: null, retrievalEndsAt: null };
     }
-    notify(action.kind === 'changeDates' ? 'Dates updated' : `${club.name} is now ${CLUB_STATUS_LABEL[action.to]}`);
+    notify(action.kind === 'changeDates' ? d.datesUpdated : d.nowStatus(club.name, t.clubs.status[action.to]));
     onChanged(patch);
     onClose();
   }
 
   return (
-    <Dialog title={`${action.label}: ${club.name}`} onClose={onClose}
+    <Dialog title={d.title(action.label, club.name)} onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>{t.common.cancel}</Button>
           <Button variant={action.kind === 'activate' || action.kind === 'reinstate' ? 'primary' : 'destructive'}
             disabled={!canConfirm} onClick={() => void confirm()}>
             {action.label}
@@ -113,24 +109,24 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
         </>
       }>
       <div className="flex flex-col gap-4">
-        <p className="text-slate">{INTRO[action.kind]}</p>
+        <p className="text-slate">{intro[action.kind]}</p>
         {action.kind === 'endContract' && club.status === 'suspended' && (
-          <p className="text-slate">A later end date gives the club full use again until then.</p>
+          <p className="text-slate">{d.laterEndDate}</p>
         )}
         {action.needsDates && (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-              End date
+              {d.endDate}
               <Input type="date" value={effective} onChange={(e) => setEffective(e.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-              Data export open until
+              {d.exportOpenUntil}
               <Input type="date" value={retrieval} onChange={(e) => setRetrieval(e.target.value)} />
             </label>
           </div>
         )}
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {action.reasonRequired ? 'Reason' : 'Reason (optional)'}
+          {action.reasonRequired ? d.reason : d.reasonOptional}
           <Textarea rows={3} maxLength={REASON_MAX} value={reason} onChange={(e) => setReason(e.target.value)} />
           <span className="self-end text-xs font-normal tabular-nums text-slate">{reason.length}/{REASON_MAX}</span>
         </label>

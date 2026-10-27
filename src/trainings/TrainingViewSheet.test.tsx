@@ -178,6 +178,7 @@ describe('TrainingViewSheet', () => {
       expect(await screen.findByRole('button', { name: 'Share PDF ready' })).toBeInTheDocument();
       expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledWith(training, {
         teamName: 'U17',
+        gender: 'mixed',
         date: '2026-10-24',
         general: 'Gym B',
         players: [{ name: 'Chloé HENS', position: 'Outside', level: 'Advanced', note: 'Lead the line.' }],

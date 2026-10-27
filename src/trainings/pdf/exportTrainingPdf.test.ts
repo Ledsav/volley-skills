@@ -62,6 +62,7 @@ describe('generateTrainingPdf', () => {
   it('includes team notes and dates the file when built for a calendar session', async () => {
     const file = await generateTrainingPdf(training, {
       teamName: 'U17',
+      gender: 'mixed' as const,
       date: '2026-10-24',
       general: '',
       players: [{ name: 'Chloé HENS', position: 'Outside hitter', level: 'Advanced', note: 'Lead the line.' }],

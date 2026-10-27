@@ -1,5 +1,5 @@
 import type { Content, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces';
-import { getT } from '../../i18n/I18nProvider';
+import type { Catalog, Gender } from '../../i18n/catalog';
 import { fileSlug } from '../../export/exportJson';
 import type { Diagram } from '../../types/diagram';
 import { type Exercise, type ExerciseCategory } from '../../types/exercise';
@@ -53,12 +53,16 @@ const GRID_GAP = 15;
 /** Optional page for a session with a known team: who is expected and what to look at for each player. */
 export interface TeamNotes {
   teamName: string;
+  /** Wording for the level labels ("Avanzato" / "Avanzata"). */
+  gender: Gender;
   date?: string;
   general: string;
   players: { name: string; position: string; level: Level | null; note: string }[];
 }
 
 interface TrainingPdfInput {
+  /** The catalog to print in (passed in so this module stays pure). */
+  t: Catalog;
   training: Training;
   teamNotes?: TeamNotes;
   exercisesById: Map<string, Exercise>;
@@ -119,13 +123,14 @@ export function trainingPdfFileName(training: Training, date?: string): string {
 
 const dot = '  ·  ';
 
-function coverPage(training: Training, lineup: LineupEntry[]): Content[] {
+function coverPage(training: Training, lineup: LineupEntry[], t: Catalog): Content[] {
+  const p = t.trainings.pdf;
   const total = lineup.reduce((sum, e) => sum + e.minutes, 0);
   const facts = [
     training.ageGroupTarget,
-    training.suggestedPlayers !== undefined ? `${training.suggestedPlayers} suggested players` : '',
-    `${total} min`,
-    `${lineup.length} exercise${lineup.length === 1 ? '' : 's'}`,
+    training.suggestedPlayers !== undefined ? p.suggestedPlayers(training.suggestedPlayers) : '',
+    p.minutes(total),
+    p.exerciseCount(lineup.length),
   ].filter(Boolean);
 
   const content: Content[] = [
@@ -135,32 +140,32 @@ function coverPage(training: Training, lineup: LineupEntry[]): Content[] {
   ];
   if (training.targets && training.targets.length > 0) {
     content.push({
-      text: [{ text: 'Targets  ', bold: true, color: INK }, training.targets.map((t) => getT().labels.exerciseCategory[t]).join(dot)],
+      text: [{ text: p.targets, bold: true, color: INK }, training.targets.map((target) => t.labels.exerciseCategory[target]).join(dot)],
       style: 'facts',
     });
   }
   if (training.description.trim()) content.push({ text: training.description, style: 'body', margin: [0, 8, 0, 0] });
 
-  content.push({ text: 'Session plan', style: 'h2' });
+  content.push({ text: p.sessionPlan, style: 'h2' });
   if (lineup.length === 0) {
-    content.push({ text: 'No exercises in this training.', style: 'muted' });
+    content.push({ text: p.noExercises, style: 'muted' });
     return content;
   }
 
-  const head = ['#', 'Exercise', 'Category', 'Min players', 'Min', 'Time'].map(
+  const head = [p.cols.number, p.cols.exercise, p.cols.category, p.cols.minPlayers, p.cols.min, p.cols.time].map(
     (text, i): TableCell => ({ text, style: 'th', alignment: i >= 3 ? 'right' : 'left' }),
   );
   const rows = lineup.map((e): TableCell[] => [
     { text: String(e.number), color: SLATE },
-    e.name === null ? { text: 'Deleted exercise', color: WARN, italics: true } : { text: e.name, bold: true },
-    { text: e.category ? getT().labels.exerciseCategory[e.category] : '' },
+    e.name === null ? { text: p.deletedExercise, color: WARN, italics: true } : { text: e.name, bold: true },
+    { text: e.category ? t.labels.exerciseCategory[e.category] : '' },
     { text: e.minPlayers !== undefined ? String(e.minPlayers) : '', alignment: 'right' },
     { text: String(e.minutes), alignment: 'right' },
     { text: `${e.start}–${e.end}`, alignment: 'right', color: SLATE },
   ]);
   const totalRow: TableCell[] = [
     '',
-    { text: 'Total', bold: true },
+    { text: p.total, bold: true },
     '',
     '',
     { text: String(total), bold: true, alignment: 'right' },
@@ -182,25 +187,25 @@ function coverPage(training: Training, lineup: LineupEntry[]): Content[] {
   return content;
 }
 
-function teamNotesPage(notes: TeamNotes): Content {
+function teamNotesPage(notes: TeamNotes, t: Catalog): Content {
+  const p = t.trainings.pdf;
   const count = notes.players.length;
-  const facts = [notes.teamName, notes.date ?? '', `${count} expected player${count === 1 ? '' : 's'}`].filter(Boolean);
+  const facts = [notes.teamName, notes.date ?? '', p.expectedPlayers(count, notes.gender)].filter(Boolean);
   const stack: Content[] = [
-    { text: 'Team notes', style: 'h1' },
+    { text: p.teamNotes, style: 'h1' },
     { text: facts.join(dot), style: 'facts' },
   ];
   if (notes.general.trim()) stack.push({ text: notes.general, style: 'body', margin: [0, 10, 0, 0] });
   if (count > 0) {
-    const head = ['Player', 'Position', 'Level', 'What to look at'].map((text): TableCell => ({ text, style: 'th' }));
-    const rows = notes.players.map((p): TableCell[] => [
-      { text: p.name, bold: true },
-      { text: p.position, color: SLATE },
-      // TODO(i18n T8): teamGender(team)
-      p.level ? { text: getT().labels.level[p.level]('mixed'), color: LEVEL_COLOR[p.level], bold: true } : { text: 'Not rated', color: SLATE, italics: true },
-      { text: p.note },
+    const head = [p.team.player, p.team.position, p.team.level, p.team.whatToLookAt].map((text): TableCell => ({ text, style: 'th' }));
+    const rows = notes.players.map((pl): TableCell[] => [
+      { text: pl.name, bold: true },
+      { text: pl.position, color: SLATE },
+      pl.level ? { text: t.labels.level[pl.level](notes.gender), color: LEVEL_COLOR[pl.level], bold: true } : { text: p.team.notRated, color: SLATE, italics: true },
+      { text: pl.note },
     ]);
     stack.push({
-      table: { headerRows: 1, dontBreakRows: true, widths: [110, 70, 60, '*'], body: [head, ...rows] },
+      table: { headerRows: 1, dontBreakRows: true, widths: [110, 90, 60, '*'], body: [head, ...rows] },
       layout: {
         hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
         vLineWidth: () => 0,
@@ -250,13 +255,14 @@ function exercisePage(
   slots: LineupEntry[],
   input: TrainingPdfInput,
 ): Content {
-  const { training, diagramsById, svgFor } = input;
+  const { training, diagramsById, svgFor, t } = input;
+  const p = t.trainings.pdf;
   const suggested = training.suggestedPlayers ?? null;
-  const timing = slots.map((s) => `${s.minutes} min (${s.start}–${s.end})`).join(', ');
+  const timing = slots.map((s) => p.slotTiming(s.minutes, s.start, s.end)).join(', ');
   const facts = [
-    getT().labels.exerciseCategory[exercise.category],
+    t.labels.exerciseCategory[exercise.category],
     timing,
-    exercise.minPlayers !== undefined ? `Min ${exercise.minPlayers} players` : '',
+    exercise.minPlayers !== undefined ? p.minPlayersFact(exercise.minPlayers) : '',
   ].filter(Boolean);
 
   const stack: Content[] = [
@@ -264,7 +270,7 @@ function exercisePage(
     { text: facts.join(dot), style: 'facts' },
   ];
   if (needsMorePlayers(exercise.minPlayers, suggested)) {
-    stack.push({ text: `Needs ${exercise.minPlayers} — suggested ${suggested} players`, style: 'warn' });
+    stack.push({ text: p.needsMore(exercise.minPlayers as number, suggested as number), style: 'warn' });
   }
   if (exercise.description.trim()) stack.push({ text: exercise.description, style: 'body', margin: [0, 10, 0, 14] });
   stack.push(...diagramsContent(diagramsById.get(exercise.id) ?? [], svgFor));
@@ -274,7 +280,7 @@ function exercisePage(
 
 /** The whole PDF: a cover with the session plan, then one page per exercise with its court diagrams. */
 export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDefinitions {
-  const { training, exercisesById, teamNotes } = input;
+  const { training, exercisesById, teamNotes, t } = input;
   const lineup = buildLineup(training, exercisesById);
   const pages = exercisePages(lineup).map(({ exerciseId, slots }) =>
     exercisePage(exercisesById.get(exerciseId) as Exercise, slots, input),
@@ -292,13 +298,13 @@ export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDe
       margin: [PAGE_MARGINS[0], 24, PAGE_MARGINS[2], 0],
     }),
     footer: (currentPage: number, pageCount: number) => ({
-      text: `Page ${currentPage} of ${pageCount}`,
+      text: t.trainings.pdf.page(currentPage, pageCount),
       fontSize: 8,
       color: SLATE,
       alignment: 'right',
       margin: [PAGE_MARGINS[0], 16, PAGE_MARGINS[2], 0],
     }),
-    content: fontSafeTree([...coverPage(training, lineup), ...(teamNotes ? [teamNotesPage(teamNotes)] : []), ...pages]),
+    content: fontSafeTree([...coverPage(training, lineup, t), ...(teamNotes ? [teamNotesPage(teamNotes, t)] : []), ...pages]),
     defaultStyle: { fontSize: 10, color: INK, lineHeight: 1.25 },
     styles: {
       label: { fontSize: 9, bold: true, color: BLUE, characterSpacing: 0.5 },

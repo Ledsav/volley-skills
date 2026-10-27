@@ -23,17 +23,23 @@ import {
   TRAINING_IMPORT_EXAMPLE,
   collectExerciseNames,
   validateTrainingRows,
+  MAX_IMPORT_EXERCISE_NAMES,
+  type TrainingImportIssue,
 } from './trainingsImport';
 import { TrainingBuilderDialog } from './TrainingBuilderDialog';
 import { TrainingViewSheet } from './TrainingViewSheet';
 import { getCalendarSession } from '../calendar/calendarApi';
 import { useNotify } from '../components/Notice';
 import { PageHeader } from '../layout/PageHeader';
+import { useT } from '../i18n/I18nProvider';
+import { trainingImportIssueText } from './trainingsImportMessages';
 
 type TeamContext = { teamId: string; date: string; notes: string };
 
 export function TrainingsPage() {
-  usePageMeta({ title: 'Trainings' });
+  const t = useT();
+  const p = t.trainings.page;
+  usePageMeta({ title: p.title });
   const [searchParams] = useSearchParams();
   const { firebaseUser } = useAuth();
   const { aiEnabled } = useClubFeatures();
@@ -105,7 +111,7 @@ export function TrainingsPage() {
   useEffect(() => {
     setError(null);
     setLoaded(false);
-    load().catch(() => setError('Could not load trainings. Please refresh the page.'));
+    load().catch(() => setError(p.loadError));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedAgeGroup, debouncedBusinessId]);
 
@@ -114,7 +120,7 @@ export function TrainingsPage() {
     try {
       await deleteTraining(pendingDelete.id);
     } catch {
-      setDeleteError('Could not delete the training. Please try again.');
+      setDeleteError(p.deleteError);
       return;
     }
     setPendingDelete(null);
@@ -124,7 +130,7 @@ export function TrainingsPage() {
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <PageHeader
-        title="Trainings"
+        title={p.title}
         actions={
           <>
             <Button
@@ -133,12 +139,12 @@ export function TrainingsPage() {
               className="w-full sm:w-auto"
               onClick={() => setShowImport(true)}
             >
-              Import
+              {p.import}
             </Button>
             {aiEnabled && (
               <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
                 <Sparkles size={16} aria-hidden="true" />
-                Draft with AI
+                {p.draftWithAi}
               </Button>
             )}
             <Button
@@ -147,7 +153,7 @@ export function TrainingsPage() {
               className="w-full sm:w-auto"
               onClick={() => setDialog({ mode: 'new' })}
             >
-              New training
+              {p.newTraining}
             </Button>
           </>
         }
@@ -157,7 +163,7 @@ export function TrainingsPage() {
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="w-full sm:w-auto">
           <label htmlFor="filter-age" className="mb-1 block text-sm text-slate">
-            Age group
+            {p.ageGroup}
           </label>
           <Input
             id="filter-age"
@@ -168,7 +174,7 @@ export function TrainingsPage() {
         </div>
         <div className="w-full sm:w-auto">
           <label htmlFor="filter-bid" className="mb-1 block text-sm text-slate">
-            Business ID
+            {p.businessId}
           </label>
           <Input
             id="filter-bid"
@@ -192,7 +198,7 @@ export function TrainingsPage() {
       <div className="space-y-3 sm:space-y-0 sm:divide-y sm:divide-border sm:rounded-lg sm:border sm:border-border sm:bg-surface sm:shadow-card">
         {loaded && trainings.length === 0 && (
           <p className="rounded-lg border border-border bg-surface p-4 text-slate shadow-card sm:rounded-none sm:border-0 sm:shadow-none">
-            No trainings found.
+            {p.none}
           </p>
         )}
         {trainings.map((training) => (
@@ -215,8 +221,11 @@ export function TrainingsPage() {
                 <span className="text-ink">{training.name}</span>
               </div>
               <p className="mt-1 text-sm text-slate">
-                {training.ageGroupTarget || '—'} · {training.exercises.length} exercise(s) ·{' '}
-                {training.exercises.reduce((s, e) => s + e.durationMinutes, 0)} min
+                {p.summary(
+                  training.ageGroupTarget || '—',
+                  training.exercises.length,
+                  training.exercises.reduce((s, e) => s + e.durationMinutes, 0),
+                )}
               </p>
             </div>
             <div className="flex justify-end border-t border-border pt-3 sm:border-0 sm:pt-0">
@@ -229,7 +238,7 @@ export function TrainingsPage() {
                   setPendingDelete(training);
                 }}
               >
-                Delete
+                {p.delete}
               </Button>
             </div>
           </div>
@@ -240,10 +249,10 @@ export function TrainingsPage() {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => loadMore().catch(() => setError('Could not load more trainings. Please try again.'))}
+          onClick={() => loadMore().catch(() => setError(p.loadMoreError))}
           className="mt-4"
         >
-          Load more
+          {p.loadMore}
         </Button>
       )}
 
@@ -279,7 +288,7 @@ export function TrainingsPage() {
           onClose={() => setShowDraft(false)}
           onSaved={(businessId) => {
             setShowDraft(false);
-            notify(`Saved training ${businessId}.`);
+            notify(p.savedDraft(businessId));
             void load();
           }}
           onOpenInBuilder={(initial) => {
@@ -291,17 +300,16 @@ export function TrainingsPage() {
 
       {showImport && firebaseUser && (
         <BulkImportDialog
-          title="Import trainings"
-          hint="Exercises are matched by name against the existing library."
+          title={p.importTitle}
+          hint={p.importHint}
+          formatIssue={(issue: TrainingImportIssue) => trainingImportIssueText(issue, t)}
           exampleJson={TRAINING_IMPORT_EXAMPLE}
           validate={async (rows) => {
             const names = collectExerciseNames(rows);
-            if (names.length > 500) {
+            if (names.length > MAX_IMPORT_EXERCISE_NAMES) {
               return {
                 inputs: [],
-                errors: [
-                  'too many distinct exercise names to resolve at once (max 500) — split the import into smaller files',
-                ],
+                errors: [{ code: 'tooManyNames' as const, max: MAX_IMPORT_EXERCISE_NAMES }],
               };
             }
             const map = await resolveExerciseNames(names);
@@ -311,7 +319,7 @@ export function TrainingsPage() {
           onClose={() => setShowImport(false)}
           onImported={(n) => {
             setShowImport(false);
-            notify(`Imported ${n} training${n === 1 ? '' : 's'}.`);
+            notify(p.imported(n));
             void load();
           }}
         />
@@ -319,9 +327,9 @@ export function TrainingsPage() {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={`Delete ${pendingDelete.businessId}?`}
-          message="Past calendar entries for this training keep their label but will no longer link to it."
-          confirmLabel="Yes, delete training"
+          title={p.deleteTitle(pendingDelete.businessId)}
+          message={p.deleteMessage}
+          confirmLabel={p.deleteConfirm}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setPendingDelete(null)}
           error={deleteError}

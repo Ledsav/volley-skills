@@ -158,3 +158,10 @@ describe('formatPhysicalTestDetail', () => {
     ]);
   });
 });
+
+describe('attempt lists in English', () => {
+  it('keep the comma joiner', () => {
+    const rows = formatPhysicalTestDetail({ ...common, testType: 'sprint10m', attemptsSeconds: [2.35, 2.4], bestSeconds: 2.35 });
+    expect(rows[0].value).toBe('2.35, 2.4 s');
+  });
+});

@@ -1,6 +1,8 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import type { Catalog } from '../i18n/catalog';
+import { useT } from '../i18n/I18nProvider';
 import { Button } from '../components/Button';
 import { SettingsSection } from './SettingsSection';
 import { FIELD_CLASS, Input } from '../components/Input';
@@ -17,20 +19,10 @@ import {
   type AiSettings,
 } from '../ai/aiSettings';
 
-const ERROR_TEXT: Record<AiError['kind'], string> = {
-  notConfigured: 'Fill in the fields above first.',
-  unauthorized: 'Key rejected — check it in your provider account.',
-  rateLimited: 'Rate limit reached — try again in a moment.',
-  unreachable: 'Could not reach the provider.',
-  badResponse: 'The model answered, but not with JSON. Try another model.',
-  privacyBlocked: 'No provider for this model keeps your notes private (zero data retention). Pick another model in Settings.',
-  http: 'The provider returned an error.',
-};
-
-function errorText(e: AiError, provider: AiProvider): string {
-  if (e.kind === 'rateLimited') return `${providerName(provider)} rate limit reached — try again in a moment.`;
-  if (e.kind === 'unreachable' && provider === 'local') return `${ERROR_TEXT.unreachable} ${LOCAL_UNREACHABLE_HINT}`;
-  return ERROR_TEXT[e.kind];
+function errorText(e: AiError, provider: AiProvider, t: Catalog['settings']['ai']): string {
+  if (e.kind === 'rateLimited') return t.rateLimitedFor(providerName(provider));
+  if (e.kind === 'unreachable' && provider === 'local') return `${t.errors.unreachable} ${LOCAL_UNREACHABLE_HINT}`;
+  return t.errors[e.kind];
 }
 
 const MODEL_PLACEHOLDER: Record<AiProvider, string> = {
@@ -53,6 +45,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
   const [showKey, setShowKey] = useState(false);
   const keyId = useId();
   const notify = useNotify();
+  const t = useT().settings.ai;
   const preset = AI_PROVIDERS[s.provider];
 
   function update(next: AiSettings) {
@@ -64,12 +57,12 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
 
   async function runTest() {
     setTesting(true);
-    setStatus({ kind: 'testing', text: 'Testing…' });
+    setStatus({ kind: 'testing', text: t.testing });
     try {
       await testFn(s);
-      setStatus({ kind: 'ok', text: 'Connected — AI features are ready.' });
+      setStatus({ kind: 'ok', text: t.connected });
     } catch (e) {
-      setStatus({ kind: 'error', text: e instanceof AiError ? errorText(e, s.provider) : 'Connection failed.' });
+      setStatus({ kind: 'error', text: e instanceof AiError ? errorText(e, s.provider, t) : t.connectionFailed });
     } finally {
       setTesting(false);
     }
@@ -79,12 +72,12 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
     status?.kind === 'ok' ? 'text-green-strong' : status?.kind === 'error' ? 'text-red' : 'text-slate';
 
   return (
-    <SettingsSection title="AI provider" description="Used for text scouting and for drafting exercises and trainings.">
+    <SettingsSection title={t.title} description={t.description}>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Provider
+          {t.provider}
           <select
-            aria-label="AI provider"
+            aria-label={t.providerAria}
             className={`${FIELD_CLASS} min-h-11`}
             value={s.provider}
             onChange={(e) => {
@@ -101,9 +94,9 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
         </label>
         <div className="flex flex-col gap-1">
           <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-            Model
+            {t.model}
             <Input
-              aria-label="Model"
+              aria-label={t.model}
               className={INPUT_CLASS}
               placeholder={MODEL_PLACEHOLDER[s.provider]}
               value={s.model}
@@ -117,15 +110,15 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
               rel="noopener noreferrer"
               className={EXT_LINK_CLASS}
             >
-              Free models
+              {t.freeModels}
             </a>
           )}
         </div>
         {preset.editableUrl && (
           <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-            Base URL
+            {t.baseUrl}
             <Input
-              aria-label="Base URL"
+              aria-label={t.baseUrl}
               className={INPUT_CLASS}
               value={s.baseUrl}
               onChange={(e) => update({ ...s, baseUrl: e.target.value })}
@@ -136,18 +129,18 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
               <label htmlFor={keyId} className="text-sm font-medium text-ink">
-                API key
+                {t.apiKey}
               </label>
               {preset.keyUrl && (
                 <a href={preset.keyUrl} target="_blank" rel="noopener noreferrer" className={EXT_LINK_CLASS}>
-                  Get a key
+                  {t.getKey}
                 </a>
               )}
             </div>
             <div className="relative">
               <Input
                 id={keyId}
-                aria-label="API key"
+                aria-label={t.apiKey}
                 className={`${INPUT_CLASS} pr-11`}
                 type={showKey ? 'text' : 'password'}
                 autoComplete="off"
@@ -156,7 +149,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
               />
               <button
                 type="button"
-                aria-label={showKey ? 'Hide API key' : 'Show API key'}
+                aria-label={showKey ? t.hideKey : t.showKey}
                 aria-pressed={showKey}
                 onClick={() => setShowKey((v) => !v)}
                 className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate hover:text-ink"
@@ -171,7 +164,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
                 checked={s.rememberKey}
                 onChange={(e) => update({ ...s, rememberKey: e.target.checked })}
               />
-              Remember on this device
+              {t.remember}
             </label>
             <Button
               variant="ghost"
@@ -180,10 +173,10 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
               onClick={() => {
                 setS(forgetAiKey(s));
                 setStatus(null);
-                notify('API key removed from this device.');
+                notify(t.keyRemoved);
               }}
             >
-              Forget key
+              {t.forgetKey}
             </Button>
           </div>
         )}
@@ -191,25 +184,24 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
       <p className="text-xs text-slate">{preset.note}</p>
       {preset.needsKey && (
         <p className="text-xs text-slate">
-          Use a club or work account with the provider, not a personal one, and accept its data-processing terms
-          (DPA) in its console.
+          {t.dpa}
         </p>
       )}
       <p className="text-xs text-slate">
-        With your own key, the AI provider you choose works for your club, not for us.
+        {t.ownKey}
       </p>
       <p className="text-xs text-slate">
-        Player names never leave this device — only jersey numbers, roles and the match situation are sent.{' '}
+        {t.privacy}{' '}
         <Link to="/privacy" className="text-blue hover:underline">
-          What&apos;s sent
+          {t.whatsSent}
         </Link>
       </p>
       <p aria-live="polite" className="text-xs text-slate">
-        {saved ? 'Saved on this device' : ''}
+        {saved ? t.saved : ''}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="secondary" size="sm" onClick={() => void runTest()} disabled={testing}>
-          Test connection
+          {t.test}
         </Button>
         {status && (
           <p role="status" className={`flex items-center gap-1.5 text-sm ${statusColor}`}>

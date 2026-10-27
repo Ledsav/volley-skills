@@ -48,7 +48,7 @@ describe('teamsApi', () => {
     mockAddDoc.mockResolvedValue({ id: 'team-1' });
 
     const id = await createTeam(
-      { name: 'U17', ageGroup: 'U17', season: '2026-27', description: '' },
+      { name: 'U17', ageGroup: 'U17', season: '2026-27', description: '', gender: 'women' },
       'creator-uid',
       'coach@example.com'
     );
@@ -57,6 +57,7 @@ describe('teamsApi', () => {
     const [, payload] = mockAddDoc.mock.calls[0];
     expect(payload).toMatchObject({
       name: 'U17',
+      gender: 'women',
       adminEmails: ['coach@example.com'],
       createdBy: 'creator-uid',
       developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
@@ -70,8 +71,8 @@ describe('teamsApi', () => {
 
     const count = await bulkCreateTeams(
       [
-        { name: 'A', ageGroup: '', season: '', description: '' },
-        { name: 'B', ageGroup: '', season: '', description: '' },
+        { name: 'A', ageGroup: '', season: '', description: '', gender: 'women' },
+        { name: 'B', ageGroup: '', season: '', description: '', gender: 'women' },
       ],
       'coach-uid',
       'coach@example.com'
@@ -100,7 +101,7 @@ describe('teamsApi', () => {
 
     vi.useFakeTimers();
     const pending = bulkCreateTeams(
-      [{ name: 'A', ageGroup: '', season: '', description: '' }],
+      [{ name: 'A', ageGroup: '', season: '', description: '', gender: 'women' }],
       'coach-uid',
       'coach@example.com'
     );
@@ -118,7 +119,7 @@ describe('teamsApi', () => {
 
     await expect(
       bulkCreateTeams(
-        Array.from({ length: 101 }, () => ({ name: 'x', ageGroup: '', season: '', description: '' })),
+        Array.from({ length: 101 }, () => ({ name: 'x', ageGroup: '', season: '', description: '', gender: 'women' })),
         'coach-uid',
         'coach@example.com'
       )

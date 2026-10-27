@@ -2,8 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
-import { Input, Textarea } from '../components/Input';
+import { FIELD_CLASS, Input, Textarea } from '../components/Input';
 import { useSave } from '../components/useSave';
+import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
+import { GENDERS, isGender } from './teamGender';
 import { createTeam } from './teamsApi';
 
 interface CreateTeamDialogProps {
@@ -20,6 +23,8 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   const [ageGroup, setAgeGroup] = useState('');
   const [season, setSeason] = useState('');
   const [description, setDescription] = useState('');
+  const [gender, setGender] = useState<Gender | ''>('');
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
 
   const { saving, save } = useSave();
@@ -27,11 +32,11 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!firebaseUser || !appUser) return;
+    if (!firebaseUser || !appUser || !isGender(gender)) return;
     const { uid } = firebaseUser;
     const email = appUser.email;
     try {
-      const done = await save(() => createTeam({ name, ageGroup, season, description }, uid, email));
+      const done = await save(() => createTeam({ name, ageGroup, season, description, gender }, uid, email));
       if (!done) return;
     } catch {
       setError('Could not create the team. Please try again.');
@@ -66,6 +71,28 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
         </div>
 
         <div className={fieldClass}>
+          <label htmlFor="team-gender" className={labelClass}>
+            {t.teams.gender.label}
+          </label>
+          <select
+            id="team-gender"
+            className={`${FIELD_CLASS} w-full`}
+            value={gender}
+            onChange={(e) => setGender(e.target.value as Gender | '')}
+            required
+          >
+            <option value="" disabled>
+              {t.teams.gender.choose}
+            </option>
+            {GENDERS.map((g) => (
+              <option key={g} value={g}>
+                {t.teams.gender[g]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={fieldClass}>
           <label htmlFor="team-description" className={labelClass}>
             Description
           </label>
@@ -81,7 +108,7 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={saving}>
+          <Button variant="primary" type="submit" disabled={saving || gender === ''}>
             {saving ? 'Saving…' : 'Create'}
           </Button>
         </div>

@@ -22,7 +22,7 @@ describe('teams rules', () => {
     const env = await getTestEnv();
     const db = dbAs(env, 'super@example.com');
     const ref = db.collection('clubs/club-a/teams').doc('new-team');
-    await assertSucceeds(ref.set({ name: 'U19', adminEmails: ['coach@example.com'], createdBy: 'uid-super@example.com' }));
+    await assertSucceeds(ref.set({ name: 'U19', adminEmails: ['coach@example.com'], createdBy: 'uid-super@example.com', gender: 'women' }));
     await assertSucceeds(ref.delete());
   });
 
@@ -30,7 +30,7 @@ describe('teams rules', () => {
     const env = await getTestEnv();
     const db = dbAs(env, 'coach@example.com');
     await assertFails(
-      db.collection('clubs/club-a/teams').doc('x').set({ name: 'X', adminEmails: ['coach@example.com'], createdBy: 'uid-coach@example.com' })
+      db.collection('clubs/club-a/teams').doc('x').set({ name: 'X', adminEmails: ['coach@example.com'], createdBy: 'uid-coach@example.com', gender: 'women' })
     );
     await assertFails(db.doc('clubs/club-a/teams/team-1').delete());
   });
@@ -39,7 +39,7 @@ describe('teams rules', () => {
     const env = await getTestEnv();
     const db = dbAs(env, 'parent@example.com');
     await assertFails(
-      db.collection('clubs/club-a/teams').add({ name: 'U17', adminEmails: ['parent@example.com'], createdBy: 'uid-parent@example.com' })
+      db.collection('clubs/club-a/teams').add({ name: 'U17', adminEmails: ['parent@example.com'], createdBy: 'uid-parent@example.com', gender: 'women' })
     );
   });
 
@@ -94,5 +94,38 @@ describe('teams rules', () => {
     const db = dbAs(env, 'plain@example.com');
     await assertFails(db.doc('clubs/club-a/teams/team-1').get());
     await assertFails(db.doc('clubs/club-a/teams/team-1').update({ name: 'Hijack' }));
+  });
+
+  describe('gender', () => {
+    const NEW = { name: 'U19', adminEmails: ['coach@example.com'], createdBy: 'uid-super@example.com' };
+
+    it('refuses a team created without gender or with an unknown value', async () => {
+      const env = await getTestEnv();
+      const db = dbAs(env, 'super@example.com');
+      await assertFails(db.doc('clubs/club-a/teams/t-none').set(NEW));
+      await assertFails(db.doc('clubs/club-a/teams/t-bad').set({ ...NEW, gender: 'female' }));
+    });
+
+    it('accepts women, men and mixed on create', async () => {
+      const env = await getTestEnv();
+      const db = dbAs(env, 'super@example.com');
+      for (const gender of ['women', 'men', 'mixed']) {
+        await assertSucceeds(db.doc(`clubs/club-a/teams/t-${gender}`).set({ ...NEW, gender }));
+      }
+    });
+
+    it('still lets an old team without gender change other fields (no migration)', async () => {
+      const env = await getTestEnv();
+      await assertSucceeds(dbAs(env, 'coach@example.com').doc('clubs/club-a/teams/team-1').update({ name: 'Renamed' }));
+      await assertSucceeds(dbAs(env, 'super@example.com').doc('clubs/club-a/teams/team-1').update({ description: 'x' }));
+    });
+
+    it('validates gender on update', async () => {
+      const env = await getTestEnv();
+      const ref = dbAs(env, 'coach@example.com').doc('clubs/club-a/teams/team-1');
+      await assertSucceeds(ref.update({ gender: 'men' }));
+      await assertFails(ref.update({ gender: 'female' }));
+      await assertFails(ref.update({ gender: null }));
+    });
   });
 });

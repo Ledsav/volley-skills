@@ -92,7 +92,7 @@ describe('platform admin (operator) isolation', () => {
     it('cannot write a team doc', async () => {
       const env = await getTestEnv();
       const op = dbAs(env, OPERATOR);
-      const newTeam = (uid: string) => ({ name: 'U19', adminEmails: [OPERATOR], createdBy: uid });
+      const newTeam = (uid: string) => ({ name: 'U19', adminEmails: [OPERATOR], createdBy: uid, gender: 'mixed' });
       await assertFails(op.doc('clubs/club-a/teams/team-2').set(newTeam(`uid-${OPERATOR}`)));
       await assertFails(op.doc('clubs/club-a/teams/team-1').update({ name: 'Renamed' }));
       await assertFails(op.doc('clubs/club-a/teams/team-1').delete());

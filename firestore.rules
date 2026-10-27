@@ -323,12 +323,23 @@ service cloud.firestore {
             || email() in get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)).data.adminEmails;
         }
 
+        // Grammatical gender (Italian agreement): required on create; teams created
+        // before it existed may stay without it until their next save.
+        function validGender() {
+          return request.resource.data.gender in ['women', 'men', 'mixed'];
+        }
+        function genderAbsentOrValid() {
+          return !('gender' in request.resource.data) || validGender();
+        }
+
         allow read:   if (activeMember() && (email() in resource.data.adminEmails || isClubAdmin()))
                       || exporter();
         allow create: if activeMember() && isClubAdmin()
                       && request.resource.data.createdBy == request.auth.uid
-                      && request.resource.data.adminEmails is list;
+                      && request.resource.data.adminEmails is list
+                      && validGender();
         allow update: if activeMember()
+                      && genderAbsentOrValid()
                       && ((email() in resource.data.adminEmails
                            && request.resource.data.adminEmails == resource.data.adminEmails)
                           || isClubAdmin());

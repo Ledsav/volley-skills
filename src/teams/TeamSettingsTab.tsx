@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { Input, Textarea } from '../components/Input';
+import { FIELD_CLASS, Input, Textarea } from '../components/Input';
 import { HealthHint } from '../components/HealthHint';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useAuth } from '../auth/AuthContext';
 import { deleteTeam, updateTeamInfo } from './teamsApi';
 import { loadTeamExportData } from './teamExportApi';
 import { downloadTeamExport } from './teamExport';
+import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
+import { GENDERS, isGender } from './teamGender';
 import type { Team } from '../types/team';
 
 interface TeamSettingsTabProps {
@@ -18,7 +21,9 @@ interface TeamSettingsTabProps {
 export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   const navigate = useNavigate();
   const { access } = useAuth();
+  const t = useT();
   const [name, setName] = useState(team.name);
+  const [gender, setGender] = useState<Gender | ''>(team.gender ?? '');
   const [description, setDescription] = useState(team.description ?? '');
   const [notes, setNotes] = useState(team.notes ?? '');
   const [infoError, setInfoError] = useState<string | null>(null);
@@ -32,8 +37,9 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   async function handleSaveInfo(event: FormEvent) {
     event.preventDefault();
     setInfoError(null);
+    if (!isGender(gender)) return;
     setSavingInfo(true);
-    const updates = { name: name.trim(), description: description.trim(), notes: notes.trim() };
+    const updates = { name: name.trim(), description: description.trim(), notes: notes.trim(), gender };
     try {
       await updateTeamInfo(team.id, updates);
     } catch {
@@ -79,6 +85,24 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               <Input value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+              {t.teams.gender.label}
+              <select
+                className={`${FIELD_CLASS} w-full`}
+                value={gender}
+                onChange={(e) => setGender(e.target.value as Gender | '')}
+                required
+              >
+                <option value="" disabled>
+                  {t.teams.gender.choose}
+                </option>
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>
+                    {t.teams.gender[g]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
               Description
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </label>
@@ -89,7 +113,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
             </div>
           </div>
           {infoError && <p role="alert" className="mt-3 text-sm text-red">{infoError}</p>}
-          <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo}>
+          <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo || gender === ''}>
             Save team info
           </Button>
         </form>

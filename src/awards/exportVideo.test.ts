@@ -5,7 +5,7 @@ import { pickVideoMime, recordStory, storyTimeline, videoExtension, VIDEO_TIMING
 import { PRESET_PALETTES } from './palette';
 
 const slides = buildStory({ introTitle: 'Season', teamName: 'U17', stats: [], awardCount: 1, includeStory: true });
-const deps = { palette: PRESET_PALETTES[0], cards: [], artFor: () => ({ photo: null, cutout: null, background: null }), clubName: '' };
+const deps = { palette: PRESET_PALETTES[0], cards: [], artFor: () => ({ photo: null, cutout: null, background: null }), clubName: '', winnersTitle: 'Winners' };
 
 describe('exportVideo', () => {
   afterEach(() => vi.unstubAllGlobals());

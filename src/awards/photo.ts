@@ -1,4 +1,5 @@
 import { opaqueBounds } from './card/branding';
+import { getT } from '../i18n/I18nProvider';
 
 export interface Crop { cx: number; cy: number; zoom: number }
 
@@ -13,11 +14,11 @@ export function cropRect(srcW: number, srcH: number, crop: Crop): { sx: number; 
 
 /** Decodes in the browser only; the file never leaves the device. */
 export async function loadImageFile(file: File): Promise<ImageBitmap> {
-  if (!file.type.startsWith('image/')) throw new Error('Choose an image file.');
+  if (!file.type.startsWith('image/')) throw new Error(getT().awards.photo.notImage);
   try {
     return await createImageBitmap(file, { imageOrientation: 'from-image' });
   } catch {
-    throw new Error('This image could not be opened.');
+    throw new Error(getT().awards.photo.cannotOpen);
   }
 }
 
@@ -48,7 +49,7 @@ export async function loadLogoFile(file: File, knockOut: (px: Uint8ClampedArray,
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('This image could not be opened.');
+  if (!ctx) throw new Error(getT().awards.photo.cannotOpen);
   ctx.drawImage(bmp, 0, 0, w, h);
   bmp.close();
   const data = ctx.getImageData(0, 0, w, h);

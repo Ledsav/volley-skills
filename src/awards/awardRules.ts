@@ -4,6 +4,7 @@ import { GRADE_WEIGHTS } from '../players/matchRating';
 import type { AwardId, AwardScope } from '../types/awards';
 import { GRADES, type Match, type PlayerStats, type Skill, type SkillLine } from '../types/match';
 import { formatNumber } from '../i18n/format';
+import { getT } from '../i18n/I18nProvider';
 
 const MVP_QUALITY_WEIGHT = 0.5;
 
@@ -68,12 +69,13 @@ interface Candidate { playerId: string; value: number; tie: number; attempts: nu
 
 const merged = (games: PlayerStats[], skills: Skill[]) => mergeLines(games.flatMap((g) => skills.map((s) => g.skills[s])));
 const sum = (games: PlayerStats[], f: (p: PlayerStats) => number) => games.reduce((n, g) => n + f(g), 0);
-const rating = (q: number) => `rating ${formatNumber(1 + 9 * q, 1)}`;
+const rating = (q: number) => getT().awards.statLine.rating(formatNumber(1 + 9 * q, 1));
 
 /** Ranks every player for one award; ties on value and tie-break share a rank. */
 export function rankAward(id: AwardId, scope: AwardScope, matches: Match[]): AwardRanking {
   if (scope === 'match' && (id === 'mostImproved' || id === 'everPresent')) return { id, ranked: [], notEnoughData: [] };
   const apps = appearances(matches);
+  const sl = getT().awards.statLine;
   const scoutedCount = scoutedMatches(matches).length;
   const min = MIN_ATTEMPTS_FOR[id]?.[scope] ?? 0;
   const candidates: Candidate[] = [];
@@ -100,31 +102,31 @@ export function rankAward(id: AwardId, scope: AwardScope, matches: Match[]): Awa
         }
         const v = mean(games.map(mvpScore))!;
         // tie-break: fewer errors, then more points → encode as -errors * 1000 + points
-        candidates.push({ playerId, value: v, tie: -errors * 1000 + points, attempts: null, display: `${formatNumber(v, 1)} MVP pts${scope === 'season' ? '/match' : ''}` });
+        candidates.push({ playerId, value: v, tie: -errors * 1000 + points, attempts: null, display: sl.mvp(formatNumber(v, 1), scope === 'season') });
         break;
       }
       case 'topScorer':
-        if (points > 0) candidates.push({ playerId, value: points, tie: -errors, attempts: null, display: `${points} pts` });
+        if (points > 0) candidates.push({ playerId, value: points, tie: -errors, attempts: null, display: sl.points(points) });
         break;
       case 'attacker': {
         const l = merged(games, ['A']);
-        byAttempts(playerId, l, (x) => attackEff(x), l?.grades['#'] ?? 0, (v) => `${fmtEff(v)} att. eff.`);
+        byAttempts(playerId, l, (x) => attackEff(x), l?.grades['#'] ?? 0, (v) => sl.attackEff(fmtEff(v)));
         break;
       }
       case 'server': {
         const l = merged(games, ['S']);
-        byAttempts(playerId, l, (x) => serveEff(x), l?.grades['#'] ?? 0, (v) => `${fmtEff(v)} serve eff.`);
+        byAttempts(playerId, l, (x) => serveEff(x), l?.grades['#'] ?? 0, (v) => sl.serveEff(fmtEff(v)));
         break;
       }
       case 'receiver': {
         const l = merged(games, ['R']);
-        byAttempts(playerId, l, (x) => ratio(x.grades['#'] + x.grades['+'], x.attempts), l?.grades['#'] ?? 0, (v) => `${fmtPct(v)} rec. +`);
+        byAttempts(playerId, l, (x) => ratio(x.grades['#'] + x.grades['+'], x.attempts), l?.grades['#'] ?? 0, (v) => sl.receptionPlus(fmtPct(v)));
         break;
       }
       case 'blocker': {
         const l = merged(games, ['B']);
         const kills = l?.grades['#'] ?? 0;
-        if (kills >= 1) candidates.push({ playerId, value: kills, tie: -((l?.grades['='] ?? 0) + (l?.grades['/'] ?? 0)), attempts: l!.attempts, display: `${kills} block${kills === 1 ? '' : 's'}` });
+        if (kills >= 1) candidates.push({ playerId, value: kills, tie: -((l?.grades['='] ?? 0) + (l?.grades['/'] ?? 0)), attempts: l!.attempts, display: sl.blocks(kills) });
         break;
       }
       case 'defender': {
@@ -143,11 +145,11 @@ export function rankAward(id: AwardId, scope: AwardScope, matches: Match[]): Awa
         const first = mean(games.slice(0, third).map(mvpScore))!;
         const last = mean(games.slice(-third).map(mvpScore))!;
         const delta = last - first;
-        if (delta > 0) candidates.push({ playerId, value: delta, tie: last, attempts: null, display: `+${formatNumber(delta, 1)} MVP pts/match` });
+        if (delta > 0) candidates.push({ playerId, value: delta, tie: last, attempts: null, display: sl.improved(formatNumber(delta, 1)) });
         break;
       }
       case 'everPresent':
-        candidates.push({ playerId, value: games.length, tie: sum(games, actionCount), attempts: null, display: `${games.length} match${games.length === 1 ? '' : 'es'}` });
+        candidates.push({ playerId, value: games.length, tie: sum(games, actionCount), attempts: null, display: sl.matchesPlayed(games.length) });
         break;
     }
   }

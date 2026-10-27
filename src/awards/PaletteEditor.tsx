@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input } from '../components/Input';
+import { useT } from '../i18n/I18nProvider';
 import { MAX_COLORS, MIN_COLORS, PRESET_PALETTES, newPaletteId, slideColors, type Palette } from './palette';
 
 const DEFAULT_COLORS = PRESET_PALETTES.find((p) => p.id === 'wrapped')!.colors.slice(0, MIN_COLORS);
@@ -10,31 +11,32 @@ const DEFAULT_COLORS = PRESET_PALETTES.find((p) => p.id === 'wrapped')!.colors.s
 export function PaletteEditor({ initial, onSave, onDelete, onCancel }: {
   initial: Palette | null; onSave: (p: Palette) => void; onDelete?: () => void; onCancel: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? 'My palette');
+  const t = useT().awards.paletteEditor;
+  const [name, setName] = useState(initial?.name ?? t.defaultName);
   const [colors, setColors] = useState<string[]>(initial?.colors ?? DEFAULT_COLORS);
   const draft: Palette = { id: initial?.id ?? 'draft', name, colors };
   const setColor = (i: number, v: string) => setColors((cs) => cs.map((c, j) => (j === i ? v.toUpperCase() : c)));
 
   return (
-    <Dialog title={initial ? 'Edit palette' : 'New palette'} onClose={onCancel}
+    <Dialog title={initial ? t.editTitle : t.newTitle} onClose={onCancel}
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          {onDelete && <Button variant="dangerGhost" onClick={onDelete}><Trash2 size={16} aria-hidden="true" /> Delete palette</Button>}
-          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" disabled={!name.trim()} onClick={() => onSave({ id: initial?.id ?? newPaletteId(), name: name.trim(), colors })}>Save palette</Button>
+          {onDelete && <Button variant="dangerGhost" onClick={onDelete}><Trash2 size={16} aria-hidden="true" /> {t.delete}</Button>}
+          <Button variant="ghost" onClick={onCancel}>{t.cancel}</Button>
+          <Button variant="primary" disabled={!name.trim()} onClick={() => onSave({ id: initial?.id ?? newPaletteId(), name: name.trim(), colors })}>{t.save}</Button>
         </div>
       }>
-      <label className="block text-sm font-medium text-ink" htmlFor="palette-name">Palette name</label>
+      <label className="block text-sm font-medium text-ink" htmlFor="palette-name">{t.name}</label>
       <Input id="palette-name" className="mt-1 w-full" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
 
-      <p className="mt-4 text-sm font-medium text-ink">Colours</p>
-      <p className="text-xs text-slate">Each slide takes the next colour; text turns white or dark automatically so it stays readable.</p>
+      <p className="mt-4 text-sm font-medium text-ink">{t.colours}</p>
+      <p className="text-xs text-slate">{t.coloursHint}</p>
       <ul className="mt-2 flex flex-wrap gap-3">
         {colors.map((c, i) => (
           <li key={i} className="flex flex-col items-center gap-1">
-            <input type="color" aria-label={`Colour ${i + 1}`} value={c} onChange={(e) => setColor(i, e.target.value)}
+            <input type="color" aria-label={t.colour(i + 1)} value={c} onChange={(e) => setColor(i, e.target.value)}
               className="h-12 w-12 cursor-pointer rounded-md border border-border" />
-            <Button variant="ghost" size="icon" aria-label={`Remove colour ${i + 1}`} disabled={colors.length <= MIN_COLORS}
+            <Button variant="ghost" size="icon" aria-label={t.removeColour(i + 1)} disabled={colors.length <= MIN_COLORS}
               onClick={() => setColors((cs) => cs.filter((_, j) => j !== i))}>
               <Trash2 size={14} aria-hidden="true" />
             </Button>
@@ -42,16 +44,16 @@ export function PaletteEditor({ initial, onSave, onDelete, onCancel }: {
         ))}
       </ul>
       <Button variant="secondary" size="sm" className="mt-2" disabled={colors.length >= MAX_COLORS}
-        onClick={() => setColors((cs) => [...cs, cs[cs.length % cs.length]])}>Add colour</Button>
+        onClick={() => setColors((cs) => [...cs, cs[cs.length % cs.length]])}>{t.addColour}</Button>
 
-      <p className="mt-4 text-sm font-medium text-ink">Preview</p>
+      <p className="mt-4 text-sm font-medium text-ink">{t.preview}</p>
       <div className="mt-2 flex gap-2" aria-hidden="true">
         {colors.map((_, i) => {
           const sc = slideColors(draft, i);
           return (
             <div key={i} className="flex aspect-[9/16] w-12 flex-col items-center justify-center rounded-sm" style={{ background: sc.bg }}>
               <span className="text-lg font-black" style={{ color: sc.accent }}>7</span>
-              <span className="text-[11px] font-semibold" style={{ color: sc.text }}>wins</span>
+              <span className="text-[11px] font-semibold" style={{ color: sc.text }}>{t.previewWins}</span>
             </div>
           );
         })}

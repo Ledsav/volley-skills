@@ -8,7 +8,7 @@ import { contentBottom, drawHeaderRow, drawSponsorRow, type HeaderInfo } from '.
 import { fitBlock, fitFontSize } from './wrapText';
 
 export interface PresentCard { key: string; title: string; model: CardModel }
-export interface StoryDeps { palette: Palette; cards: PresentCard[]; artFor: (key: string) => CardArt; clubName: string }
+export interface StoryDeps { palette: Palette; cards: PresentCard[]; artFor: (key: string) => CardArt; clubName: string; winnersTitle: string }
 
 const WIPE_MS = 250;
 const INTRO_MS = 1200;
@@ -90,7 +90,7 @@ function drawSummary(ctx: CanvasRenderingContext2D, deps: StoryDeps, colors: Sli
   drawBackground(ctx, colors, deps.artFor(''), 1, 3);
   const first = deps.cards[0]?.model;
   if (first) drawHeaderRow(ctx, cardHeader(first, deps.artFor('')), colors, 1);
-  text(ctx, 'Winners', 330, `900 120px ${FONT}`, colors.accent, 1);
+  text(ctx, deps.winnersTitle, 330, `900 120px ${FONT}`, colors.accent, 1);
   const n = deps.cards.length;
   const rows = Math.ceil(n / 2);
   const top = 420, bottom = contentBottom(deps.artFor('').branding) - 20;

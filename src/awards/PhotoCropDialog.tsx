@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Dialog } from '../components/Dialog';
 import { Button } from '../components/Button';
+import { useT } from '../i18n/I18nProvider';
 import { cropRect, loadImageFile, renderCrop, type Crop } from './photo';
 
 const PREVIEW = 280;
 
 export function PhotoCropDialog({ open, file, onCancel, onDone }: { open: boolean; file: File | null; onCancel: () => void; onDone: (img: HTMLCanvasElement) => void }) {
+  const t = useT().awards.crop;
   const [bitmap, setBitmap] = useState<ImageBitmap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>({ cx: 0.5, cy: 0.5, zoom: 1 });
@@ -61,8 +63,8 @@ export function PhotoCropDialog({ open, file, onCancel, onDone }: { open: boolea
 
   if (!open) return null;
   return (
-    <Dialog onClose={onCancel} title="Position the photo">
-      <p className="mb-3 text-sm text-slate">The photo stays on this device and is forgotten when you leave this page.</p>
+    <Dialog onClose={onCancel} title={t.title}>
+      <p className="mb-3 text-sm text-slate">{t.note}</p>
       {error && <p role="alert" className="mb-3 text-red">{error}</p>}
       {bitmap && (
         <>
@@ -70,18 +72,18 @@ export function PhotoCropDialog({ open, file, onCancel, onDone }: { open: boolea
             ref={canvasRef} width={PREVIEW} height={PREVIEW}
             className="mx-auto block touch-none cursor-grab rounded-full bg-bg"
             onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={() => (drag.current = null)}
-            aria-label="Drag to position the photo"
+            aria-label={t.dragAria}
           />
           <label className="mt-3 block text-sm text-slate">
-            Zoom
+            {t.zoom}
             <input type="range" min={1} max={4} step={0.05} value={crop.zoom} className="ml-2 w-48 align-middle"
               onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })} />
           </label>
         </>
       )}
       <div className="mt-4 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" disabled={!bitmap} onClick={() => bitmap && onDone(renderCrop(bitmap, crop))}>Use photo</Button>
+        <Button variant="ghost" onClick={onCancel}>{t.cancel}</Button>
+        <Button variant="primary" disabled={!bitmap} onClick={() => bitmap && onDone(renderCrop(bitmap, crop))}>{t.use}</Button>
       </div>
     </Dialog>
   );

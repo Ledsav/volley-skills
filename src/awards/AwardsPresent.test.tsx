@@ -12,7 +12,7 @@ const deps: StoryDeps = {
   palette: PRESET_PALETTES[0],
   cards: [{ key: 'server', title: 'Best server', model: model('server', 'Ana L.') }, { key: 'mvp', title: 'MVP', model: model('mvp', 'Bea S.') }],
   artFor: () => ({ photo: null, cutout: null, background: null }),
-  clubName: '',
+  clubName: '', winnersTitle: 'Winners',
 };
 const stat = { id: 'record' as const, kicker: 'This season', big: 7, bigSuffix: '', caption: 'wins out of 10 matches', detail: null };
 const story = buildStory({ introTitle: 'Season 2026-27', teamName: 'U17', stats: [stat], awardCount: 2, includeStory: true });

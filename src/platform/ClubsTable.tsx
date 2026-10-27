@@ -10,12 +10,13 @@ import type { Club, ClubStatus } from '../types/club';
 import { ClubActionDialog } from './ClubActionDialog';
 import { clubActions, type ClubAction } from './clubActions';
 import { listClubs } from './platformApi';
+import { formatDateValue } from '../i18n/format';
 
 const STATUSES = Object.keys(CLUB_STATUS_LABEL) as ClubStatus[];
 
 function day(value: unknown): string {
   if (value && typeof (value as { toDate?: unknown }).toDate === 'function') {
-    return (value as { toDate: () => Date }).toDate().toLocaleDateString();
+    return formatDateValue((value as { toDate: () => Date }).toDate(), 'numeric');
   }
   return '—';
 }

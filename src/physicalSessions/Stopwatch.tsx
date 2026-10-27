@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/Button';
+import { formatNumber } from '../i18n/format';
 
 interface StopwatchProps {
   onRecord: (seconds: number) => void;
@@ -44,7 +45,7 @@ export function Stopwatch({ onRecord }: StopwatchProps) {
   return (
     <div className="w-full">
       <div className="mb-2 text-center text-3xl font-semibold tabular-nums text-ink">
-        {(elapsedMs / 1000).toFixed(1)}s
+        {formatNumber(elapsedMs / 1000, 1)}s
       </div>
       {!running ? (
         <Button variant="primary" size="md" onClick={start} className="w-full py-4 text-base">

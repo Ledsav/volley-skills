@@ -1,14 +1,15 @@
 import { POINT_REASON_LABELS, type MatchEvent, type RosterEntry } from '../types/match';
 import { GRADE_LABELS, SKILL_LABELS } from './skillGrades';
+import { formatPercent } from '../i18n/format';
 
 export function fmtPct(x: number | null): string {
-  return x === null ? '—' : `${Math.round(x * 100)}%`;
+  return formatPercent(x);
 }
 
 export function fmtEff(x: number | null): string {
   if (x === null) return '—';
   const pct = Math.round(x * 100);
-  return `${pct > 0 ? '+' : ''}${pct}%`;
+  return `${pct > 0 ? '+' : ''}${formatPercent(x)}`;
 }
 
 export function rosterMap(roster: RosterEntry[]): Map<string, RosterEntry> {

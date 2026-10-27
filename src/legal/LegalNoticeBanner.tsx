@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { OPERATOR } from './operator';
 import { upcoming, type VersionedDoc } from './versions';
+import { formatDate } from '../i18n/format';
 
 const keyOf = (doc: VersionedDoc, version: string) => `vcb.legalNoticeDismissed.${doc}.${version}`;
 
@@ -20,7 +21,7 @@ const DOC_NAME: Record<'terms' | 'dpa', { title: string; verb: string }> = {
 };
 
 const fmt = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  formatDate(iso, 'long');
 
 /** For club admins: announces upcoming Terms, DPA and sub-processor versions. Dismissible per session. */
 export function LegalNoticeBanner() {

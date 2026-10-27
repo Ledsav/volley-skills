@@ -5,6 +5,7 @@ import { ClubsTable } from './ClubsTable';
 import * as platformApi from './platformApi';
 import { authValue, testClub } from '../test/authValue';
 import { useAuth } from '../auth/AuthContext';
+import { formatDateValue } from '../i18n/format';
 
 vi.mock('./platformApi');
 vi.mock('../firebase/config', () => ({ db: {} }));
@@ -33,7 +34,7 @@ const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) }
 describe('ClubsTable', () => {
   it('shows name, country, owner, status, created date, accepted legal version and contract dates', async () => {
     render(<ClubsTable />);
-    const created = new Date(2026, 0, 5, 12).toLocaleDateString();
+    const created = formatDateValue(new Date(2026, 0, 5, 12), 'numeric', 'en');
     const a = await screen.findByRole('row', { name: /Alpha VC/ });
     expect(a).toHaveTextContent(`BE · created ${created}`);
     expect(within(a).getByText('owner@alpha.be')).toBeInTheDocument();
@@ -41,8 +42,8 @@ describe('ClubsTable', () => {
     expect(a).toHaveTextContent('Accepted 2026-09');
     const b = row('Beta VC');
     expect(within(b).getByText('Ending')).toBeInTheDocument();
-    const ends = new Date(2026, 10, 30, 12).toLocaleDateString();
-    const exportUntil = new Date(2026, 11, 30, 12).toLocaleDateString();
+    const ends = formatDateValue(new Date(2026, 10, 30, 12), 'numeric', 'en');
+    const exportUntil = formatDateValue(new Date(2026, 11, 30, 12), 'numeric', 'en');
     expect(b).toHaveTextContent(`Ends ${ends} · export until ${exportUntil}`);
     expect(row('Gamma VC')).toHaveTextContent('Not accepted');
   });

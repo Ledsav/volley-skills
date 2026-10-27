@@ -10,6 +10,7 @@ import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } 
 import { createPhysicalTest, getLatestByType } from './physicalTestsApi';
 import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
 import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
+import { formatNumber } from '../i18n/format';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -287,7 +288,7 @@ export function AddPhysicalTestDialog({
                 </div>
                 <p className="mb-4 text-sm text-slate">
                   {latestBodyMassKg !== null && weightKg !== ''
-                    ? `Body-mass ratio: ${computeBodyMassRatio(Number(weightKg), latestBodyMassKg).toFixed(2)}`
+                    ? `Body-mass ratio: ${formatNumber(computeBodyMassRatio(Number(weightKg), latestBodyMassKg), 2)}`
                     : 'Body-mass ratio needs a Growth entry with body mass on file.'}
                 </p>
               </>

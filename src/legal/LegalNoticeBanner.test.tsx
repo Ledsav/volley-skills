@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LegalNoticeBanner } from './LegalNoticeBanner';
 import { useAuth } from '../auth/AuthContext';
 import { authValue } from '../test/authValue';
+import { formatDate } from '../i18n/format';
 
 const upcomingMock = vi.hoisted(() => vi.fn());
 vi.mock('../auth/AuthContext');
@@ -22,7 +23,7 @@ describe('LegalNoticeBanner', () => {
 
   it('shows the effective date and a link to the new version', () => {
     renderBanner();
-    const date = new Date('2026-12-01T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const date = formatDate('2026-12-01', 'long', 'en');
     expect(screen.getByRole('status')).toHaveTextContent(`Updated Terms of Service take effect on ${date} — review`);
     expect(screen.getByRole('link', { name: 'review the Terms of Service' })).toHaveAttribute('href', '/legal/terms?v=2026-12-01');
   });

@@ -8,6 +8,7 @@ import * as clubAdminApi from '../clubAdminApi';
 import { useAuth } from '../../auth/AuthContext';
 import { authValue, clubAdminAccess, testClub } from '../../test/authValue';
 import type { Club } from '../../types/club';
+import { formatDateValue } from '../../i18n/format';
 
 const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 const notify = vi.hoisted(() => vi.fn());
@@ -19,7 +20,7 @@ vi.mock('../../components/Notice', () => ({ useNotify: () => notify }));
 vi.mock('../../firebase/config', () => ({ db: {} }));
 vi.mock('../../legal/operator', () => operator);
 
-const fmt = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+const fmt = (d: Date) => formatDateValue(d, 'long', 'en');
 const T1 = new Date('2026-11-01T10:00:00Z');
 const T2 = new Date('2026-12-15T10:00:00Z');
 

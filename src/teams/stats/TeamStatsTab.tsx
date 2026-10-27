@@ -19,6 +19,7 @@ import { TeamTrendChart } from './TeamTrendChart';
 import { filterMatches, seasonCoverage, teamSeason, type StatsFilter } from './teamSeason';
 import { teamStatsCsv, teamStatsCsvFileName } from './teamStatsCsv';
 import { StatTile } from '../../components/StatTile';
+import { formatDateValue } from '../../i18n/format';
 
 function dateBounds(all: Match[]): { from: string; to: string } {
   const dates = all.map((m) => m.date).sort();
@@ -85,7 +86,7 @@ export default function TeamStatsTab({ team }: { team: Team }) {
     <div className="space-y-6">
       <div className="hidden print:block">
         <h2 className="text-xl font-semibold">{team.name} · Season {team.season}</h2>
-        <p className="text-sm">Printed {new Date().toLocaleDateString()}</p>
+        <p className="text-sm">Printed {formatDateValue(new Date(), 'numeric')}</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 print:hidden">

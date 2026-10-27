@@ -9,6 +9,7 @@ import { deletePlayer, listPlayers, setPlayerStarting } from '../players/players
 import { ageFromDob } from '../players/age';
 import { filterRoster, sortRoster, type RosterSort } from '../players/rosterSort';
 import { POSITION_CATEGORIES, type Player } from '../types/player';
+import { formatNumber } from '../i18n/format';
 
 const NUMERIC_HEADER_CLASS =
   'px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate';
@@ -195,7 +196,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
               </dd>
 
               <dt className="text-slate">Skill avg</dt>
-              <dd className="tabular-nums text-ink">{player.avgScore?.toFixed(1) ?? '—'}</dd>
+              <dd className="tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</dd>
             </dl>
 
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
@@ -272,7 +273,7 @@ export function TeamRosterTable({ teamId, onPlayersChange, onRosterChanged }: Te
                 <td className="whitespace-nowrap px-3 py-2 text-ink">
                   <BornCell dob={player.dob ?? ''} />
                 </td>
-                <td className={NUMERIC_CELL_CLASS}>{player.avgScore?.toFixed(1) ?? '—'}</td>
+                <td className={NUMERIC_CELL_CLASS}>{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</td>
                 <td className="px-3 py-2">
                   <LevelPill level={player.level} />
                 </td>

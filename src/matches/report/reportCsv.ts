@@ -1,5 +1,6 @@
 import { fileSlug } from '../../export/exportJson';
 import { GRADES, SKILLS, type Match, type MatchStats, type Skill, type SkillLine } from '../../types/match';
+import { getT } from '../../i18n/I18nProvider';
 import { rosterMap } from '../format';
 import { mergeLines, ratio, serveEff } from '../scoutStats';
 import { labelSkill } from '../skillGrades';
@@ -23,19 +24,22 @@ export function csvCell(value: Cell, format: CsvFormat = 'en'): string {
   return /[",;\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-const header = (): Cell[] => [
-  'Number',
-  'Name',
-  ...SKILLS.flatMap((s) => [`${labelSkill(s)} att`, ...GRADES.map((g) => `${labelSkill(s)} ${g}`)]),
-  'Attack eff',
-  'Serve eff',
-  'Reception +',
-  'Reception #',
-  'Points',
-  'Errors',
-  'Side-out',
-  'Break point',
-];
+const header = (): Cell[] => {
+  const c = getT().matches.csv;
+  return [
+    c.number,
+    c.name,
+    ...SKILLS.flatMap((s) => [c.skillAtt(labelSkill(s)), ...GRADES.map((g) => c.skillGrade(labelSkill(s), g))]),
+    c.attackEff,
+    c.serveEff,
+    c.receptionPos,
+    c.receptionPerfect,
+    c.points,
+    c.errors,
+    c.sideOut,
+    c.breakPoint,
+  ];
+};
 
 function skillCells(line: SkillLine | undefined): Cell[] {
   return line ? [line.attempts, ...GRADES.map((g) => line.grades[g])] : [0, ...GRADES.map(() => 0)];
@@ -74,7 +78,7 @@ export function reportCsv(match: Match, stats: MatchStats, format: CsvFormat = '
   const t = stats.team;
   rows.push([
     null,
-    'Team',
+    getT().matches.csv.team,
     ...SKILLS.flatMap((s) => skillCells(merged(s))),
     t.attackEff,
     serveEff(merged('S')),

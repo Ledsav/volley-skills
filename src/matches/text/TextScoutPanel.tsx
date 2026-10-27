@@ -6,7 +6,8 @@ import type { Match, MatchEvent, MatchEventPayload } from '../../types/match';
 import { batchOrders } from '../eventOrder';
 import { replay, sortEvents } from '../scoutEngine';
 import { AI_MAX_TOKENS, AiError, chatJson, type ChatMessage } from '../../ai/aiClient';
-import { LOCAL_UNREACHABLE_HINT, isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from '../../ai/aiSettings';
+import { useT } from '../../i18n/I18nProvider';
+import { isAiConfigured, providerName, readAiSettings, readDraft, writeDraft } from '../../ai/aiSettings';
 import { PreviewRallyCard } from './PreviewRallyCard';
 import {
   anonymizeNames,
@@ -55,17 +56,9 @@ function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
-const ERROR_TEXT: Record<AiError['kind'], string> = {
-  notConfigured: 'Set up an AI provider in Settings first.',
-  unauthorized: 'Key rejected — check it in Settings.',
-  rateLimited: 'Rate limit reached.',
-  unreachable: 'Could not reach the AI provider. Your notes are kept.',
-  badResponse: "Couldn't parse — edit the notes or enter by taps.",
-  privacyBlocked: 'No provider for this model keeps your notes private (zero data retention). Pick another model in Settings.',
-  http: 'The AI provider returned an error. Your notes are kept.',
-};
-
 export function TextScoutPanel({ match, events, anchorId, maxWritten, online, onMerge, onClose, lastWrite, ask }: TextScoutPanelProps) {
+  const t = useT();
+  const tx = t.textScout.panel;
   const [text, setText] = useState(() => readDraft(match.id));
   const [batch, setBatch] = useState<ParsedBatch | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -126,11 +119,11 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
 
   function errorText(e: AiError): string {
     if (e.kind === 'rateLimited') {
-      const base = `${providerName(settings.provider)} rate limit reached`;
-      return e.retryAfterSec ? `${base} — retry in ${e.retryAfterSec} s.` : `${base} — try again in a moment.`;
+      const name = providerName(settings.provider);
+      return e.retryAfterSec ? tx.retryIn(name, e.retryAfterSec) : tx.tryAgainSoon(name);
     }
-    if (e.kind === 'unreachable' && settings.provider === 'local') return `${ERROR_TEXT.unreachable} ${LOCAL_UNREACHABLE_HINT}`;
-    return ERROR_TEXT[e.kind];
+    if (e.kind === 'unreachable' && settings.provider === 'local') return `${tx.errors.unreachable} ${tx.localHint}`;
+    return tx.errors[e.kind];
   }
 
   function cancel() {
@@ -182,17 +175,17 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
     const results: ParsedBatch[] = [];
     try {
       for (let i = 0; i < chunks.length; i++) {
-        setBusy(chunks.length > 1 ? `Processing ${i + 1}/${chunks.length}…` : 'Processing…');
+        setBusy(tx.processing(i + 1, chunks.length));
         results.push(await askParsed(buildMessages(chunks[i], players, anchor), true));
       }
       setBatch(mergeBatches(results));
       setProcessedText(source);
     } catch (e) {
       if (run.reason === 'unmount') return;
-      if (run.reason === 'cancel') setError('Cancelled.');
-      else if (run.reason === 'timeout') setError('Timed out — your notes are kept.');
+      if (run.reason === 'cancel') setError(tx.cancelled);
+      else if (run.reason === 'timeout') setError(tx.timedOut);
       else if (e instanceof AiError) setError(errorText(e));
-      else setError('Something went wrong. Your notes are kept.');
+      else setError(tx.wentWrong);
     } finally {
       window.clearTimeout(timer);
       if (runRef.current === run) runRef.current = null;
@@ -215,52 +208,46 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
   const canProcess = anchorState.inSet && configured && online && !busy && text.trim().length > 0;
 
   return (
-    <section aria-label="Text scouting" className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-3">
+    <section aria-label={tx.ariaLabel} className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-ink">Text</h2>
-        <button type="button" onClick={onClose} className="min-h-11 rounded-md px-3 text-sm text-blue hover:bg-blue/10">Close</button>
+        <h2 className="font-semibold text-ink">{tx.title}</h2>
+        <button type="button" onClick={onClose} className="min-h-11 rounded-md px-3 text-sm text-blue hover:bg-blue/10">{tx.close}</button>
       </div>
       <p className="text-xs tabular-nums text-slate">
-        Inserting {anchorId ? 'after' : 'at'} {anchorState.score.us}–{anchorState.score.them} · Set {anchorState.set || '–'} · Rot {anchorState.rotation} ·{' '}
-        {anchorState.serving === 'us' ? 'we serve' : 'they serve'}
+        {tx.inserting(!!anchorId, anchorState.score.us, anchorState.score.them, anchorState.set || '–', anchorState.rotation, anchorState.serving === 'us')}
       </p>
-      {!anchorState.inSet && <p className="text-sm text-orange-strong">Start the set first.</p>}
+      {!anchorState.inSet && <p className="text-sm text-orange-strong">{tx.startSetFirst}</p>}
       {!configured && (
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-slate">No AI provider set up.</p>
+          <p className="text-sm text-slate">{tx.noProvider}</p>
           <Link
             to="/settings"
             className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
-            Open Settings
+            {tx.openSettings}
           </Link>
         </div>
       )}
-      {!online && <p className="text-sm text-slate">Offline — your notes are saved; process them when you're back online.</p>}
+      {!online && <p className="text-sm text-slate">{tx.offline}</p>}
       <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-        Match notes
+        {tx.matchNotes}
         <Textarea
-          aria-label="Match notes"
+          aria-label={tx.matchNotes}
           rows={5}
           value={text}
           onChange={(e) => editText(e.target.value)}
-          placeholder={'7 ace\n12 bad reception, 2 set, 9 kill\nopp error · TO them · 8 in for 9'}
+          placeholder={tx.placeholder}
         />
-        <span className="text-xs font-normal text-slate">Tip: add the result — kill, out, blocked, good…</span>
-        <span className="text-xs font-normal text-slate">
-          Tip: tap your keyboard&apos;s microphone to dictate — e.g. &quot;good serve from 7, then a kill by 12&quot;.
-        </span>
-        <span className="text-xs font-normal text-slate">
-          Notes are sent to your AI provider: use jersey numbers only, no names (including opponents&apos;) and no
-          injury or health details.
-        </span>
+        <span className="text-xs font-normal text-slate">{tx.tipResult}</span>
+        <span className="text-xs font-normal text-slate">{tx.tipDictate}</span>
+        <span className="text-xs font-normal text-slate">{tx.privacy}</span>
       </label>
       <div className="flex items-center gap-2">
-        <Button variant="primary" size="sm" onClick={() => void process()} disabled={!canProcess}>Process</Button>
+        <Button variant="primary" size="sm" onClick={() => void process()} disabled={!canProcess}>{tx.process}</Button>
         {busy && (
           <>
             <span className="text-sm text-slate">{busy}</span>
-            <Button variant="ghost" size="sm" onClick={cancel}>Cancel</Button>
+            <Button variant="ghost" size="sm" onClick={cancel}>{tx.cancel}</Button>
           </>
         )}
       </div>
@@ -269,15 +256,14 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
       {batch && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium tabular-nums text-ink">
-            {anchorState.score.us}–{anchorState.score.them} → {afterState.score.us}–{afterState.score.them} · Rot {afterState.rotation} ·{' '}
-            {afterState.serving === 'us' ? 'we serve' : 'they serve'}
+            {tx.scoreChange(anchorState.score.us, anchorState.score.them, afterState.score.us, afterState.score.them, afterState.rotation, afterState.serving === 'us')}
           </p>
           {laterConflicts > 0 && (
-            <p className="text-xs text-orange-strong">{laterConflicts} later event(s) get warnings after this insert — check the timeline.</p>
+            <p className="text-xs text-orange-strong">{tx.laterWarnings(laterConflicts)}</p>
           )}
           {batch.unparsed.length > 0 && (
             <div className="rounded-md bg-orange/10 p-2 text-xs text-ink">
-              <p className="font-medium">Not understood:</p>
+              <p className="font-medium">{tx.notUnderstood}</p>
               <ul className="list-inside list-disc">
                 {batch.unparsed.map((u, i) => (
                   <li key={i}>{u}</li>
@@ -300,22 +286,22 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           </ul>
           <div className="flex items-end gap-2">
             <label className="flex flex-col gap-1 text-xs text-slate">
-              Actual score — us
-              <Input aria-label="Actual score us" type="number" min={0} className="w-20 tabular-nums" value={actual.us} onChange={(e) => setActual({ ...actual, us: e.target.value })} />
+              {tx.actualUs}
+              <Input aria-label={tx.actualUsAria} type="number" min={0} className="w-20 tabular-nums" value={actual.us} onChange={(e) => setActual({ ...actual, us: e.target.value })} />
             </label>
             <label className="flex flex-col gap-1 text-xs text-slate">
-              them
-              <Input aria-label="Actual score them" type="number" min={0} className="w-20 tabular-nums" value={actual.them} onChange={(e) => setActual({ ...actual, them: e.target.value })} />
+              {tx.actualThem}
+              <Input aria-label={tx.actualThemAria} type="number" min={0} className="w-20 tabular-nums" value={actual.them} onChange={(e) => setActual({ ...actual, them: e.target.value })} />
             </label>
           </div>
           {mismatch && (
             <p role="alert" className="text-sm text-red">
-              Replay gives {afterState.score.us}–{afterState.score.them}, actual is {actual.us}–{actual.them}. Check rallies with no winner.
+              {tx.mismatch(afterState.score.us, afterState.score.them, actual.us, actual.them)}
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => { setBatch(null); setProcessedText(null); setActual({ us: '', them: '' }); setError(null); }}>Discard</Button>
-            <Button variant="primary" size="sm" onClick={merge} disabled={!!busy || blocking || payloads.length === 0}>Merge</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setBatch(null); setProcessedText(null); setActual({ us: '', them: '' }); setError(null); }}>{tx.discard}</Button>
+            <Button variant="primary" size="sm" onClick={merge} disabled={!!busy || blocking || payloads.length === 0}>{tx.merge}</Button>
           </div>
         </div>
       )}

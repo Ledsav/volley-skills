@@ -23,7 +23,8 @@ import { settings } from './settings';
 import { signup } from './signup';
 import { skillGuide } from './skillGuide';
 import { teams } from './teams';
+import { textScout } from './textScout';
 import { theme } from './theme';
 import { trainings } from './trainings';
 
-export const it = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, settings, signup, skillGuide, teams, theme, trainings } satisfies Catalog;
+export const it = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, settings, signup, skillGuide, teams, textScout, theme, trainings } satisfies Catalog;

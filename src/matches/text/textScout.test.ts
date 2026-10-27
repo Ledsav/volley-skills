@@ -283,7 +283,7 @@ describe('ungraded actions', () => {
     const b: ParsedBatch = { rallies: [{ actions: [{ number: 7, skill: 'A', grade: null }], point: null, subs: [], timeouts: [] }], unparsed: [] };
     const { payloads, issues } = batchToPayloads(b, roster);
     expect(payloads).toEqual([]);
-    expect(issues).toContainEqual({ rally: 0, kind: 'missingGrade', blocking: true, message: `Pick a grade for #7 ${SKILL_LABELS.A}.` });
+    expect(issues).toContainEqual({ rally: 0, kind: 'missingGrade', blocking: true, number: 7, skill: 'A' });
     expect(issues).toContainEqual(expect.objectContaining({ rally: 0, kind: 'noWinner', blocking: false }));
   });
 

@@ -1,9 +1,6 @@
 import type { Catalog, Gender } from '../catalog';
+import { agree } from '../agree';
 import { plural } from '../plural';
-
-/** Picks the masculine, feminine or paired form of a word for a team's gender. */
-const agree = (g: Gender, men: string, women: string, mixed: string = men): string =>
-  g === 'women' ? women : g === 'men' ? men : mixed;
 
 export const teams = {
   gender: {

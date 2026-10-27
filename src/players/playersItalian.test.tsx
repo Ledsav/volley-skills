@@ -11,6 +11,8 @@ import { NoticeProvider } from '../components/Notice';
 import * as playersApi from './playersApi';
 import { useAuth } from '../auth/AuthContext';
 import { I18nProvider } from '../i18n/I18nProvider';
+import { en } from '../i18n/en';
+import { it as itCatalog } from '../i18n/it';
 import { authValue } from '../test/authValue';
 import type { DevelopmentPlan } from '../types/developmentPlan';
 import type { Player } from '../types/player';
@@ -191,5 +193,15 @@ describe('players in Italian', () => {
     expect(await screen.findByText('Avanzata')).toBeInTheDocument();
     expect(screen.getByText(/\(Avanzata\)/)).toBeInTheDocument();
     expect(screen.getAllByText('Lettura del gioco').length).toBeGreaterThan(0);
+  });
+
+  it('words player-naming texts by the team gender, and English ignores it', () => {
+    expect(itCatalog.players.card.deleteMessage('women')).toContain('della giocatrice');
+    expect(itCatalog.players.card.deleteMessage('men')).toContain('del giocatore');
+    expect(itCatalog.players.card.deleteMessage('mixed')).toContain('del/della giocatore/trice');
+    expect(itCatalog.players.card.notFoundMessage('women')).toContain('stata eliminata');
+    expect(itCatalog.players.card.markLeft('women')).toBe('Segna come uscita dal club');
+    expect(en.players.card.deleteMessage('women')).toBe(en.players.card.deleteMessage('men'));
+    expect(en.players.card.markLeft('women')).toBe('Mark as left the club');
   });
 });

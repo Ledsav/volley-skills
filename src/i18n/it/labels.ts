@@ -1,8 +1,5 @@
 import type { Catalog, Gender } from '../catalog';
-
-/** Picks the masculine, feminine or paired form of a label for a team's gender. */
-const agree = (g: Gender, men: string, women: string, mixed: string = men): string =>
-  g === 'women' ? women : g === 'men' ? men : mixed;
+import { agree } from '../agree';
 
 export const labels = {
   skill: {

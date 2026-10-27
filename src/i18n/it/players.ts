@@ -1,8 +1,5 @@
 import type { Catalog, Gender } from '../catalog';
-
-/** Picks the masculine, feminine or paired form of a word for a team's gender. */
-const agree = (g: Gender, men: string, women: string, mixed: string = men): string =>
-  g === 'women' ? women : g === 'men' ? men : mixed;
+import { agree } from '../agree';
 
 export const players = {
   shared: {
@@ -23,8 +20,8 @@ export const players = {
     guardianEmail: 'Email del tutore',
     removeGuardian: 'Rimuovi tutore',
     addGuardian: '+ Aggiungi tutore',
-    consent:
-      'Confermo che un genitore o tutore legale ha acconsentito alla conservazione dei dati di questo giocatore, comprese le misurazioni dei test atletici e le statistiche di gara.',
+    consent: (g: Gender) =>
+      `Confermo che un genitore o tutore legale ha acconsentito alla conservazione dei dati di ${agree(g, 'questo giocatore', 'questa giocatrice', 'questo/a giocatore/trice')}, comprese le misurazioni dei test atletici e le statistiche di gara.`,
     noScores: 'Ancora nessun punteggio',
   },
   addPlayer: {
@@ -97,7 +94,8 @@ export const players = {
   matchStats: {
     loadError: 'Impossibile caricare le statistiche di gara.',
     loading: 'Caricamento statistiche di gara…',
-    none: 'Ancora nessuna partita scoutizzata per questo giocatore.',
+    none: (g: Gender) =>
+      `Ancora nessuna partita scoutizzata per ${agree(g, 'questo giocatore', 'questa giocatrice', 'questo/a giocatore/trice')}.`,
     matches: 'Partite',
     attackEff: 'Eff. attacco',
     serveEff: 'Eff. battuta',
@@ -113,7 +111,8 @@ export const players = {
     pageTitle: 'Giocatore',
     notFoundTitle: (g: Gender) =>
       agree(g, 'Giocatore non trovato', 'Giocatrice non trovata', 'Giocatore/trice non trovato/a'),
-    notFoundMessage: 'Potrebbe essere stato eliminato oppure non hai accesso.',
+    notFoundMessage: (g: Gender) =>
+      `Potrebbe essere ${agree(g, 'stato eliminato', 'stata eliminata', 'stato/a eliminato/a')} oppure non hai accesso.`,
     backToTeam: 'Torna alla squadra',
     loadError: 'Impossibile caricare questa scheda.',
     loading: 'Caricamento scheda...',
@@ -152,20 +151,21 @@ export const players = {
     photoConsent: 'Consenso del tutore all’uso delle foto nelle card dei premi',
     photoRecordedBy: (who: string) => `Registrato da ${who}.`,
     photoError: 'Impossibile aggiornare il consenso alle foto. Riprova.',
-    exportInfo:
-      'L’esportazione produce un file JSON con tutto ciò che è memorizzato su questo giocatore: scheda, test atletici, voci delle sessioni di test e statistiche di gara. L’eliminazione cancella tutto e rimuove nome e numero dai referti delle partite passate.',
+    exportInfo: (g: Gender) =>
+      `L’esportazione produce un file JSON con tutto ciò che è memorizzato su ${agree(g, 'questo giocatore', 'questa giocatrice', 'questo/a giocatore/trice')}: scheda, test atletici, voci delle sessioni di test e statistiche di gara. L’eliminazione cancella tutto e rimuove nome e numero dai referti delle partite passate.`,
     leftBefore: 'Ha lasciato il club il ',
-    leftMiddle: '. I suoi dati vanno eliminati entro il ',
+    leftMiddle: '. I dati vanno eliminati entro il ',
     leftAfter: '.',
     stillInClub: 'È ancora nel club',
-    markLeft: 'Segna come uscito dal club',
+    markLeft: (g: Gender) => `Segna come ${agree(g, 'uscito', 'uscita', 'uscito/a')} dal club`,
     leftError: 'Impossibile aggiornare l’appartenenza. Riprova.',
     exportButton: 'Esporta dati (JSON)',
-    exportError: 'Impossibile esportare i dati di questo giocatore. Riprova.',
+    exportError: (g: Gender) =>
+      `Impossibile esportare i dati di ${agree(g, 'questo giocatore', 'questa giocatrice', 'questo/a giocatore/trice')}. Riprova.`,
     deleteButton: (g: Gender) => agree(g, 'Elimina giocatore', 'Elimina giocatrice', 'Elimina giocatore/trice'),
     deleteTitle: (name: string) => `Eliminare ${name}?`,
-    deleteMessage:
-      'Elimina definitivamente la scheda (contatti, abilità, piano di sviluppo), i test atletici e le voci delle sessioni di test, e rimuove nome e numero dai referti delle partite passate. Non si può annullare.',
+    deleteMessage: (g: Gender) =>
+      `Elimina definitivamente la scheda ${agree(g, 'del giocatore', 'della giocatrice', 'del/della giocatore/trice')} (contatti, abilità, piano di sviluppo), i test atletici e le voci delle sessioni di test, e rimuove nome e numero dai referti delle partite passate. Non si può annullare.`,
     deleteConfirm: (g: Gender) =>
       agree(g, 'Sì, elimina il giocatore', 'Sì, elimina la giocatrice', 'Sì, elimina il/la giocatore/trice'),
     deleteError: (g: Gender) =>

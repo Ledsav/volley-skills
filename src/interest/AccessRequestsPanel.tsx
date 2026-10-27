@@ -6,12 +6,9 @@ import {
   countUnreviewedInterestSignups, deleteInterestSignup, listInterestSignups, markInterestSignupReviewed,
 } from './interestApi';
 import { notifySignupsChanged } from './signupEvents';
-import type { InterestSignup, InterestSignupRole } from '../types/interestSignup';
+import type { InterestSignup } from '../types/interestSignup';
 import { formatDateValue } from '../i18n/format';
-
-const ROLE_LABEL: Record<InterestSignupRole, string> = {
-  coach: 'Coach', guardian: 'Guardian', player: 'Player', other: 'Other',
-};
+import { useT } from '../i18n/I18nProvider';
 
 function formatRequestDate(value: unknown): string | null {
   if (value && typeof (value as { toDate?: unknown }).toDate === 'function') {
@@ -27,12 +24,14 @@ function formatRequestDate(value: unknown): string | null {
  * honours the request page's promise that its data is not kept.
  */
 export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => void }) {
+  const ti = useT().interest;
+  const t = ti.panel;
   const [signups, setSignups] = useState<InterestSignup[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [pending, setPending] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'loadError' | 'loadMoreError' | 'updateError' | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<InterestSignup | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -46,7 +45,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
         setHasMore(page.hasMore);
         setPending(count);
       } catch {
-        setError('Could not load access requests. Please refresh the page.');
+        setError('loadError');
       } finally {
         setLoaded(true);
       }
@@ -62,7 +61,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
       setLastDoc(page.lastDoc);
       setHasMore(page.hasMore);
     } catch {
-      setError('Could not load more requests. Please try again.');
+      setError('loadMoreError');
     }
   }
 
@@ -76,7 +75,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
       setPending((n) => Math.max(0, n - 1));
       notifySignupsChanged();
     } catch {
-      setError('Could not update this request. Please try again.');
+      setError('updateError');
     } finally {
       setSavingId(null);
     }
@@ -89,7 +88,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
     try {
       await deleteInterestSignup(signup.id);
     } catch {
-      setDeleteError('Could not delete this request. Please try again.');
+      setDeleteError(t.deleteError);
       return;
     }
     setSignups((current) => current.filter((s) => s.id !== signup.id));
@@ -107,18 +106,18 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
     <section aria-labelledby="access-requests-heading"
       className="mb-6 rounded-lg border border-border bg-surface p-4 shadow-card">
       <div className="mb-3 flex items-center gap-2">
-        <h2 id="access-requests-heading" className="text-lg font-semibold text-ink">Access requests</h2>
+        <h2 id="access-requests-heading" className="text-lg font-semibold text-ink">{t.heading}</h2>
         {pending > 0 && (
           <span className="rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange-strong">
-            {pending} new
+            {t.newCount(pending)}
           </span>
         )}
       </div>
 
-      {error && <p role="alert" className="mb-3 text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-red">{t[error]}</p>}
 
       {loaded && signups.length === 0 && !error ? (
-        <p className="text-sm text-slate">No one has requested access yet.</p>
+        <p className="text-sm text-slate">{t.empty}</p>
       ) : (
         <ul className="max-h-96 divide-y divide-border overflow-y-auto">
           {signups.map((s) => {
@@ -130,11 +129,11 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
                   <div className="flex items-center gap-2">
                     <span className={`truncate ${s.reviewed ? 'text-ink' : 'font-semibold text-ink'}`}>{s.name}</span>
                     <span className="shrink-0 rounded-full bg-bg px-2 py-0.5 text-xs font-medium text-slate">
-                      {ROLE_LABEL[s.role]}
+                      {ti.roles[s.role]}
                     </span>
                     {!s.reviewed && (
                       <span className="shrink-0 rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange-strong">
-                        New
+                        {t.newBadge}
                       </span>
                     )}
                   </div>
@@ -147,18 +146,18 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
                   {onGrant && (
                     <Button variant="secondary" size="sm" className="flex-1 sm:flex-none"
                       disabled={savingId === s.id} onClick={() => grant(s)}>
-                      Grant access
+                      {t.grantAccess}
                     </Button>
                   )}
                   {!s.reviewed && (
                     <Button variant="ghost" size="sm" className="flex-1 sm:flex-none"
                       disabled={savingId === s.id} onClick={() => void markReviewed(s)}>
-                      Mark reviewed
+                      {t.markReviewed}
                     </Button>
                   )}
                   <Button variant="ghost" size="sm" className="flex-1 sm:flex-none"
                     disabled={savingId === s.id} onClick={() => setPendingDelete(s)}>
-                    Delete
+                    {t.delete}
                   </Button>
                 </div>
               </li>
@@ -169,15 +168,15 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
 
       {hasMore && (
         <div className="mt-3 flex justify-center">
-          <Button variant="secondary" size="sm" onClick={() => void loadMore()}>Load more</Button>
+          <Button variant="secondary" size="sm" onClick={() => void loadMore()}>{t.loadMore}</Button>
         </div>
       )}
 
       {pendingDelete && (
         <ConfirmDialog
-          title={`Delete ${pendingDelete.name}'s request?`}
-          message="Their name and email are removed for good. Grant access first if they should keep it."
-          confirmLabel="Delete request"
+          title={t.deleteTitle(pendingDelete.name)}
+          message={t.deleteMessage}
+          confirmLabel={t.deleteConfirm}
           onConfirm={() => void confirmDelete()}
           onCancel={() => { setPendingDelete(null); setDeleteError(null); }}
           error={deleteError}

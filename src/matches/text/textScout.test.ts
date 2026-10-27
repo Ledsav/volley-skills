@@ -254,6 +254,13 @@ describe('SYSTEM_PROMPT', () => {
   it('assigns between-rally subs and timeouts to the next rally', () => {
     expect(SYSTEM_PROMPT).toContain("belong to the NEXT rally's entry");
   });
+  it('lists murato (not murata) as our blocked attack; murata stays a block word', () => {
+    const lines = SYSTEM_PROMPT.split(String.fromCharCode(10));
+    const line = lines.find((l) => l.endsWith('(our attack) -> A "/"'));
+    expect(line).toContain('murato');
+    expect(line).not.toContain('murata');
+    expect(lines.find((l) => l.startsWith('- B block:'))).toContain('murata');
+  });
 });
 
 describe('ungraded actions', () => {

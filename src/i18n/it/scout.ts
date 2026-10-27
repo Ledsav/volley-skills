@@ -54,6 +54,9 @@ export const scout = {
     player: (number, name, libero) => `#${number} ${name}${libero ? ', libero' : ''}`,
     liberoTile: { receiving: 'L·ric', serving: 'L·dif', always: 'L' },
     auto: 'auto',
+    net: 'Rete',
+    serving: 'in battuta',
+    form: { bad: '3+ errori in questo set', good: 'segna bene in questo set' },
   },
   correction: {
     title: 'Correggi lo stato del gioco',

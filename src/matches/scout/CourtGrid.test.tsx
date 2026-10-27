@@ -78,4 +78,33 @@ describe('CourtGrid', () => {
     expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveClass('bg-blue');
     expect(screen.queryByText('auto')).not.toBeInTheDocument();
   });
+
+  it('shows number, name and role on each tile, and marks the server in P1 only while we serve', () => {
+    const props = {
+      court,
+      roster: rosterMap(ROSTER),
+      liberos: [],
+      activeLiberoId: null,
+      selectedId: null,
+      form: () => null,
+      onSelect: vi.fn(),
+      onLongPress: vi.fn(),
+    };
+    const { rerender } = render(<CourtGrid {...props} servingUs />);
+    const ana = screen.getByRole('button', { name: '#7 Ana' });
+    expect(within(ana).getByText('#7')).toBeInTheDocument();
+    expect(within(ana).getByText('Ana')).toBeInTheDocument();
+    expect(within(ana).getByText('OH')).toHaveAttribute('title', 'Outside');
+    // court[0] (P1) is the setter.
+    expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('title', 'serving');
+    expect(ana).not.toHaveAttribute('title');
+
+    rerender(<CourtGrid {...props} servingUs={false} />);
+    expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveAttribute('title');
+  });
+
+  it('keeps the libero name on the tile next to the libero chip', () => {
+    const tile = renderGrid([{ playerId: 'lib', mode: 'receiving', replaces: ['mb2'] }]);
+    expect(within(tile).getByText('Lara')).toBeInTheDocument();
+  });
 });

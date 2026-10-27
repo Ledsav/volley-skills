@@ -5,6 +5,7 @@ import { useT } from '../../i18n/I18nProvider';
 import { validGrades } from '../skillGrades';
 import { GRADE_CLASS } from './gradeStyles';
 import { Kbd } from './Kbd';
+import { RoleChip } from './RoleChip';
 
 interface ActionSheetProps {
   player: RosterEntry;
@@ -33,9 +34,10 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
       className="rounded-lg border border-border bg-surface p-3 shadow-pop"
     >
       <div className="mb-2 flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate font-semibold text-ink">
-          #{player.number} {player.name}
-          <span className="ml-2 text-xs font-normal text-slate">{isLibero ? t.labels.position.L('mixed') : player.positionCategory}</span>
+        <p className="flex min-w-0 flex-1 items-center gap-2 text-ink">
+          <span className="min-w-0 truncate text-lg font-bold">{player.name}</span>
+          <span className="shrink-0 font-bold tabular-nums">#{player.number}</span>
+          <RoleChip role={isLibero ? 'L' : player.positionCategory} libero={isLibero} />
         </p>
         {!isLibero && (
           <button type="button" onClick={onSub} className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-blue hover:bg-blue/10">

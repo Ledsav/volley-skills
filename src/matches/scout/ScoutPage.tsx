@@ -13,7 +13,7 @@ import type { ActionEvent, EventSource, Grade, Match, MatchEvent, MatchEventPayl
 import { getDeviceId, isLockedByOther } from '../deviceLock';
 import { nextOrder } from '../eventOrder';
 import { buildFinishPayload } from '../finish';
-import { rosterMap } from '../format';
+import { rosterMap, shortNames } from '../format';
 import { addEvent, claimDevice, deleteEvents, finishMatch, getMatch, getUsageProfile, updateEvent, updateMatchResult, updateMatchRoster } from '../matchesApi';
 import { defaultLineup } from '../matchSetup';
 import { countsForPlayer, expectedSkill, orderSkills, predictPlayer } from '../nextActions';
@@ -196,6 +196,7 @@ export function ScoutPage() {
 
   const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
   const roster = useMemo(() => rosterMap(match?.roster ?? []), [match]);
+  const names = useMemo(() => shortNames(match?.roster ?? []), [match]);
 
   // Before the very first set, open the lineup dialog once; later sets start
   // from the banner so an accidental "Confirm set" can still be undone.
@@ -507,13 +508,14 @@ export function ScoutPage() {
             autoSelected={selection?.auto ?? false}
             form={(id) => playerForm(state, id)}
             disabled={!state.inSet}
+            servingUs={state.serving === 'us'}
             onSelect={(id) => select(id)}
             onLongPress={(id) => {
               if (!liberoIds.has(id)) setSubOutId(id);
             }}
           />
           {/* While a player's actions are open, grading gets the room. */}
-          {!panelPlayer && <BenchStrip players={bench} onSelect={(id) => select(id)} disabled={!state.inSet} />}
+          {!panelPlayer && <BenchStrip players={bench} names={names} onSelect={(id) => select(id)} disabled={!state.inSet} />}
         </>
       )}
       {panelPlayer && panelSkill && selection && (

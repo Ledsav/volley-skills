@@ -21,6 +21,27 @@ export function playerLabel(entry: RosterEntry | undefined): string {
   return entry ? `#${entry.number}` : '#?';
 }
 
+/**
+ * Names that fit a court tile: the first name, plus the surname initial when two
+ * players share a first name, and the full name if that still clashes.
+ */
+export function shortNames(roster: RosterEntry[]): Map<string, string> {
+  const words = (name: string) => name.trim().split(/\s+/).filter(Boolean);
+  const first = (r: RosterEntry) => words(r.name)[0] ?? '';
+  const initial = (r: RosterEntry) => {
+    const w = words(r.name);
+    return w.length > 1 ? `${w[0]} ${w[w.length - 1][0]}.` : w[0] ?? '';
+  };
+  const count = (key: (r: RosterEntry) => string, value: string) => roster.filter((r) => key(r) === value).length;
+  return new Map(
+    roster.map((r) => {
+      if (count(first, first(r)) === 1) return [r.playerId, first(r)];
+      if (count(initial, initial(r)) === 1) return [r.playerId, initial(r)];
+      return [r.playerId, r.name.trim()];
+    }),
+  );
+}
+
 export function describeEvent(ev: MatchEvent, roster: Map<string, RosterEntry>): string {
   const t = getT();
   switch (ev.type) {

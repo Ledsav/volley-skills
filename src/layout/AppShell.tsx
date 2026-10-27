@@ -10,6 +10,7 @@ import { useNotify } from '../components/Notice';
 import { ContractEndingBanner } from '../clubs/ContractEndingBanner';
 import { LegalNoticeBanner } from '../legal/LegalNoticeBanner';
 import { otherUsableClubs } from '../clubs/activeClub';
+import { useT } from '../i18n/I18nProvider';
 import { navGroups, phoneTabs, type NavGroup, type NavItem } from './navModel';
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
@@ -28,6 +29,7 @@ function bottomTabClass({ isActive }: { isActive: boolean }): string {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { access, club, firebaseUser, isPlatformAdmin, memberships, activeClubId, switchClub, droppedClub } = useAuth();
+  const t = useT().layout;
   const notify = useNotify();
   const notifiedDropped = useRef(false);
   const navigate = useNavigate();
@@ -42,8 +44,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!droppedClub || notifiedDropped.current) return;
     notifiedDropped.current = true;
-    notify('You no longer have access to your previous club.');
-  }, [droppedClub, notify]);
+    notify(t.appShell.droppedClub);
+  }, [droppedClub, notify, t]);
 
   const otherClubs = otherUsableClubs(memberships, activeClubId);
 
@@ -87,17 +89,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-bg lg:flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink focus:shadow-pop">
-        Skip to content
+        {t.appShell.skipToContent}
       </a>
       <aside className="hidden print:hidden w-56 shrink-0 flex-col overflow-y-auto bg-navy p-4 lg:sticky lg:top-0 lg:flex lg:h-screen">
         <div className="mb-6 px-3">
-          <NavLink to="/" aria-label="Volley Skills home">
+          <NavLink to="/" aria-label={t.appShell.homeLabel}>
             <Logo className="text-[28px]" />
           </NavLink>
           {/* Which club you are in; with more than one, this is where you switch. */}
           {club && (otherClubs.length > 0 ? (
             <Menu
-              label={`Club: ${club.name}`}
+              label={t.appShell.clubMenu(club.name)}
               align="start"
               triggerClassName="-mx-2 mt-3 flex w-[calc(100%+1rem)] items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-semibold text-white hover:bg-white/5"
               trigger={
@@ -108,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               }
               items={otherClubs.map((m) => ({
                 kind: 'action' as const,
-                label: `Switch to ${m.clubName}`,
+                label: t.appShell.switchTo(m.clubName),
                 icon: <Repeat size={16} />,
                 onSelect: () => switchClub(m.clubId),
               }))}
@@ -117,13 +119,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p className="mt-3 truncate text-sm font-semibold text-white">{club.name}</p>
           ))}
         </div>
-        <nav aria-label="Main" className="flex flex-1 flex-col">
+        <nav aria-label={t.appShell.mainNav} className="flex flex-1 flex-col">
           {groups.map(renderGroup)}
         </nav>
         {/* Who is signed in, and everything about the account, behind one row. */}
         <div className="border-t border-white/10 pt-3">
           <Menu
-            label={`Account: ${email}`}
+            label={t.appShell.accountMenu(email)}
             placement="up"
             align="start"
             triggerClassName="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm text-white/80 hover:bg-white/5 hover:text-white"
@@ -137,10 +139,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </>
             }
             items={[
-              { kind: 'action', label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
-              { kind: 'action', label: 'Terms & privacy', icon: <FileText size={16} />, onSelect: () => navigate('/legal/terms') },
+              { kind: 'action', label: t.appShell.settings, icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
+              { kind: 'action', label: t.appShell.termsAndPrivacy, icon: <FileText size={16} />, onSelect: () => navigate('/legal/terms') },
               { kind: 'divider' },
-              { kind: 'action', label: 'Sign out', icon: <LogOut size={16} />, danger: true, onSelect: signOut },
+              { kind: 'action', label: t.appShell.signOut, icon: <LogOut size={16} />, danger: true, onSelect: signOut },
             ]}
           />
         </div>
@@ -157,7 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label="Main (phone)" className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden print:hidden">
+      <nav aria-label={t.appShell.phoneNav} className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface lg:hidden print:hidden">
         {tabs.map(({ to, label, Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={bottomTabClass}>
             <Icon size={22} strokeWidth={1.5} />
@@ -174,7 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             )}
           </span>
-          <span className="max-w-full truncate">More</span>
+          <span className="max-w-full truncate">{t.nav.more}</span>
         </NavLink>
       </nav>
       {unsyncedDialog}

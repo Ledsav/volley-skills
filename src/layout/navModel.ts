@@ -1,5 +1,6 @@
 import { BookOpen, Building2, ClipboardList, Dumbbell, House, KeyRound, Users, type LucideIcon } from 'lucide-react';
 import type { Access } from '../auth/access';
+import { getT } from '../i18n/I18nProvider';
 
 export interface NavItem {
   to: string;
@@ -24,29 +25,30 @@ export interface NavGroup {
  * sidebar and the phone "More" page both render from this; nothing else lists pages.
  */
 export function navGroups(access: Access | null, isPlatformAdmin: boolean): NavGroup[] {
+  const t = getT().layout.nav;
   const groups: NavGroup[] = [
-    { id: 'main', label: null, items: [{ to: '/', label: 'Home', Icon: House, end: true }] },
+    { id: 'main', label: null, items: [{ to: '/', label: t.home, Icon: House, end: true }] },
     {
       id: 'coaching',
-      label: 'Coaching',
+      label: t.coaching,
       items: [
-        { to: '/teams', label: 'Teams', Icon: Users },
-        ...(access?.sections.trainings ? [{ to: '/trainings', label: 'Trainings', Icon: ClipboardList }] : []),
-        ...(access?.sections.exercises ? [{ to: '/exercises', label: 'Exercises', Icon: Dumbbell }] : []),
+        { to: '/teams', label: t.teams, Icon: Users },
+        ...(access?.sections.trainings ? [{ to: '/trainings', label: t.trainings, Icon: ClipboardList }] : []),
+        ...(access?.sections.exercises ? [{ to: '/exercises', label: t.exercises, Icon: Dumbbell }] : []),
       ],
     },
     {
       id: 'club',
-      label: 'Club',
+      label: t.club,
       items: [
-        ...(access?.sections.guides ? [{ to: '/admin/guides', label: 'Guides', Icon: BookOpen }] : []),
-        ...(access?.isClubAdmin ? [{ to: '/club', label: 'Members & settings', Icon: KeyRound }] : []),
+        ...(access?.sections.guides ? [{ to: '/admin/guides', label: t.guides, Icon: BookOpen }] : []),
+        ...(access?.isClubAdmin ? [{ to: '/club', label: t.membersAndSettings, Icon: KeyRound }] : []),
       ],
     },
     {
       id: 'platform',
-      label: 'Platform',
-      items: isPlatformAdmin ? [{ to: '/platform', label: 'Clubs & sign-ups', Icon: Building2, pending: true }] : [],
+      label: t.platform,
+      items: isPlatformAdmin ? [{ to: '/platform', label: t.clubsAndSignups, Icon: Building2, pending: true }] : [],
     },
   ];
   return groups.filter((g) => g.items.length > 0);

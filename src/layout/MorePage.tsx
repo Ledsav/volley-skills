@@ -6,6 +6,7 @@ import { useSignOut } from '../auth/useSignOut';
 import { otherUsableClubs } from '../clubs/activeClub';
 import { usePendingSignups } from '../interest/usePendingSignups';
 import { navGroups } from './navModel';
+import { useT } from '../i18n/I18nProvider';
 import { usePageMeta } from './usePageMeta';
 
 const ROW = 'flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left text-sm font-medium text-ink hover:bg-bg';
@@ -25,7 +26,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
  * Home and Coaching) plus the account. Same groups and names as the desktop sidebar.
  */
 export function MorePage() {
-  usePageMeta({ title: 'More' });
+  const t = useT().layout;
+  usePageMeta({ title: t.morePage.title });
   const { access, club, isPlatformAdmin, memberships, activeClubId, switchClub } = useAuth();
   const { signOut, unsyncedDialog } = useSignOut();
   const pendingSignups = usePendingSignups(!!isPlatformAdmin);
@@ -44,7 +46,7 @@ export function MorePage() {
               <span className="flex-1">{label}</span>
               {pending && pendingSignups > 0 && (
                 <span className="rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">
-                  {pendingSignups}<span className="sr-only"> pending sign-ups</span>
+                  {pendingSignups}<span className="sr-only">{t.morePage.pendingSignups}</span>
                 </span>
               )}
               <ChevronRight size={16} aria-hidden="true" className="text-slate" />
@@ -53,26 +55,26 @@ export function MorePage() {
         </Section>
       ))}
 
-      <Section title="Account">
+      <Section title={t.morePage.account}>
         <Link to="/settings" className={ROW}>
           <Settings size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
-          <span className="flex-1">Settings</span>
+          <span className="flex-1">{t.appShell.settings}</span>
           <ChevronRight size={16} aria-hidden="true" className="text-slate" />
         </Link>
         <Link to="/legal/terms" className={ROW}>
           <FileText size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
-          <span className="flex-1">Terms &amp; privacy</span>
+          <span className="flex-1">{t.appShell.termsAndPrivacy}</span>
           <ChevronRight size={16} aria-hidden="true" className="text-slate" />
         </Link>
         {otherClubs.map((m) => (
           <button key={m.clubId} type="button" className={ROW} onClick={() => switchClub(m.clubId)}>
             <Repeat size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
-            <span className="flex-1">Switch to {m.clubName}</span>
+            <span className="flex-1">{t.appShell.switchTo(m.clubName)}</span>
           </button>
         ))}
         <button type="button" className={`${ROW} text-red`} onClick={signOut}>
           <LogOut size={18} strokeWidth={1.5} aria-hidden="true" />
-          <span className="flex-1">Sign out</span>
+          <span className="flex-1">{t.appShell.signOut}</span>
         </button>
       </Section>
       {unsyncedDialog}

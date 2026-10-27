@@ -2,11 +2,13 @@ import type { ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
 import { Logo } from '../components/Logo';
+import { useT } from '../i18n/I18nProvider';
 import { Button } from '../components/Button';
 
 /** A bare page frame for people who can't use the full app: logo, title, who is signed in, sign out. */
 export function MinimalShell({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   const { appUser } = useAuth();
+  const t = useT();
   const { signOut, unsyncedDialog } = useSignOut();
   return (
     <div className="flex min-h-screen flex-col bg-bg text-ink">
@@ -19,7 +21,7 @@ export function MinimalShell({ title, actions, children }: { title: string; acti
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             {actions}
             <span className="min-w-0 truncate text-sm text-white/80">{appUser?.email}</span>
-            <Button variant="secondary" onClick={signOut}>Sign out</Button>
+            <Button variant="secondary" onClick={signOut}>{t.layout.appShell.signOut}</Button>
           </div>
         </div>
       </header>

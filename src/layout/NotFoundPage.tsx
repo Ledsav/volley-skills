@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useT } from '../i18n/I18nProvider';
 import { usePageMeta } from './usePageMeta';
 
 function OutOfBounds() {
@@ -14,27 +15,29 @@ function OutOfBounds() {
 }
 
 export function NotFoundPage() {
-  usePageMeta({ title: 'Not found' });
+  const c = useT().common;
+  const t = useT().layout.notFound;
+  usePageMeta({ title: t.title });
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const canGoBack = typeof window !== 'undefined' && window.history.length > 1;
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
       <OutOfBounds />
-      <h1 tabIndex={-1} className="mt-4 text-title font-semibold text-ink">This page is out of bounds</h1>
+      <h1 tabIndex={-1} className="mt-4 text-title font-semibold text-ink">{t.heading}</h1>
       <p className="mt-2 text-slate">
-        Nothing lives at <code className="rounded-sm bg-bg px-1 text-ink">{pathname}</code>
+        {t.nothingLivesAt}<code className="rounded-sm bg-bg px-1 text-ink">{pathname}</code>
       </p>
       <div className="mt-6 flex gap-2">
         <Link to="/" className="inline-flex min-h-11 items-center rounded-md bg-blue px-4 font-medium text-white hover:bg-blue-strong">
-          Go home
+          {t.goHome}
         </Link>
         <button
           type="button"
           onClick={() => (canGoBack ? navigate(-1) : navigate('/'))}
           className="inline-flex min-h-11 items-center rounded-md border border-border px-4 font-medium text-ink hover:bg-bg"
         >
-          Back
+          {c.back}
         </button>
       </div>
     </div>

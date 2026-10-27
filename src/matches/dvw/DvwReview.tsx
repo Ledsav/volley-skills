@@ -4,7 +4,7 @@ import { Button } from '../../components/Button';
 import { FIELD_CLASS, Input } from '../../components/Input';
 import type { Competition, MatchSetupInput, SetScore } from '../../types/match';
 import type { Player } from '../../types/player';
-import { validateSetup } from '../matchSetup';
+import { setupProblemMessage, validateSetup } from '../matchSetup';
 import { autoMapPlayers, mapDvw, ourFilePlayers, type DvwPlan, type PlayerMapping } from './mapDvw';
 import { pickOurSide } from './pickSide';
 import type { DvwFile, DvwPlayer, DvwSide } from './types';
@@ -51,7 +51,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
   const setupProblem = validateSetup(setup);
   const blocking = [
     ...base.issues.filter((i) => i.kind === 'blocking').map((i) => i.message),
-    ...(setupProblem ? [setupProblem] : []),
+    ...(setupProblem ? [setupProblemMessage(setupProblem)] : []),
   ];
   // Parse warnings first, then the mapping's; every message names its lines.
   const warnings = [...file.warnings, ...base.issues.filter((i) => i.kind === 'warning').map((i) => i.message)];

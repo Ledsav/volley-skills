@@ -13,6 +13,7 @@ import { layout } from './layout';
 import { interest } from './interest';
 import { labels } from './labels';
 import { legal } from './legal';
+import { matches } from './matches';
 import { physicalSessions } from './physicalSessions';
 import { physicalTestGuide } from './physicalTestGuide';
 import { platform } from './platform';
@@ -24,4 +25,4 @@ import { teams } from './teams';
 import { theme } from './theme';
 import { trainings } from './trainings';
 
-export const it = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme, trainings } satisfies Catalog;
+export const it = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme, trainings } satisfies Catalog;

@@ -17,12 +17,15 @@ import { reportCsv, reportCsvFileName, type CsvFormat } from './report/reportCsv
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
 import { useMatchEvents } from './useMatchEvents';
+import { getT, useT } from '../i18n/I18nProvider';
 
 export function MatchPage() {
+  const t = useT();
+  const p = t.matches.page;
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
   const [match, setMatch] = useState<Match | null>(null);
-  usePageMeta({ title: match ? `vs ${match.opponent}` : 'Match' });
+  usePageMeta({ title: match ? p.title(match.opponent) : p.titleFallback });
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -36,7 +39,7 @@ export function MatchPage() {
     setError(null);
     getMatch(teamId, matchId)
       .then((m) => (m ? setMatch(m) : setNotFound(true)))
-      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError('Could not load this match.')));
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError(getT().matches.page.loadError)));
   }, [teamId, matchId]);
 
   // A finished match carries its report, so it never reads the event log; only
@@ -51,16 +54,16 @@ export function MatchPage() {
   const finishingRef = useRef(false);
 
   if (notFound) {
-    return <NotFoundState title="Match not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+    return <NotFoundState title={p.notFoundTitle} message={p.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={p.backToTeam} />;
   }
   if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
-  if (!match) return <PageSkeleton layout="match" label="Loading match…" />;
+  if (!match) return <PageSkeleton layout="match" label={p.loading} />;
 
   // Setup-phase writes are fire-and-forget like scouting events: offline, a
   // Firestore write only resolves once the server acks, so awaiting would hang.
   function startScouting() {
     setActionError(null);
-    setMatchStatus(teamId, matchId, 'live').catch(() => setActionError('Could not start scouting. Please try again.'));
+    setMatchStatus(teamId, matchId, 'live').catch(() => setActionError(p.startError));
     navigate(`/teams/${teamId}/matches/${matchId}/scout`);
   }
 
@@ -73,7 +76,7 @@ export function MatchPage() {
       profile = await getUsageProfile(teamId);
     } catch {
       finishingRef.current = false;
-      setActionError('Could not load usage history — try finishing again.');
+      setActionError(p.usageError);
       return;
     }
     const payload = buildFinishPayload(match, state, profile);
@@ -88,7 +91,7 @@ export function MatchPage() {
     setMatch({ ...match, status: 'live' });
     setMatchStatus(teamId, matchId, 'live').catch(() => {
       setMatch((cur) => (cur ? { ...cur, status: 'finished' } : cur));
-      setActionError('Could not reopen the match. Please try again.');
+      setActionError(p.reopenError);
     });
   }
 
@@ -101,30 +104,30 @@ export function MatchPage() {
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <Link to={`/teams/${teamId}`} className="mb-3 inline-flex items-center gap-1 text-sm text-blue hover:underline print:hidden">
-        <ChevronLeft size={16} aria-hidden="true" /> Back to team
+        <ChevronLeft size={16} aria-hidden="true" /> {p.backToTeam}
       </Link>
       <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm tabular-nums text-slate">{match.date} · {match.homeAway === 'home' ? 'Home' : 'Away'} · <span className="capitalize">{match.competition}</span></p>
-            <h1 className="break-words text-title font-semibold text-ink">vs {match.opponent}</h1>
+            <p className="text-sm tabular-nums text-slate">{match.date} · {match.homeAway === 'home' ? t.matches.shared.home : t.matches.shared.away} · <span>{t.labels.competition[match.competition]}</span></p>
+            <h1 className="break-words text-title font-semibold text-ink">{p.title(match.opponent)}</h1>
           </div>
-          <Button variant="dangerGhost" size="sm" className="print:hidden" onClick={() => setConfirmDelete(true)}>Delete match</Button>
+          <Button variant="dangerGhost" size="sm" className="print:hidden" onClick={() => setConfirmDelete(true)}>{p.delete}</Button>
         </div>
 
         {match.status === 'setup' && (
           <>
             <div className="mb-6 flex flex-col items-end gap-1">
               <div className="flex items-center gap-3">
-                {dirty && <span className="text-xs text-slate">Save the setup first.</span>}
-                <Button variant="primary" disabled={dirty} onClick={startScouting}>Start scouting</Button>
+                {dirty && <span className="text-xs text-slate">{p.saveFirst}</span>}
+                <Button variant="primary" disabled={dirty} onClick={startScouting}>{p.startScouting}</Button>
               </div>
               {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
             </div>
             <MatchSetupForm
               teamId={teamId}
               initial={match}
-              submitLabel="Save setup"
+              submitLabel={p.saveSetup}
               onCancel={() => navigate(`/teams/${teamId}`)}
               onDirtyChange={setDirty}
               onSubmit={(input) => {
@@ -138,11 +141,11 @@ export function MatchPage() {
         {match.status === 'live' && (
           <div className="mb-6 rounded-md bg-orange/10 p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="font-medium text-ink">Scouting in progress</span>
+              <span className="font-medium text-ink">{p.inProgress}</span>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={!state} onClick={() => void finish()}>Finish match</Button>
+                <Button variant="secondary" size="sm" disabled={!state} onClick={() => void finish()}>{p.finish}</Button>
                 <Link to={`/teams/${teamId}/matches/${matchId}/scout`} className="inline-flex min-h-11 items-center rounded-md bg-navy px-3 text-sm font-medium text-white">
-                  Resume scouting
+                  {p.resumeScouting}
                 </Link>
               </div>
             </div>
@@ -153,24 +156,24 @@ export function MatchPage() {
           <div className="mb-6 flex flex-col items-end gap-1 print:hidden">
             <div className="flex flex-wrap justify-end gap-2">
               <Menu
-                label="Export"
+                label={p.export}
                 triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-3 text-sm font-medium text-blue hover:bg-blue/10 disabled:opacity-50"
                 trigger={
                   <>
-                    <Download size={16} aria-hidden="true" /> Export <ChevronDown size={16} aria-hidden="true" />
+                    <Download size={16} aria-hidden="true" /> {p.export} <ChevronDown size={16} aria-hidden="true" />
                   </>
                 }
                 items={[
-                  { kind: 'action', label: 'Print / PDF', icon: <Printer size={16} />, onSelect: () => window.print() },
+                  { kind: 'action', label: p.print, icon: <Printer size={16} />, onSelect: () => window.print() },
                   { kind: 'divider' },
-                  { kind: 'action', label: 'CSV · Excel (Belgium/EU)', icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('eu') },
-                  { kind: 'action', label: 'CSV · Excel (English) / Sheets', icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('en') },
+                  { kind: 'action', label: p.csvEu, icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('eu') },
+                  { kind: 'action', label: p.csvEn, icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('en') },
                 ]}
               />
               <Link to={`/teams/${teamId}/matches/${matchId}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange px-4 font-medium text-white hover:bg-orange-strong">
-                <Trophy size={16} aria-hidden="true" /> Match awards
+                <Trophy size={16} aria-hidden="true" /> {p.awards}
               </Link>
-              <Button variant="secondary" size="sm" onClick={reopen}>Reopen for editing</Button>
+              <Button variant="secondary" size="sm" onClick={reopen}>{p.reopen}</Button>
             </div>
             {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
           </div>
@@ -180,9 +183,9 @@ export function MatchPage() {
 
       {confirmDelete && (
         <ConfirmDialog
-          title="Delete this match?"
-          message="All scouted actions for this match are deleted. This cannot be undone."
-          confirmLabel="Yes, delete"
+          title={p.deleteTitle}
+          message={p.deleteMessage}
+          confirmLabel={p.deleteConfirm}
           error={deleteError}
           onCancel={() => {
             setConfirmDelete(false);
@@ -192,7 +195,7 @@ export function MatchPage() {
             setDeleteError(null);
             deleteMatch(teamId, matchId)
               .then(() => navigate(`/teams/${teamId}`))
-              .catch(() => setDeleteError('Could not delete the match. Please try again.'));
+              .catch(() => setDeleteError(p.deleteError));
           }}
         />
       )}

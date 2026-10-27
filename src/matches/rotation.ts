@@ -1,3 +1,4 @@
+import { getT } from '../i18n/I18nProvider';
 import type { PositionCategory } from '../types/player';
 import type { RoleMap } from '../types/match';
 
@@ -52,38 +53,37 @@ export function slotsFromLineup(lineup: string[], setterZone: number): Slots51 {
   return { setter: at(0), oh1: at(1), mb1: at(2), opposite: at(3), oh2: at(4), mb2: at(5) };
 }
 
-const EXPECTED: { role: PositionCategory; count: number; label: [string, string] }[] = [
-  { role: 'S', count: 1, label: ['setter', 'setters'] },
-  { role: 'O', count: 1, label: ['opposite', 'opposites'] },
-  { role: 'OH', count: 2, label: ['outside', 'outsides'] },
-  { role: 'MB', count: 2, label: ['middle', 'middles'] },
+const EXPECTED: { role: 'S' | 'O' | 'OH' | 'MB'; count: number }[] = [
+  { role: 'S', count: 1 },
+  { role: 'O', count: 1 },
+  { role: 'OH', count: 2 },
+  { role: 'MB', count: 2 },
 ];
 
-const PAIRS: { role: PositionCategory; other: PositionCategory; message: string }[] = [
-  { role: 'S', other: 'O', message: 'Setter and opposite are not opposite each other.' },
-  { role: 'MB', other: 'MB', message: 'Middles are not opposite each other.' },
-  { role: 'OH', other: 'OH', message: 'Outsides are not opposite each other.' },
+const PAIRS: { role: PositionCategory; other: PositionCategory; message: 'setterOpposite' | 'middles' | 'outsides' }[] = [
+  { role: 'S', other: 'O', message: 'setterOpposite' },
+  { role: 'MB', other: 'MB', message: 'middles' },
+  { role: 'OH', other: 'OH', message: 'outsides' },
 ];
 
 /** Non-blocking warnings for a lineup that does not look like a 5-1. */
 export function check51(lineup: string[], roles: RoleMap): string[] {
+  const t = getT().matches.rotation;
   const warnings: string[] = [];
   const zonesOf = (role: PositionCategory) =>
     lineup.flatMap((id, zone) => (id && roles[id] === role ? [zone] : []));
 
-  for (const { role, count, label } of EXPECTED) {
+  for (const { role, count } of EXPECTED) {
     const found = zonesOf(role).length;
-    if (found !== count) {
-      warnings.push(`Expected ${count} ${label[count === 1 ? 0 : 1]} on court, found ${found}.`);
-    }
+    if (found !== count) warnings.push(t.expected(role, count, found));
   }
   for (const { role, other, message } of PAIRS) {
     const a = zonesOf(role);
     const b = zonesOf(other);
     if (role === other) {
-      if (a.length === 2 && Math.abs(a[0] - a[1]) !== 3) warnings.push(message);
+      if (a.length === 2 && Math.abs(a[0] - a[1]) !== 3) warnings.push(t[message]);
     } else if (a.length === 1 && b.length === 1 && Math.abs(a[0] - b[0]) !== 3) {
-      warnings.push(message);
+      warnings.push(t[message]);
     }
   }
   return warnings;

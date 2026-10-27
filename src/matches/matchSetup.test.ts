@@ -26,36 +26,36 @@ describe('matchSetup', () => {
 
   it('validates required fields and roster size', () => {
     expect(validateSetup(input())).toBeNull();
-    expect(validateSetup(input({ opponent: ' ' }))).toMatch(/opponent/i);
-    expect(validateSetup(input({ date: '' }))).toMatch(/date/i);
-    expect(validateSetup(input({ roster: roster(5) }))).toMatch(/at least 6/i);
+    expect(validateSetup(input({ opponent: ' ' }))).toEqual({ code: 'noOpponent' });
+    expect(validateSetup(input({ date: '' }))).toEqual({ code: 'noDate' });
+    expect(validateSetup(input({ roster: roster(5) }))).toEqual({ code: 'tooFewPlayers' });
     expect(validateSetup(input({ roster: roster(7), liberos: [{ playerId: 'p0', mode: 'always', replaces: [] }] }))).toBeNull();
-    expect(validateSetup(input({ roster: roster(6), liberos: [{ playerId: 'p0', mode: 'always', replaces: [] }] }))).toMatch(/at least 6/i);
-    expect(validateSetup(input({ liberos: [{ playerId: 'ghost', mode: 'always', replaces: [] }] }))).toMatch(/libero/i);
+    expect(validateSetup(input({ roster: roster(6), liberos: [{ playerId: 'p0', mode: 'always', replaces: [] }] }))).toEqual({ code: 'tooFewPlayers' });
+    expect(validateSetup(input({ liberos: [{ playerId: 'ghost', mode: 'always', replaces: [] }] }))).toEqual({ code: 'liberoNotInRoster' });
     const dup = roster(7);
     dup[1] = { ...dup[1], number: 1 };
-    expect(validateSetup(input({ roster: dup }))).toMatch(/#1/);
+    expect(validateSetup(input({ roster: dup }))).toEqual({ code: 'duplicateNumber', number: 1 });
   });
 
   it('rejects the same player in both libero slots', () => {
     const lib = { playerId: 'p0', mode: 'always' as const, replaces: [] };
-    expect(validateSetup(input({ roster: roster(8), liberos: [lib, { ...lib, mode: 'receiving' }] }))).toMatch(/libero/i);
+    expect(validateSetup(input({ roster: roster(8), liberos: [lib, { ...lib, mode: 'receiving' }] }))).toEqual({ code: 'liberoTwice' });
   });
 
   it('rejects jersey numbers that are not positive integers', () => {
     for (const bad of [0, -3, 2.5, Number.NaN]) {
       const r = roster(7);
       r[2] = { ...r[2], number: bad };
-      expect(validateSetup(input({ roster: r }))).toMatch(/number/i);
+      expect(validateSetup(input({ roster: r }))).toMatchObject({ code: 'badNumber' });
     }
   });
 
   it('rejects a roster of more than 14 players and numbers above 99', () => {
     expect(validateSetup(input({ roster: roster(14) }))).toBeNull();
-    expect(validateSetup(input({ roster: roster(15) }))).toBe('A match roster has at most 14 players.');
+    expect(validateSetup(input({ roster: roster(15) }))).toEqual({ code: 'rosterTooLarge', max: 14 });
     const r = roster(7);
     r[3] = { ...r[3], number: 100 };
-    expect(validateSetup(input({ roster: r }))).toMatch(/number/i);
+    expect(validateSetup(input({ roster: r }))).toMatchObject({ code: 'badNumber' });
   });
 
   it('defaults ticks to 14: starters first, then liberos, then by number', () => {

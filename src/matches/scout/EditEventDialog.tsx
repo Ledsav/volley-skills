@@ -23,18 +23,18 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
 
   return (
     <Dialog
-      title="Edit action"
+      title={t.scout.editEvent.title}
       onClose={onCancel}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" onClick={() => onSave({ playerId, skill, grade: effectiveGrade })}>Save</Button>
+          <Button variant="ghost" onClick={onCancel}>{t.common.cancel}</Button>
+          <Button variant="primary" onClick={() => onSave({ playerId, skill, grade: effectiveGrade })}>{t.common.save}</Button>
         </div>
       }
     >
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Player
+          {t.scout.editEvent.player}
           <select className={FIELD_CLASS} value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
             {roster.map((r) => (
               <option key={r.playerId} value={r.playerId}>#{r.number} {r.name}</option>
@@ -42,7 +42,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Fundamental
+          {t.scout.editEvent.fundamental}
           <select className={FIELD_CLASS} value={skill} onChange={(e) => setSkill(e.target.value as Skill)}>
             {SKILLS.map((s) => (
               <option key={s} value={s}>{t.labels.skill[s]}</option>
@@ -50,7 +50,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          Grade
+          {t.scout.editEvent.grade}
           <select className={FIELD_CLASS} value={effectiveGrade} onChange={(e) => setGrade(e.target.value as Grade)}>
             {grades.map((g) => (
               <option key={g} value={g}>{g} {t.labels.grade[skill][g]}</option>

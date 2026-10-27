@@ -31,20 +31,18 @@ describe('check51', () => {
   it('flags wrong role counts', () => {
     const lineup = ['s', 'oh1', 'mb1', 'o', 'oh2', 'x'];
     expect(check51(lineup, { ...roles, x: 'OH' })).toEqual([
-      'Expected 2 outsides on court, found 3.',
-      'Expected 2 middles on court, found 1.',
+      { code: 'expected', role: 'OH', count: 2, found: 3 },
+      { code: 'expected', role: 'MB', count: 2, found: 1 },
     ]);
   });
 
   it('flags setter and opposite side by side', () => {
-    expect(check51(['s', 'o', 'mb1', 'oh1', 'oh2', 'mb2'], roles)).toContain(
-      'Setter and opposite are not opposite each other.',
-    );
+    expect(check51(['s', 'o', 'mb1', 'oh1', 'oh2', 'mb2'], roles)).toContainEqual({ code: 'setterOpposite' });
   });
 
   it('flags middles and outsides not opposite', () => {
     const w = check51(['s', 'mb1', 'mb2', 'o', 'oh1', 'oh2'], roles);
-    expect(w).toContain('Middles are not opposite each other.');
-    expect(w).toContain('Outsides are not opposite each other.');
+    expect(w).toContainEqual({ code: 'middles' });
+    expect(w).toContainEqual({ code: 'outsides' });
   });
 });

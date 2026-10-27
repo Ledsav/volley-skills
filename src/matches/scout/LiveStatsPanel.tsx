@@ -8,7 +8,9 @@ import { computeStats, liveAlerts } from '../scoutStats';
 import { isManyErrors, isWeakAttack, isWeakReception, weakClass } from '../statFlags';
 
 export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: Map<string, RosterEntry> }) {
-  const lb = useT().labels;
+  const tr = useT();
+  const lb = tr.labels;
+  const sc = tr.scout.live;
   const [scope, setScope] = useState<'set' | 'match'>('set');
   const [openId, setOpenId] = useState<string | null>(null);
   const stats = computeStats(state, scope === 'set' ? { set: state.set } : {});
@@ -19,9 +21,9 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
   const t = stats.team;
 
   return (
-    <section aria-label="Live stats" className="rounded-lg border border-border bg-surface p-3">
+    <section aria-label={sc.aria} className="rounded-lg border border-border bg-surface p-3">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold text-ink">Live</h2>
+        <h2 className="font-semibold text-ink">{sc.title}</h2>
         <div className="flex gap-1">
           {(['set', 'match'] as const).map((s) => (
             <button
@@ -31,7 +33,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
               onClick={() => setScope(s)}
               className={`min-h-11 rounded-md px-3 text-sm ${scope === s ? 'bg-navy text-white' : 'text-slate hover:bg-bg'}`}
             >
-              {s === 'set' ? 'This set' : 'Match'}
+              {s === 'set' ? sc.thisSet : sc.match}
             </button>
           ))}
         </div>
@@ -43,11 +45,11 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
             a.kind === 'playerErrors' ? (
               <p key={a.playerId} className="flex items-center gap-1.5">
                 <TriangleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
-                {playerLabel(roster.get(a.playerId))} {roster.get(a.playerId)?.name}: {a.errors} errors this set</p>
+                {sc.playerErrors(playerLabel(roster.get(a.playerId)), roster.get(a.playerId)?.name ?? '', a.errors)}</p>
             ) : (
               <p key="run" className="flex items-center gap-1.5">
                 <TriangleAlert aria-hidden="true" className="h-4 w-4 shrink-0" />
-                Opp run 0–{a.run} — timeout?
+                {sc.oppRun(a.run)}
               </p>
             ),
           )}
@@ -58,12 +60,12 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
         <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-left text-xs uppercase text-slate">
-              <th scope="col" className="py-1 pr-2 font-medium">Player</th>
-              <th scope="col" className="px-2 font-medium">Serve</th>
-              <th scope="col" className="px-2 font-medium">Rec +</th>
-              <th scope="col" className="px-2 font-medium">Attack</th>
-              <th scope="col" className="px-2 font-medium">Block</th>
-              <th scope="col" className="px-2 font-medium">Pts / Err</th>
+              <th scope="col" className="py-1 pr-2 font-medium">{sc.player}</th>
+              <th scope="col" className="px-2 font-medium">{lb.skill.S}</th>
+              <th scope="col" className="px-2 font-medium">{sc.recPlus}</th>
+              <th scope="col" className="px-2 font-medium">{lb.skill.A}</th>
+              <th scope="col" className="px-2 font-medium">{lb.skill.B}</th>
+              <th scope="col" className="px-2 font-medium">{sc.ptsErr}</th>
             </tr>
           </thead>
           <tbody>
@@ -133,9 +135,13 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
       </div>
 
       <p className="mt-2 text-xs text-slate">
-        Side-out {fmtPct(t.sideOut.total ? t.sideOut.won / t.sideOut.total : null)} · Break {fmtPct(t.breakPoint.total ? t.breakPoint.won / t.breakPoint.total : null)} ·
-        Rec + {fmtPct(t.receptionPos)} · Opp errors {t.oppErrorPoints}
-        {t.weakestRotation !== null && ` · Weakest rotation ${t.weakestRotation}`}
+        {sc.footer(
+          fmtPct(t.sideOut.total ? t.sideOut.won / t.sideOut.total : null),
+          fmtPct(t.breakPoint.total ? t.breakPoint.won / t.breakPoint.total : null),
+          fmtPct(t.receptionPos),
+          t.oppErrorPoints,
+          t.weakestRotation,
+        )}
       </p>
     </section>
   );

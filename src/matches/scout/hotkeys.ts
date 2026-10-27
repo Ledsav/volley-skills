@@ -28,7 +28,6 @@ interface KeyBinding {
   id: HotkeyId;
   /** Display labels, first one is the badge. */
   keys: readonly string[];
-  description: string;
   group: HotkeyGroup;
 }
 
@@ -40,19 +39,19 @@ export const SKILL_KEYS: readonly Skill[] = SKILLS;
 export const HOTKEY_GROUPS: readonly HotkeyGroup[] = ['Record', 'Rally', 'General'];
 
 export const KEY_MAP: readonly KeyBinding[] = [
-  { id: 'player', keys: ['0–9'], description: 'Select a player by jersey number (Enter to confirm a shorter number)', group: 'Record' },
-  { id: 'skill', keys: SKILL_KEYS, description: 'Switch the fundamental on the open action panel', group: 'Record' },
-  { id: 'grade', keys: GRADE_KEYS, description: 'Grade the action (only grades valid for the fundamental)', group: 'Record' },
-  { id: 'sub', keys: ['Shift+S'], description: 'Substitute the selected player', group: 'Record' },
-  { id: 'close', keys: ['Esc'], description: 'Close the action panel / cancel a jersey number', group: 'Record' },
-  { id: 'pointUs', keys: ['P'], description: 'Point us', group: 'Rally' },
-  { id: 'pointThem', keys: ['O'], description: 'Point them', group: 'Rally' },
-  { id: 'reason', keys: ['1–4'], description: 'Pick the point reason while the reason chips show', group: 'Rally' },
-  { id: 'timeoutUs', keys: ['T'], description: 'Timeout us', group: 'Rally' },
-  { id: 'timeoutThem', keys: ['Shift+T'], description: 'Timeout them', group: 'Rally' },
-  { id: 'undo', keys: ['Ctrl+Z', 'Backspace'], description: 'Undo the last action', group: 'General' },
-  { id: 'auto', keys: ['Shift+A'], description: 'Toggle auto-select of the next player', group: 'General' },
-  { id: 'help', keys: ['?'], description: 'Show or hide this list', group: 'General' },
+  { id: 'player', keys: ['0–9'], group: 'Record' },
+  { id: 'skill', keys: SKILL_KEYS, group: 'Record' },
+  { id: 'grade', keys: GRADE_KEYS, group: 'Record' },
+  { id: 'sub', keys: ['Shift+S'], group: 'Record' },
+  { id: 'close', keys: ['Esc'], group: 'Record' },
+  { id: 'pointUs', keys: ['P'], group: 'Rally' },
+  { id: 'pointThem', keys: ['O'], group: 'Rally' },
+  { id: 'reason', keys: ['1–4'], group: 'Rally' },
+  { id: 'timeoutUs', keys: ['T'], group: 'Rally' },
+  { id: 'timeoutThem', keys: ['Shift+T'], group: 'Rally' },
+  { id: 'undo', keys: ['Ctrl+Z', 'Backspace'], group: 'General' },
+  { id: 'auto', keys: ['Shift+A'], group: 'General' },
+  { id: 'help', keys: ['?'], group: 'General' },
 ];
 
 /** The badge label for a binding (its first key). */

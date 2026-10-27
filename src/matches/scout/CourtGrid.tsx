@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { LiberoConfig, LiberoMode, RoleMap, RosterEntry } from '../../types/match';
+import type { LiberoConfig, RoleMap, RosterEntry } from '../../types/match';
+import { useT } from '../../i18n/I18nProvider';
 
 interface CourtGridProps {
   court: string[];
@@ -21,10 +22,10 @@ interface CourtGridProps {
 // Seen from behind our baseline: front row P4 P3 P2 (net side), back row P5 P6 P1.
 const ZONES = [3, 2, 1, 4, 5, 0];
 const LONG_PRESS_MS = 500;
-// 'serving' liberos come on when we serve, i.e. to defend.
-const LIBERO_TILE_LABEL: Record<LiberoMode, string> = { receiving: 'L·rec', serving: 'L·def', always: 'L' };
+// 'serving' liberos come on when we serve, i.e. to defend (tile labels: t.scout.court.liberoTile).
 
 export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selectedId, autoSelected = false, form, onSelect, onLongPress, disabled = false }: CourtGridProps) {
+  const t = useT();
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -50,7 +51,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
             <button
               key={zone}
               type="button"
-              aria-label={`#${entry.number} ${entry.name}${isLibero ? ', libero' : ''}`}
+              aria-label={t.scout.court.player(entry.number, entry.name, isLibero)}
               aria-pressed={isSelected}
               disabled={disabled}
               onPointerDown={() => {
@@ -78,7 +79,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
             >
               <span className="text-xl font-bold tabular-nums leading-none">{entry.number}</span>
               <span className={`max-w-full truncate px-1 text-xs ${isSelected ? 'text-white' : 'text-slate'}`}>
-                {isLibero ? LIBERO_TILE_LABEL[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}
+                {isLibero ? t.scout.court.liberoTile[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : entry.name}
               </span>
               <span className={`absolute left-1 top-1 text-[11px] ${isSelected ? 'text-white/80' : 'text-slate'}`}>P{zone + 1}</span>
               {!isLibero && (
@@ -88,7 +89,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
               )}
               {isSelected && autoSelected && (
                 <span aria-hidden="true" className="absolute bottom-1 right-1 rounded-sm bg-white/20 px-1 text-[11px] font-medium leading-tight text-white">
-                  auto
+                  {t.scout.court.auto}
                 </span>
               )}
               {f && (

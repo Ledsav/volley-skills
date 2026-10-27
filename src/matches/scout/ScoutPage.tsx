@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { useClubFeatures } from '../../clubs/useClubFeatures';
+import { getT, useT } from '../../i18n/I18nProvider';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Tab } from '../../components/Tab';
@@ -101,7 +102,9 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
 }
 
 export function ScoutPage() {
-  usePageMeta({ title: 'Scouting' });
+  const tr = useT();
+  const sp = tr.scout.page;
+  usePageMeta({ title: sp.title });
   const { teamId = '', matchId = '' } = useParams<{ teamId: string; matchId: string }>();
   const navigate = useNavigate();
   const { firebaseUser } = useAuth();
@@ -180,7 +183,7 @@ export function ScoutPage() {
         if (isLockedByOther(m.activeDevice, deviceId, Date.now())) setLocked(true);
         else void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
       })
-      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setLoadError('Could not load this match.')));
+      .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setLoadError(getT().matches.page.loadError)));
     getUsageProfile(teamId).then(setUsage).catch(() => undefined);
   }, [teamId, matchId, deviceId, navigate]);
 
@@ -244,7 +247,7 @@ export function ScoutPage() {
       setReasonPrompt(null);
       const order = nextOrder(events, anchorId, lastWriteRef.current, maxOrderRef.current);
       const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
-      written.catch(() => setWriteError('An action could not be saved. Check your connection and the timeline.'));
+      written.catch(() => setWriteError(getT().scout.page.writeAction));
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order };
       maxOrderRef.current = Math.max(maxOrderRef.current, order);
@@ -266,7 +269,7 @@ export function ScoutPage() {
     const chunkId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `chunk-${Date.now()}`;
     payloads.forEach((payload, i) => {
       const { id, written } = addEvent(teamId, matchId, { ...payload, order: orders[i], source: 'text', chunkId }, firebaseUser.uid);
-      written.catch(() => setWriteError('Some text events could not be saved. Check your connection and the timeline.'));
+      written.catch(() => setWriteError(getT().scout.page.writeText));
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order: orders[i] };
       maxOrderRef.current = Math.max(maxOrderRef.current, orders[i]);
@@ -313,7 +316,7 @@ export function ScoutPage() {
     const ids = chunkId ? events.filter((e) => e.chunkId === chunkId).map((e) => e.id) : [last.id];
     if (ids.length > 1) setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not undo. Try again.'));
+    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.undoError));
   }
 
   function recordPoint(winner: Side) {
@@ -322,7 +325,7 @@ export function ScoutPage() {
   }
 
   function amendReason(eventId: string, reason: PointReason) {
-    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError('Could not save the point reason.'));
+    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError(getT().scout.page.pointReasonError));
     setReasonPrompt(null);
   }
 
@@ -363,7 +366,7 @@ export function ScoutPage() {
   function deleteFromTimeline(ids: string[]) {
     if (reasonPrompt && ids.includes(reasonPrompt.eventId)) setReasonPrompt(null);
     if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-    void deleteEvents(teamId, matchId, ids).catch(() => setWriteError('Could not delete. Try again.'));
+    void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.deleteError));
   }
 
   async function finish() {
@@ -374,7 +377,7 @@ export function ScoutPage() {
       fresh = await getUsageProfile(teamId);
     } catch {
       finishingRef.current = false;
-      setWriteError('Could not load usage history — try finishing again.');
+      setWriteError(getT().matches.page.usageError);
       return;
     }
     finishMatch(teamId, matchId, buildFinishPayload(match, state, fresh)).catch(() => undefined);
@@ -388,17 +391,17 @@ export function ScoutPage() {
   }
 
   if (notFound) {
-    return <NotFoundState title="Match not found" message="It may have been deleted, or you don't have access." backTo={`/teams/${teamId}`} backLabel="Back to team" />;
+    return <NotFoundState title={tr.matches.page.notFoundTitle} message={tr.matches.page.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={tr.matches.page.backToTeam} />;
   }
   if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
-  if (!match || !state) return <p className="p-6 text-slate">Loading match…</p>;
+  if (!match || !state) return <p className="p-6 text-slate">{tr.matches.page.loading}</p>;
 
   if (locked) {
     return (
       <ConfirmDialog
-        title="Being scouted on another device"
-        message="Another device scouted this match in the last two minutes. Take over here? Only one device should scout at a time."
-        confirmLabel="Take over"
+        title={sp.lockedTitle}
+        message={sp.lockedMessage}
+        confirmLabel={sp.lockedConfirm}
         onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
         onConfirm={() => {
           setLocked(false);
@@ -474,20 +477,20 @@ export function ScoutPage() {
 
   // App tools — not match events (dock) and not corrections (header).
   const tools: MenuItem[] = [
-    { kind: 'check', label: 'Quick score', checked: quickScore, onSelect: toggleQuickScore },
+    { kind: 'check', label: sp.quickScore, checked: quickScore, onSelect: toggleQuickScore },
     ...(quickScore
       ? []
-      : [{ kind: 'check' as const, label: 'Auto-select next player', checked: autoSelect, onSelect: toggleAutoSelect, hint: <Kbd>{keyLabel('auto')}</Kbd> }]),
+      : [{ kind: 'check' as const, label: sp.autoSelect, checked: autoSelect, onSelect: toggleAutoSelect, hint: <Kbd>{keyLabel('auto')}</Kbd> }]),
     ...(isDesktop
       ? [
           ...(aiEnabled
-            ? [{ kind: 'check' as const, label: 'Text panel', checked: textOpen, onSelect: () => setTextOpen((v) => !v) }]
+            ? [{ kind: 'check' as const, label: sp.textPanel, checked: textOpen, onSelect: () => setTextOpen((v) => !v) }]
             : []),
-          { kind: 'action' as const, label: 'Keyboard shortcuts', onSelect: () => setHelpOpen(true), hint: <Kbd>{keyLabel('help')}</Kbd> },
+          { kind: 'action' as const, label: sp.shortcuts, onSelect: () => setHelpOpen(true), hint: <Kbd>{keyLabel('help')}</Kbd> },
         ]
       : []),
     { kind: 'divider' },
-    { kind: 'action', label: 'Exit to match', onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}`) },
+    { kind: 'action', label: sp.exit, onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}`) },
   ];
 
   const courtColumn = (
@@ -526,7 +529,7 @@ export function ScoutPage() {
           onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
         />
       )}
-      {!state.inSet && <p className="py-2 text-center text-sm text-slate">Start the set to record actions.</p>}
+      {!state.inSet && <p className="py-2 text-center text-sm text-slate">{sp.startToRecord}</p>}
     </div>
   );
 
@@ -588,31 +591,31 @@ export function ScoutPage() {
       {writeError && <p role="alert" className="bg-red/10 px-4 py-2 text-sm text-red-strong">{writeError}</p>}
       {anchorId && (
         <div className="flex items-center justify-between bg-blue/10 px-4 py-2 text-sm text-ink">
-          <span>Inserting into the timeline</span>
-          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">Back to live</button>
+          <span>{sp.inserting}</span>
+          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">{sp.backToLive}</button>
         </div>
       )}
       {!state.inSet && !state.matchOver && (
         <div className="flex flex-wrap items-center justify-between gap-2 bg-orange/10 px-4 py-2">
           <span className="font-semibold text-ink">
             {state.set === 0
-              ? 'Set the lineup to start scouting'
-              : `Set ${state.set} over · ${state.setScores[state.set - 1]?.us ?? 0}–${state.setScores[state.set - 1]?.them ?? 0}`}
+              ? sp.setLineup
+              : sp.setOver(state.set, state.setScores[state.set - 1]?.us ?? 0, state.setScores[state.set - 1]?.them ?? 0)}
           </span>
           <div className="flex gap-2">
             {state.set > 0 && (
-              <Button variant="ghost" size="sm" onClick={undoSetEnd}>Undo set end</Button>
+              <Button variant="ghost" size="sm" onClick={undoSetEnd}>{sp.undoSetEnd}</Button>
             )}
-            <Button variant="primary" size="sm" onClick={() => setSetDialogOpen(true)}>Start set {state.set + 1}</Button>
+            <Button variant="primary" size="sm" onClick={() => setSetDialogOpen(true)}>{sp.startSet(state.set + 1)}</Button>
           </div>
         </div>
       )}
       {state.matchOver && (
         <div className="flex items-center justify-between gap-3 bg-green/15 px-4 py-3">
           <span className="font-semibold text-ink">
-            Match over · {state.setsWon.us}–{state.setsWon.them}
+            {sp.matchOver(state.setsWon.us, state.setsWon.them)}
           </span>
-          <Button variant="primary" size="sm" onClick={() => void finish()}>Finish match</Button>
+          <Button variant="primary" size="sm" onClick={() => void finish()}>{tr.matches.page.finish}</Button>
         </div>
       )}
       {isDesktop ? (
@@ -626,11 +629,11 @@ export function ScoutPage() {
         </main>
       ) : (
         <>
-          <div role="tablist" aria-label="Scouting views" className="flex gap-4 border-b border-border bg-surface px-4">
-            <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>Court</Tab>
-            <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>Live</Tab>
-            <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>Timeline</Tab>
-            {aiEnabled && <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>Text</Tab>}
+          <div role="tablist" aria-label={sp.views} className="flex gap-4 border-b border-border bg-surface px-4">
+            <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>{sp.tabCourt}</Tab>
+            <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>{sp.tabLive}</Tab>
+            <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>{sp.tabTimeline}</Tab>
+            {aiEnabled && <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>{sp.tabText}</Tab>}
           </div>
           <main className="min-h-0 flex-1 overflow-y-auto p-3">
             {phoneTab === 'court' && courtColumn}
@@ -642,7 +645,7 @@ export function ScoutPage() {
       )}
       {state.inSet && (
         <section
-          aria-label="Match events"
+          aria-label={sp.events}
           className="shrink-0 border-t border-border bg-surface px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-pop"
         >
           <div className="mx-auto w-full max-w-3xl">
@@ -676,7 +679,7 @@ export function ScoutPage() {
               const nextRoster = match.roster.map((r) => ({ ...r, positionCategory: roles[r.playerId] ?? r.positionCategory }));
               setMatch({ ...match, roster: nextRoster });
               updateMatchRoster(teamId, matchId, nextRoster).catch(() =>
-                setWriteError('The new roles could not be saved to the roster. Check your connection.'),
+                setWriteError(sp.rosterError),
               );
             }
           }}
@@ -709,16 +712,16 @@ export function ScoutPage() {
       )}
 
       {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
-        <div role="dialog" aria-label="Set point" className="fixed inset-x-3 top-24 z-40 rounded-lg border border-border bg-surface p-4 shadow-pop">
+        <div role="dialog" aria-label={sp.setPoint} className="fixed inset-x-3 top-24 z-40 rounded-lg border border-border bg-surface p-4 shadow-pop">
           <p className="mb-3 font-semibold text-ink">
-            {state.score.us > state.score.them ? 'Set won' : 'Set lost'} {state.score.us}–{state.score.them}?
+            {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}>
-              Not yet
+              {sp.notYet}
             </Button>
-            <Button variant="primary" aria-label="Confirm set" onClick={confirmSet}>
-              Confirm set
+            <Button variant="primary" aria-label={sp.confirmSet} onClick={confirmSet}>
+              {sp.confirmSet}
             </Button>
           </div>
         </div>
@@ -730,7 +733,7 @@ export function ScoutPage() {
           roster={match.roster}
           onCancel={() => setEditing(null)}
           onSave={(patch) => {
-            void updateEvent(teamId, matchId, editing.id, patch).catch(() => setWriteError('Could not save the edit.'));
+            void updateEvent(teamId, matchId, editing.id, patch).catch(() => setWriteError(getT().scout.page.editError));
             setEditing(null);
           }}
         />
@@ -738,9 +741,9 @@ export function ScoutPage() {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={pendingDelete.kind === 'setStart' ? 'Delete set start?' : 'Delete set end?'}
-          message="This changes the score and lineup for the rest of the set."
-          confirmLabel="Yes, delete"
+          title={pendingDelete.kind === 'setStart' ? sp.deleteSetStartTitle : sp.deleteSetEndTitle}
+          message={sp.deleteStructuralMessage}
+          confirmLabel={tr.matches.page.deleteConfirm}
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => {
             deleteFromTimeline(pendingDelete.ids);
@@ -769,13 +772,13 @@ export function ScoutPage() {
 
       {pendingUndo && (
         <ConfirmDialog
-          title={`Undo whole text batch (${pendingUndo.length} events)?`}
-          message={`This removes ${pendingUndo.length} events that were added together.`}
-          confirmLabel="Undo batch"
+          title={sp.undoBatchTitle(pendingUndo.length)}
+          message={sp.undoBatchMessage(pendingUndo.length)}
+          confirmLabel={sp.undoBatchConfirm}
           onCancel={() => setPendingUndo(null)}
           onConfirm={() => {
             if (anchorId && pendingUndo.includes(anchorId)) setAnchorId(null);
-            void deleteEvents(teamId, matchId, pendingUndo).catch(() => setWriteError('Could not undo. Try again.'));
+            void deleteEvents(teamId, matchId, pendingUndo).catch(() => setWriteError(sp.undoError));
             setPendingUndo(null);
           }}
         />

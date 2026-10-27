@@ -1,4 +1,4 @@
-import { getT } from '../i18n/I18nProvider';
+import type { Catalog } from '../i18n/catalog';
 import { rallyOutcome } from './skillGrades';
 import type {
   ActionEvent,
@@ -61,7 +61,21 @@ type WarningCode =
 export interface EngineWarning {
   eventId: string;
   code: WarningCode;
-  message: string;
+  /** The per-set limit that was exceeded (subLimit, timeoutLimit). */
+  limit?: number;
+}
+
+/** Display text for a warning, rendered at display time so it follows the active language. */
+export function engineWarningText(w: EngineWarning, t: Catalog): string {
+  const e = t.matches.engine;
+  switch (w.code) {
+    case 'subLimit':
+      return e.subLimit(w.limit ?? 0);
+    case 'timeoutLimit':
+      return e.timeoutLimit(w.limit ?? 0);
+    default:
+      return e[w.code];
+  }
 }
 
 export interface MatchState {
@@ -199,8 +213,8 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
   // Substitution pairs within the current set: out <-> in, for re-entry checks.
   let pairs: Record<string, string> = {};
 
-  const warn = (ev: MatchEvent, code: WarningCode, message: string) => {
-    s.warnings.push({ eventId: ev.id, code, message });
+  const warn = (ev: MatchEvent, code: WarningCode, limit?: number) => {
+    s.warnings.push(limit === undefined ? { eventId: ev.id, code } : { eventId: ev.id, code, limit });
   };
   const ralliesInSet = () => s.rallies.filter((r) => r.set === s.set).length;
 
@@ -230,7 +244,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
 
   for (const ev of sortEvents(events)) {
     if (ev.type !== 'setStart' && !s.inSet) {
-      warn(ev, 'noSet', getT().matches.engine.noSet);
+      warn(ev, 'noSet');
       continue;
     }
     switch (ev.type) {
@@ -253,11 +267,11 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       }
       case 'action': {
         if (!rosterIds.has(ev.playerId)) {
-          warn(ev, 'unknownPlayer', getT().matches.engine.unknownPlayer);
+          warn(ev, 'unknownPlayer');
           break;
         }
         if (!s.court.includes(ev.playerId)) {
-          warn(ev, 'offCourt', getT().matches.engine.offCourt);
+          warn(ev, 'offCourt');
         }
         s.actions.push({
           eventId: ev.id,
@@ -278,13 +292,13 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       case 'sub': {
         const zone = s.lineup.indexOf(ev.outPlayerId);
         if (zone < 0) {
-          warn(ev, 'subNotOnCourt', getT().matches.engine.subNotOnCourt);
+          warn(ev, 'subNotOnCourt');
           break;
         }
         const outPartner = pairs[ev.outPlayerId];
         const inPartner = pairs[ev.inPlayerId];
         if ((outPartner && outPartner !== ev.inPlayerId) || (inPartner && inPartner !== ev.outPlayerId)) {
-          warn(ev, 'illegalReentry', getT().matches.engine.illegalReentry);
+          warn(ev, 'illegalReentry');
         } else {
           pairs[ev.outPlayerId] = ev.inPlayerId;
           pairs[ev.inPlayerId] = ev.outPlayerId;
@@ -298,7 +312,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
         );
         s.subsUsed += 1;
         if (s.subsUsed > match.format.subsPerSet) {
-          warn(ev, 'subLimit', getT().matches.engine.subLimit(match.format.subsPerSet));
+          warn(ev, 'subLimit', match.format.subsPerSet);
         }
         break;
       }
@@ -312,7 +326,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
           eventId: ev.id,
         });
         if (s.timeoutsUsed[ev.team] > match.format.timeoutsPerSet) {
-          warn(ev, 'timeoutLimit', getT().matches.engine.timeoutLimit(match.format.timeoutsPerSet));
+          warn(ev, 'timeoutLimit', match.format.timeoutsPerSet);
         }
         break;
       }
@@ -329,7 +343,7 @@ export function replay(match: EngineMatch, events: MatchEvent[]): MatchState {
       }
       case 'setEnd': {
         if (s.score.us === s.score.them) {
-          warn(ev, 'setEndTie', getT().matches.engine.setEndTie);
+          warn(ev, 'setEndTie');
           break;
         }
         s.setScores.push({ ...s.score });

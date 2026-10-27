@@ -1,5 +1,6 @@
 import { Dialog } from '../../components/Dialog';
 import type { RosterEntry } from '../../types/match';
+import { useT } from '../../i18n/I18nProvider';
 
 interface SubDialogProps {
   outPlayer: RosterEntry;
@@ -9,17 +10,18 @@ interface SubDialogProps {
 }
 
 export function SubDialog({ outPlayer, candidates, onSub, onCancel }: SubDialogProps) {
+  const t = useT();
   return (
-    <Dialog title={`Substitute #${outPlayer.number} ${outPlayer.name}`} onClose={onCancel}>
+    <Dialog title={t.scout.sub.title(outPlayer.number, outPlayer.name)} onClose={onCancel}>
       {candidates.length === 0 ? (
-        <p className="text-sm text-slate">Nobody on the bench.</p>
+        <p className="text-sm text-slate">{t.scout.sub.nobody}</p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {candidates.map((c) => (
             <button
               key={c.playerId}
               type="button"
-              aria-label={`Bring on #${c.number} ${c.name}`}
+              aria-label={t.scout.sub.bringOn(c.number, c.name)}
               onClick={() => onSub(c.playerId)}
               className="flex min-h-14 flex-col items-center justify-center rounded-md border border-border bg-surface text-ink hover:bg-blue/10"
             >

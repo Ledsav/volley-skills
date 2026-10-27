@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getT } from '../../i18n/I18nProvider';
 import {
   EMPTY_JERSEY,
   isTypingTarget,
@@ -63,7 +64,7 @@ export function useScoutHotkeys(options: ScoutHotkeysOptions): { hint: string | 
       if (buffer.deadline !== null) {
         idleTimer.current = window.setTimeout(() => step({ type: 'tick', now: Date.now() }), Math.max(0, buffer.deadline - Date.now()));
       }
-      if (unknown) flash(`No player #${unknown}`, false);
+      if (unknown) flash(getT().scout.hotkeys.noPlayer(unknown), false);
       else if (buffer.digits) flash(`#${buffer.digits}…`, true);
       else flash(null, false);
       if (select !== null) optionsRef.current.onJersey(select);

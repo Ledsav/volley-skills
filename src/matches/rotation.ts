@@ -1,4 +1,4 @@
-import { getT } from '../i18n/I18nProvider';
+import type { Catalog } from '../i18n/catalog';
 import type { PositionCategory } from '../types/player';
 import type { RoleMap } from '../types/match';
 
@@ -66,24 +66,36 @@ const PAIRS: { role: PositionCategory; other: PositionCategory; message: 'setter
   { role: 'OH', other: 'OH', message: 'outsides' },
 ];
 
+type Expected51Role = 'S' | 'O' | 'OH' | 'MB';
+
+/** A non-blocking lineup warning; render with `lineup51Message`. */
+export type Lineup51Issue =
+  | { code: 'expected'; role: Expected51Role; count: number; found: number }
+  | { code: 'setterOpposite' | 'middles' | 'outsides' };
+
+/** Display text for a lineup warning, rendered at display time so it follows the active language. */
+export function lineup51Message(issue: Lineup51Issue, t: Catalog): string {
+  const r = t.matches.rotation;
+  return issue.code === 'expected' ? r.expected(issue.role, issue.count, issue.found) : r[issue.code];
+}
+
 /** Non-blocking warnings for a lineup that does not look like a 5-1. */
-export function check51(lineup: string[], roles: RoleMap): string[] {
-  const t = getT().matches.rotation;
-  const warnings: string[] = [];
+export function check51(lineup: string[], roles: RoleMap): Lineup51Issue[] {
+  const warnings: Lineup51Issue[] = [];
   const zonesOf = (role: PositionCategory) =>
     lineup.flatMap((id, zone) => (id && roles[id] === role ? [zone] : []));
 
   for (const { role, count } of EXPECTED) {
     const found = zonesOf(role).length;
-    if (found !== count) warnings.push(t.expected(role, count, found));
+    if (found !== count) warnings.push({ code: 'expected', role, count, found });
   }
   for (const { role, other, message } of PAIRS) {
     const a = zonesOf(role);
     const b = zonesOf(other);
     if (role === other) {
-      if (a.length === 2 && Math.abs(a[0] - a[1]) !== 3) warnings.push(t[message]);
+      if (a.length === 2 && Math.abs(a[0] - a[1]) !== 3) warnings.push({ code: message });
     } else if (a.length === 1 && b.length === 1 && Math.abs(a[0] - b[0]) !== 3) {
-      warnings.push(t[message]);
+      warnings.push({ code: message });
     }
   }
   return warnings;

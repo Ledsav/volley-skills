@@ -32,12 +32,12 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
       <button
         type="button"
         onClick={() => onTimeout(team)}
-        aria-label={`T/O ${team} (${left} left)`}
-        title={`Timeout ${team} · key ${keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem')}`}
+        aria-label={t.scout.rally.timeoutAria(t.matches.shared.side(team), left)}
+        title={t.scout.rally.timeoutTitle(t.matches.shared.side(team), keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem'))}
         className={`flex ${height} min-w-14 flex-col items-center justify-center rounded-md border border-border px-2 text-xs font-medium leading-tight text-ink`}
       >
-        <span>T/O</span>
-        <span className="tabular-nums text-slate">{left} left</span>
+        <span>{t.scout.rally.timeoutShort}</span>
+        <span className="tabular-nums text-slate">{t.scout.rally.left(left)}</span>
       </button>
     );
   };
@@ -49,7 +49,7 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
         team === 'us' ? 'bg-green/15 text-green-strong' : 'bg-red/10 text-red-strong'
       }`}
     >
-      Point {team} <Kbd>{keyLabel(team === 'us' ? 'pointUs' : 'pointThem')}</Kbd>
+      {t.scout.rally.point(t.matches.shared.side(team))} <Kbd>{keyLabel(team === 'us' ? 'pointUs' : 'pointThem')}</Kbd>
     </button>
   );
 
@@ -58,10 +58,10 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
       {reasonPrompt && (
         <div
           role="group"
-          aria-label={`Point ${reasonPrompt.winner} — reason (optional)`}
+          aria-label={t.scout.rally.reasonGroup(t.matches.shared.side(reasonPrompt.winner))}
           className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-2"
         >
-          <span className="text-xs text-slate">Why? (optional)</span>
+          <span className="text-xs text-slate">{t.scout.rally.why}</span>
           {POINT_REASONS[reasonPrompt.winner].map((reason, i) => (
             <button
               key={reason}

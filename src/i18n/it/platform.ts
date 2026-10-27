@@ -1,0 +1,50 @@
+import type { Catalog } from '../catalog';
+
+export const platform = {
+  pageTitle: 'Piattaforma',
+  sectionsLabel: 'Sezioni della piattaforma',
+  tabs: { clubs: 'Club', leads: 'Contatti' },
+  actions: {
+    activate: 'Attiva',
+    deactivate: 'Disattiva',
+    endContract: 'Termina contratto',
+    changeDates: 'Cambia date',
+    reject: 'Rifiuta',
+    reinstate: 'Ripristina',
+  },
+  table: {
+    status: 'Stato',
+    all: 'Tutti',
+    loadMoreFailed: 'Impossibile caricare altri club. Riprova.',
+    loadFailed: 'Impossibile caricare i club. Aggiorna la pagina.',
+    columns: { club: 'Club', owner: 'Titolare', status: 'Stato', terms: 'Termini', actions: 'Azioni' },
+    created: (country: string, date: string) => `${country} · creato il ${date}`,
+    endsAndExport: (end: string, exportBy: string) => `Termina il ${end} · esportazione fino al ${exportBy}`,
+    termsAccepted: (version: string) => `Accettati ${version}`,
+    notAccepted: 'Non accettati',
+    moreActionsFor: (club: string) => `Altre azioni per ${club}`,
+    noClubs: (filtered: boolean) => (filtered ? 'Nessun club con questo stato.' : 'Ancora nessun club.'),
+    loadMore: 'Carica altri',
+  },
+  dialog: {
+    datesIntro:
+      "Il club mantiene l'uso completo fino alla data di fine, poi può solo esportare i propri dati fino alla data di esportazione.",
+    intro: {
+      activate: "Il club potrà usare l'app.",
+      deactivate: "Il club è in pausa: le sue persone non possono più usare l'app. Potrai riattivarlo più avanti.",
+      reject: 'La richiesta del club viene rifiutata.',
+      reinstate: 'La fine del contratto viene annullata e il club torna attivo.',
+    },
+    chooseBothDates: 'Scegli entrambe le date.',
+    endDatePast: 'La data di fine non può essere nel passato.',
+    exportTooShort: "L'esportazione dei dati deve restare aperta almeno 30 giorni dopo la data di fine.",
+    datesUpdated: 'Date aggiornate',
+    nowStatus: (club: string, status: string) => `${club} ora è: ${status}`,
+    title: (action: string, club: string) => `${action}: ${club}`,
+    laterEndDate: "Una data di fine successiva restituisce al club l'uso completo fino a quel giorno.",
+    endDate: 'Data di fine',
+    exportOpenUntil: 'Esportazione dei dati aperta fino al',
+    reason: 'Motivo',
+    reasonOptional: 'Motivo (facoltativo)',
+  },
+} satisfies Catalog['platform'];

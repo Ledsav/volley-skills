@@ -35,7 +35,6 @@ export const platform = {
     chooseBothDates: 'Choose both dates.',
     endDatePast: "The end date can't be in the past.",
     exportTooShort: 'Data export must stay open at least 30 days after the end date.',
-    updateFailed: 'Could not update the club. Please try again.',
     datesUpdated: 'Dates updated',
     nowStatus: (club: string, status: string) => `${club} is now ${status}`,
     title: (action: string, club: string) => `${action}: ${club}`,

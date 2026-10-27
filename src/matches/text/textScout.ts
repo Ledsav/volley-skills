@@ -1,11 +1,14 @@
 import { GRADES, SKILLS, type Grade, type MatchEventPayload, type PointReason, type RosterEntry, type Side, type Skill } from '../../types/match';
 import { labels as enLabels } from '../../i18n/en/labels';
+import { labels as itLabels } from '../../i18n/it/labels';
 import { POINT_REASONS, rallyOutcome, validGrades } from '../skillGrades';
 import type { ChatMessage } from '../../ai/aiClient';
 
 // The prompt and its validator messages are a protocol: always the English labels, never the active locale.
 const SKILL_LABELS = enLabels.skill;
 const GRADE_LABELS = enLabels.grade;
+const IT_SKILL_LABELS = itLabels.skill;
+const IT_GRADE_LABELS: Record<Skill, Record<string, string>> = itLabels.grade;
 
 export interface ParsedAction {
   number: number;
@@ -92,32 +95,40 @@ const GRADE_TABLE = SKILLS.map(
   (s) => `${s} (${SKILL_LABELS[s]}): ${validGrades(s).map((g) => `"${g}" ${GRADE_LABELS[s][g]}`).join(', ')}`,
 ).join('\n');
 
+/** The Italian screen labels, so a coach can type what the Italian app shows; same grade symbols. */
+const IT_GRADE_TABLE = SKILLS.map(
+  (s) => `${s} (${IT_SKILL_LABELS[s]}): ${validGrades(s).map((g) => `"${g}" ${IT_GRADE_LABELS[s][g]}`).join(', ')}`,
+).join('\n');
+
 export const SYSTEM_PROMPT = `You convert a volleyball coach's match notes about THEIR OWN team into JSON.
 Players are identified only by jersey number ("#7" or "7"). "#?" means an unknown player: put that line in "unparsed".
 Fundamentals (skill): S serve, R reception, A attack, B block, D dig, E set, F free ball.
 Grades (DataVolley): "#" perfect/point (ace, kill, stuff block, perfect pass), "+" good, "!" ok, "-" poor, "/" overpass/blocked/free ball back, "=" error.
-Everyday words for each fundamental (English, Spanish, French):
-- A attack: smash, spike, hit, attack, remate, rematar, ataque, attaque, frappe
-- S serve: serve, saque, sacar, service, servir
-- R reception: pass, reception, receive, recepción, recibir, réception
-- E set: set, setting, colocación, colocar, passe
-- B block: block, bloqueo, bloquear, contre
-- D dig: dig, defense, defensa, défense, save
-- F free ball: free ball, freeball, bola fácil, balle facile
+Everyday words for each fundamental (English, Spanish, French, Italian):
+- A attack: smash, spike, hit, attack, remate, rematar, ataque, attaque, frappe, schiacciata, attacco, pallonetto (tip)
+- S serve: serve, saque, sacar, service, servir, battuta
+- R reception: pass, reception, receive, recepción, recibir, réception, ricezione
+- E set: set, setting, colocación, colocar, passe, alzata
+- B block: block, bloqueo, bloquear, contre, muro, murata
+- D dig: dig, defense, defensa, défense, save, difesa
+- F free ball: free ball, freeball, bola fácil, balle facile, palla facile
 Result words -> grade:
 - kill, point, punto, point gagnant, winner -> "#" (S# ace, A# kill, B# stuff block); ace -> S "#"
-- out, fuera, dehors, long, wide, net, red, filet, error, fallo, faute -> "="
-- blocked, bloqueado, contré (our attack) -> A "/"
-- good, bien, bon -> "+"; bad, poor, mal, mauvais -> "-"
+- out, fuera, dehors, long, wide, net, red, filet, error, fallo, faute, fuori, in rete, errore, invasione -> "="
+- blocked, bloqueado, contré, murato, murata (our attack) -> A "/"
+- good, bien, bon, buona, positiva -> "+"; bad, poor, mal, mauvais, scarsa, negativa -> "-"
 - overpass, over -> "/" for R, D or F
 - easy, too easy, fácil, facile -> "-" (for S, R, D, F, E it means poor/easy)
 - tough, hard, strong, difícil, difficile, pressure, presión -> "+" for S
 - covered, cubierto, couvert -> A "!"
 - tooled, tocada, block-out -> B "/" (from our block); touch, toque, touche -> B "+" (ours) unless the notes say theirs
-- perfect, perfecto, parfait -> "#" for R, D, E, F
-- ok, regular, moyen -> "!"
+- perfect, perfecto, parfait, perfetta -> "#" for R, D, E, F
+- ok, regular, moyen, regolare -> "!"
 The app's own grade labels per fundamental (grade symbol, label):
 ${GRADE_TABLE}
+The same labels as the Italian app shows them (same grade symbols):
+${IT_GRADE_TABLE}
+Italian time-out is "time-out" and a substitution is "cambio" (e.g. "cambio 8 per 9" -> 8 in for 9).
 When the notes use one of these labels or an obvious synonym, use that grade.
 If the notes name the action but not its result, still output the action with "grade": null. Never put a line in unparsed just because the result is missing.
 A rally ends with a point. Add "point" only when the notes say who won it and no action already decides it (S#, A#, B# win; any "=", A/ or B/ lose).

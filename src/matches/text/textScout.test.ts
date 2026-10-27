@@ -272,6 +272,12 @@ describe('ungraded actions', () => {
     for (const w of ['smash', 'remate', 'attaque', 'bola fácil', 'contré']) expect(SYSTEM_PROMPT).toContain(w);
   });
 
+  it('SYSTEM_PROMPT knows Italian vocabulary and labels while the protocol table stays English', () => {
+    for (const w of ['battuta', 'murata', 'schiacciata', 'alzata', 'palla facile', 'in rete', 'Mani-out']) expect(SYSTEM_PROMPT).toContain(w);
+    expect(SYSTEM_PROMPT).toContain('\nS (Battuta): "#" Ace,');
+    expect(SYSTEM_PROMPT).toContain('\nS (Serve): "#" Ace, "+" Pressure');
+  });
+
   it('SYSTEM_PROMPT teaches the app per-skill grade labels and new synonyms', () => {
     expect(SYSTEM_PROMPT).toContain('S (Serve): "#" Ace, "+" Pressure, "!" OK, "-" Easy, "/" Free back, "=" Error');
     for (const s of ['S', 'R', 'A', 'B', 'D', 'E', 'F'] as const) expect(SYSTEM_PROMPT).toContain(`\n${s} (${SKILL_LABELS[s]}): "`);

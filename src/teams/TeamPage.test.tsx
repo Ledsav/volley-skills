@@ -9,6 +9,11 @@ import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 import { NoticeProvider } from '../components/Notice';
 
+const flag = vi.hoisted(() => ({ italian: false }));
+vi.mock('../i18n/locales', async (orig) => {
+  const actual = await orig<typeof import('../i18n/locales')>();
+  return { ...actual, get ITALIAN_ENABLED() { return flag.italian; } };
+});
 vi.mock('./teamsApi');
 vi.mock('../players/playersApi');
 vi.mock('../auth/AuthContext');
@@ -56,6 +61,7 @@ function renderTeamPage(url = '/teams/team-1') {
 
 describe('TeamPage', () => {
   beforeEach(() => {
+    flag.italian = false;
     vi.mocked(playersApi.listPlayersDueForDeletion).mockResolvedValue([]);
     vi.mocked(useAuth).mockReturnValue(
       authValue({
@@ -79,7 +85,16 @@ describe('TeamPage', () => {
     expect(await screen.findByRole('tab', { name: 'Stats' })).toBeInTheDocument();
   });
 
-  it('asks a team admin once whether the team is women, men or mixed when gender is missing', async () => {
+  it('does not show the gender prompt while Italian is off (R20)', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    expect(screen.queryByText("Is this a women's, men's or mixed team?")).not.toBeInTheDocument();
+  });
+
+  it('asks a team admin once whether the team is women, men or mixed when gender is missing and Italian is on', async () => {
+    flag.italian = true;
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     const updateSpy = vi.spyOn(teamsApi, 'updateTeamInfo').mockResolvedValue(undefined);

@@ -1,6 +1,6 @@
 import type { PhysicalTest } from '../types/physicalTest';
 import { formatDecimal, formatNumber } from '../i18n/format';
-import { getT } from '../i18n/I18nProvider';
+import { getLocale, getT } from '../i18n/I18nProvider';
 
 export function formatPhysicalTestSummary(test: PhysicalTest): string {
   const s = getT().players.physical.summary;
@@ -37,7 +37,9 @@ function round1(value: number): string {
 }
 
 function list(values: number[], unit: string): string {
-  return `${values.map((v) => formatDecimal(v)).join(', ')} ${unit}`;
+  // A comma decimal ("2,35") cannot also separate attempts: use "; " there.
+  const sep = getLocale() === 'it' ? '; ' : ', ';
+  return `${values.map((v) => formatDecimal(v)).join(sep)} ${unit}`;
 }
 
 /** Every stored measurement for one entry, for the expanded history row. */

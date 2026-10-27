@@ -162,7 +162,7 @@ export function TeamPage() {
           />
         )}
         {activeTab === 'matches' && (
-          <TeamMatchesTab teamId={teamId} teamName={team.name} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+          <TeamMatchesTab teamId={teamId} teamName={team.name} gender={gender} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
         )}
         {activeTab === 'stats' && admin && (
           <Suspense fallback={<p className="text-slate">{t.teams.shared.loadingStats}</p>}>

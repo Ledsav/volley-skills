@@ -13,7 +13,7 @@ import type { DvwFile } from './types';
 
 function parsed(name: string): DvwFile {
   const result = parseDvw(loadFixture(name));
-  if ('error' in result) throw new Error(result.error);
+  if ('error' in result) throw new Error(result.error.code);
   return result;
 }
 

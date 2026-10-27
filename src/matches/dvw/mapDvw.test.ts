@@ -164,7 +164,7 @@ describe('mapDvw: sets', () => {
     const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*7': null } });
     expect(p.issues).toContainEqual({
       kind: 'blocking',
-      message: 'Map or keep every starter: the app needs six players on court in set 1.',
+      message: { code: 'startersUnmapped', set: 1 },
       lines: [1],
     });
   });
@@ -178,15 +178,15 @@ describe('mapDvw: sets', () => {
     expect(p.events[0]).toMatchObject({ type: 'setStart', lineup: LINEUP });
     expect(p.setup.roster).toContainEqual({ playerId: 'p9', number: 9, name: 'App 9', positionCategory: 'U' });
     expect(p.issues).toEqual([
-      { kind: 'warning', message: "#9 is not in the file's player list (first seen on line 1).", lines: [1] },
+      { kind: 'warning', message: { code: 'unlistedJersey', jersey: 9, line: 1 }, lines: [1] },
     ]);
   });
 
   it('blocks two file players mapped to the same app player in a lineup', () => {
     const f = file(['*07SM+', 'ap00:01']);
     const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*9': 'p7' } });
-    expect(p.issues.filter((i) => i.kind === 'blocking' && i.message.startsWith('Two file players'))).toEqual([
-      { kind: 'blocking', message: 'Two file players are mapped to the same app player (#7 and #9).', lines: [1] },
+    expect(p.issues.filter((i) => i.kind === 'blocking' && i.message.code === 'sameAppPlayer')).toEqual([
+      { kind: 'blocking', message: { code: 'sameAppPlayer', first: 7, second: 9 }, lines: [1] },
     ]);
   });
 
@@ -195,7 +195,7 @@ describe('mapDvw: sets', () => {
     const p = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*6': 'p12' } });
     expect(p.issues).toContainEqual({
       kind: 'blocking',
-      message: 'Two file players are mapped to the same app player (#12 and #6).',
+      message: { code: 'sameAppPlayer', first: 12, second: 6 },
       lines: [3],
     });
   });
@@ -271,8 +271,8 @@ describe('mapDvw: actions and points', () => {
       { type: 'point', winner: 'them', reason: 'unknown' },
     ]);
     expect(p.issues).toEqual([
-      { kind: 'warning', message: '1 action of #12 dropped: not mapped to a player (line 1).', lines: [1] },
-      { kind: 'warning', message: '1 action by an unknown player ($$) dropped (line 3).', lines: [3] },
+      { kind: 'warning', message: { code: 'droppedForJersey', reason: 'unmapped', jersey: 12, lines: [1] }, lines: [1] },
+      { kind: 'warning', message: { code: 'droppedUnknownPlayer', lines: [3] }, lines: [3] },
     ]);
   });
 
@@ -293,13 +293,13 @@ describe('mapDvw: actions and points', () => {
     expect(p.issues).toEqual([
       {
         kind: 'warning',
-        message: '7 actions of #12 dropped: not mapped to a player (lines 1, 2, 3, 4, 5, …).',
+        message: { code: 'droppedForJersey', reason: 'unmapped', jersey: 12, lines: [1, 2, 3, 4, 5, 6, 14] },
         lines: [1, 2, 3, 4, 5],
       },
-      { kind: 'warning', message: '2 actions by an unknown player ($$) dropped (lines 7, 12).', lines: [7, 12] },
+      { kind: 'warning', message: { code: 'droppedUnknownPlayer', lines: [7, 12] }, lines: [7, 12] },
       {
         kind: 'warning',
-        message: '2 actions of #9 dropped: the rally was already decided (lines 9, 10).',
+        message: { code: 'droppedForJersey', reason: 'decided', jersey: 9, lines: [9, 10] },
         lines: [9, 10],
       },
     ]);
@@ -309,7 +309,7 @@ describe('mapDvw: actions and points', () => {
     const p = plan(file(['*07EH/', 'ap00:01']));
     expect(p.events.some((e) => e.type === 'action')).toBe(false);
     expect(p.issues).toEqual([
-      { kind: 'warning', message: '1 Set "/" action dropped: the app has no such grade (line 1).', lines: [1] },
+      { kind: 'warning', message: { code: 'droppedGrade', skill: 'E', grade: '/', lines: [1] }, lines: [1] },
     ]);
   });
 
@@ -318,7 +318,7 @@ describe('mapDvw: actions and points', () => {
     expect(p.issues).toEqual([
       {
         kind: 'warning',
-        message: '7 Set "/" actions dropped: the app has no such grade (lines 1, 2, 3, 4, 5, …).',
+        message: { code: 'droppedGrade', skill: 'E', grade: '/', lines: [1, 2, 3, 4, 5, 6, 7] },
         lines: [1, 2, 3, 4, 5],
       },
     ]);
@@ -337,7 +337,7 @@ describe('mapDvw: actions and points', () => {
     const p = plan(file(['*07SM#', '*09AH+', '*p01:00', '*07SM+']));
     expect(p.events.filter((e) => e.type === 'action').map((e) => (e.type === 'action' ? e.grade : ''))).toEqual(['#', '+']);
     expect(p.issues).toEqual([
-      { kind: 'warning', message: '1 action of #9 dropped: the rally was already decided (line 2).', lines: [2] },
+      { kind: 'warning', message: { code: 'droppedForJersey', reason: 'decided', jersey: 9, lines: [2] }, lines: [2] },
     ]);
   });
 
@@ -358,7 +358,7 @@ describe('mapDvw: subs and timeouts', () => {
     ]);
     // #44 is skipped, so only the skipped sub is reported (not "#44 is not in the file's player list").
     expect(p.issues).toEqual([expect.objectContaining({ kind: 'warning', lines: [5] })]);
-    expect(p.issues[0].message).toMatch(/substitution #8 → #44/);
+    expect(p.issues[0].message).toEqual({ code: 'subUnmapped', line: 5, out: 8, in: 44 });
   });
 });
 
@@ -408,7 +408,7 @@ describe('mapDvw: score check', () => {
     expect(p.checks.ignoredLines).toBe(2);
     expect(p.checks.eventCounts).toEqual({ setStart: 1, action: 1, point: 0, sub: 0, timeout: 0, correction: 0, setEnd: 1 });
     expect(p.issues).toContainEqual({
-      kind: 'warning', message: "The replayed score differs from the file's set scores.", lines: [],
+      kind: 'warning', message: { code: 'scoreDiffers' }, lines: [],
     });
   });
 });
@@ -419,7 +419,7 @@ describe('mapDvw: limits and meta', () => {
       plan(file(Array.from({ length: n }, () => '*T'))).issues.filter((i) => i.kind === 'blocking');
     expect(blocking(1899)).toEqual([]); // setStart + 1,899 timeouts = 1,900
     expect(blocking(1900)).toEqual([
-      { kind: 'blocking', message: 'This match is too long to import (more than 1,900 events).', lines: [] },
+      { kind: 'blocking', message: { code: 'tooLong' }, lines: [] },
     ]);
   });
 
@@ -441,7 +441,7 @@ describe('mapDvw: real-file rallies and liberos', () => {
     expect(p.issues).toEqual([
       {
         kind: 'warning',
-        message: 'Line 2: this action ended the rally the other way; line 5 gives the point to us — action dropped.',
+        message: { code: 'endedOtherWay', line: 2, pointLine: 5, winner: 'us' },
         lines: [2],
       },
     ]);
@@ -458,7 +458,7 @@ describe('mapDvw: real-file rallies and liberos', () => {
     expect(p.setup.liberos).toEqual([{ playerId: 'p4', mode: 'always', replaces: ['p8'] }]);
     // The guess is shown so the coach can check it.
     expect(p.issues).toEqual([
-      { kind: 'warning', message: `Read from the file: the libero replaces #8 in the back row. If that is wrong, mark your middle blockers as MB in the team roster, then import again.`, lines: [] },
+      { kind: 'warning', message: { code: 'liberoReplaces', jerseys: [8] }, lines: [] },
     ]);
     const state = replay(engineMatch(p), withIds(p.events));
     expect(state.warnings.filter((w) => w.code === 'offCourt')).toEqual([]);
@@ -484,7 +484,7 @@ describe('mapDvw: real-file rallies and liberos', () => {
     const f = file([...rally, ...rally, ...rally], { players: [...NO_ROLES, ...VISITING_PLAYERS] });
     const unmapped = plan(f, { mapping: { ...autoMapPlayers(f, '*', PLAYERS), '*8': null } });
     expect(unmapped.setup.liberos[0].replaces).toEqual([]);
-    expect(unmapped.issues).toContainEqual(expect.objectContaining({ message: expect.stringMatching(/^The libero never comes on court/) }));
+    expect(unmapped.issues).toContainEqual(expect.objectContaining({ message: { code: 'liberoNeverOnCourt' } }));
   });
 
   it('keeps the rest of the rally when a timeout or sub sits between a wrong-way action and the point line', () => {
@@ -521,7 +521,7 @@ describe('mapDvw: real-file rallies and liberos', () => {
     expect(p.issues).toEqual([
       {
         kind: 'warning',
-        message: 'The libero never comes on court: mark your middle blockers as MB in the team roster, then import again.',
+        message: { code: 'liberoNeverOnCourt' },
         lines: [],
       },
     ]);

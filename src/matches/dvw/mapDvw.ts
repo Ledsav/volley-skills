@@ -14,16 +14,15 @@ import {
 } from '../../types/match';
 import type { Player, PositionCategory } from '../../types/player';
 import { replay, type EngineMatch } from '../scoutEngine';
-import { POINT_REASONS, labelSkill, rallyOutcome, validGrades } from '../skillGrades';
-import { lineList } from './lineList';
-import type { DvwFile, DvwPlayer, DvwSide, ScoutLine } from './types';
+import { POINT_REASONS, rallyOutcome, validGrades } from '../skillGrades';
+import type { DvwFile, DvwMessage, DvwPlayer, DvwSide, ScoutLine } from './types';
 
 /** Key `${side}${jersey}`, value an app playerId, or null = Skip. */
 export type PlayerMapping = Record<string, string | null>;
 
 export interface DvwIssue {
   kind: 'blocking' | 'warning';
-  message: string;
+  message: DvwMessage;
   lines: number[];
 }
 
@@ -109,22 +108,12 @@ function pointReason(winner: Side, opp: { skill: Skill; grade: Grade } | null): 
   return POINT_REASONS[winner].includes(reason) ? reason : 'unknown';
 }
 
-const actionsText = (n: number) => `${n} ${n === 1 ? 'action' : 'actions'}`;
-
-/** One warning per skill and grade: the count and the first five line numbers. */
-function warnDroppedGrade(warn: (message: string, lines: number[]) => void, skill: Skill, grade: Grade, lines: number[]) {
-  const what = `${lines.length} ${labelSkill(skill)} "${grade}" ${lines.length === 1 ? 'action' : 'actions'} dropped`;
-  warn(`${what}: the app has no such grade (${lineList(lines)}).`, lines.slice(0, 5));
-}
-
 /** Why one of our skill lines was dropped (one grouped warning per jersey and reason). */
 type DropReason = 'unmapped' | 'unknownPlayer' | 'decided';
 
-function dropMessage(reason: DropReason, jersey: number | null, lines: number[]): string {
-  const n = actionsText(lines.length);
-  if (reason === 'unknownPlayer') return `${n} by an unknown player ($$) dropped (${lineList(lines)}).`;
-  const why = reason === 'unmapped' ? 'not mapped to a player' : 'the rally was already decided';
-  return `${n} of #${jersey} dropped: ${why} (${lineList(lines)}).`;
+function dropMessage(reason: DropReason, jersey: number | null, lines: number[]): DvwMessage {
+  if (reason === 'unknownPlayer' || jersey === null) return { code: 'droppedUnknownPlayer', lines };
+  return { code: 'droppedForJersey', reason, jersey, lines };
 }
 
 /** Court indexes of the back row: P1, P5, P6. */
@@ -175,7 +164,7 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
       const lineNo = seen.get(fp.jersey);
       issues.push({
         kind: 'blocking',
-        message: `Two file players are mapped to the same app player (#${first} and #${fp.jersey}).`,
+        message: { code: 'sameAppPlayer', first, second: fp.jersey },
         lines: lineNo === undefined ? [] : [lineNo],
       });
       continue;
@@ -191,7 +180,7 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
     if (isLibero) liberoIds.push(app.id);
   }
   if (liberoIds.length > 2) {
-    issues.push({ kind: 'blocking', message: 'The app takes at most two liberos: skip the others or map them to other players.', lines: [] });
+    issues.push({ kind: 'blocking', message: { code: 'tooManyLiberos' }, lines: [] });
   }
   // DataVolley never lists the libero in P1-P6: the libero is on court for any back-row middle.
   // Real files rarely carry role codes, so without a known middle the scout says who was replaced.
@@ -204,13 +193,9 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
       return id !== null && ids.has(id) && !liberoIds.includes(id);
     });
     middles = replaced.map((j) => appId(j) as string);
-    const fix = 'mark your middle blockers as MB in the team roster, then import again.';
     issues.push({
       kind: 'warning',
-      message:
-        replaced.length === 0
-          ? `The libero never comes on court: ${fix}`
-          : `Read from the file: the libero replaces ${replaced.map((j) => `#${j}`).join(', ')} in the back row. If that is wrong, ${fix}`,
+      message: replaced.length === 0 ? { code: 'liberoNeverOnCourt' } : { code: 'liberoReplaces', jerseys: replaced },
       lines: [],
     });
   }
@@ -253,10 +238,10 @@ export function mapDvw(
 ): DvwPlan {
   const { us, mapping, players, importId } = opts;
   const issues: DvwIssue[] = [];
-  const warn = (message: string, lines: number[]) => issues.push({ kind: 'warning', message, lines });
+  const warn = (message: DvwMessage, lines: number[]) => issues.push({ kind: 'warning', message, lines });
   const setup = buildSetup(file, us, mapping, players, issues);
   for (const [jersey, lineNo] of unlistedJerseys(file, us)) {
-    if (mapping[keyOf(us, jersey)]) warn(`#${jersey} is not in the file's player list (first seen on line ${lineNo}).`, [lineNo]);
+    if (mapping[keyOf(us, jersey)]) warn({ code: 'unlistedJersey', jersey, line: lineNo }, [lineNo]);
   }
   const engine: EngineMatch = { format: setup.format, roster: setup.roster, liberos: setup.liberos };
   const rosterIds = new Set(setup.roster.map((r) => r.playerId));
@@ -313,11 +298,7 @@ export function mapDvw(
       }
       const winner = rallyOutcome(a.skill, a.grade);
       if (winner && point && winner !== point.winner) {
-        const team = point.winner === 'us' ? 'us' : 'the opponent';
-        warn(
-          `Line ${a.lineNo}: this action ended the rally the other way; line ${point.lineNo} gives the point to ${team} — action dropped.`,
-          [a.lineNo],
-        );
+        warn({ code: 'endedOtherWay', line: a.lineNo, pointLine: point.lineNo, winner: point.winner }, [a.lineNo]);
         continue;
       }
       payloads.push({ type: 'action', playerId: a.playerId, skill: a.skill, grade: a.grade });
@@ -337,7 +318,7 @@ export function mapDvw(
     if (lineup.length !== 6 || lineup.some((id) => id === null)) {
       issues.push({
         kind: 'blocking',
-        message: `Map or keep every starter: the app needs six players on court in set ${set}.`,
+        message: { code: 'startersUnmapped', set },
         lines: [line.lineNo],
       });
     }
@@ -394,7 +375,7 @@ export function mapDvw(
         const outId = idOf(c.outJersey);
         const inId = idOf(c.inJersey);
         if (outId && inId) rally.pending.push({ kind: 'event', payload: { type: 'sub', outPlayerId: outId, inPlayerId: inId } });
-        else warn(`Line ${line.lineNo}: substitution #${c.outJersey} → #${c.inJersey} has an unmapped player — skipped.`, [line.lineNo]);
+        else warn({ code: 'subUnmapped', line: line.lineNo, out: c.outJersey, in: c.inJersey }, [line.lineNo]);
         break;
       }
       case 'timeout':
@@ -425,10 +406,10 @@ export function mapDvw(
   }
 
   for (const { reason, jersey, lines } of droppedActions.values()) warn(dropMessage(reason, jersey, lines), lines.slice(0, 5));
-  for (const [key, lines] of droppedGrades) warnDroppedGrade(warn, key[0] as Skill, key[1] as Grade, lines);
+  for (const [key, lines] of droppedGrades) warn({ code: 'droppedGrade', skill: key[0] as Skill, grade: key[1] as Grade, lines }, lines.slice(0, 5));
 
   if (payloads.length > MAX_IMPORT_EVENTS) {
-    issues.push({ kind: 'blocking', message: 'This match is too long to import (more than 1,900 events).', lines: [] });
+    issues.push({ kind: 'blocking', message: { code: 'tooLong' }, lines: [] });
   }
 
   const events = toEvents(payloads);
@@ -436,7 +417,7 @@ export function mapDvw(
   const replaySets = replay(engine, withMeta(payloads)).setScores;
   const sameSets =
     replaySets.length === fileSets.length && replaySets.every((s, i) => s.us === fileSets[i].us && s.them === fileSets[i].them);
-  if (!sameSets) warn("The replayed score differs from the file's set scores.", []);
+  if (!sameSets) warn({ code: 'scoreDiffers' }, []);
 
   const eventCounts: DvwChecks['eventCounts'] = { setStart: 0, action: 0, point: 0, sub: 0, timeout: 0, correction: 0, setEnd: 0 };
   for (const e of payloads) eventCounts[e.type] += 1;

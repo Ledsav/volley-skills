@@ -3,9 +3,8 @@
  * `datavolley` R package (MIT licence). This parser is written independently and copies
  * no code from it or from pydatavolley / py-datavolley.
  */
-import { lineList } from './lineList';
 import { parseScoutCode } from './parseScoutCode';
-import type { DvwError, DvwFile, DvwPlayer, DvwSet, DvwSide, ScoutLine } from './types';
+import type { DvwError, DvwFile, DvwMessage, DvwPlayer, DvwSet, DvwSide, ScoutLine } from './types';
 
 interface Section {
   /** 1-based line number of the first content line in the file. */
@@ -60,14 +59,14 @@ function parseSets(lines: string[]): DvwSet[] {
     });
 }
 
-function parsePlayers(lines: string[], side: DvwSide, warnings: string[]): DvwPlayer[] {
+function parsePlayers(lines: string[], side: DvwSide, warnings: DvwMessage[]): DvwPlayer[] {
   const players: DvwPlayer[] = [];
   for (const line of lines) {
     if (line.trim() === '') continue;
     const f = fields(line);
     const jersey = int(f[1]);
     if (jersey === null) {
-      warnings.push(`Skipped a player line without a jersey number: "${line.trim()}"`);
+      warnings.push({ code: 'playerNoJersey', line: line.trim() });
       continue;
     }
     const role = int(f[13]);
@@ -96,7 +95,7 @@ const isBlank = (line: string) => line.replace(/\0/g, '').trim() === '';
  * Field 9 is only a cross-check: one warning per set where it is empty or disagrees. Marker
  * lines are not checked, since DataVolley writes the next set's number on them.
  */
-function parseScout(section: Section, warnings: string[]): ScoutLine[] {
+function parseScout(section: Section, warnings: DvwMessage[]): ScoutLine[] {
   const out: ScoutLine[] = [];
   const mismatches = new Map<number, number[]>();
   const rows = section.lines
@@ -125,10 +124,7 @@ function parseScout(section: Section, warnings: string[]): ScoutLine[] {
     if (code.kind === 'setEnd') markers += 1;
   });
   for (const [set, lines] of mismatches) {
-    const n = lines.length;
-    warnings.push(
-      `Set ${set}: ${n} scout ${n === 1 ? 'line has' : 'lines have'} a missing or different set number (${lineList(lines)}); the set markers were used.`,
-    );
+    warnings.push({ code: 'setNumberMismatch', set, lines });
   }
   return out;
 }
@@ -136,18 +132,18 @@ function parseScout(section: Section, warnings: string[]): ScoutLine[] {
 export function parseDvw(text: string): DvwFile | DvwError {
   const sections = splitSections(text);
   const match = sections.get('MATCH');
-  if (!match) return { error: 'This does not look like a DataVolley file.' };
+  if (!match) return { error: { code: 'notDvw' } };
   const m = fields(match.lines.find((l) => l.trim() !== ''));
   // [3MATCH] regulation: 0 indoor sideout, 1 indoor rally point, 2 beach rally point.
   if (m[9] !== '1') {
-    return { error: 'Unsupported regulation: only indoor rally-point matches can be imported.' };
+    return { error: { code: 'unsupportedRegulation' } };
   }
   const scout = sections.get('SCOUT');
   if (!scout || scout.lines.every(isBlank)) {
-    return { error: 'This file has no scouted rallies.' };
+    return { error: { code: 'noRallies' } };
   }
 
-  const warnings: string[] = [];
+  const warnings: DvwMessage[] = [];
   const generatorLine = sections.get('DATAVOLLEYSCOUT')?.lines.find((l) => l.startsWith('GENERATOR-PRG:'));
   const generator = generatorLine ? generatorLine.slice('GENERATOR-PRG:'.length).trim() : '';
 

@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatMonth, formatNumber, formatPercent, monthNames, weekdayNames } from './format';
+import { formatDate, formatDecimal, formatMonth, formatNumber, formatPercent, monthNames, weekdayNames } from './format';
 
 describe('formatNumber', () => {
   it('uses the locale decimal separator', () => {
     expect(formatNumber(1.5, 1, 'it')).toBe('1,5');
     expect(formatNumber(1.5, 1, 'en')).toBe('1.5');
     expect(formatNumber(7, 0, 'it')).toBe('7');
+  });
+});
+
+describe('formatDecimal', () => {
+  it('keeps the digits as typed and swaps only the separator', () => {
+    expect(formatDecimal(2.35, 'it')).toBe('2,35');
+    expect(formatDecimal(2.35, 'en')).toBe('2.35');
+    expect(formatDecimal(34, 'it')).toBe('34');
   });
 });
 

@@ -8,6 +8,7 @@ import { buildEntryId } from '../types/testingSession';
 import type { TestingSession, TestingSessionEntry } from '../types/testingSession';
 import type { Player } from '../types/player';
 import { useNotify } from '../components/Notice';
+import { useT } from '../i18n/I18nProvider';
 
 interface LiveSessionViewProps {
   teamId: string;
@@ -25,6 +26,8 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const notify = useNotify();
+  const t = useT();
+  const s = t.physicalSessions;
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,9 +39,9 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
         setEntries(next);
         setLoadError(null);
       },
-      () => setLoadError('Could not load session progress. Please refresh the page.')
+      () => setLoadError(s.live.loadError)
     );
-  }, [teamId, session.id]);
+  }, [teamId, session.id, s.live.loadError]);
 
   const entriesByPlayerAndType = new Map<string, TestingSessionEntry>();
   for (const entry of entries) {
@@ -49,7 +52,7 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
     try {
       await closeSession(teamId, session.id);
     } catch {
-      setCloseError('Could not close the session. Please try again.');
+      setCloseError(s.live.couldNotClose);
       return;
     }
     setConfirmingClose(false);
@@ -60,11 +63,11 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
     try {
       await deleteSession(teamId, session.id);
     } catch {
-      setDeleteError('Could not delete the session. Please try again.');
+      setDeleteError(t.common.couldNotDeleteSession);
       return;
     }
     setConfirmingDelete(false);
-    notify('Session deleted.');
+    notify(s.shared.sessionDeleted);
     onSessionClosed();
   }
 
@@ -74,14 +77,14 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-slate">
-          Session started <span className="whitespace-nowrap tabular-nums">{session.date}</span>
+          {s.live.started} <span className="whitespace-nowrap tabular-nums">{session.date}</span>
         </p>
         <div className="flex shrink-0 items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => { setDeleteError(null); setConfirmingDelete(true); }}>
-            Delete session
+            {s.shared.deleteSession}
           </Button>
           <Button variant="dangerGhost" size="sm" onClick={() => { setCloseError(null); setConfirmingClose(true); }}>
-            Close session
+            {s.live.closeSession}
           </Button>
         </div>
       </div>
@@ -105,9 +108,9 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
 
       {confirmingDelete && (
         <ConfirmDialog
-          title="Delete this session?"
-          message={`This also removes the ${finishedCount} result${finishedCount === 1 ? '' : 's'} recorded in it from the players' cards. This can't be undone.`}
-          confirmLabel="Yes, delete"
+          title={s.shared.deleteTitle}
+          message={s.shared.deleteMessage(finishedCount)}
+          confirmLabel={s.shared.deleteConfirm}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setConfirmingDelete(false)}
           error={deleteError}
@@ -116,9 +119,9 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
 
       {confirmingClose && (
         <ConfirmDialog
-          title="Close this session?"
-          message="Entries already finished stay on each player's card. This can't be reopened."
-          confirmLabel="Yes, close"
+          title={s.live.closeTitle}
+          message={s.live.closeMessage}
+          confirmLabel={s.live.closeConfirm}
           onConfirm={() => void confirmClose()}
           onCancel={() => setConfirmingClose(false)}
           error={closeError}

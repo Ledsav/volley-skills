@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Input } from '../components/Input';
+import { useT } from '../i18n/I18nProvider';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { visibleTestTypes } from '../types/physicalTest';
 import type { Player } from '../types/player';
@@ -18,6 +19,7 @@ interface PlayerRosterPickerProps {
  * session look empty until the field was focused).
  */
 export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelect }: PlayerRosterPickerProps) {
+  const s = useT().physicalSessions.roster;
   const [search, setSearch] = useState('');
   const { growthTestsEnabled } = useClubFeatures();
   const visible = visibleTestTypes(growthTestsEnabled);
@@ -31,25 +33,25 @@ export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelec
   }
 
   if (players.length === 0) {
-    return <p className="text-sm text-slate">No players in this team yet. Add them in the Roster tab.</p>;
+    return <p className="text-sm text-slate">{s.empty}</p>;
   }
 
   const filtered = players.filter((p) => p.fullName.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="w-full sm:w-64 sm:shrink-0">
-      <label htmlFor="roster-search" className="sr-only">Search players</label>
+      <label htmlFor="roster-search" className="sr-only">{s.search}</label>
       <Input
         id="roster-search"
-        aria-label="Search players"
+        aria-label={s.search}
         autoComplete="off"
-        placeholder="Search players..."
+        placeholder={s.searchPlaceholder}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="mb-2 w-full"
       />
-      <ul aria-label="Players" className="max-h-80 divide-y divide-border overflow-y-auto rounded-md border border-border sm:max-h-[32rem]">
-        {filtered.length === 0 && <li className="px-3 py-2 text-sm text-slate">No players match.</li>}
+      <ul aria-label={s.playersAria} className="max-h-80 divide-y divide-border overflow-y-auto rounded-md border border-border sm:max-h-[32rem]">
+        {filtered.length === 0 && <li className="px-3 py-2 text-sm text-slate">{s.noMatch}</li>}
         {filtered.map((player) => {
           const count = completedCountByPlayer.get(player.id) ?? 0;
           const selected = selectedPlayerId === player.id;

@@ -52,6 +52,12 @@ export function formatNumber(n: number, digits: number, locale: Locale = getLoca
   return locale === 'it' ? s.replace('.', ',') : s;
 }
 
+/** A number as typed (no fixed digits) with the locale's decimal separator: 2.35 -> "2,35" in Italian. */
+export function formatDecimal(n: number, locale: Locale = getLocale()): string {
+  const s = String(n);
+  return locale === 'it' ? s.replace('.', ',') : s;
+}
+
 /** A 0..1 ratio as a whole percent, or an em dash when there is none. */
 export function formatPercent(x: number | null, locale: Locale = getLocale()): string {
   if (x === null) return '—';

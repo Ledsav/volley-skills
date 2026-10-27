@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useClubFeatures } from '../clubs/useClubFeatures';
-import { PHYSICAL_TEST_LABELS, visibleTestTypes } from '../types/physicalTest';
+import { visibleTestTypes } from '../types/physicalTest';
 import type { PhysicalTestType } from '../types/physicalTest';
 import { buildEntryId, type TestingSessionEntry } from '../types/testingSession';
 import { SessionQualityPanel } from './SessionQualityPanel';
+import { useT } from '../i18n/I18nProvider';
 
 interface QualityTileGridProps {
   teamId: string;
@@ -15,15 +16,9 @@ interface QualityTileGridProps {
   recordedByUid: string;
 }
 
-// Soft-hyphen break points for words too long for a half-width phone tile;
-// automatic hyphenation isn't available in every browser.
-const TILE_LABEL_OVERRIDES: Partial<Record<PhysicalTestType, string>> = {
-  cmj: 'Counter\u00ADmovement Jump',
-};
-
-function statusLabel(entry: TestingSessionEntry | undefined): string {
-  if (!entry) return 'Not started';
-  return entry.status === 'complete' ? 'Done' : 'In progress';
+function entryStatus(entry: TestingSessionEntry | undefined): 'notStarted' | 'inProgress' | 'done' {
+  if (!entry) return 'notStarted';
+  return entry.status === 'complete' ? 'done' : 'inProgress';
 }
 
 export function QualityTileGrid({
@@ -36,6 +31,8 @@ export function QualityTileGrid({
   recordedByUid,
 }: QualityTileGridProps) {
   const { growthTestsEnabled } = useClubFeatures();
+  const t = useT();
+  const s = t.physicalSessions.tiles;
   const [openType, setOpenType] = useState<PhysicalTestType | null>(null);
 
   return (
@@ -43,8 +40,8 @@ export function QualityTileGrid({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {visibleTestTypes(growthTestsEnabled).map((testType) => {
           const entry = entriesByPlayerAndType.get(buildEntryId(playerId, testType));
-          const status = statusLabel(entry);
-          const done = status === 'Done';
+          const status = entryStatus(entry);
+          const done = status === 'done';
           return (
             <button
               key={testType}
@@ -59,12 +56,13 @@ export function QualityTileGrid({
               }`}
             >
               <span className="w-full break-words text-sm font-medium text-ink hyphens-auto">
-                {TILE_LABEL_OVERRIDES[testType] ?? PHYSICAL_TEST_LABELS[testType]}
+                {/* Soft-hyphen break point for a word too long for a half-width phone tile; browsers don't all hyphenate. */}
+                {testType === 'cmj' ? s.cmjTile : t.labels.physicalTest[testType]}
               </span>
               <span
-                className={`text-xs ${done ? 'text-green-strong' : status === 'In progress' ? 'text-orange-strong' : 'text-slate'}`}
+                className={`text-xs ${done ? 'text-green-strong' : status === 'inProgress' ? 'text-orange-strong' : 'text-slate'}`}
               >
-                {status}
+                {s[status]}
               </span>
             </button>
           );

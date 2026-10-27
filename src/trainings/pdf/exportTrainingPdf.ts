@@ -1,3 +1,4 @@
+import { getT } from '../../i18n/I18nProvider';
 import { listDiagrams } from '../../diagrams/diagramsApi';
 import { getExercisesByIds } from '../../exercises/exercisesApi';
 import type { Diagram } from '../../types/diagram';
@@ -29,6 +30,7 @@ export async function generateTrainingPdf(training: Training, teamNotes?: TeamNo
   pdfMake.addVirtualFileSystem(vfsModule.default);
   pdfMake.setUrlAccessPolicy(() => false); // everything is inline: no remote fonts or images
   const definition = buildTrainingDocDefinition({
+    t: getT(),
     training,
     teamNotes,
     exercisesById,

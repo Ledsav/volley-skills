@@ -10,6 +10,8 @@ import type { Player } from '../types/player';
 import type { TeamNotes } from './pdf/buildTrainingPdf';
 import { HealthHint } from '../components/HealthHint';
 import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
+import { teamGender } from '../teams/teamGender';
 
 /** What the coach typed, kept by the caller so reopening the step doesn't lose it. */
 export interface TeamNotesDraft {
@@ -32,8 +34,12 @@ interface TeamNotesDialogProps {
  * to look at for each player. Names and levels go into the shared PDF.
  */
 export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel, onConfirm }: TeamNotesDialogProps) {
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const m = t.trainings.teamNotes;
   const [teamName, setTeamName] = useState('');
+  // No team doc (or one that predates the field) reads as mixed: the paired wording.
+  const [gender, setGender] = useState<Gender>('mixed');
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [general, setGeneral] = useState(draft?.general ?? initialGeneral);
@@ -54,13 +60,15 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
       const team = await getTeam(teamId);
       if (cancelled) return;
       setTeamName(team?.name ?? '');
+      setGender(team ? teamGender(team) : 'mixed');
       setPlayers(sortRoster(all.filter((p) => !p.leftClubAt), 'lineup'));
     })().catch(() => {
-      if (!cancelled) setError('Could not load the team. Please try again.');
+      if (!cancelled) setError(m.loadError);
     });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
   function toggle(id: string) {
@@ -77,11 +85,12 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
     onConfirm(
       {
         teamName,
+        gender,
         date,
         general,
         players: expected.map((p) => ({
           name: p.fullName,
-          position: p.positionCategory === 'TBD' ? '' : lb.position[p.positionCategory]('mixed'),
+          position: p.positionCategory === 'TBD' ? '' : lb.position[p.positionCategory](gender),
           level: p.level,
           note: (notes[p.id] ?? '').trim(),
         })),
@@ -94,29 +103,29 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
 
   return (
     <Dialog
-      title={teamName ? `Team notes · ${teamName}` : 'Team notes'}
+      title={m.title(teamName)}
       size="lg"
       mobileSheet
       onClose={onCancel}
       footer={
         <>
           <Button variant="ghost" onClick={onCancel} className="hidden sm:inline-flex">
-            Cancel
+            {m.cancel}
           </Button>
           <Button variant="primary" onClick={confirm} disabled={!players} className="flex-1 sm:flex-none">
-            Create PDF
+            {m.createPdf}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
         <p className="text-sm text-slate">
-          These notes go into the shared PDF, with each expected player's name and level.
+          {m.intro(gender)}
         </p>
 
         <div>
           <label htmlFor="team-notes-general" className="mb-1 block text-sm font-medium text-ink">
-            General notes
+            {m.generalNotes}
           </label>
           <Textarea id="team-notes-general" aria-describedby="team-notes-general-hint" value={general} onChange={(e) => setGeneral(e.target.value)} rows={2} />
           <HealthHint id="team-notes-general-hint" />
@@ -127,14 +136,14 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
             {error}
           </p>
         )}
-        {!players && !error && <p className="text-sm text-slate">Loading the team…</p>}
+        {!players && !error && <p className="text-sm text-slate">{m.loadingTeam}</p>}
 
         {players && (
           <div>
             <p className="mb-2 text-sm font-medium text-ink">
-              Expected players <span className="tabular-nums text-slate">({expectedCount} of {players.length})</span>
+              {m.expectedPlayers(gender)} <span className="tabular-nums text-slate">({expectedCount} of {players.length})</span>
             </p>
-            <ul aria-label="Expected players" className="divide-y divide-border rounded-md border border-border">
+            <ul aria-label={m.expectedPlayers(gender)} className="divide-y divide-border rounded-md border border-border">
               {players.map((p) => {
                 const expected = !absent.has(p.id);
                 return (
@@ -148,15 +157,15 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
                       />
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{p.fullName}</span>
                       {p.positionCategory !== 'TBD' && (
-                        <span className="text-xs text-slate">{lb.position[p.positionCategory]('mixed')}</span>
+                        <span className="text-xs text-slate">{lb.position[p.positionCategory](gender)}</span>
                       )}
-                      <LevelPill level={p.level} />
+                      <LevelPill level={p.level} gender={gender} />
                     </label>
                     {expected && (
                       <Textarea
-                        aria-label={`What to look at for ${p.fullName}`}
+                        aria-label={m.playerNoteLabel(p.fullName)}
                         aria-describedby="team-notes-player-hint"
-                        placeholder="What to look at"
+                        placeholder={m.playerNotePlaceholder}
                         value={notes[p.id] ?? ''}
                         onChange={(e) => setNotes((current) => ({ ...current, [p.id]: e.target.value }))}
                         rows={1}

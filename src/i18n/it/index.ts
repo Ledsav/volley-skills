@@ -22,5 +22,6 @@ import { signup } from './signup';
 import { skillGuide } from './skillGuide';
 import { teams } from './teams';
 import { theme } from './theme';
+import { trainings } from './trainings';
 
-export const it = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme } satisfies Catalog;
+export const it = { admin, auth, bulkImport, calendar, clubs, common, components, diagrams, exercises, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme, trainings } satisfies Catalog;

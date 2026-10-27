@@ -26,9 +26,11 @@ interface TrainingViewSheetProps {
  * whole session from the first exercise. Editing is one tap away via "Edit".
  */
 export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: TrainingViewSheetProps) {
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const v = t.trainings.view;
   const [entries, setEntries] = useState<ExerciseDetailEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
   // Two taps: browsers only open the share sheet straight after a tap, and building takes too long for that.
   const [pdf, setPdf] = useState<File | 'building' | null>(null);
@@ -46,13 +48,13 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
       setPdf(await generateTrainingPdf(training, teamNotes));
     } catch {
       setPdf(null);
-      setPdfError('Could not create the PDF. Please try again.');
+      setPdfError(v.pdfError);
     }
   }
 
   async function sharePdf(file: File) {
     const result = await shareOrDownload([file], training.name);
-    if (result === 'downloaded') notify('PDF downloaded');
+    if (result === 'downloaded') notify(v.pdfDownloaded);
   }
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
         );
       })
       .catch(() => {
-        if (!cancelled) setError('Could not load the exercises for this training. Please try again.');
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
@@ -102,7 +104,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
           {pdf instanceof File ? (
             <Button variant="secondary" onClick={() => void sharePdf(pdf)} className="flex-1 gap-1.5 sm:mr-auto sm:flex-none">
               <Share2 className="h-4 w-4" aria-hidden="true" />
-              Share PDF ready
+              {v.sharePdfReady}
             </Button>
           ) : (
             <Button
@@ -112,12 +114,12 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
               className="flex-1 gap-1.5 sm:mr-auto sm:flex-none"
             >
               <FileDown className="h-4 w-4" aria-hidden="true" />
-              {pdf === 'building' ? 'Preparing PDF…' : 'Share PDF'}
+              {pdf === 'building' ? v.preparingPdf : v.sharePdf}
             </Button>
           )}
           <Button variant="secondary" onClick={onEdit} className="flex-1 gap-1.5 sm:flex-none">
             <Pencil className="h-4 w-4" aria-hidden="true" />
-            Edit
+            {v.edit}
           </Button>
           <Button
             variant="primary"
@@ -126,7 +128,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
             className="flex-1 gap-1.5 sm:flex-none"
           >
             <Play className="h-4 w-4" aria-hidden="true" />
-            Start
+            {v.start}
           </Button>
         </>
       }
@@ -140,21 +142,21 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
           )}
           <span className="inline-flex items-center gap-1 tabular-nums text-slate">
             <Clock className="h-4 w-4" aria-hidden="true" />
-            {exerciseCount} exercise{exerciseCount === 1 ? '' : 's'} · {totalMinutes} min
+            {v.summary(exerciseCount, totalMinutes)}
           </span>
           {training.suggestedPlayers !== undefined && (
             <span className="inline-flex items-center gap-1 tabular-nums text-slate">
               <Users className="h-4 w-4" aria-hidden="true" />
-              {training.suggestedPlayers} players
+              {v.players(training.suggestedPlayers)}
             </span>
           )}
         </div>
 
         {training.targets && training.targets.length > 0 && (
-          <ul aria-label="Targets" className="-mt-2 flex flex-wrap gap-1.5">
-            {training.targets.map((t) => (
-              <li key={t} className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-ink">
-                {lb.exerciseCategory[t]}
+          <ul aria-label={v.targets} className="-mt-2 flex flex-wrap gap-1.5">
+            {training.targets.map((target) => (
+              <li key={target} className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-ink">
+                {lb.exerciseCategory[target]}
               </li>
             ))}
           </ul>
@@ -164,9 +166,9 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
           <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{training.description}</p>
         )}
 
-        {error && (
+        {loadFailed && (
           <p role="alert" className="text-sm text-red">
-            {error}
+            {v.loadError}
           </p>
         )}
 
@@ -182,20 +184,20 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
             onClick={() => setAskingNotes(true)}
             className="self-start rounded-sm text-sm font-medium text-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
-            Edit team notes
+            {v.editTeamNotes}
           </button>
         )}
 
         {/* The share button is disabled while building, so focus can't carry the news: announce it. */}
         <p data-testid="pdf-status" aria-live="polite" className="sr-only">
-          {pdf === 'building' ? 'Preparing the PDF…' : pdf instanceof File ? 'PDF ready. Tap Share PDF ready to send it.' : ''}
+          {pdf === 'building' ? v.pdfStatusBuilding : pdf instanceof File ? v.pdfStatusReady : ''}
         </p>
 
-        {!entries && !error && <p className="text-sm text-slate">Loading exercises…</p>}
+        {!entries && !loadFailed && <p className="text-sm text-slate">{v.loadingExercises}</p>}
 
         {entries && (
-          <ol aria-label="Training plan" className="divide-y divide-border rounded-md border border-border">
-            {entries.length === 0 && <li className="p-3 text-sm text-slate">No exercises in this training.</li>}
+          <ol aria-label={v.plan} className="divide-y divide-border rounded-md border border-border">
+            {entries.length === 0 && <li className="p-3 text-sm text-slate">{v.noExercises}</li>}
             {entries.map((entry, i) => {
               const start = entries.slice(0, i).reduce((sum, e) => sum + (e.durationMinutes ?? 0), 0);
               const end = start + (entry.durationMinutes ?? 0);
@@ -204,7 +206,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
                   <button
                     type="button"
                     onClick={() => setViewing(i)}
-                    aria-label={`View exercise ${i + 1}: ${entry.name ?? 'deleted exercise'}`}
+                    aria-label={v.viewExercise(i + 1, entry.name)}
                     className="flex w-full items-center gap-3 p-3 text-left hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue"
                   >
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold tabular-nums text-white">
@@ -222,13 +224,13 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
                         {entry.name ?? (
                           <span className="inline-flex items-center gap-1">
                             <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                            Deleted exercise
+                            {v.deletedExercise}
                           </span>
                         )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
                         {entry.category ? `${lb.exerciseCategory[entry.category]} · ` : ''}
-                        {entry.durationMinutes} min · min {start}–{end}
+                        {v.exerciseTiming(entry.durationMinutes ?? 0, start, end)}
                       </span>
                     </span>
                     <ChevronRight className="h-5 w-5 shrink-0 text-slate" aria-hidden="true" />

@@ -52,6 +52,7 @@ describe('TeamNotesDialog', () => {
     await waitFor(() => expect(onConfirm).toHaveBeenCalled());
     expect(onConfirm.mock.calls[0][0]).toEqual({
       teamName: 'U17',
+      gender: 'mixed',
       date: '2026-10-24',
       general: 'Session note',
       players: [{ name: 'Ilaria Lanzoni', position: 'Outside', level: 'Advanced', note: 'Lead the line.' }],

@@ -53,7 +53,7 @@ describe('validateTrainingRows', () => {
   });
 
   it('reports a missing name', () => {
-    expect(validateTrainingRows([{ exercises: [] }], map).errors).toEqual(['row 1: "name" is required']);
+    expect(validateTrainingRows([{ exercises: [] }], map).errors).toEqual([{ code: 'nameRequired', row: 1 }]);
   });
 
   it('reports a bad durationMinutes', () => {
@@ -61,7 +61,7 @@ describe('validateTrainingRows', () => {
       [{ name: 'X', exercises: [{ name: 'Butterfly', durationMinutes: 0 }] }],
       map
     );
-    expect(result.errors).toEqual(['row 1: exercise 1 "durationMinutes" must be a number greater than 0']);
+    expect(result.errors).toEqual([{ code: 'exerciseDuration', row: 1, exercise: 1 }]);
   });
 
   it('reports an unknown exercise name', () => {
@@ -69,7 +69,7 @@ describe('validateTrainingRows', () => {
       [{ name: 'X', exercises: [{ name: 'Ghost', durationMinutes: 5 }] }],
       map
     );
-    expect(result.errors).toEqual(['row 1: exercise "Ghost" was not found in the library']);
+    expect(result.errors).toEqual([{ code: 'exerciseNotFound', row: 1, name: 'Ghost' }]);
   });
 
   it('reports an ambiguous exercise name', () => {
@@ -77,15 +77,13 @@ describe('validateTrainingRows', () => {
       [{ name: 'X', exercises: [{ name: 'Dig', durationMinutes: 5 }] }],
       map
     );
-    expect(result.errors).toEqual([
-      'row 1: exercise "Dig" is ambiguous — 2 exercises share that name; rename or remove duplicates',
-    ]);
+    expect(result.errors).toEqual([{ code: 'exerciseAmbiguous', row: 1, name: 'Dig', count: 2 }]);
   });
 
   it('rejects a row that lists more than 50 exercises', () => {
     const exercises = Array.from({ length: 51 }, () => ({ name: 'Butterfly', durationMinutes: 10 }));
     const result = validateTrainingRows([{ name: 'Too big', exercises }], map);
-    expect(result.errors).toEqual(['row 1: a training can list at most 50 exercises']);
+    expect(result.errors).toEqual([{ code: 'tooManyExercises', row: 1, max: 50 }]);
     expect(result.inputs).toEqual([]);
   });
 
@@ -96,7 +94,7 @@ describe('validateTrainingRows', () => {
     expect(result.inputs[0].exercises).toHaveLength(50);
   });
   describe('suggestedPlayers and targets', () => {
-    const KEYS = 'warmup, physical, service, setting, defense, reception, attack, compound, game';
+    const KEYS = ['warmup', 'physical', 'service', 'setting', 'defense', 'reception', 'attack', 'compound', 'game'];
 
     it('keeps suggestedPlayers and de-duplicated targets', () => {
       const result = validateTrainingRows(
@@ -117,12 +115,12 @@ describe('validateTrainingRows', () => {
 
     it.each([0, 61, 3.5, '12'])('rejects suggestedPlayers %s', (suggestedPlayers) => {
       const result = validateTrainingRows([{ name: 'C', suggestedPlayers }], map);
-      expect(result.errors).toEqual(['row 1: "suggestedPlayers" must be a whole number from 1 to 60']);
+      expect(result.errors).toEqual([{ code: 'suggestedPlayersRange', row: 1, min: 1, max: 60 }]);
     });
 
     it.each([['nonsense'], 'service', [3]])('rejects targets %j', (targets) => {
       const result = validateTrainingRows([{ name: 'C', targets }], map);
-      expect(result.errors).toEqual([`row 1: "targets" must be a list of: ${KEYS}`]);
+      expect(result.errors).toEqual([{ code: 'targetsInvalid', row: 1, options: KEYS }]);
     });
   });
 });

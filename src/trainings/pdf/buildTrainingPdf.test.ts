@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Diagram } from '../../types/diagram';
 import type { Exercise } from '../../types/exercise';
 import type { Training } from '../../types/training';
-import { buildLineup, buildTrainingDocDefinition, exercisePages, trainingPdfFileName } from './buildTrainingPdf';
+import { en } from '../../i18n/en';
+import { it as itCatalog } from '../../i18n/it';
+import { buildLineup, buildTrainingDocDefinition as buildWith, exercisePages, trainingPdfFileName } from './buildTrainingPdf';
+
+/** The builder is pure: the catalog comes in as a parameter, so these tests hand it the English one. */
+const buildTrainingDocDefinition = (input: Omit<Parameters<typeof buildWith>[0], 't'>) => buildWith({ t: en, ...input });
 
 const ex = (id: string, name: string, extra: Partial<Exercise> = {}): Exercise => ({
   id,
@@ -146,6 +151,7 @@ describe('team notes', () => {
   const svgFor = () => '<svg width="100" height="100"></svg>';
   const notes = {
     teamName: 'U17',
+    gender: 'mixed' as const,
     date: '2026-10-24',
     general: 'Focus on calling the free ball.',
     players: [
@@ -205,5 +211,54 @@ describe('characters the PDF font lacks', () => {
 describe('trainingPdfFileName', () => {
   it('uses the business id and a slug of the name', () => {
     expect(trainingPdfFileName(training())).toBe('TR-0007-Serve-receive.pdf');
+  });
+});
+
+describe('in Italian', () => {
+  const svgFor = () => '<svg width="100" height="100"></svg>';
+  const teamNotes = (gender: 'women' | 'men' | 'mixed') => ({
+    teamName: 'U17',
+    gender,
+    general: '',
+    players: [
+      { name: 'Ilaria Lanzoni', position: 'Schiacciatrice', level: 'Advanced' as const, note: '' },
+      { name: 'Olivia SANCHEZ', position: '', level: null, note: '' },
+    ],
+  });
+  const build = (gender: 'women' | 'men' | 'mixed' = 'women') =>
+    JSON.stringify(
+      buildWith({
+        t: itCatalog,
+        training: training({ exercises: [], exerciseIds: [], suggestedPlayers: 12 }),
+        exercisesById,
+        diagramsById: new Map(),
+        svgFor,
+        teamNotes: teamNotes(gender),
+      }),
+    );
+
+  it('prints the PDF text in Italian, never the English words', () => {
+    const json = build();
+    expect(json).toContain('Piano della sessione');
+    expect(json).toContain('Nessun esercizio in questo allenamento.');
+    expect(json).toContain('Note squadra');
+    expect(json).toContain('12 giocatori consigliati');
+    expect(json).toContain('2 giocatrici attese');
+    expect(json).not.toContain('Session plan');
+    expect(json).not.toContain('Team notes');
+  });
+
+  it('labels the level with the team gender, never the raw stored value', () => {
+    expect(build('women')).toContain('Avanzata');
+    expect(build('men')).toContain('Avanzato"');
+    expect(build('mixed')).toContain('Avanzato/a');
+    for (const g of ['women', 'men', 'mixed'] as const) expect(build(g)).not.toContain('Advanced');
+    expect(build()).toContain('Senza livello');
+  });
+
+  it('footer is Italian too', () => {
+    const def = buildWith({ t: itCatalog, training: training(), exercisesById, diagramsById: new Map(), svgFor });
+    const footer = def.footer as (page: number, count: number) => unknown;
+    expect(JSON.stringify(footer(2, 3))).toContain('Pagina 2 di 3');
   });
 });

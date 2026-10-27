@@ -44,7 +44,9 @@ interface TrainingBuilderDialogProps {
 }
 
 export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: TrainingBuilderDialogProps) {
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const m = t.trainings.builder;
   const { firebaseUser } = useAuth();
   const [name, setName] = useState(training?.name ?? initial?.name ?? '');
   const [description, setDescription] = useState(training?.description ?? initial?.description ?? '');
@@ -87,7 +89,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             }))
         );
       })
-      .catch(() => setError('Could not load the exercises for this training. Please reopen the dialog.'));
+      .catch(() => setError(m.loadExercisesError));
     // `initial` is a one-shot prefill; re-running on its identity would wipe the coach's edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [training]);
@@ -100,9 +102,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
       setPickerHasMore(page.exercises.length > 0 && page.lastDoc !== null);
     } catch {
       setError(
-        afterDoc
-          ? 'Could not load more exercises. Please try again.'
-          : 'Could not load exercises to pick from. Please try again.'
+        afterDoc ? m.loadMoreExercisesError : m.loadPickerError
       );
     }
   }
@@ -116,7 +116,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
       setSuggestedLastDoc(page.lastDoc);
       setSuggestedHasMore(page.hasMore);
     } catch {
-      if (request === suggestRequest.current) setError('Could not load suggested exercises. Please try again.');
+      if (request === suggestRequest.current) setError(m.loadSuggestedError);
     }
   }
 
@@ -164,7 +164,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   function toggleTarget(key: ExerciseCategory) {
     setTargets((current) =>
       current.includes(key)
-        ? current.filter((t) => t !== key)
+        ? current.filter((target) => target !== key)
         : EXERCISE_CATEGORIES.map((c) => c.key).filter((k) => k === key || current.includes(k))
     );
   }
@@ -202,13 +202,13 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) {
-      setError('Name is required.');
+      setError(m.nameRequired);
       return;
     }
     const { min, max } = PLAYER_LIMITS.suggestedPlayers;
     const suggestedPlayers = parseOptionalInt(suggestedPlayersText, min, max);
     if (!suggestedPlayers.ok) {
-      setError(`Suggested players must be a whole number from ${min} to ${max}.`);
+      setError(m.suggestedPlayersRange(min, max));
       return;
     }
     setError(null);
@@ -244,7 +244,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
       if (!done) return;
       onSaved();
     } catch (e) {
-      setError(e instanceof OfflineError ? "You're offline. A new training gets its number from the server, so creating one needs a connection." : 'Could not save the training. Please try again.');
+      setError(e instanceof OfflineError ? m.offline : m.saveError);
     }
   }
 
@@ -257,7 +257,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           <button
             type="button"
             aria-expanded={expanded}
-            aria-label={expanded ? `Collapse ${ex.name}` : `Expand ${ex.name}`}
+            aria-label={expanded ? m.collapse(ex.name) : m.expand(ex.name)}
             onClick={() => setExpandedId(expanded ? null : expandKey)}
             className="mt-0.5 shrink-0 rounded-sm text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
@@ -283,10 +283,10 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             variant="secondary"
             size="sm"
             onClick={() => addExercise(ex)}
-            aria-label={`Add ${ex.name}`}
+            aria-label={m.addNamed(ex.name)}
             className="shrink-0"
           >
-            Add
+            {m.add}
           </Button>
         </div>
         {expanded && (
@@ -295,7 +295,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               exerciseId={ex.id}
               className="aspect-square w-24 shrink-0 overflow-hidden rounded-sm border border-border"
             />
-            <p className="text-xs text-slate">{ex.description || 'No description.'}</p>
+            <p className="text-xs text-slate">{ex.description || m.noDescription}</p>
           </div>
         )}
       </li>
@@ -305,27 +305,27 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   return (
     <Dialog
       guardUnsaved
-      title={training ? `${training.businessId} · ${training.name}` : 'New training'}
+      title={training ? `${training.businessId} · ${training.name}` : m.newTitle}
       size="lg"
       mobileSheet
       onClose={onClose}
       footer={
         <>
           <span className="mr-auto text-sm tabular-nums text-slate">
-            {rows.length} exercise{rows.length === 1 ? '' : 's'} · {totalMinutes} min
+            {m.summary(rows.length, totalMinutes)}
           </span>
           <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-            Cancel
+            {m.cancel}
           </Button>
           <Button variant="primary" type="submit" form={FORM_ID} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? m.saving : m.save}
           </Button>
         </>
       }
     >
-      <form id={FORM_ID} onSubmit={handleSubmit} aria-label={training ? 'Edit training' : 'New training'}>
+      <form id={FORM_ID} onSubmit={handleSubmit} aria-label={training ? m.editLabel : m.newTitle}>
         <label htmlFor="training-name" className="mb-1 block text-sm font-medium text-ink">
-          Name
+          {m.name}
         </label>
         <Input
           id="training-name"
@@ -339,12 +339,12 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         </p>
 
         <label htmlFor="training-age" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Age group target
+          {m.ageGroupTarget}
         </label>
         <Input id="training-age" value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
 
         <label htmlFor="training-suggested-players" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Suggested players
+          {m.suggestedPlayers}
         </label>
         <Input
           id="training-suggested-players"
@@ -358,13 +358,13 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           className="w-24"
         />
         <p id="training-suggested-players-hint" className="mt-1 text-xs text-slate">
-          Roughly how many players this session is designed for. Optional.
+          {m.suggestedPlayersHint}
         </p>
 
         <span id="training-targets-label" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Targets
+          {m.targets}
         </span>
-        <div role="group" aria-label="Training targets" className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label={m.targetsGroup} className="flex flex-wrap gap-1.5">
           {EXERCISE_CATEGORIES.map((c) => {
             const active = targets.includes(c.key);
             const isCovered = covered.has(c.key);
@@ -373,7 +373,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                 key={c.key}
                 type="button"
                 aria-pressed={active}
-                aria-label={isCovered ? `${lb.exerciseCategory[c.key]} (covered)` : lb.exerciseCategory[c.key]}
+                aria-label={isCovered ? m.covered(lb.exerciseCategory[c.key]) : lb.exerciseCategory[c.key]}
                 onClick={() => toggleTarget(c.key)}
                 className={`${chipClass(active)} inline-flex items-center gap-1`}
               >
@@ -385,7 +385,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         </div>
 
         <label htmlFor="training-description" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Description
+          {m.description}
         </label>
         <Textarea
           id="training-description"
@@ -396,11 +396,11 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
 
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-ink">Exercises</span>
+            <span className="text-sm font-medium text-ink">{m.exercises}</span>
           </div>
 
-          <ul aria-label="Training exercises" className="divide-y divide-border rounded-md border border-border">
-            {rows.length === 0 && <li className="p-3 text-sm text-slate">No exercises added yet.</li>}
+          <ul aria-label={m.exercisesList} className="divide-y divide-border rounded-md border border-border">
+            {rows.length === 0 && <li className="p-3 text-sm text-slate">{m.noExercises}</li>}
             {rows.map((row, i) => {
               const startMinute = rows.slice(0, i).reduce((sum, r) => sum + (r.durationMinutes || 0), 0);
               return (
@@ -410,7 +410,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                   <button
                     type="button"
                     onClick={() => setViewing(i)}
-                    aria-label={`View exercise ${i + 1}: ${row.name ?? 'deleted exercise'}`}
+                    aria-label={m.viewExercise(i + 1, row.name)}
                     className="flex w-full items-center gap-3 rounded-md p-1 text-left hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
                   >
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold tabular-nums text-white">
@@ -426,13 +426,12 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                         {row.name ?? (
                           <span className="inline-flex items-center gap-1">
                             <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                            Deleted exercise
+                            {m.deletedExercise}
                           </span>
                         )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
-                        {row.category ? `${lb.exerciseCategory[row.category]} · ` : ''}min {startMinute}–
-                        {startMinute + (row.durationMinutes || 0)}
+                        {row.category ? `${lb.exerciseCategory[row.category]} · ` : ''}{m.exerciseTiming(startMinute, startMinute + (row.durationMinutes || 0))}
                       </span>
                       {needsMorePlayers(row.minPlayers, suggestedPlayersValue) && (
                         <span className="mt-0.5 block">
@@ -448,16 +447,16 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                         type="number"
                         inputMode="numeric"
                         min={0}
-                        aria-label={`Duration for exercise ${i + 1} (min)`}
+                        aria-label={m.durationLabel(i + 1)}
                         value={row.durationMinutes}
                         onChange={(e) => setDuration(i, Number(e.target.value))}
                         className="min-h-11 w-16 rounded-md border border-border bg-surface px-2 py-1 text-right text-base tabular-nums text-ink sm:min-h-0 sm:text-sm"
                       />
-                      min
+                      {m.min}
                     </label>
                     <button
                       type="button"
-                      aria-label={`Move exercise ${i + 1} up`}
+                      aria-label={m.moveUp(i + 1)}
                       onClick={() => move(i, -1)}
                       disabled={i === 0}
                       className={rowIconBtn}
@@ -466,7 +465,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                     </button>
                     <button
                       type="button"
-                      aria-label={`Move exercise ${i + 1} down`}
+                      aria-label={m.moveDown(i + 1)}
                       onClick={() => move(i, 1)}
                       disabled={i === rows.length - 1}
                       className={rowIconBtn}
@@ -475,7 +474,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                     </button>
                     <button
                       type="button"
-                      aria-label={`Remove exercise ${i + 1}`}
+                      aria-label={m.remove(i + 1)}
                       onClick={() => removeRow(i)}
                       className={`${rowIconBtn} text-red hover:text-red-strong`}
                     >
@@ -490,23 +489,23 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           {pickerOpen ? (
             <div className="mt-2 rounded-md border border-border p-2">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate">Pick an exercise</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate">{m.pickExercise}</p>
                 <button
                   type="button"
                   onClick={() => setPickerOpen(false)}
                   className="rounded-sm text-xs font-medium text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
                 >
-                  Done
+                  {m.done}
                 </button>
               </div>
 
               <div
                 className="-mx-2 mb-2 flex gap-1.5 overflow-x-auto px-2 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
                 role="group"
-                aria-label="Filter exercises by category"
+                aria-label={m.filterByCategory}
               >
                 <button type="button" aria-pressed={pickerCategory === ''} onClick={() => selectCategory('')} className={chipClass(pickerCategory === '')}>
-                  All
+                  {m.all}
                 </button>
                 {EXERCISE_CATEGORIES.map((c) => (
                   <button
@@ -524,11 +523,11 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               {showSuggested && (
                 <>
                   <p id="picker-suggested" className="mb-1 text-xs font-medium text-ink">
-                    Suggested for your targets
+                    {m.suggestedForTargets}
                   </p>
                   <ul aria-labelledby="picker-suggested" className="mb-2 divide-y divide-border">
                     {suggested.length === 0 && (
-                      <li className="py-2 text-sm text-slate">No exercises match these targets yet.</li>
+                      <li className="py-2 text-sm text-slate">{m.noneForTargets}</li>
                     )}
                     {sortByFit(suggested, suggestedPlayersValue).map((ex) => renderPickerItem(ex, 'suggested'))}
                   </ul>
@@ -539,15 +538,15 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                       onClick={() => void loadSuggested(targets, suggestedLastDoc)}
                       className="mb-2"
                     >
-                      Load more suggestions
+                      {m.loadMoreSuggestions}
                     </Button>
                   )}
-                  <p className="mb-1 mt-2 text-xs font-medium text-ink">All exercises</p>
+                  <p className="mb-1 mt-2 text-xs font-medium text-ink">{m.allExercises}</p>
                 </>
               )}
               <ul className="divide-y divide-border">
                 {picker.length === 0 && (
-                  <li className="py-2 text-sm text-slate">No exercises in this category.</li>
+                  <li className="py-2 text-sm text-slate">{m.noneInCategory}</li>
                 )}
                 {sortByFit(picker, suggestedPlayersValue).map((ex) => renderPickerItem(ex, 'all'))}
               </ul>
@@ -558,13 +557,13 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                   onClick={() => void loadPicker(pickerCategory, pickerLastDoc)}
                   className="mt-2"
                 >
-                  Load more
+                  {m.loadMore}
                 </Button>
               )}
             </div>
           ) : (
             <Button variant="secondary" size="sm" onClick={openPicker} className="mt-2">
-              Add exercise
+              {m.addExercise}
             </Button>
           )}
         </div>

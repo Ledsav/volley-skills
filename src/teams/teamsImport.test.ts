@@ -25,13 +25,16 @@ describe('validateTeamRows', () => {
 
   it('trims the name and reports it when missing', () => {
     const result = validateTeamRows([{ name: '  ', gender: 'men' }, { gender: 'men' }]);
-    expect(result.errors).toEqual(['row 1: "name" is required', 'row 2: "name" is required']);
+    expect(result.errors).toEqual([
+      { code: 'nameRequired', row: 1 },
+      { code: 'nameRequired', row: 2 },
+    ]);
     expect(result.inputs).toEqual([]);
   });
 
   it('reports a wrong-typed optional field', () => {
     const result = validateTeamRows([{ name: 'X', season: 2026, gender: 'men' }]);
-    expect(result.errors).toEqual(['row 1: "season" must be text']);
+    expect(result.errors).toEqual([{ code: 'mustBeText', row: 1, field: 'season' }]);
   });
 
   it('stores a gender of men as men, ignoring case and spaces', () => {
@@ -43,15 +46,15 @@ describe('validateTeamRows', () => {
   it('reports a missing or unknown gender, naming the row', () => {
     const result = validateTeamRows([{ name: 'A' }, { name: 'B', gender: 'female' }, { name: 'C', gender: 3 }]);
     expect(result.errors).toEqual([
-      'row 1: "gender" is required (women, men or mixed)',
-      'row 2: "gender" must be women, men or mixed',
-      'row 3: "gender" must be women, men or mixed',
+      { code: 'genderRequired', row: 1 },
+      { code: 'genderInvalid', row: 2 },
+      { code: 'genderInvalid', row: 3 },
     ]);
     expect(result.inputs).toEqual([]);
   });
 
   it('reports a non-object row', () => {
     const result = validateTeamRows(['x']);
-    expect(result.errors).toEqual(['row 1: each entry must be a JSON object']);
+    expect(result.errors).toEqual([{ code: 'notObject', row: 1 }]);
   });
 });

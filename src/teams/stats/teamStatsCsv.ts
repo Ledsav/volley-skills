@@ -1,3 +1,4 @@
+import { getT } from '../../i18n/I18nProvider';
 import { fileSlug } from '../../export/exportJson';
 import { csvDocument, type Cell, type CsvFormat } from '../../matches/report/reportCsv';
 import type { Match } from '../../types/match';
@@ -7,7 +8,9 @@ import type { TeamPlayerRow } from './teamSeason';
 const RATED: SkillKey[] = ['serve', 'reception', 'attack', 'block', 'set', 'defence'];
 
 export function teamStatsCsv(rows: TeamPlayerRow[], format: CsvFormat = 'en'): string {
-  const header: Cell[] = ['Number', 'Name', 'Matches', 'Points', 'Errors', 'MVP avg', 'Attack eff', 'Serve eff', 'Reception +', ...RATED.map((k) => `Rating ${k}`)];
+  const t = getT();
+  const h = t.teams.stats.csv;
+  const header: Cell[] = [h.number, h.name, h.matches, h.points, h.errors, h.mvpAvg, h.attackEff, h.serveEff, h.receptionPos, ...RATED.map((k) => h.rating(t.labels.playerSkill[k].toLowerCase()))];
   const body: Cell[][] = rows.map((r) => [
     r.number, r.name, r.matchesPlayed, r.points, r.errors, r.mvpAvg, r.attackEff, r.serveEff, r.receptionPos,
     ...RATED.map((k) => r.ratings[k]?.rating ?? null),

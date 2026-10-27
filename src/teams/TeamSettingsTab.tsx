@@ -43,7 +43,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
     try {
       await updateTeamInfo(team.id, updates);
     } catch {
-      setInfoError('Could not save team info. Please try again.');
+      setInfoError(t.teams.settings.infoError);
       setSavingInfo(false);
       return;
     }
@@ -58,7 +58,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
       const data = await loadTeamExportData(team.id, { includeEvents, includeCalendar: !!access?.sections.trainings });
       downloadTeamExport(data);
     } catch {
-      setExportError("Could not export this team's data. Please try again.");
+      setExportError(t.teams.settings.exportError);
     }
     setExporting(false);
   }
@@ -68,7 +68,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
     try {
       await deleteTeam(team.id);
     } catch {
-      setDeleteError('Could not delete the team. Please try again.');
+      setDeleteError(t.teams.settings.deleteError);
       return;
     }
     navigate('/', { replace: true });
@@ -78,10 +78,10 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
     <div>
       <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
         <form onSubmit={handleSaveInfo} className="p-4">
-          <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">Team info</h2>
+          <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">{t.teams.settings.infoTitle}</h2>
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-              Team name
+              {t.teams.settings.teamName}
               <Input value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-ink">
@@ -103,32 +103,30 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-              Description
+              {t.teams.settings.description}
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </label>
             <div className="flex flex-col gap-1 text-sm font-medium text-ink">
-              <label htmlFor="team-info-notes">Notes</label>
+              <label htmlFor="team-info-notes">{t.teams.settings.notes}</label>
               <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
               <HealthHint id="team-info-notes-hint" />
             </div>
           </div>
           {infoError && <p role="alert" className="mt-3 text-sm text-red">{infoError}</p>}
           <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo || gender === ''}>
-            Save team info
+            {t.teams.settings.saveInfo}
           </Button>
         </form>
 
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Export team data</h2>
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{t.teams.settings.exportTitle}</h2>
             <p className="mt-1 text-sm text-slate">
-              One JSON file with the team, every player&apos;s record and physical tests, testing sessions, matches and
-              their reports{access?.sections.trainings ? ', and the calendar' : ''}. It holds minors&apos; personal
-              data: store it securely.
+              {t.teams.settings.exportBody(!!access?.sections.trainings)}
             </p>
             <label className="mt-2 flex items-center gap-2 text-sm text-ink">
               <input type="checkbox" checked={includeEvents} onChange={(e) => setIncludeEvents(e.target.checked)} />
-              Include raw scouting events (one read per event, slower)
+              {t.teams.settings.includeEvents}
             </label>
             {exportError && <p role="alert" className="mt-2 text-sm text-red">{exportError}</p>}
           </div>
@@ -139,16 +137,16 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
             onClick={() => void handleExport()}
             disabled={exporting}
           >
-            {exporting ? 'Exporting…' : 'Export team (JSON)'}
+            {exporting ? t.teams.settings.exporting : t.teams.settings.exportButton}
           </Button>
         </div>
 
         {access?.isClubAdmin && (
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">Danger zone</h2>
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{t.teams.settings.dangerTitle}</h2>
               <p className="mt-1 text-sm text-slate">
-                Deleting a team also removes its roster and every player's records.
+                {t.teams.settings.dangerBody}
               </p>
             </div>
             <Button
@@ -157,7 +155,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               className="w-full shrink-0 sm:w-auto"
               onClick={() => setShowDeleteConfirm(true)}
             >
-              Delete team
+              {t.teams.settings.deleteButton}
             </Button>
           </div>
         )}
@@ -165,9 +163,9 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          title={`Delete ${team.name}?`}
-          message="This will permanently delete the team, its roster, and every player's records, including their physical test history. This cannot be undone."
-          confirmLabel="Yes, delete team"
+          title={t.teams.settings.deleteTitle(team.name)}
+          message={t.teams.settings.deleteMessage}
+          confirmLabel={t.teams.settings.deleteConfirm}
           onConfirm={() => void handleDelete()}
           onCancel={() => setShowDeleteConfirm(false)}
           error={deleteError}

@@ -100,4 +100,15 @@ export const labels = {
     mostImproved: (g: Gender) => agree(g, 'Più migliorato', 'Più migliorata', 'Più migliorato/a'),
     everPresent: (g: Gender) => agree(g, 'Sempre presente', 'Sempre presente'),
   },
+  competition: {
+    league: 'Campionato',
+    cup: 'Coppa',
+    friendly: 'Amichevole',
+    tournament: 'Torneo',
+  },
+  matchStatus: {
+    setup: 'Preparazione',
+    live: 'In diretta',
+    finished: 'Conclusa',
+  },
 } satisfies Catalog['labels'];

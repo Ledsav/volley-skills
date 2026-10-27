@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useT } from '../i18n/I18nProvider';
+import type { Gender } from '../i18n/catalog';
 import { deletePlayer, listPlayersDueForDeletion } from '../players/playersApi';
 import { deletionCutoff, RETENTION_MONTHS, todayIso } from '../players/retention';
 import type { Player } from '../types/player';
 
 interface RetentionNoticeProps {
   teamId: string;
+  /** The team's grammatical gender, for the Italian wording. */
+  gender?: Gender;
   onDeleted: () => void;
 }
 
@@ -16,7 +20,8 @@ interface RetentionNoticeProps {
  * admin deletes their data (there is no server to do it on a schedule).
  * Renders nothing when no one is due or the list can't be read.
  */
-export function RetentionNotice({ teamId, onDeleted }: RetentionNoticeProps) {
+export function RetentionNotice({ teamId, gender = 'mixed', onDeleted }: RetentionNoticeProps) {
+  const t = useT();
   const [due, setDue] = useState<Player[]>([]);
   const [pendingDelete, setPendingDelete] = useState<Player | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -40,7 +45,7 @@ export function RetentionNotice({ teamId, onDeleted }: RetentionNoticeProps) {
     try {
       await deletePlayer(teamId, player.id);
     } catch {
-      setDeleteError('Could not delete this player. Please try again.');
+      setDeleteError(t.teams.retention.deleteError);
       return;
     }
     setDue((current) => current.filter((p) => p.id !== player.id));
@@ -56,11 +61,10 @@ export function RetentionNotice({ teamId, onDeleted }: RetentionNoticeProps) {
       className="mb-4 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink"
     >
       <h2 id="retention-heading" className="font-medium">
-        {due.length === 1 ? '1 player is' : `${due.length} players are`} due for deletion
+        {t.teams.retention.heading(due.length, gender)}
       </h2>
       <p className="mt-1 text-slate">
-        They left the club more than {RETENTION_MONTHS} months ago, so their data should be deleted. Export it first
-        from their card if the family asked for a copy.
+        {t.teams.retention.body(RETENTION_MONTHS)}
       </p>
       <ul className="mt-2 divide-y divide-orange/30">
         {due.map((p) => (
@@ -71,11 +75,11 @@ export function RetentionNotice({ teamId, onDeleted }: RetentionNoticeProps) {
               </Link>
               <span className="text-slate">
                 {' '}
-                · left <span className="tabular-nums">{p.leftClubAt}</span>
+                · {t.teams.retention.left} <span className="tabular-nums">{p.leftClubAt}</span>
               </span>
             </span>
             <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setPendingDelete(p)}>
-              Delete
+              {t.common.delete}
             </Button>
           </li>
         ))}
@@ -83,9 +87,9 @@ export function RetentionNotice({ teamId, onDeleted }: RetentionNoticeProps) {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={`Delete ${pendingDelete.fullName}?`}
-          message="This permanently deletes their player card, skills, development plan, physical tests and testing-session entries, and removes their name and number from past match reports. This cannot be undone."
-          confirmLabel="Yes, delete player"
+          title={t.teams.retention.deleteTitle(pendingDelete.fullName)}
+          message={t.teams.retention.deleteMessage}
+          confirmLabel={t.teams.retention.deleteConfirm}
           onConfirm={() => void confirmDelete()}
           onCancel={() => {
             setPendingDelete(null);

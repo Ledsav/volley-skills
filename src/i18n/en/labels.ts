@@ -2,7 +2,7 @@ import type { Gender } from '../catalog';
 import type { AwardId } from '../../types/awards';
 import type { ExerciseCategory } from '../../types/exercise';
 import type { ObjectiveStatus } from '../../types/developmentPlan';
-import type { Grade, PointReason, Skill } from '../../types/match';
+import type { Competition, Grade, MatchStatus, PointReason, Skill } from '../../types/match';
 import type { Level, PositionCategory, SkillKey } from '../../types/player';
 
 /** Labels for stored codes. Keys are the codes; saved values never change. English ignores `g`. */
@@ -105,4 +105,15 @@ export const labels = {
     mostImproved: () => 'Most improved',
     everPresent: () => 'Ever-present',
   } as Record<AwardId, (g: Gender) => string>,
+  competition: {
+    league: 'League',
+    cup: 'Cup',
+    friendly: 'Friendly',
+    tournament: 'Tournament',
+  } as Record<Competition, string>,
+  matchStatus: {
+    setup: 'Setup',
+    live: 'Live',
+    finished: 'Finished',
+  } as Record<MatchStatus, string>,
 };

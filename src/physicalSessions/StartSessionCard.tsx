@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { startSession, listPastSessions } from './testingSessionsApi';
+import { startSession, listPastSessions, SessionAlreadyOpenError } from './testingSessionsApi';
 import type { TestingSession } from '../types/testingSession';
 import { ChevronRight } from 'lucide-react';
 import { PastSessionDialog } from './PastSessionDialog';
 import { useNotify } from '../components/Notice';
+import { useT } from '../i18n/I18nProvider';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -22,6 +23,7 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
   const [pastSessions, setPastSessions] = useState<TestingSession[]>([]);
   const [viewing, setViewing] = useState<TestingSession | null>(null);
   const notify = useNotify();
+  const s = useT().physicalSessions;
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -29,8 +31,8 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
     setLoadError(null);
     listPastSessions(teamId)
       .then(setPastSessions)
-      .catch(() => setLoadError('Could not load past sessions.'));
-  }, [teamId]);
+      .catch(() => setLoadError(s.start.loadError));
+  }, [teamId, s.start.loadError]);
 
   async function handleStart() {
     setError(null);
@@ -38,33 +40,33 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
       const id = await startSession(teamId, date, creatorUid);
       onStarted(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start the session. Please try again.');
+      setError(err instanceof SessionAlreadyOpenError ? s.start.alreadyOpen : s.start.couldNotStart);
     }
   }
 
   return (
     <div>
       <div className="mb-6 rounded-lg border border-border bg-surface p-4">
-        <label htmlFor="session-date" className="mb-1 block text-sm font-medium text-ink">Date</label>
+        <label htmlFor="session-date" className="mb-1 block text-sm font-medium text-ink">{s.start.date}</label>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Input id="session-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full sm:w-48" />
-          <Button variant="primary" onClick={() => void handleStart()} className="w-full sm:w-auto">Start new session</Button>
+          <Button variant="primary" onClick={() => void handleStart()} className="w-full sm:w-auto">{s.start.startNew}</Button>
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-red">{error}</p>}
       </div>
 
-      <h3 className="mb-2 text-sm font-semibold text-ink">Past sessions</h3>
+      <h3 className="mb-2 text-sm font-semibold text-ink">{s.start.pastSessions}</h3>
       {loadError && <p role="alert" className="text-sm text-red">{loadError}</p>}
-      {!loadError && pastSessions.length === 0 && <p className="text-sm text-slate">No sessions yet.</p>}
+      {!loadError && pastSessions.length === 0 && <p className="text-sm text-slate">{s.start.noSessions}</p>}
       <ul className="divide-y divide-border rounded-md border border-border">
-        {pastSessions.map((s) => (
-          <li key={s.id}>
+        {pastSessions.map((p) => (
+          <li key={p.id}>
             <button
               type="button"
-              onClick={() => setViewing(s)}
+              onClick={() => setViewing(p)}
               className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue"
             >
-              <span className="tabular-nums">{s.date}</span>
+              <span className="tabular-nums">{p.date}</span>
               <ChevronRight className="h-4 w-4 shrink-0 text-slate" aria-hidden="true" />
             </button>
           </li>
@@ -77,9 +79,9 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
           session={viewing}
           onClose={() => setViewing(null)}
           onDeleted={() => {
-            setPastSessions((current) => current.filter((s) => s.id !== viewing.id));
+            setPastSessions((current) => current.filter((p) => p.id !== viewing.id));
             setViewing(null);
-            notify('Session deleted.');
+            notify(s.shared.sessionDeleted);
           }}
         />
       )}

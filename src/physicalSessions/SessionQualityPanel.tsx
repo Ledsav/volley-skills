@@ -7,7 +7,8 @@ import { Stopwatch } from './Stopwatch';
 import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from '../players/physicalTestFieldLogic';
 import { getLatestByType } from '../players/physicalTestsApi';
 import { saveEntryProgress, finishEntry } from './testingSessionsApi';
-import { PHYSICAL_TEST_LABELS } from '../types/physicalTest';
+import { useT } from '../i18n/I18nProvider';
+import { formatDecimal } from '../i18n/format';
 import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
 import type { TestingSessionEntry } from '../types/testingSession';
 
@@ -42,12 +43,14 @@ interface SessionQualityPanelProps {
   onFinished: () => void;
 }
 
-const ATTEMPT_FIELD: Partial<Record<PhysicalTestType, { key: keyof PhysicalTestFields; label: string; unit: string }>> = {
-  cmj: { key: 'cmjAttempts', label: 'New attempt (cm)', unit: 'cm' },
-  broadJump: { key: 'broadJumpAttempts', label: 'New attempt (cm)', unit: 'cm' },
-  approachJump: { key: 'touchAttempts', label: 'New touch attempt (cm)', unit: 'cm' },
-  sprint10m: { key: 'sprintAttempts', label: 'New attempt (s)', unit: 's' },
-  reaction: { key: 'reactionAttempts', label: 'New drop attempt (cm)', unit: 'cm' },
+type AttemptLabel = 'newAttemptCm' | 'newTouchAttemptCm' | 'newAttemptS' | 'newDropAttemptCm';
+
+const ATTEMPT_FIELD: Partial<Record<PhysicalTestType, { key: keyof PhysicalTestFields; label: AttemptLabel; unit: string }>> = {
+  cmj: { key: 'cmjAttempts', label: 'newAttemptCm', unit: 'cm' },
+  broadJump: { key: 'broadJumpAttempts', label: 'newAttemptCm', unit: 'cm' },
+  approachJump: { key: 'touchAttempts', label: 'newTouchAttemptCm', unit: 'cm' },
+  sprint10m: { key: 'sprintAttempts', label: 'newAttemptS', unit: 's' },
+  reaction: { key: 'reactionAttempts', label: 'newDropAttemptCm', unit: 'cm' },
 };
 
 export function SessionQualityPanel({
@@ -62,6 +65,8 @@ export function SessionQualityPanel({
   onClose,
   onFinished,
 }: SessionQualityPanelProps) {
+  const t = useT();
+  const s = t.physicalSessions.panel;
   const [fields, setFields] = useState<PhysicalTestFields>({ ...DEFAULT_FIELDS, ...(entry?.data ?? {}) });
   const [notes, setNotes] = useState('');
   const [newAttempt, setNewAttempt] = useState('');
@@ -87,6 +92,7 @@ export function SessionQualityPanel({
   }
 
   const attemptConfig = ATTEMPT_FIELD[testType];
+  const attemptLabel = attemptConfig ? s[attemptConfig.label] : '';
 
   function addAttempt() {
     if (!attemptConfig || newAttempt === '') return;
@@ -111,7 +117,7 @@ export function SessionQualityPanel({
     try {
       await finishEntry(teamId, sessionId, playerId, testType, input, recordedByUid);
     } catch {
-      setError('Could not confirm this was saved — check the player card before recording it again.');
+      setError(s.couldNotConfirmSaved);
       return;
     } finally {
       setSaving(false);
@@ -122,11 +128,11 @@ export function SessionQualityPanel({
   const ready = isPhysicalTestReady(testType, fields);
 
   return (
-    <Dialog title={`${PHYSICAL_TEST_LABELS[testType]} — ${playerName}`} onClose={onClose} mobileSheet>
+    <Dialog title={`${t.labels.physicalTest[testType]} — ${playerName}`} onClose={onClose} mobileSheet>
         {testType === 'growth' && (
           <>
             <div className="mb-4">
-              <label htmlFor="height" className="mb-1 block text-sm font-medium text-ink">Height (cm)</label>
+              <label htmlFor="height" className="mb-1 block text-sm font-medium text-ink">{s.height}</label>
               <Input
                 id="height"
                 type="number"
@@ -138,7 +144,7 @@ export function SessionQualityPanel({
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="body-mass" className="mb-1 block text-sm font-medium text-ink">Body mass (kg)</label>
+              <label htmlFor="body-mass" className="mb-1 block text-sm font-medium text-ink">{s.bodyMass}</label>
               <Input
                 id="body-mass"
                 type="number"
@@ -154,7 +160,7 @@ export function SessionQualityPanel({
 
         {testType === 'approachJump' && (
           <div className="mb-4">
-            <label htmlFor="standing-reach" className="mb-1 block text-sm font-medium text-ink">Standing reach (cm)</label>
+            <label htmlFor="standing-reach" className="mb-1 block text-sm font-medium text-ink">{s.standingReach}</label>
             <Input
               id="standing-reach"
               type="number"
@@ -170,7 +176,7 @@ export function SessionQualityPanel({
         {testType === 'shuttle5105' && (
           <>
             <div className="mb-5">
-              <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">Right-first (s)</label>
+              <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">{s.rightFirst}</label>
               <Input
                 id="shuttle-right"
                 type="number"
@@ -184,7 +190,7 @@ export function SessionQualityPanel({
               <Stopwatch onRecord={(s) => persist({ ...fields, rightFirstSeconds: String(s) })} />
             </div>
             <div className="mb-5">
-              <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">Left-first (s)</label>
+              <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">{s.leftFirst}</label>
               <Input
                 id="shuttle-left"
                 type="number"
@@ -203,34 +209,34 @@ export function SessionQualityPanel({
         {testType === 'strength' && (
           <>
             <div className="mb-4">
-              <label htmlFor="strength-mode" className="mb-1 block text-sm font-medium text-ink">Mode</label>
+              <label htmlFor="strength-mode" className="mb-1 block text-sm font-medium text-ink">{s.mode}</label>
               <select
                 id="strength-mode"
                 className={`${FIELD_CLASS} w-full`}
                 value={fields.strengthMode}
                 onChange={(e) => persist({ ...fields, strengthMode: e.target.value as 'weighted' | 'bodyweight' })}
               >
-                <option value="weighted">Weighted</option>
-                <option value="bodyweight">Bodyweight</option>
+                <option value="weighted">{s.weighted}</option>
+                <option value="bodyweight">{s.bodyweight}</option>
               </select>
             </div>
             {fields.strengthMode === 'weighted' ? (
               <>
                 <div className="mb-4">
-                  <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">Exercise</label>
+                  <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">{s.exercise}</label>
                   <select
                     id="strength-exercise"
                     className={`${FIELD_CLASS} w-full`}
                     value={fields.weightedExercise}
                     onChange={(e) => persist({ ...fields, weightedExercise: e.target.value as WeightedExercise })}
                   >
-                    <option value="trapBarDeadlift">Trap-bar deadlift</option>
-                    <option value="squat">Squat</option>
-                    <option value="gobletSquat">Goblet squat</option>
+                    <option value="trapBarDeadlift">{t.labels.strengthExercise.trapBarDeadlift}</option>
+                    <option value="squat">{t.labels.strengthExercise.squat}</option>
+                    <option value="gobletSquat">{t.labels.strengthExercise.gobletSquat}</option>
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">Weight (kg)</label>
+                  <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">{s.weight}</label>
                   <Input
                     id="strength-weight"
                     type="number"
@@ -245,19 +251,19 @@ export function SessionQualityPanel({
             ) : (
               <>
                 <div className="mb-4">
-                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">Exercise</label>
+                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">{s.exercise}</label>
                   <select
                     id="strength-bodyweight-exercise"
                     className={`${FIELD_CLASS} w-full`}
                     value={fields.bodyweightExercise}
                     onChange={(e) => persist({ ...fields, bodyweightExercise: e.target.value as BodyweightExercise })}
                   >
-                    <option value="pushUps">Push-ups</option>
-                    <option value="splitSquat">Split squat</option>
+                    <option value="pushUps">{t.labels.strengthExercise.pushUps}</option>
+                    <option value="splitSquat">{t.labels.strengthExercise.splitSquat}</option>
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">Reps</label>
+                  <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">{s.reps}</label>
                   <Input
                     id="strength-reps"
                     type="number"
@@ -277,10 +283,10 @@ export function SessionQualityPanel({
             <ul className="mb-3 flex flex-wrap gap-2">
               {(fields[attemptConfig.key] as number[]).map((value, index) => (
                 <li key={index} className="flex items-center gap-1 rounded-full bg-blue/10 py-1 pl-3 pr-1 text-sm text-ink">
-                  {value} {attemptConfig.unit}
+                  {formatDecimal(value)} {attemptConfig.unit}
                   <button
                     type="button"
-                    aria-label={`Remove attempt ${index + 1}`}
+                    aria-label={s.removeAttempt(index + 1)}
                     onClick={() => removeAttempt(index)}
                     className="rounded-full p-1 text-red hover:bg-red/10"
                   >
@@ -294,11 +300,11 @@ export function SessionQualityPanel({
                 <Stopwatch onRecord={(s) => { setNewAttempt(String(s)); }} />
               </div>
             )}
-            <label htmlFor="new-attempt" className="mb-1 block text-sm font-medium text-ink">{attemptConfig.label}</label>
+            <label htmlFor="new-attempt" className="mb-1 block text-sm font-medium text-ink">{attemptLabel}</label>
             <div className="flex items-center gap-3">
               <Input
                 id="new-attempt"
-                aria-label={attemptConfig.label}
+                aria-label={attemptLabel}
                 type="number"
                 inputMode="decimal"
                 step="any"
@@ -307,22 +313,22 @@ export function SessionQualityPanel({
                 onChange={(e) => setNewAttempt(e.target.value)}
               />
               <Button variant="secondary" size="md" onClick={addAttempt} className="shrink-0">
-                + Add attempt
+                {s.addAttempt}
               </Button>
             </div>
           </div>
         )}
 
         <div className="mb-4">
-          <label htmlFor="notes" className="mb-1 block text-sm font-medium text-ink">Notes</label>
+          <label htmlFor="notes" className="mb-1 block text-sm font-medium text-ink">{s.notes}</label>
           <Textarea id="notes" aria-describedby="notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => persist(fields)} />
           <HealthHint id="notes-hint" />
         </div>
 
         <div className="flex justify-between gap-3">
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="ghost" onClick={onClose}>{t.common.close}</Button>
           <Button variant="primary" onClick={() => void handleFinish()} disabled={!ready || saving}>
-            Finish
+            {s.finish}
           </Button>
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-red">{error}</p>}

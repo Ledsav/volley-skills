@@ -3,16 +3,17 @@ import { Dialog } from '../components/Dialog';
 import { getPhysicalTest } from '../players/physicalTestsApi';
 import { formatPhysicalTestSummary } from '../players/physicalTestFormat';
 import { getPlayer } from '../players/playersApi';
-import { PHYSICAL_TEST_LABELS, PHYSICAL_TEST_ORDER, type PhysicalTestType } from '../types/physicalTest';
+import { PHYSICAL_TEST_ORDER, type PhysicalTestType } from '../types/physicalTest';
 import type { TestingSession } from '../types/testingSession';
 import { deleteSession, listSessionEntries } from './testingSessionsApi';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useT } from '../i18n/I18nProvider';
 
 interface PlayerResults {
   playerId: string;
   name: string;
-  results: { testType: PhysicalTestType; value: string }[];
+  results: { testType: PhysicalTestType; kind: 'value' | 'notFinished' | 'deleted'; value: string }[];
 }
 
 /** Read-only results of a closed session: who was tested, and each result recorded that day. */
@@ -27,6 +28,8 @@ export function PastSessionDialog({
   onClose: () => void;
   onDeleted: () => void;
 }) {
+  const t = useT();
+  const s = t.physicalSessions;
   const [rows, setRows] = useState<PlayerResults[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -36,7 +39,7 @@ export function PastSessionDialog({
     try {
       await deleteSession(teamId, session.id);
     } catch {
-      setDeleteError('Could not delete the session. Please try again.');
+      setDeleteError(t.common.couldNotDeleteSession);
       return;
     }
     setConfirmingDelete(false);
@@ -44,7 +47,7 @@ export function PastSessionDialog({
   }
 
   const resultCount = (rows ?? []).reduce(
-    (n, r) => n + r.results.filter((x) => x.value !== 'Not finished' && x.value !== 'Result deleted').length,
+    (n, r) => n + r.results.filter((x) => x.kind === 'value').length,
     0,
   );
 
@@ -63,33 +66,35 @@ export function PastSessionDialog({
             getPlayer(teamId, playerId),
             Promise.all(
               mine.map(async (e) => {
-                if (e.status !== 'complete' || !e.resultTestId) return { testType: e.testType, value: 'Not finished' };
+                if (e.status !== 'complete' || !e.resultTestId) return { testType: e.testType, kind: 'notFinished' as const, value: '' };
                 const test = await getPhysicalTest(teamId, playerId, e.resultTestId);
-                return { testType: e.testType, value: test ? formatPhysicalTestSummary(test) : 'Result deleted' };
+                return test
+                  ? { testType: e.testType, kind: 'value' as const, value: formatPhysicalTestSummary(test) }
+                  : { testType: e.testType, kind: 'deleted' as const, value: '' };
               }),
             ),
           ]);
-          return { playerId, name: player?.fullName ?? 'Removed player', results };
+          return { playerId, name: player?.fullName ?? s.past.removedPlayer, results };
         }),
       );
       if (!cancelled) setRows(loaded.sort((a, b) => a.name.localeCompare(b.name)));
     })().catch(() => {
-      if (!cancelled) setError('Could not load this session. Please try again.');
+      if (!cancelled) setError(s.past.loadError);
     });
     return () => {
       cancelled = true;
     };
-  }, [teamId, session.id]);
+  }, [teamId, session.id, s.past.loadError, s.past.removedPlayer]);
 
   return (
     <Dialog
-      title={`Physical testing · ${session.date}`}
+      title={s.past.title(session.date)}
       size="lg"
       mobileSheet
       onClose={onClose}
       footer={
         <Button variant="dangerGhost" onClick={() => { setDeleteError(null); setConfirmingDelete(true); }} disabled={!rows && !error}>
-          Delete session
+          {s.shared.deleteSession}
         </Button>
       }
     >
@@ -98,22 +103,24 @@ export function PastSessionDialog({
           {error}
         </p>
       )}
-      {!rows && !error && <p className="text-sm text-slate">Loading results…</p>}
-      {rows && rows.length === 0 && <p className="text-sm text-slate">No results were recorded in this session.</p>}
+      {!rows && !error && <p className="text-sm text-slate">{s.past.loading}</p>}
+      {rows && rows.length === 0 && <p className="text-sm text-slate">{s.past.empty}</p>}
       {rows && rows.length > 0 && (
         <>
           <p className="mb-3 text-sm tabular-nums text-slate">
-            {rows.length} player{rows.length === 1 ? '' : 's'} tested
+            {s.past.playersTested(rows.length)}
           </p>
-          <ul aria-label="Results" className="divide-y divide-border rounded-md border border-border">
+          <ul aria-label={s.past.resultsAria} className="divide-y divide-border rounded-md border border-border">
             {rows.map((r) => (
               <li key={r.playerId} className="p-3">
                 <p className="text-sm font-medium text-ink">{r.name}</p>
                 <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
                   {r.results.map((x) => (
                     <div key={x.testType} className="contents">
-                      <dt className="text-slate">{PHYSICAL_TEST_LABELS[x.testType]}</dt>
-                      <dd className={`tabular-nums ${x.value === 'Not finished' ? 'text-orange-strong' : 'text-ink'}`}>{x.value}</dd>
+                      <dt className="text-slate">{t.labels.physicalTest[x.testType]}</dt>
+                      <dd className={`tabular-nums ${x.kind === 'notFinished' ? 'text-orange-strong' : 'text-ink'}`}>
+                        {x.kind === 'value' ? x.value : x.kind === 'notFinished' ? s.past.notFinished : s.past.resultDeleted}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -124,9 +131,9 @@ export function PastSessionDialog({
       )}
       {confirmingDelete && (
         <ConfirmDialog
-          title="Delete this session?"
-          message={`This also removes the ${resultCount} result${resultCount === 1 ? '' : 's'} recorded in it from the players' cards. This can't be undone.`}
-          confirmLabel="Yes, delete"
+          title={s.shared.deleteTitle}
+          message={s.shared.deleteMessage(resultCount)}
+          confirmLabel={s.shared.deleteConfirm}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setConfirmingDelete(false)}
           error={deleteError}

@@ -41,7 +41,7 @@ describe('StartSessionCard', () => {
 
   it('shows an error and does not call onStarted when starting fails', async () => {
     vi.spyOn(testingSessionsApi, 'listPastSessions').mockResolvedValue([]);
-    vi.spyOn(testingSessionsApi, 'startSession').mockRejectedValue(new Error('A testing session is already open for this team.'));
+    vi.spyOn(testingSessionsApi, 'startSession').mockRejectedValue(new testingSessionsApi.SessionAlreadyOpenError());
     const onStarted = vi.fn();
 
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={onStarted} />);

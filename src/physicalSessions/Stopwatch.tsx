@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { formatNumber } from '../i18n/format';
+import { useT } from '../i18n/I18nProvider';
 
 interface StopwatchProps {
   onRecord: (seconds: number) => void;
 }
 
 export function Stopwatch({ onRecord }: StopwatchProps) {
+  const s = useT().physicalSessions.stopwatch;
   const [running, setRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [confirmingReset, setConfirmingReset] = useState(false);
@@ -49,11 +51,11 @@ export function Stopwatch({ onRecord }: StopwatchProps) {
       </div>
       {!running ? (
         <Button variant="primary" size="md" onClick={start} className="w-full py-4 text-base">
-          Start
+          {s.start}
         </Button>
       ) : (
         <Button variant="destructive" size="md" onClick={stop} className="w-full py-4 text-base">
-          Stop
+          {s.stop}
         </Button>
       )}
       <div className="mt-2 flex justify-center">
@@ -63,7 +65,7 @@ export function Stopwatch({ onRecord }: StopwatchProps) {
           onClick={reset}
           onBlur={() => setConfirmingReset(false)}
         >
-          {confirmingReset ? 'Confirm reset' : 'Reset'}
+          {confirmingReset ? s.confirmReset : s.reset}
         </Button>
       </div>
     </div>

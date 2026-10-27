@@ -10,6 +10,14 @@ import type { TestingSession } from '../types/testingSession';
 
 const PAST_SESSIONS_CAP = 50;
 
+/** Thrown by startSession; the UI shows the localised text, the message stays English for logs and tests. */
+export class SessionAlreadyOpenError extends Error {
+  constructor() {
+    super('A testing session is already open for this team.');
+    this.name = 'SessionAlreadyOpenError';
+  }
+}
+
 export async function startSession(teamId: string, date: string, creatorUid: string): Promise<string> {
   const teamRef = clubDoc('teams', teamId);
   const sessionRef = doc(clubCol('teams', teamId, 'testingSessions'));
@@ -18,7 +26,7 @@ export async function startSession(teamId: string, date: string, creatorUid: str
     const teamSnap = await tx.get(teamRef);
     const activeId = (teamSnap.data() as { activeTestingSessionId?: string | null } | undefined)?.activeTestingSessionId;
     if (activeId) {
-      throw new Error('A testing session is already open for this team.');
+      throw new SessionAlreadyOpenError();
     }
     tx.set(sessionRef, {
       date,

@@ -104,25 +104,6 @@ export type PhysicalTest =
 
 export type NewPhysicalTestInput = PhysicalTestData & { date: string; notes: string };
 
-export const PHYSICAL_TEST_LABELS: Record<PhysicalTestType, string> = {
-  growth: 'Growth',
-  cmj: 'Countermovement Jump',
-  approachJump: 'Approach Jump',
-  broadJump: 'Standing Broad Jump',
-  sprint10m: '10m Sprint',
-  shuttle5105: '5-10-5 Shuttle',
-  reaction: 'Reaction Time',
-  strength: 'Strength',
-};
-
-export const STRENGTH_EXERCISE_LABELS: Record<WeightedExercise | BodyweightExercise, string> = {
-  trapBarDeadlift: 'Trap-bar deadlift',
-  squat: 'Squat',
-  gobletSquat: 'Goblet squat',
-  pushUps: 'Push-ups',
-  splitSquat: 'Split squat',
-};
-
 export const PHYSICAL_TEST_ORDER: PhysicalTestType[] = [
   'growth',
   'cmj',

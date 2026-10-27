@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { useT } from '../i18n/I18nProvider';
 import { getSession } from './testingSessionsApi';
 import { listPlayers } from '../players/playersApi';
 import { StartSessionCard } from './StartSessionCard';
@@ -16,6 +17,7 @@ interface TeamPhysicalSessionTabProps {
 
 export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhysicalSessionTabProps) {
   const { firebaseUser } = useAuth();
+  const s = useT().physicalSessions.tab;
   const [session, setSession] = useState<TestingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[] | null>(null);
@@ -29,8 +31,8 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
     setError(null);
     getSession(teamId, team.activeTestingSessionId)
       .then(setSession)
-      .catch(() => setError('Could not load the active session. Please refresh the page.'));
-  }, [teamId, team.activeTestingSessionId]);
+      .catch(() => setError(s.loadSession));
+  }, [teamId, team.activeTestingSessionId, s.loadSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,12 +47,12 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
       }
       if (!cancelled) setPlayers(all.filter((p) => !p.leftClubAt));
     })().catch(() => {
-      if (!cancelled) setPlayersError('Could not load the roster. Please refresh the page.');
+      if (!cancelled) setPlayersError(s.loadRoster);
     });
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, s.loadRoster]);
 
   if (!firebaseUser) return null;
 
@@ -59,7 +61,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }
 
   if (!players) {
-    return <p className="text-sm text-slate">Loading roster...</p>;
+    return <p className="text-sm text-slate">{s.loadingRoster}</p>;
   }
 
   if (error) {
@@ -82,7 +84,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }
 
   if (team.activeTestingSessionId) {
-    return <p className="text-sm text-slate">Loading session...</p>;
+    return <p className="text-sm text-slate">{s.loadingSession}</p>;
   }
 
   return (

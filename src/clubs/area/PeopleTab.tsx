@@ -11,10 +11,7 @@ import {
 import { addMember, canChangeRole, listMembers, removeFromClub, setMemberRole } from '../../access/membersApi';
 import { transferOwnership } from '../clubAdminApi';
 import type { Member, MemberRole } from '../../types/club';
-
-const SECTION_LABEL: Record<SectionKey, string> = {
-  exercises: 'Exercises', trainings: 'Trainings', guides: 'Guides',
-};
+import { useT } from '../../i18n/I18nProvider';
 
 function sameGrants(a: GrantSet, b: GrantSet): boolean {
   const sa = [...a.teamIds].sort().join(',');
@@ -28,6 +25,8 @@ type Confirm = 'remove' | 'owner' | 'demoteSelf' | null;
 
 export function PeopleTab() {
   const { club, appUser } = useAuth();
+  const t = useT();
+  const p = t.clubs.people;
   const ownerEmail = (club?.ownerEmail ?? '').toLowerCase();
   const myEmail = appUser?.email ?? '';
   const [teams, setTeams] = useState<TeamRow[]>([]);
@@ -51,7 +50,7 @@ export function PeopleTab() {
       setMembers(allMembers);
       return allHolders;
     } catch {
-      setError('Could not load people. Please refresh the page.');
+      setError(p.loadFailed);
       return null;
     }
   }
@@ -87,7 +86,7 @@ export function PeopleTab() {
     const email = newEmail.trim().toLowerCase();
     if (!email) return;
     if (!EMAIL_SHAPE.test(email)) {
-      setError('Enter a valid email address.');
+      setError(p.invalidEmail);
       return;
     }
     setBusy(true);
@@ -100,8 +99,8 @@ export function PeopleTab() {
       select(email, fresh ?? holders);
     } catch (e) {
       setError(e instanceof Error && e.message === 'already-member'
-        ? `${email} is already a member.`
-        : 'Could not add this person. Please try again.');
+        ? p.alreadyMember(email)
+        : p.addFailed);
     } finally {
       setBusy(false);
     }
@@ -111,17 +110,17 @@ export function PeopleTab() {
     if (!selected) return;
     await saveGrants(selected, draft, original);
     await reload();
-  }, 'Could not save. Please try again.');
+  }, t.common.couldNotSave);
 
   const changeRole = (role: MemberRole) => run(async () => {
     if (!selected) return;
     await setMemberRole(selected, role);
     await reload();
-  }, 'Could not change the role. Please try again.');
+  }, t.common.couldNotChangeRole);
 
   // Demoting yourself drops your admin access, so the page reloads to pick that up.
   async function doDemoteSelf() {
-    const ok = await run(() => setMemberRole(myEmail, 'member'), 'Could not change the role. Please try again.');
+    const ok = await run(() => setMemberRole(myEmail, 'member'), t.common.couldNotChangeRole);
     if (ok) window.location.reload();
   }
 
@@ -132,7 +131,7 @@ export function PeopleTab() {
       await removeFromClub(email);
       setSelected(null);
       await reload();
-    }, 'Could not remove this person. Please try again.');
+    }, p.removeFailed);
     if (ok) setConfirm(null);
   }
 
@@ -142,7 +141,7 @@ export function PeopleTab() {
     const ok = await run(async () => {
       await transferOwnership(email);
       await reload();
-    }, 'Could not transfer ownership. Please try again.');
+    }, p.transferFailed);
     if (ok) setConfirm(null);
   }
 
@@ -162,19 +161,19 @@ export function PeopleTab() {
       <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
           <div className="mb-3 flex flex-col gap-2">
-            <label htmlFor="new-person" className="text-sm font-medium text-ink">Add person by email</label>
+            <label htmlFor="new-person" className="text-sm font-medium text-ink">{p.addByEmail}</label>
             <Input id="new-person" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <label htmlFor="new-role" className="text-sm font-medium text-ink">Role</label>
+            <label htmlFor="new-role" className="text-sm font-medium text-ink">{p.role}</label>
             <select id="new-role" value={newRole} onChange={(e) => setNewRole(e.target.value as MemberRole)}
               className={`${FIELD_CLASS} w-full`}>
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
+              <option value="member">{p.member}</option>
+              <option value="admin">{p.admin}</option>
             </select>
             <Button variant="primary" size="sm" className="w-full" disabled={busy} onClick={() => void add()}>
-              Add person
+              {p.addPerson}
             </Button>
           </div>
-          <p className="mb-2 text-sm font-medium text-ink">People</p>
+          <p className="mb-2 text-sm font-medium text-ink">{p.people}</p>
           <ul className="divide-y divide-border">
             {members.map((x) => (
               <li key={x.email}>
@@ -185,10 +184,10 @@ export function PeopleTab() {
                   }`}>
                   <span className="min-w-0 flex-1 truncate">{x.email}</span>
                   {x.email === ownerEmail && (
-                    <span className="rounded-full bg-navy px-2 py-0.5 text-xs font-medium text-white">Owner</span>
+                    <span className="rounded-full bg-navy px-2 py-0.5 text-xs font-medium text-white">{p.owner}</span>
                   )}
                   <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-slate">
-                    {x.role === 'admin' ? 'Admin' : 'Member'}
+                    {x.role === 'admin' ? p.admin : p.member}
                   </span>
                 </button>
               </li>
@@ -198,29 +197,29 @@ export function PeopleTab() {
 
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
           {!target || !rules ? (
-            <p className="text-sm text-slate">Select a person to manage their access.</p>
+            <p className="text-sm text-slate">{p.selectPerson}</p>
           ) : (
             <>
               <h2 className="mb-4 break-all text-lg font-semibold text-ink">{target.email}</h2>
 
               {target.role === 'admin' ? (
-                <p className="mb-4 text-sm text-slate">Admins have full access to every team and section.</p>
+                <p className="mb-4 text-sm text-slate">{p.adminsFullAccess}</p>
               ) : (
                 <>
                   <fieldset className="mb-4">
-                    <legend className="mb-2 text-sm font-medium text-ink">Sections</legend>
+                    <legend className="mb-2 text-sm font-medium text-ink">{p.sectionsLegend}</legend>
                     <div className="flex flex-col gap-2">
                       {SECTION_KEYS.map((s) => (
                         <label key={s} className="flex items-center gap-2 text-sm text-ink">
-                          <input type="checkbox" aria-label={SECTION_LABEL[s]}
+                          <input type="checkbox" aria-label={p.sections[s]}
                             checked={draft.sections[s]} onChange={() => toggleSection(s)} />
-                          {SECTION_LABEL[s]}
+                          {p.sections[s]}
                         </label>
                       ))}
                     </div>
                   </fieldset>
                   <fieldset className="mb-4">
-                    <legend className="mb-2 text-sm font-medium text-ink">Teams</legend>
+                    <legend className="mb-2 text-sm font-medium text-ink">{p.teamsLegend}</legend>
                     <div className="flex flex-col gap-2">
                       {teams.map((t) => (
                         <label key={t.id} className="flex items-center gap-2 text-sm text-ink">
@@ -233,7 +232,7 @@ export function PeopleTab() {
                   </fieldset>
                   <Button variant="primary" size="sm" className="mb-4 w-full sm:w-auto"
                     disabled={busy || sameGrants(draft, original)} onClick={() => void save()}>
-                    Save
+                    {t.common.save}
                   </Button>
                 </>
               )}
@@ -246,47 +245,47 @@ export function PeopleTab() {
                       if (target.email === myEmail) { setError(null); setConfirm('demoteSelf'); }
                       else void changeRole('member');
                     }}>
-                    Make member
+                    {p.makeMember}
                   </Button>
                 ) : (
                   <Button variant="secondary" size="sm" className="w-full sm:w-auto"
                     disabled={busy} onClick={() => void changeRole('admin')}>
-                    Make admin
+                    {p.makeAdmin}
                   </Button>
                 )}
                 {target.role === 'admin' && target.email !== ownerEmail && (
                   <Button variant="secondary" size="sm" className="w-full sm:w-auto"
                     disabled={busy} onClick={() => { setError(null); setConfirm('owner'); }}>
-                    Make owner
+                    {p.makeOwner}
                   </Button>
                 )}
                 <Button variant="dangerGhost" size="sm" className="w-full sm:w-auto"
                   disabled={busy || !rules.remove} onClick={() => { setError(null); setConfirm('remove'); }}>
-                  Remove from club
+                  {p.removeFromClub}
                 </Button>
               </div>
-              {rules.reason && <p className="mt-2 text-sm text-slate">{rules.reason}</p>}
+              {rules.reason && <p className="mt-2 text-sm text-slate">{p.reason[rules.reason]}</p>}
             </>
           )}
         </div>
       </div>
 
       {confirm === 'remove' && target && (
-        <ConfirmDialog title={`Remove ${target.email} from the club?`}
-          message="They lose all access to this club's teams and sections right away."
-          confirmLabel="Remove" error={error}
+        <ConfirmDialog title={p.removeTitle(target.email)}
+          message={p.removeMessage}
+          confirmLabel={p.removeConfirm} error={error}
           onConfirm={() => void doRemove()} onCancel={() => setConfirm(null)} />
       )}
       {confirm === 'demoteSelf' && (
-        <ConfirmDialog title="Stop being an admin?"
-          message="You lose admin access to this club, including this page. The page reloads afterwards."
-          confirmLabel="Make me a member" error={error}
+        <ConfirmDialog title={p.demoteTitle}
+          message={p.demoteMessage}
+          confirmLabel={p.demoteConfirm} error={error}
           onConfirm={() => void doDemoteSelf()} onCancel={() => setConfirm(null)} />
       )}
       {confirm === 'owner' && target && (
-        <ConfirmDialog title={`Make ${target.email} the club owner?`}
-          message="The owner receives billing and contract contact. You stay an admin."
-          confirmLabel="Make owner" error={error}
+        <ConfirmDialog title={p.ownerTitle(target.email)}
+          message={p.ownerMessage}
+          confirmLabel={p.ownerConfirm} error={error}
           onConfirm={() => void doTransfer()} onCancel={() => setConfirm(null)} />
       )}
     </div>

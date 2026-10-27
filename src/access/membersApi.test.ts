@@ -85,15 +85,15 @@ describe('canChangeRole', () => {
   const plain = m('p@x.y', 'member');
   it('protects the owner and the last admin', () => {
     expect(canChangeRole(owner, [owner, other], 'o@x.y')).toEqual({
-      demote: false, remove: false, reason: 'The club owner stays an admin. Transfer ownership first.',
+      demote: false, remove: false, reason: 'owner',
     });
     expect(canChangeRole(other, [other, plain], 'o@x.y')).toEqual({
-      demote: false, remove: false, reason: 'A club needs at least one admin.',
+      demote: false, remove: false, reason: 'lastAdmin',
     });
   });
   it('lets another admin be demoted but not removed directly', () => {
     expect(canChangeRole(other, [owner, other], 'o@x.y')).toEqual({
-      demote: true, remove: false, reason: 'Make them a member before removing them.',
+      demote: true, remove: false, reason: 'demoteFirst',
     });
   });
   it('lets a member be removed', () => {

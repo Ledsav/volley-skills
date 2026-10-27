@@ -13,6 +13,7 @@ import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../ty
 import { ExerciseFormDialog } from './ExerciseFormDialog';
 import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
+import { exerciseImportIssueText } from './exercisesImportMessages';
 import { useNotify } from '../components/Notice';
 import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
@@ -22,8 +23,10 @@ import { useT } from '../i18n/I18nProvider';
 const USAGE_UNKNOWN = -1;
 
 export function ExercisesPage() {
-  const lb = useT().labels;
-  usePageMeta({ title: 'Exercises' });
+  const t = useT();
+  const lb = t.labels;
+  const p = t.exercises.page;
+  usePageMeta({ title: p.title });
   const { firebaseUser } = useAuth();
   const { aiEnabled } = useClubFeatures();
   const [showImport, setShowImport] = useState(false);
@@ -58,7 +61,7 @@ export function ExercisesPage() {
   useEffect(() => {
     setError(null);
     setLoaded(false);
-    loadFirstPage().catch(() => setError('Could not load exercises. Please refresh the page.'));
+    loadFirstPage().catch(() => setError(p.loadError));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
@@ -78,7 +81,7 @@ export function ExercisesPage() {
     try {
       await deleteExercise(pendingDelete.exercise.id);
     } catch {
-      setDeleteError('Could not delete the exercise. Please try again.');
+      setDeleteError(p.deleteError);
       return;
     }
     setPendingDelete(null);
@@ -88,7 +91,7 @@ export function ExercisesPage() {
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <PageHeader
-        title="Exercises"
+        title={p.title}
         actions={
           <>
             <Button
@@ -97,12 +100,12 @@ export function ExercisesPage() {
               className="w-full sm:w-auto"
               onClick={() => setShowImport(true)}
             >
-              Import
+              {p.import}
             </Button>
             {aiEnabled && (
               <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
                 <Sparkles size={16} aria-hidden="true" />
-                Draft with AI
+                {p.draftWithAi}
               </Button>
             )}
             <Button
@@ -111,14 +114,14 @@ export function ExercisesPage() {
               className="w-full sm:w-auto"
               onClick={() => setDialog({ mode: 'new' })}
             >
-              New exercise
+              {p.newExercise}
             </Button>
           </>
         }
         className="mb-4"
       />
 
-      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label={p.filterByCategory}>
         <button
           type="button"
           aria-pressed={category === ''}
@@ -127,7 +130,7 @@ export function ExercisesPage() {
             category === '' ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
           }`}
         >
-          All
+          {p.all}
         </button>
         {EXERCISE_CATEGORIES.map((c) => (
           <button
@@ -156,7 +159,7 @@ export function ExercisesPage() {
       <div className="space-y-3 sm:space-y-0 sm:divide-y sm:divide-border sm:rounded-lg sm:border sm:border-border sm:bg-surface sm:shadow-card">
         {loaded && exercises.length === 0 && (
           <p className="rounded-lg border border-border bg-surface p-4 text-slate shadow-card sm:rounded-none sm:border-0 sm:shadow-none">
-            No exercises yet.
+            {p.none}
           </p>
         )}
         {exercises.map((exercise) => (
@@ -200,7 +203,7 @@ export function ExercisesPage() {
                   void askDelete(exercise);
                 }}
               >
-                Delete
+                {t.common.delete}
               </Button>
             </div>
           </div>
@@ -211,10 +214,10 @@ export function ExercisesPage() {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => loadMore().catch(() => setError('Could not load more exercises. Please try again.'))}
+          onClick={() => loadMore().catch(() => setError(p.loadMoreError))}
           className="mt-4"
         >
-          Load more
+          {p.loadMore}
         </Button>
       )}
 
@@ -234,7 +237,7 @@ export function ExercisesPage() {
           onClose={() => setShowDraft(false)}
           onSaved={(n) => {
             setShowDraft(false);
-            notify(`Added ${n} exercise${n === 1 ? '' : 's'}.`);
+            notify(p.added(n));
             void loadFirstPage();
           }}
         />
@@ -242,14 +245,15 @@ export function ExercisesPage() {
 
       {showImport && firebaseUser && (
         <BulkImportDialog
-          title="Import exercises"
+          title={p.importTitle}
+          formatIssue={(issue) => exerciseImportIssueText(issue, t)}
           exampleJson={EXERCISE_IMPORT_EXAMPLE}
           validate={validateExerciseRows}
           commit={(inputs) => bulkCreateExercises(inputs, firebaseUser.uid)}
           onClose={() => setShowImport(false)}
           onImported={(n) => {
             setShowImport(false);
-            notify(`Imported ${n} exercise${n === 1 ? '' : 's'}.`);
+            notify(p.imported(n));
             void loadFirstPage();
           }}
         />
@@ -257,15 +261,15 @@ export function ExercisesPage() {
 
       {pendingDelete && (
         <ConfirmDialog
-          title={`Delete ${pendingDelete.exercise.name}?`}
+          title={p.deleteTitle(pendingDelete.exercise.name)}
           message={
             pendingDelete.usageCount === USAGE_UNKNOWN
-              ? 'The number of trainings using this exercise could not be determined. Deleting it may leave some trainings with a missing exercise entry.'
+              ? p.usageUnknown
               : pendingDelete.usageCount > 0
-                ? `This exercise is used in ${pendingDelete.usageCount} training(s). Deleting it will leave those trainings with a missing exercise entry.`
-                : 'This exercise is not used in any training.'
+                ? p.usedIn(pendingDelete.usageCount)
+                : p.notUsed
           }
-          confirmLabel="Yes, delete exercise"
+          confirmLabel={p.confirmDelete}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setPendingDelete(null)}
           error={deleteError}

@@ -37,7 +37,9 @@ interface ExerciseDetailSheetProps {
  * or a horizontal swipe on the diagram.
  */
 export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDetailSheetProps) {
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const d = t.exercises.detail;
   const [index, setIndex] = useState(startIndex);
   const [diagramIndex, setDiagramIndex] = useState(0);
   // Per-exercise diagram cache so stepping back and forth doesn't refetch.
@@ -105,7 +107,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
 
   return (
     <Dialog
-      title={entry.name ?? 'Deleted exercise'}
+      title={entry.name ?? d.deleted}
       onClose={onClose}
       size="lg"
       mobileSheet
@@ -116,20 +118,20 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
               variant="secondary"
               onClick={() => goTo(index - 1)}
               disabled={!prev}
-              aria-label="Previous exercise"
+              aria-label={d.previousExercise}
               className="min-w-0 justify-start gap-1"
             >
               <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="truncate">{prev ? (prev.name ?? 'Deleted exercise') : 'Previous'}</span>
+              <span className="truncate">{prev ? (prev.name ?? d.deleted) : d.previous}</span>
             </Button>
             <Button
               variant="primary"
               onClick={() => goTo(index + 1)}
               disabled={!next}
-              aria-label="Next exercise"
+              aria-label={d.nextExercise}
               className="min-w-0 justify-end gap-1"
             >
-              <span className="truncate">{next ? (next.name ?? 'Deleted exercise') : 'Next'}</span>
+              <span className="truncate">{next ? (next.name ?? d.deleted) : d.next}</span>
               <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
             </Button>
           </div>
@@ -140,7 +142,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {total > 1 && (
             <span className="font-medium tabular-nums text-slate">
-              Exercise {index + 1} of {total}
+              {d.position(index + 1, total)}
             </span>
           )}
           {entry.category && (
@@ -151,31 +153,31 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
           {isTrainingStep && (
             <span className="inline-flex items-center gap-1 rounded-sm bg-bg px-1.5 py-0.5 text-xs font-medium tabular-nums text-ink">
               <Clock className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
-              {entry.durationMinutes} min · min {startMinute}–{startMinute + (entry.durationMinutes ?? 0)}
+              {d.minutes(entry.durationMinutes ?? 0, startMinute, startMinute + (entry.durationMinutes ?? 0))}
             </span>
           )}
           {entry.minPlayers !== undefined && (
             <span className="inline-flex items-center gap-1 rounded-sm bg-bg px-1.5 py-0.5 text-xs font-medium tabular-nums text-ink">
               <Users className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
-              Min {entry.minPlayers} players
+              {d.minPlayers(entry.minPlayers)}
             </span>
           )}
         </div>
 
         {!entry.name ? (
-          <p className="text-sm text-red">This exercise was deleted from the library.</p>
+          <p className="text-sm text-red">{d.wasDeleted}</p>
         ) : (
           <>
-            <section aria-label="Diagrams">
+            <section aria-label={d.diagrams}>
               {diagrams === undefined && (
                 <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-bg text-sm text-slate">
-                  Loading diagrams…
+                  {d.loadingDiagrams}
                 </div>
               )}
-              {diagrams === 'error' && <p className="text-sm text-red">Could not load the diagrams.</p>}
+              {diagrams === 'error' && <p className="text-sm text-red">{d.diagramsError}</p>}
               {Array.isArray(diagrams) && diagrams.length === 0 && (
                 <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-slate">
-                  No diagrams for this exercise.
+                  {d.noDiagrams}
                 </p>
               )}
               {currentDiagram && (
@@ -202,7 +204,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
                       <span className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
-                          aria-label="Previous diagram"
+                          aria-label={t.diagrams.nav.previous}
                           onClick={() => stepDiagram(-1)}
                           className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink"
                         >
@@ -213,7 +215,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
                         </span>
                         <button
                           type="button"
-                          aria-label="Next diagram"
+                          aria-label={t.diagrams.nav.next}
                           onClick={() => stepDiagram(1)}
                           className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink"
                         >
@@ -226,10 +228,10 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
               )}
             </section>
 
-            <section aria-label="Description">
-              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate">Description</h3>
+            <section aria-label={d.description}>
+              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate">{d.description}</h3>
               <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">
-                {entry.description || <span className="text-slate">No description.</span>}
+                {entry.description || <span className="text-slate">{d.noDescription}</span>}
               </p>
             </section>
           </>

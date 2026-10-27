@@ -13,7 +13,7 @@ import { parseOptionalInt } from '../components/parseOptionalInt';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
-import { EXERCISE_NAME_EXAMPLE, EXERCISE_NAME_HINT } from '../trainings/naming';
+import { EXERCISE_FOCUSES, EXERCISE_NAME_EXAMPLE } from '../trainings/naming';
 import { useT } from '../i18n/I18nProvider';
 
 const FORM_ID = 'exercise-form';
@@ -25,7 +25,9 @@ interface ExerciseFormDialogProps {
 }
 
 export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormDialogProps) {
-  const lb = useT().labels;
+  const t = useT();
+  const lb = t.labels;
+  const f = t.exercises.form;
   const { firebaseUser } = useAuth();
   const [name, setName] = useState(exercise?.name ?? '');
   const [description, setDescription] = useState(exercise?.description ?? '');
@@ -47,13 +49,13 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
   // No min/max on the input: native validation would block submit silently, the inline alert explains instead.
   function readFields(): { name: string; description: string; category: ExerciseCategory; minPlayers?: number | null } | null {
     if (!name.trim()) {
-      setError('Name is required.');
+      setError(f.nameRequired);
       return null;
     }
     const { min, max } = PLAYER_LIMITS.minPlayers;
     const minPlayers = parseOptionalInt(minPlayersText, min, max);
     if (!minPlayers.ok) {
-      setError(`Minimum players must be a whole number from ${min} to ${max}.`);
+      setError(f.minPlayersRange(min, max));
       return null;
     }
     const fields = { name: name.trim(), description, category };
@@ -78,7 +80,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
       if (!done) return;
       onSaved();
     } catch {
-      setError('Could not save the exercise. Please try again.');
+      setError(f.saveError);
     }
   }
 
@@ -99,35 +101,35 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
       if (!done) return;
       navigate(`/exercises/${id}/diagram`);
     } catch (e) {
-      setError(e instanceof OfflineError ? "You're offline. Creating an exercise and opening its diagram editor needs a connection; use Save instead, or try again when online." : 'Could not create the exercise. Please try again.');
+      setError(e instanceof OfflineError ? f.offline : f.createError);
     }
   }
 
   return (
     <Dialog
       guardUnsaved
-      title={exercise ? 'Edit exercise' : 'New exercise'}
+      title={exercise ? f.editTitle : f.newTitle}
       onClose={onClose}
       mobileSheet
       footer={
         <>
           <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-            Cancel
+            {t.common.cancel}
           </Button>
           {!exercise && (
             <Button variant="secondary" onClick={handleCreateAndDraw} disabled={saving} className="flex-1 sm:flex-none">
-              Create &amp; add diagrams
+              {f.createAndAdd}
             </Button>
           )}
           <Button variant="primary" type="submit" form={FORM_ID} disabled={saving} className="flex-1 sm:flex-none">
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? f.saving : t.common.save}
           </Button>
         </>
       }
     >
-      <form id={FORM_ID} onSubmit={handleSubmit} aria-label={exercise ? 'Edit exercise' : 'New exercise'}>
+      <form id={FORM_ID} onSubmit={handleSubmit} aria-label={exercise ? f.editTitle : f.newTitle}>
         <label htmlFor="exercise-name" className="mb-1 block text-sm font-medium text-ink">
-          Name
+          {f.name}
         </label>
         <Input
           id="exercise-name"
@@ -137,11 +139,11 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           aria-describedby="exercise-name-hint"
         />
         <p id="exercise-name-hint" className="mt-1 text-xs text-slate">
-          {EXERCISE_NAME_HINT}
+          {f.nameHint(EXERCISE_NAME_EXAMPLE, EXERCISE_FOCUSES.join(', '))}
         </p>
 
         <label htmlFor="exercise-category" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Category
+          {f.category}
         </label>
         <select
           id="exercise-category"
@@ -157,7 +159,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         </select>
 
         <label htmlFor="exercise-min-players" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Minimum players
+          {f.minPlayers}
         </label>
         <Input
           id="exercise-min-players"
@@ -171,11 +173,11 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           className="w-24"
         />
         <p id="exercise-min-players-hint" className="mt-1 text-xs text-slate">
-          Fewest people needed to run it. Optional.
+          {f.minPlayersHint}
         </p>
 
         <label htmlFor="exercise-description" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          Description
+          {f.description}
         </label>
         <Textarea
           id="exercise-description"
@@ -187,9 +189,9 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         {exercise && (
           <div className="mt-4">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">Diagrams</span>
+              <span className="text-sm font-medium text-ink">{f.diagrams}</span>
               <EditButton
-                label="Edit diagrams"
+                label={f.editDiagrams}
                 onClick={() => navigate(`/exercises/${exercise.id}/diagram`)}
               />
             </div>
@@ -201,7 +203,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
                     type="button"
                     onClick={() => setLightbox(idx)}
                     className="min-w-0 shrink-0 text-left"
-                    aria-label={`Open diagram ${d.title}`}
+                    aria-label={f.openDiagram(d.title)}
                   >
                     <span className="block aspect-square w-full overflow-hidden rounded-sm border border-border bg-bg sm:w-20">
                       <DiagramSvg scene={d.scene} />

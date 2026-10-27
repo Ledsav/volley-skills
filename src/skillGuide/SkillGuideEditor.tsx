@@ -4,34 +4,39 @@ import { Button } from '../components/Button';
 import { Textarea } from '../components/Input';
 import { getSkillGuide, updateSkillGuide } from './skillGuideApi';
 import { bandBorderClass } from './bandColor';
+import { useT } from '../i18n/I18nProvider';
 import type { SkillGuideEntry } from '../types/skillGuide';
 
 export function SkillGuideEditor() {
   const { firebaseUser } = useAuth();
+  const t = useT();
+  const s = t.skillGuide;
   const [skills, setSkills] = useState<SkillGuideEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Reloads when the catalog changes (the Italian one arrives after first paint): an unsaved guide
+  // shows its fallback in the active language, a saved one is returned as stored.
   useEffect(() => {
     getSkillGuide()
       .then((guide) => {
         setSkills(guide.skills);
         setLoaded(true);
       })
-      .catch(() => setLoadError('Could not load the skill guide. Please refresh the page.'));
-  }, []);
+      .catch(() => setLoadError(s.loadError));
+  }, [s]);
 
   function updateHowToEvaluate(key: string, value: string) {
-    setSkills((current) => current.map((s) => (s.key === key ? { ...s, howToEvaluate: value } : s)));
+    setSkills((current) => current.map((x) => (x.key === key ? { ...x, howToEvaluate: value } : x)));
   }
 
   function updateRangeDescription(key: string, rangeIndex: number, value: string) {
     setSkills((current) =>
-      current.map((s) =>
-        s.key === key
-          ? { ...s, ranges: s.ranges.map((r, i) => (i === rangeIndex ? { ...r, description: value } : r)) }
-          : s
+      current.map((x) =>
+        x.key === key
+          ? { ...x, ranges: x.ranges.map((r, i) => (i === rangeIndex ? { ...r, description: value } : r)) }
+          : x
       )
     );
   }
@@ -42,7 +47,7 @@ export function SkillGuideEditor() {
     try {
       await updateSkillGuide(skills, firebaseUser.uid);
     } catch {
-      setError('Could not save the skill guide. Please try again.');
+      setError(s.saveError);
     }
   }
 
@@ -59,7 +64,7 @@ export function SkillGuideEditor() {
       <div className="space-y-6">
         {skills.map((skill) => (
           <section key={skill.key} className="rounded-lg border border-border bg-surface p-6 shadow-card">
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{skill.label}</h2>
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{t.labels.playerSkill[skill.key] ?? skill.label}</h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {skill.ranges.map((range, index) => (
                 <div
@@ -81,7 +86,7 @@ export function SkillGuideEditor() {
             </div>
             <div className="mt-3">
               <label htmlFor={`${skill.key}-how-to-evaluate`} className="mb-1 block text-sm font-medium text-ink">
-                How to evaluate
+                {s.howToEvaluate}
               </label>
               <Textarea
                 id={`${skill.key}-how-to-evaluate`}
@@ -93,7 +98,7 @@ export function SkillGuideEditor() {
         ))}
       </div>
       <Button variant="primary" onClick={() => void handleSave()} className="mt-6" disabled={!loaded}>
-        Save
+        {t.common.save}
       </Button>
       {error && (
         <p role="alert" className="mt-3 text-sm text-red">

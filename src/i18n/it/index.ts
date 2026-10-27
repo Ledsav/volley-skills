@@ -16,7 +16,8 @@ import { platform } from './platform';
 import { players } from './players';
 import { settings } from './settings';
 import { signup } from './signup';
+import { skillGuide } from './skillGuide';
 import { teams } from './teams';
 import { theme } from './theme';
 
-export const it = { admin, auth, bulkImport, clubs, common, components, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, teams, theme } satisfies Catalog;
+export const it = { admin, auth, bulkImport, clubs, common, components, home, interest, labels, legal, layout, physicalSessions, physicalTestGuide, platform, players, settings, signup, skillGuide, teams, theme } satisfies Catalog;

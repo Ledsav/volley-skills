@@ -7,15 +7,10 @@ import { shareOrDownload } from '../export/shareFile';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds } from '../exercises/exercisesApi';
-import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import type { Training } from '../types/training';
 import type { TeamNotes } from './pdf/buildTrainingPdf';
 import { TeamNotesDialog, type TeamNotesDraft } from './TeamNotesDialog';
-
-const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
-  ExerciseCategory,
-  string
->;
+import { useT } from '../i18n/I18nProvider';
 
 interface TrainingViewSheetProps {
   training: Training;
@@ -31,6 +26,7 @@ interface TrainingViewSheetProps {
  * whole session from the first exercise. Editing is one tap away via "Edit".
  */
 export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: TrainingViewSheetProps) {
+  const lb = useT().labels;
   const [entries, setEntries] = useState<ExerciseDetailEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
@@ -158,7 +154,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
           <ul aria-label="Targets" className="-mt-2 flex flex-wrap gap-1.5">
             {training.targets.map((t) => (
               <li key={t} className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-ink">
-                {CATEGORY_LABEL[t]}
+                {lb.exerciseCategory[t]}
               </li>
             ))}
           </ul>
@@ -231,7 +227,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
                         )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
-                        {entry.category ? `${CATEGORY_LABEL[entry.category]} · ` : ''}
+                        {entry.category ? `${lb.exerciseCategory[entry.category]} · ` : ''}
                         {entry.durationMinutes} min · min {start}–{end}
                       </span>
                     </span>

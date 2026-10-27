@@ -3,7 +3,8 @@ import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
 import { FIELD_CLASS } from '../../components/Input';
 import { SKILLS, type ActionEvent, type Grade, type RosterEntry, type Skill } from '../../types/match';
-import { GRADE_LABELS, SKILL_LABELS, validGrades } from '../skillGrades';
+import { useT } from '../../i18n/I18nProvider';
+import { validGrades } from '../skillGrades';
 
 interface EditEventDialogProps {
   event: ActionEvent;
@@ -13,6 +14,7 @@ interface EditEventDialogProps {
 }
 
 export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDialogProps) {
+  const t = useT();
   const [playerId, setPlayerId] = useState(event.playerId);
   const [skill, setSkill] = useState<Skill>(event.skill);
   const [grade, setGrade] = useState<Grade>(event.grade);
@@ -43,7 +45,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
           Fundamental
           <select className={FIELD_CLASS} value={skill} onChange={(e) => setSkill(e.target.value as Skill)}>
             {SKILLS.map((s) => (
-              <option key={s} value={s}>{SKILL_LABELS[s]}</option>
+              <option key={s} value={s}>{t.labels.skill[s]}</option>
             ))}
           </select>
         </label>
@@ -51,7 +53,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
           Grade
           <select className={FIELD_CLASS} value={effectiveGrade} onChange={(e) => setGrade(e.target.value as Grade)}>
             {grades.map((g) => (
-              <option key={g} value={g}>{g} {GRADE_LABELS[skill][g]}</option>
+              <option key={g} value={g}>{g} {t.labels.grade[skill][g]}</option>
             ))}
           </select>
         </label>

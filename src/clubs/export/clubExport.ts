@@ -1,7 +1,8 @@
 import { strToU8, zipSync } from 'fflate';
 import { fileSlug, toExportable } from '../../export/exportJson';
 import { csvDocument, type Cell } from '../../matches/report/reportCsv';
-import { POSITION_CATEGORIES, SKILL_KEYS } from '../../types/player';
+import { labels as enLabels } from '../../i18n/en/labels';
+import { POSITION_CATEGORIES, SKILL_KEYS, type PositionCategory } from '../../types/player';
 import type { TeamExportData } from '../../teams/teamExport';
 import { exportReadme } from './exportReadme';
 
@@ -99,7 +100,10 @@ export function playersCsv(players: TeamExportData['players']): string {
     .map((p): Cell[] => {
       const skills = (p.skills ?? {}) as Record<string, { score?: unknown } | undefined>;
       const consent = (p.consent ?? {}) as Raw;
-      const position = POSITION_CATEGORIES.find((c) => c.value === p.positionCategory)?.label ?? null;
+      // A data file, so always English whatever the interface language.
+      const position = POSITION_CATEGORIES.some((c) => c.value === p.positionCategory)
+        ? enLabels.position[p.positionCategory as PositionCategory]('mixed')
+        : null;
       return [
         num(p.number), text(p.fullName), text(p.dob), text(p.nationality), text(p.licenseNumber),
         position, text(p.shirtSize), yesNo(p.starting), text(p.playerPhone), guardiansCell(p.guardians),

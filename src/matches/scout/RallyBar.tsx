@@ -1,4 +1,5 @@
-import { POINT_REASON_LABELS, type MatchFormat, type PointReason, type SetScore, type Side } from '../../types/match';
+import { useT } from '../../i18n/I18nProvider';
+import { type MatchFormat, type PointReason, type SetScore, type Side } from '../../types/match';
 import { POINT_REASONS } from '../skillGrades';
 import { keyLabel } from './hotkeys';
 import { Kbd } from './Kbd';
@@ -23,6 +24,7 @@ interface RallyBarProps {
 }
 
 export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format, size = 'normal' }: RallyBarProps) {
+  const t = useT();
   const height = size === 'large' ? 'min-h-20 text-xl' : 'min-h-12 text-base';
   const timeout = (team: Side) => {
     const left = Math.max(0, format.timeoutsPerSet - timeoutsUsed[team]);
@@ -69,7 +71,7 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
                 reasonPrompt.winner === 'us' ? 'bg-green/15 text-green-strong' : 'bg-red/10 text-red-strong'
               }`}
             >
-              {POINT_REASON_LABELS[reason]}
+              {t.labels.pointReason[reason]}
               <Kbd>{i + 1}</Kbd>
             </button>
           ))}

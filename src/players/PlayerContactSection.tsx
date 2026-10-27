@@ -4,11 +4,7 @@ import { Dialog } from '../components/Dialog';
 import { FIELD_CLASS, Input } from '../components/Input';
 import { updatePlayerContact } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Player, type PositionCategory, type ShirtSize } from '../types/player';
-
-const POSITION_LABELS = Object.fromEntries(POSITION_CATEGORIES.map((c) => [c.value, c.label])) as Record<
-  PositionCategory,
-  string
->;
+import { useT } from '../i18n/I18nProvider';
 
 interface PlayerContactSectionProps {
   teamId: string;
@@ -29,6 +25,7 @@ export function PlayerContactSection({
   editing,
   onEditingChange,
 }: PlayerContactSectionProps) {
+  const lb = useT().labels;
   const [fullName, setFullName] = useState(player.fullName);
   const [shirtNumber, setShirtNumber] = useState(player.number ? String(player.number) : '');
   const [positionCategory, setPositionCategory] = useState<PositionCategory>(player.positionCategory);
@@ -85,7 +82,7 @@ export function PlayerContactSection({
         <dd className="font-medium tabular-nums text-ink">{player.number ? `#${player.number}` : '—'}</dd>
         <dt className="text-slate">Position</dt>
         <dd className="font-medium text-ink">
-          {POSITION_LABELS[player.positionCategory]}
+          {lb.position[player.positionCategory]('mixed')}
           {player.starting && (
             <span className="ml-2 inline-flex items-center rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
               Starting
@@ -139,7 +136,7 @@ export function PlayerContactSection({
             >
               {POSITION_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.label}
+                  {lb.position[c.value]('mixed')}
                 </option>
               ))}
             </select>

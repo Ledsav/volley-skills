@@ -14,7 +14,7 @@ import {
 } from '../../types/match';
 import type { Player, PositionCategory } from '../../types/player';
 import { replay, type EngineMatch } from '../scoutEngine';
-import { POINT_REASONS, SKILL_LABELS, rallyOutcome, validGrades } from '../skillGrades';
+import { POINT_REASONS, labelSkill, rallyOutcome, validGrades } from '../skillGrades';
 import { lineList } from './lineList';
 import type { DvwFile, DvwPlayer, DvwSide, ScoutLine } from './types';
 
@@ -113,7 +113,7 @@ const actionsText = (n: number) => `${n} ${n === 1 ? 'action' : 'actions'}`;
 
 /** One warning per skill and grade: the count and the first five line numbers. */
 function warnDroppedGrade(warn: (message: string, lines: number[]) => void, skill: Skill, grade: Grade, lines: number[]) {
-  const what = `${lines.length} ${SKILL_LABELS[skill]} "${grade}" ${lines.length === 1 ? 'action' : 'actions'} dropped`;
+  const what = `${lines.length} ${labelSkill(skill)} "${grade}" ${lines.length === 1 ? 'action' : 'actions'} dropped`;
   warn(`${what}: the app has no such grade (${lineList(lines)}).`, lines.slice(0, 5));
 }
 

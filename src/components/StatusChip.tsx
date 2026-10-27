@@ -1,4 +1,5 @@
 import type { ObjectiveStatus } from '../types/developmentPlan';
+import { useT } from '../i18n/I18nProvider';
 
 export const STATUS_OPTIONS: ObjectiveStatus[] = ['Not started', 'In progress', 'Active', 'Attention', 'Completed'];
 
@@ -13,9 +14,10 @@ const STATUS_CLASS: Record<ObjectiveStatus, string> = {
 };
 
 export function StatusChip({ status }: { status: ObjectiveStatus }) {
+  const lb = useT().labels;
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[status]}`}>
-      {status}
+      {lb.objectiveStatus[status]}
     </span>
   );
 }

@@ -1,7 +1,8 @@
 import { Trash2 } from 'lucide-react';
 import { FIELD_CLASS } from '../../components/Input';
-import { POINT_REASON_LABELS, SKILLS, type Grade, type RosterEntry, type Skill } from '../../types/match';
-import { GRADE_LABELS, SKILL_LABELS, validGrades } from '../skillGrades';
+import { useT } from '../../i18n/I18nProvider';
+import { SKILLS, type Grade, type RosterEntry, type Skill } from '../../types/match';
+import { validGrades } from '../skillGrades';
 import type { BatchIssue, ParsedRally } from './textScout';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 const SELECT = `${FIELD_CLASS} min-h-11 px-2 py-1 text-base sm:text-sm`;
 
 export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDelete }: Props) {
+  const t = useT();
   const n = index + 1;
   const setAction = (i: number, patch: Partial<ParsedRally['actions'][number]>) =>
     onChange({ ...rally, actions: rally.actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
@@ -53,7 +55,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
               }}
             >
               {SKILLS.map((s) => (
-                <option key={s} value={s}>{SKILL_LABELS[s]}</option>
+                <option key={s} value={s}>{t.labels.skill[s]}</option>
               ))}
             </select>
             <select
@@ -66,7 +68,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
               {a.grade === null && <option value="">Pick a grade</option>}
               {a.grade !== null && !validGrades(a.skill).includes(a.grade) && <option value={a.grade}>{a.grade} ?</option>}
               {validGrades(a.skill).map((g) => (
-                <option key={g} value={g}>{g} {GRADE_LABELS[a.skill][g]}</option>
+                <option key={g} value={g}>{g} {t.labels.grade[a.skill][g]}</option>
               ))}
             </select>
             <button
@@ -94,7 +96,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
           <option value="us">Us</option>
           <option value="them">Them</option>
         </select>
-        {rally.point?.reason && <span className="text-xs text-slate">{POINT_REASON_LABELS[rally.point.reason]}</span>}
+        {rally.point?.reason && <span className="text-xs text-slate">{t.labels.pointReason[rally.point.reason]}</span>}
       </label>
       {issues.map((x, i) => (
         <p key={i} className={`mt-1 text-xs ${x.blocking ? 'text-red' : 'text-orange-strong'}`}>{x.message}</p>

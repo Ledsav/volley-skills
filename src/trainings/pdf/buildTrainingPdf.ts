@@ -1,15 +1,11 @@
 import type { Content, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces';
+import { getT } from '../../i18n/I18nProvider';
 import { fileSlug } from '../../export/exportJson';
 import type { Diagram } from '../../types/diagram';
-import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../../types/exercise';
+import { type Exercise, type ExerciseCategory } from '../../types/exercise';
 import type { Level } from '../../types/player';
 import type { Training } from '../../types/training';
 import { needsMorePlayers } from '../suggestions';
-
-const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
-  ExerciseCategory,
-  string
->;
 
 // Light-theme design tokens (src/index.css): a PDF is always printed light.
 const INK = '#0F172A';
@@ -139,7 +135,7 @@ function coverPage(training: Training, lineup: LineupEntry[]): Content[] {
   ];
   if (training.targets && training.targets.length > 0) {
     content.push({
-      text: [{ text: 'Targets  ', bold: true, color: INK }, training.targets.map((t) => CATEGORY_LABEL[t]).join(dot)],
+      text: [{ text: 'Targets  ', bold: true, color: INK }, training.targets.map((t) => getT().labels.exerciseCategory[t]).join(dot)],
       style: 'facts',
     });
   }
@@ -157,7 +153,7 @@ function coverPage(training: Training, lineup: LineupEntry[]): Content[] {
   const rows = lineup.map((e): TableCell[] => [
     { text: String(e.number), color: SLATE },
     e.name === null ? { text: 'Deleted exercise', color: WARN, italics: true } : { text: e.name, bold: true },
-    { text: e.category ? CATEGORY_LABEL[e.category] : '' },
+    { text: e.category ? getT().labels.exerciseCategory[e.category] : '' },
     { text: e.minPlayers !== undefined ? String(e.minPlayers) : '', alignment: 'right' },
     { text: String(e.minutes), alignment: 'right' },
     { text: `${e.start}–${e.end}`, alignment: 'right', color: SLATE },
@@ -199,7 +195,8 @@ function teamNotesPage(notes: TeamNotes): Content {
     const rows = notes.players.map((p): TableCell[] => [
       { text: p.name, bold: true },
       { text: p.position, color: SLATE },
-      p.level ? { text: p.level, color: LEVEL_COLOR[p.level], bold: true } : { text: 'Not rated', color: SLATE, italics: true },
+      // TODO(i18n T8): teamGender(team)
+      p.level ? { text: getT().labels.level[p.level]('mixed'), color: LEVEL_COLOR[p.level], bold: true } : { text: 'Not rated', color: SLATE, italics: true },
       { text: p.note },
     ]);
     stack.push({
@@ -257,7 +254,7 @@ function exercisePage(
   const suggested = training.suggestedPlayers ?? null;
   const timing = slots.map((s) => `${s.minutes} min (${s.start}–${s.end})`).join(', ');
   const facts = [
-    CATEGORY_LABEL[exercise.category],
+    getT().labels.exerciseCategory[exercise.category],
     timing,
     exercise.minPlayers !== undefined ? `Min ${exercise.minPlayers} players` : '',
   ].filter(Boolean);

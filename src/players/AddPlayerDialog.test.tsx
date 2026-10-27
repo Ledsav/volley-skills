@@ -181,4 +181,12 @@ describe('AddPlayerDialog', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
   });
+
+  it('offers the stored position codes as option values, labelled by the catalog', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({}));
+    render(<AddPlayerDialog teamId="team-1" team={team} onClose={vi.fn()} onCreated={vi.fn()} />);
+    const options = Array.from((screen.getByLabelText('Position') as HTMLSelectElement).options);
+    expect(options.map((o) => o.value)).toEqual(['S', 'OH', 'O', 'MB', 'L', 'U', 'TBD']);
+    expect(options.map((o) => o.textContent)).toEqual(['Setter', 'Outside', 'Opposite', 'Middle', 'Libero', 'Universal', 'TBD']);
+  });
 });

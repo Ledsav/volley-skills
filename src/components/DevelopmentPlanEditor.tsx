@@ -12,6 +12,7 @@ import type {
   SeasonObjective,
   ShortTermObjective,
 } from '../types/developmentPlan';
+import { useT } from '../i18n/I18nProvider';
 
 interface DevelopmentPlanEditorProps {
   plan: DevelopmentPlan;
@@ -80,6 +81,7 @@ export function DevelopmentPlanEditor({
   editing: editingProp,
   onEditingChange,
 }: DevelopmentPlanEditorProps) {
+  const lb = useT().labels;
   const isControlled = editingProp !== undefined;
   const [internalEditing, setInternalEditing] = useState(false);
   const editing = isControlled ? editingProp : internalEditing;
@@ -231,7 +233,7 @@ export function DevelopmentPlanEditor({
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {lb.objectiveStatus[s]}
                     </option>
                   ))}
                 </select>
@@ -291,7 +293,7 @@ export function DevelopmentPlanEditor({
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {lb.objectiveStatus[s]}
                     </option>
                   ))}
                 </select>

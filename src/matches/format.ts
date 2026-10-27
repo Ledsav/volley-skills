@@ -1,5 +1,6 @@
-import { POINT_REASON_LABELS, type MatchEvent, type RosterEntry } from '../types/match';
-import { GRADE_LABELS, SKILL_LABELS } from './skillGrades';
+import type { MatchEvent, RosterEntry } from '../types/match';
+import { getT } from '../i18n/I18nProvider';
+import { labelGrade, labelSkill } from './skillGrades';
 import { formatPercent } from '../i18n/format';
 
 export function fmtPct(x: number | null): string {
@@ -23,9 +24,9 @@ export function playerLabel(entry: RosterEntry | undefined): string {
 export function describeEvent(ev: MatchEvent, roster: Map<string, RosterEntry>): string {
   switch (ev.type) {
     case 'action':
-      return `${playerLabel(roster.get(ev.playerId))} ${SKILL_LABELS[ev.skill]} ${ev.grade} ${GRADE_LABELS[ev.skill][ev.grade] ?? ''}`.trim();
+      return `${playerLabel(roster.get(ev.playerId))} ${labelSkill(ev.skill)} ${ev.grade} ${labelGrade(ev.skill, ev.grade)}`.trim();
     case 'point':
-      return `Point ${ev.winner}${ev.reason ? ` · ${POINT_REASON_LABELS[ev.reason]}` : ''}`;
+      return `Point ${ev.winner}${ev.reason ? ` · ${getT().labels.pointReason[ev.reason]}` : ''}`;
     case 'sub':
       return `Sub ${playerLabel(roster.get(ev.inPlayerId))} in for ${playerLabel(roster.get(ev.outPlayerId))}`;
     case 'timeout':

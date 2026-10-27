@@ -6,11 +6,10 @@ import { LevelPill } from '../components/LevelPill';
 import { listPlayers } from '../players/playersApi';
 import { sortRoster } from '../players/rosterSort';
 import { getTeam } from '../teams/teamsApi';
-import { POSITION_CATEGORIES, type Player } from '../types/player';
+import type { Player } from '../types/player';
 import type { TeamNotes } from './pdf/buildTrainingPdf';
 import { HealthHint } from '../components/HealthHint';
-
-const POSITION_LABEL = Object.fromEntries(POSITION_CATEGORIES.map((p) => [p.value, p.label]));
+import { useT } from '../i18n/I18nProvider';
 
 /** What the coach typed, kept by the caller so reopening the step doesn't lose it. */
 export interface TeamNotesDraft {
@@ -33,6 +32,7 @@ interface TeamNotesDialogProps {
  * to look at for each player. Names and levels go into the shared PDF.
  */
 export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel, onConfirm }: TeamNotesDialogProps) {
+  const lb = useT().labels;
   const [teamName, setTeamName] = useState('');
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
         general,
         players: expected.map((p) => ({
           name: p.fullName,
-          position: p.positionCategory === 'TBD' ? '' : (POSITION_LABEL[p.positionCategory] ?? ''),
+          position: p.positionCategory === 'TBD' ? '' : lb.position[p.positionCategory]('mixed'),
           level: p.level,
           note: (notes[p.id] ?? '').trim(),
         })),
@@ -148,7 +148,7 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
                       />
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{p.fullName}</span>
                       {p.positionCategory !== 'TBD' && (
-                        <span className="text-xs text-slate">{POSITION_LABEL[p.positionCategory]}</span>
+                        <span className="text-xs text-slate">{lb.position[p.positionCategory]('mixed')}</span>
                       )}
                       <LevelPill level={p.level} />
                     </label>

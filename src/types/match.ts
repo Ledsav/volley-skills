@@ -10,13 +10,6 @@ export const GRADES: Grade[] = ['#', '+', '!', '-', '/', '='];
 export type Side = 'us' | 'them';
 
 export type PointReason = 'oppError' | 'oppKill' | 'oppAce' | 'oppBlock' | 'unknown';
-export const POINT_REASON_LABELS: Record<PointReason, string> = {
-  oppError: 'Opp. error',
-  oppKill: 'Opp. kill',
-  oppAce: 'Opp. ace',
-  oppBlock: 'Opp. block',
-  unknown: 'Other',
-};
 
 export type MatchStatus = 'setup' | 'live' | 'finished';
 export type Competition = 'league' | 'cup' | 'friendly' | 'tournament';

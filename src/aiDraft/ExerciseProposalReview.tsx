@@ -7,11 +7,7 @@ import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
 import { DraftDiagramPreview } from './DraftDiagramPreview';
 import { DRAFT_LIMITS, type ExerciseDraft } from './types';
 import { PlayersNote } from '../trainings/PlayersNote';
-
-const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
-  ExerciseCategory,
-  string
->;
+import { useT } from '../i18n/I18nProvider';
 
 export type ExerciseDraftPatch = Partial<Pick<ExerciseDraft, 'name' | 'category' | 'description'>>;
 
@@ -26,6 +22,7 @@ interface Props {
 
 /** One card per AI proposal: diagram preview (tap to zoom), text, issues, Keep and inline Edit. */
 export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEdit }: Props) {
+  const lb = useT().labels;
   const [editing, setEditing] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState<ExerciseDraft | null>(null);
 
@@ -60,7 +57,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                     <option value="">Pick a category</option>
                     {EXERCISE_CATEGORIES.map((c) => (
                       <option key={c.key} value={c.key}>
-                        {c.label}
+                        {lb.exerciseCategory[c.key]}
                       </option>
                     ))}
                   </select>
@@ -81,7 +78,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                     <span className="font-medium text-ink">{d.name}</span>
                     {d.category && (
                       <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
-                        {CATEGORY_LABEL[d.category]}
+                        {lb.exerciseCategory[d.category]}
                       </span>
                     )}
                     <PlayersNote minPlayers={d.minPlayers} suggested={null} />

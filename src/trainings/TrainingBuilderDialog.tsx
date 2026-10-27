@@ -16,11 +16,7 @@ import { PlayersNote } from './PlayersNote';
 import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
 import { TRAINING_NAME_EXAMPLE, TRAINING_NAME_HINT } from './naming';
-
-const CATEGORY_LABEL = Object.fromEntries(EXERCISE_CATEGORIES.map((c) => [c.key, c.label])) as Record<
-  ExerciseCategory,
-  string
->;
+import { useT } from '../i18n/I18nProvider';
 
 const chipClass = (active: boolean) =>
   `shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
@@ -48,6 +44,7 @@ interface TrainingBuilderDialogProps {
 }
 
 export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: TrainingBuilderDialogProps) {
+  const lb = useT().labels;
   const { firebaseUser } = useAuth();
   const [name, setName] = useState(training?.name ?? initial?.name ?? '');
   const [description, setDescription] = useState(training?.description ?? initial?.description ?? '');
@@ -274,7 +271,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             <div className="flex flex-wrap items-center gap-x-2">
               <span className="text-sm font-medium text-ink">{ex.name}</span>
               <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
-                {CATEGORY_LABEL[ex.category]}
+                {lb.exerciseCategory[ex.category]}
               </span>
               <PlayersNote minPlayers={ex.minPlayers} suggested={suggestedPlayersValue} />
             </div>
@@ -376,12 +373,12 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                 key={c.key}
                 type="button"
                 aria-pressed={active}
-                aria-label={isCovered ? `${c.label} (covered)` : c.label}
+                aria-label={isCovered ? `${lb.exerciseCategory[c.key]} (covered)` : lb.exerciseCategory[c.key]}
                 onClick={() => toggleTarget(c.key)}
                 className={`${chipClass(active)} inline-flex items-center gap-1`}
               >
                 {isCovered && <Check aria-hidden="true" className="h-3.5 w-3.5" />}
-                {c.label}
+                {lb.exerciseCategory[c.key]}
               </button>
             );
           })}
@@ -434,7 +431,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                         )}
                       </span>
                       <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
-                        {row.category ? `${CATEGORY_LABEL[row.category]} · ` : ''}min {startMinute}–
+                        {row.category ? `${lb.exerciseCategory[row.category]} · ` : ''}min {startMinute}–
                         {startMinute + (row.durationMinutes || 0)}
                       </span>
                       {needsMorePlayers(row.minPlayers, suggestedPlayersValue) && (
@@ -519,7 +516,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                     onClick={() => selectCategory(c.key)}
                     className={chipClass(pickerCategory === c.key)}
                   >
-                    {c.label}
+                    {lb.exerciseCategory[c.key]}
                   </button>
                 ))}
               </div>

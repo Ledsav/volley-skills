@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ArrowLeftRight, X } from 'lucide-react';
 import type { Grade, RosterEntry, Skill } from '../../types/match';
-import { GRADE_LABELS, SKILL_LABELS, validGrades } from '../skillGrades';
+import { useT } from '../../i18n/I18nProvider';
+import { validGrades } from '../skillGrades';
 import { GRADE_CLASS } from './gradeStyles';
 import { Kbd } from './Kbd';
 
@@ -18,6 +19,7 @@ interface ActionSheetProps {
 }
 
 export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose, skill: controlledSkill, onSkillChange }: ActionSheetProps) {
+  const t = useT();
   const [ownSkill, setOwnSkill] = useState<Skill>(skills[0]);
   const skill = controlledSkill ?? ownSkill;
   const setSkill = (s: Skill) => {
@@ -56,7 +58,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
               s === skill ? 'border-blue bg-blue text-white' : 'border-border bg-surface text-ink'
             }`}
           >
-            {SKILL_LABELS[s]}
+            {t.labels.skill[s]}
             <Kbd>{s}</Kbd>
           </button>
         ))}
@@ -67,13 +69,13 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
           <button
             key={g}
             type="button"
-            aria-label={`${g} ${GRADE_LABELS[skill][g]}`}
+            aria-label={`${g} ${t.labels.grade[skill][g]}`}
             onClick={() => onGrade(skill, g)}
             className={`relative flex min-h-14 flex-col items-center justify-center rounded-md text-sm font-semibold ${GRADE_CLASS[g]}`}
           >
             <Kbd className="absolute right-1 top-1">{g}</Kbd>
             <span className="text-lg leading-none" aria-hidden="true">{g}</span>
-            <span className="text-xs" aria-hidden="true">{GRADE_LABELS[skill][g]}</span>
+            <span className="text-xs" aria-hidden="true">{t.labels.grade[skill][g]}</span>
           </button>
         ))}
       </div>

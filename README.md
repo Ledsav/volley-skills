@@ -288,8 +288,8 @@ never committed):
 - `reference/jersey-numbers.json`: optional, skipped if missing.
 
 In VS Code, **Terminal → Run Task → Setup (fresh clone)** does all of the above (`npm ci`, creates
-`.env.local`, checks the workbook, runs the unit tests) and stops with a message on anything you
-must restore by hand.
+`.env.local`, checks the workbook, warns if `serviceAccountKey.json.enc` is missing, runs the unit
+tests) and stops with a message on anything you must restore by hand.
 
 Optional `.env.local` keys (from [`.env.example`](.env.example)): `VITE_USE_EMULATOR`,
 `VITE_APPCHECK_RECAPTCHA_KEY` (Firebase console → App Check), `VITE_SITE_URL`.

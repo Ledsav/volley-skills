@@ -34,6 +34,12 @@ describe('SignupPage', () => {
     vi.mocked(useAuth).mockReturnValue(authValue({ memberships: [], activeClubId: null, club: null }));
   });
 
+  it('does not offer Italiano as the club language while Italian is off', () => {
+    renderPage();
+    expect(screen.getByLabelText('Club language')).toHaveValue('en');
+    expect(screen.queryByRole('option', { name: 'Italiano' })).not.toBeInTheDocument();
+  });
+
   it('rejects a club name shorter than 2 characters', () => {
     renderPage();
     fill({ name: 'A' });

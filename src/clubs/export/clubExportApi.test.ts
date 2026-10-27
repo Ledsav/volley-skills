@@ -11,6 +11,7 @@ vi.mock('../../firebase/clubPaths', () => ({
 }));
 vi.mock('../../firebase/readAll', () => ({ readAll: vi.fn(), readAllFromServer: vi.fn() }));
 vi.mock('../../teams/teamExportApi', () => ({ loadTeamExportData: vi.fn() }));
+vi.mock('../../firebase/config', () => ({ db: {} }));
 
 const snap = (id: string, data: Record<string, unknown> | null) => ({ id, exists: () => data !== null, data: () => data });
 

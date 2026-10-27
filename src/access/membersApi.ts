@@ -35,15 +35,18 @@ export async function removeFromClub(rawEmail: string): Promise<void> {
   await batch.commit();
 }
 
+/** Why a role change or removal is blocked; the UI maps the code to text. */
+export type RoleBlockReason = 'owner' | 'lastAdmin' | 'demoteFirst';
+
 export function canChangeRole(
   target: Member, members: Member[], ownerEmail: string,
-): { demote: boolean; remove: boolean; reason: string | null } {
+): { demote: boolean; remove: boolean; reason: RoleBlockReason | null } {
   if (target.email.toLowerCase() === ownerEmail.toLowerCase()) {
-    return { demote: false, remove: false, reason: 'The club owner stays an admin. Transfer ownership first.' };
+    return { demote: false, remove: false, reason: 'owner' };
   }
   if (target.role === 'member') return { demote: false, remove: true, reason: null };
   if (members.filter((x) => x.role === 'admin').length <= 1) {
-    return { demote: false, remove: false, reason: 'A club needs at least one admin.' };
+    return { demote: false, remove: false, reason: 'lastAdmin' };
   }
-  return { demote: true, remove: false, reason: 'Make them a member before removing them.' };
+  return { demote: true, remove: false, reason: 'demoteFirst' };
 }

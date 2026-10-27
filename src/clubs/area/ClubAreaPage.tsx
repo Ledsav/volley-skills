@@ -7,32 +7,29 @@ import { ProfileTab } from './ProfileTab';
 import { PeopleTab } from './PeopleTab';
 import { ContractTab } from './ContractTab';
 import { ExportTab } from './ExportTab';
+import { useT } from '../../i18n/I18nProvider';
 
 type ClubTab = 'profile' | 'people' | 'export' | 'contract';
 
-const ALL_TABS: { id: ClubTab; label: string }[] = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'people', label: 'People & access' },
-  { id: 'export', label: 'Export' },
-  { id: 'contract', label: 'Contract' },
-];
+const TAB_IDS: ClubTab[] = ['profile', 'people', 'export', 'contract'];
 
 /**
  * `restricted` (a paused club, or one whose contract has ended) keeps Profile read-only,
  * Export and Contract, and opens on Contract, where the export-window dates are.
  */
 export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
-  usePageMeta({ title: 'Club' });
+  const t = useT().clubs.area;
+  usePageMeta({ title: t.pageTitle });
   const { club } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tabs = restricted ? ALL_TABS.filter((t) => t.id !== 'people') : ALL_TABS;
+  const tabs = TAB_IDS.filter((id) => !restricted || id !== 'people').map((id) => ({ id, label: t.tabs[id] }));
   const requested = params.get('tab');
-  const active = tabs.find((t) => t.id === requested)?.id ?? (restricted ? 'contract' : 'profile');
+  const active = tabs.find((x) => x.id === requested)?.id ?? (restricted ? 'contract' : 'profile');
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Club" eyebrow={club?.name} />
-      <SectionTabs label="Club sections" tabs={tabs} active={active} className="mb-6"
+      <PageHeader title={t.pageTitle} eyebrow={club?.name} />
+      <SectionTabs label={t.sectionsLabel} tabs={tabs} active={active} className="mb-6"
         onChange={(id) => setParams({ tab: id }, { replace: true })} />
       {active === 'profile' && <ProfileTab restricted={restricted} />}
       {active === 'people' && <PeopleTab />}

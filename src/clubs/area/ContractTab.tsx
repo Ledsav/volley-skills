@@ -6,9 +6,9 @@ import { useNotify } from '../../components/Notice';
 import { Link } from 'react-router-dom';
 import { OPERATOR_CONTACT_EMAIL } from '../../legal/operator';
 import { parseVersionKey } from '../../legal/versions';
-import { CLUB_STATUS_LABEL } from '../statusLabels';
 import { requestTermination } from '../clubAdminApi';
 import { formatDateValue } from '../../i18n/format';
+import { useT } from '../../i18n/I18nProvider';
 
 const fmt = (d: Date) => formatDateValue(d, 'long');
 
@@ -24,6 +24,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function ContractTab() {
   const { club, appUser } = useAuth();
   const notify = useNotify();
+  const t = useT().clubs;
+  const c = t.contract;
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!club) return null;
@@ -40,60 +42,60 @@ export function ContractTab() {
     try {
       await requestTermination((appUser?.email ?? '').toLowerCase());
       setConfirming(false);
-      notify('End of contract requested');
+      notify(c.requested);
     } catch {
-      setError("Couldn't send the request. Try again.");
+      setError(c.requestFailed);
     }
   }
 
   return (
     <section className="flex max-w-xl flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-card">
       <dl className="flex flex-col gap-4">
-        <Row label="Status">
-          <span className="font-medium">{CLUB_STATUS_LABEL[club.status]}</span>
+        <Row label={c.status}>
+          <span className="font-medium">{t.status[club.status]}</span>
           {club.status === 'suspended' && club.statusReason && (
             <p className="mt-1 text-slate">{club.statusReason}</p>
           )}
-          {effective && <p className="mt-1 text-slate">{`Full use until ${fmt(effective)}`}</p>}
-          {retrieval && <p className="mt-1 text-slate">{`Data export until ${fmt(retrieval)}`}</p>}
+          {effective && <p className="mt-1 text-slate">{c.fullUseUntil(fmt(effective))}</p>}
+          {retrieval && <p className="mt-1 text-slate">{c.exportUntil(fmt(retrieval))}</p>}
         </Row>
-        <Row label="Accepted terms">
+        <Row label={c.acceptedTerms}>
           {legal
-            ? `${legal.versionKey}, accepted ${legal.acceptedAt ? `${fmt(legal.acceptedAt.toDate())} ` : ''}by ${legal.acceptedBy}`
-            : 'Not yet accepted'}
+            ? c.acceptedSummary(legal.versionKey, legal.acceptedAt ? fmt(legal.acceptedAt.toDate()) : null, legal.acceptedBy)
+            : c.notAccepted}
           <span className="mt-1 flex flex-wrap gap-x-4">
             {accepted && (
               <>
-                <Link className="text-blue underline" to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>Terms</Link>
-                <Link className="text-blue underline" to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>DPA</Link>
+                <Link className="text-blue underline" to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>{c.terms}</Link>
+                <Link className="text-blue underline" to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>{c.dpa}</Link>
               </>
             )}
-            <Link className="text-blue underline" to="/legal/subprocessors">Sub-processors</Link>
+            <Link className="text-blue underline" to="/legal/subprocessors">{c.subprocessors}</Link>
           </span>
         </Row>
       </dl>
 
       {requestedAt && (
         <p className="text-sm text-ink">
-          {`End of contract requested on ${fmt(requestedAt)} by ${termination.requestedBy}`}
+          {c.requestedOn(fmt(requestedAt), termination.requestedBy ?? '')}
         </p>
       )}
       {canEnd && (
         <div>
-          <Button variant="destructive" onClick={() => setConfirming(true)}>End our contract</Button>
+          <Button variant="destructive" onClick={() => setConfirming(true)}>{c.endOurContract}</Button>
         </div>
       )}
       {OPERATOR_CONTACT_EMAIL && (
         <p className="text-sm text-slate">
-          Questions about your contract? Contact{' '}
-          <a className="text-blue underline" href={`mailto:${OPERATOR_CONTACT_EMAIL}`}>{OPERATOR_CONTACT_EMAIL}</a>.
+          {c.questionsPrefix}
+          <a className="text-blue underline" href={`mailto:${OPERATOR_CONTACT_EMAIL}`}>{OPERATOR_CONTACT_EMAIL}</a>{c.questionsSuffix}
         </p>
       )}
       {confirming && (
         <ConfirmDialog
-          title="End your club's contract?"
-          message="We'll be told you want to leave. Your club keeps full use and a window to export your data until the end date we confirm."
-          confirmLabel="Request end of contract"
+          title={c.confirmTitle}
+          message={c.confirmMessage}
+          confirmLabel={c.confirmLabel}
           error={error}
           onCancel={() => { setConfirming(false); setError(null); }}
           onConfirm={() => void confirm()}

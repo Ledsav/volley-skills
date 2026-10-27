@@ -3,6 +3,7 @@ import { clubCol, clubDoc } from '../../firebase/clubPaths';
 import { readAllFromServer } from '../../firebase/readAll';
 import { loadTeamExportData } from '../../teams/teamExportApi';
 import type { ClubExportData, ExportDoc } from './clubExport';
+import { getT } from '../../i18n/I18nProvider';
 
 async function docs(col: CollectionReference): Promise<ExportDoc[]> {
   return (await readAllFromServer(col)).map((d) => ({ id: d.id, ...d.data() }));
@@ -22,7 +23,8 @@ async function one(ref: DocumentReference): Promise<ExportDoc | null> {
  * (tests/rules/export.rules.test.ts pins every read).
  */
 export async function loadClubExportData(onProgress: (label: string) => void): Promise<ClubExportData> {
-  onProgress('Club and people');
+  const progress = getT().clubs.export.progress;
+  onProgress(progress.clubAndPeople);
   const club = await one(clubDoc());
   if (!club) throw new Error('club not found');
   const members = await docs(clubCol('members'));
@@ -32,14 +34,14 @@ export async function loadClubExportData(onProgress: (label: string) => void): P
   const teamDocs = await docs(clubCol('teams'));
   const teams: ClubExportData['teams'] = [];
   for (const [i, team] of teamDocs.entries()) {
-    onProgress(`Team ${i + 1} of ${teamDocs.length}: ${typeof team.name === 'string' ? team.name : team.id}`);
+    onProgress(progress.team(i + 1, teamDocs.length, typeof team.name === 'string' ? team.name : team.id));
     teams.push({
       data: await loadTeamExportData(team.id, { includeEvents: true, includeCalendar: true }),
       awards: await docs(clubCol('teams', team.id, 'awards')),
     });
   }
 
-  onProgress('Library');
+  onProgress(progress.library);
   const exercises: ClubExportData['exercises'] = [];
   for (const exercise of await docs(clubCol('exercises'))) {
     exercises.push({ exercise, diagrams: await docs(clubCol('exercises', exercise.id, 'diagrams')) });
@@ -47,7 +49,7 @@ export async function loadClubExportData(onProgress: (label: string) => void): P
   const trainings = await docs(clubCol('trainings'));
   const counters = await docs(clubCol('counters'));
 
-  onProgress('Guides and access');
+  onProgress(progress.guidesAndAccess);
   return {
     club,
     members,

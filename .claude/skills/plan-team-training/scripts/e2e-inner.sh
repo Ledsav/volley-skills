@@ -35,7 +35,7 @@ const src=require('fs').readFileSync('$S/proposal.example.mjs','utf8')
   .replace(/expectedPlayers: 9/,'expectedPlayers: 7')
   .replace(/name: 'Reception \+ free ball: control and convert'/,\"name: 'Reception + free ball: e2e check'\")
   .replace(/suggestedPlayers: 9/,'suggestedPlayers: 7')
-  .replace(/steps: \[[\s\S]*?\],\n};/,'steps: '+JSON.stringify([...lib.map(n=>({name:n,minutes:15})),{name:'Free ball: call, drop off and attack',minutes:15}])+',\n};');
+  .replace(/steps: \[[\s\S]*?\],\r?\n};/,'steps: '+JSON.stringify([...lib.map(n=>({name:n,minutes:15})),{name:'Free ball: call, drop off and attack',minutes:15}])+',\n};');
 require('fs').writeFileSync('$W/proposal.mjs',src);"
 
 echo "== validate (expect OK, warnings allowed)"

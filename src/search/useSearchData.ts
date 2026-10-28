@@ -10,7 +10,8 @@ import type { SearchItem } from './types';
 const MAX_TEAMS = 20;
 const IN_FLIGHT = 4;
 
-type Status = 'idle' | 'loading' | 'done';
+/** `failed` is not cached: the next open or typed character retries. */
+type Status = 'idle' | 'loading' | 'done' | 'failed';
 
 interface Store {
   key: string;
@@ -66,32 +67,36 @@ function teamItem(team: Team): SearchItem {
 async function loadTeams(isClubAdmin: boolean, email: string): Promise<void> {
   const gen = generation;
   update({ teamsStatus: 'loading' });
-  let teams: Team[] = [];
   try {
-    teams = (isClubAdmin ? await listClubTeams() : await listMyTeams(email)).teams;
+    const teams = (isClubAdmin ? await listClubTeams() : await listMyTeams(email)).teams;
+    if (gen !== generation) return;
+    update({ teams: teams.map(teamItem), teamList: teams, teamsStatus: 'done' });
   } catch (error) {
     console.error('Search: could not load teams', error);
+    // Not cached: the next open or typed character tries again.
+    if (gen === generation) update({ teamsStatus: 'failed' });
   }
-  if (gen !== generation) return;
-  update({ teams: teams.map(teamItem), teamList: teams, teamsStatus: 'done' });
 }
 
 async function loadDetail(): Promise<void> {
   const gen = generation;
   const teams = store.teamList.slice(0, MAX_TEAMS);
-  update({ detailStatus: 'loading' });
+  let failed = false;
+  update({ detailStatus: 'loading', players: [], matches: [] });
   const queue = [...teams];
   const t = getT();
   const worker = async () => {
     for (let team = queue.shift(); team; team = queue.shift()) {
       const [players, matches] = await Promise.all([
         loadTeamRoster(team.id).catch((e) => {
+          failed = true;
           console.error('Search: could not load players', e);
           return [];
         }),
         listMatches(team.id)
           .then((p) => p.matches)
           .catch((e) => {
+            failed = true;
             console.error('Search: could not load matches', e);
             return [];
           }),
@@ -129,7 +134,7 @@ async function loadDetail(): Promise<void> {
   };
   await Promise.all(Array.from({ length: Math.min(IN_FLIGHT, teams.length) }, worker));
   if (gen !== generation) return;
-  update({ detailStatus: 'done' });
+  update({ detailStatus: failed ? 'failed' : 'done' });
 }
 
 export interface SearchData {
@@ -157,11 +162,22 @@ export function useSearchData({ opened, typed }: { opened: boolean; typed: boole
     if (wantTeams && store.key === key && store.teamsStatus === 'idle') void loadTeams(isClubAdmin, email);
   }, [wantTeams, key, isClubAdmin, email, snapshot.key, snapshot.teamsStatus]);
 
+  // A failed load is retried when the palette is opened again or a character is typed, never in a loop.
+  useEffect(() => {
+    if (wantTeams && store.key === key && store.teamsStatus === 'failed') void loadTeams(isClubAdmin, email);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantTeams, typed, key]);
+
+  useEffect(() => {
+    if (typed && store.key === key && store.teamsStatus === 'done' && store.detailStatus === 'failed') void loadDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typed, key]);
+
   useEffect(() => {
     if (typed && store.key === key && store.teamsStatus === 'done' && store.detailStatus === 'idle') void loadDetail();
   }, [typed, key, snapshot.key, snapshot.teamsStatus, snapshot.detailStatus]);
 
-  const detailPending = typed && current.detailStatus !== 'done';
+  const detailPending = typed && (current.detailStatus === 'idle' || current.detailStatus === 'loading');
   return {
     teams: current.teams,
     players: current.players,

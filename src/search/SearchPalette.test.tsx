@@ -9,6 +9,7 @@ import type { SearchItem } from './types';
 const admin: Access = { isClubAdmin: true, sections: { exercises: true, trainings: true, guides: true } };
 
 const mocks = vi.hoisted(() => ({
+  access: null as unknown,
   data: {
     teams: [] as SearchItem[],
     players: [] as SearchItem[],
@@ -17,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ access: admin, isPlatformAdmin: false, activeClubId: 'c1' }),
+  useAuth: () => ({ access: mocks.access ?? admin, isPlatformAdmin: false, activeClubId: 'c1' }),
 }));
 vi.mock('./useSearchData', () => ({ useSearchData: () => mocks.data }));
 
@@ -44,6 +45,7 @@ const type = (input: HTMLElement, value: string) => fireEvent.change(input, { ta
 const activeLabel = (input: HTMLElement) => document.getElementById(input.getAttribute('aria-activedescendant') ?? '')?.textContent;
 
 beforeEach(() => {
+  mocks.access = null;
   sessionStorage.clear();
   mocks.data = { teams, players: [], matches: [], loading: { teams: false, players: false, matches: false } };
 });
@@ -101,13 +103,28 @@ describe('SearchPalette', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('caps groups at 5 with Show all N', () => {
+  it('caps groups at 5 with a Show all N option reachable by keyboard', () => {
     mocks.data.players = Array.from({ length: 7 }, (_, i) => player(i + 1));
     const { input } = setup();
     type(input, 'anna');
-    expect(screen.getAllByRole('option')).toHaveLength(5);
-    fireEvent.click(screen.getByRole('button', { name: 'Show all 7' }));
+    expect(screen.getAllByRole('option')).toHaveLength(6);
+    expect(screen.queryByRole('button', { name: /Show all/ })).toBeNull();
+    for (let i = 0; i < 5; i++) fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(activeLabel(input)).toBe('Show all 7');
+    fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.getAllByRole('option')).toHaveLength(7);
+    expect(screen.queryByRole('option', { name: 'Show all 7' })).toBeNull();
+    expect(activeLabel(input)).toContain('Anna Falcone 6');
+  });
+
+  it('typing collapses expanded groups again', () => {
+    mocks.data.players = Array.from({ length: 7 }, (_, i) => player(i + 1));
+    const { input } = setup();
+    type(input, 'anna');
+    fireEvent.click(screen.getByRole('option', { name: 'Show all 7' }));
+    expect(screen.getAllByRole('option')).toHaveLength(7);
+    type(input, 'anna f');
+    expect(screen.getAllByRole('option')).toHaveLength(6);
   });
 
   it('no results shows the message and Actions', () => {
@@ -116,6 +133,24 @@ describe('SearchPalette', () => {
     expect(screen.getByText('No results for ‘zzzz’')).toBeInTheDocument();
     expect(screen.getByText('Actions')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /New team/ })).toBeInTheDocument();
+  });
+
+  it('no results and no actions shows no empty Actions heading', () => {
+    const none = { isClubAdmin: false, sections: { exercises: false, trainings: false, guides: false } };
+    mocks.access = none;
+    mocks.data.teams = [];
+    const { input } = setup();
+    type(input, 'zzzz');
+    expect(screen.getByText('No results for ‘zzzz’')).toBeInTheDocument();
+    expect(screen.queryByText('Actions')).toBeNull();
+  });
+
+  it('the team picker says so when the club has no teams', () => {
+    mocks.data.teams = [];
+    const { input } = setup();
+    type(input, 'add pl');
+    fireEvent.click(screen.getByRole('option', { name: /Add player/ }));
+    expect(screen.getByText('No teams yet')).toBeInTheDocument();
   });
 
   it('a team-picker action asks for a team first', () => {

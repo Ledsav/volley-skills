@@ -18,6 +18,7 @@ export const search = {
     newMatch: 'New match…',
     addPlayer: 'Add player…',
   },
+  noTeams: 'No teams yet',
   chooseTeam: 'Choose a team',
   noResults: (q: string) => `No results for ‘${q}’`,
   showAll: (n: number) => `Show all ${n}`,

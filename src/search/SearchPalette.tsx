@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Sheet } from '../components/Sheet';
 import { SkeletonBlock } from '../components/Skeleton';
@@ -23,6 +23,8 @@ interface ViewGroup {
   /** Placeholder rows while the group's data is still loading. */
   skeleton: boolean;
 }
+
+type Entry = SearchItem & { more?: true };
 
 interface Props {
   /** `restoreFocus` is false when the close is a navigation, whose new page owns focus. */
@@ -91,13 +93,18 @@ export function SearchPalette({ onClose }: Props) {
       if (matched.length > 0 || loading) out.push({ id, label: label(name), items: matched, skeleton: loading && matched.length === 0 });
     }
     if (out.length === 0) {
-      return { groups: [{ id: 'actions' as const, label: label('actions'), items: actions, skeleton: false }], noResults: true };
+      return { groups: actions.length > 0 ? [{ id: 'actions' as const, label: label('actions'), items: actions, skeleton: false }] : [], noResults: true };
     }
     return { groups: out, noResults: false };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, picking, data, goto, actions, recents]);
 
-  const visible = (g: ViewGroup) => (picking || expanded.has(g.id) ? g.items : g.items.slice(0, GROUP_CAP));
+  const isCapped = (g: ViewGroup) => !picking && !expanded.has(g.id) && g.items.length > GROUP_CAP;
+  // A capped group ends with a "Show all N" row that is a real option, so keyboard users can reach it.
+  const visible = (g: ViewGroup): Entry[] =>
+    isCapped(g)
+      ? [...g.items.slice(0, GROUP_CAP), { id: `more:${g.id}`, group: g.id, label: t.showAll(g.items.length), more: true }]
+      : g.items;
   const flat = groups.flatMap((g) => visible(g));
   const groupStarts: number[] = [];
   {
@@ -130,7 +137,11 @@ export function SearchPalette({ onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
-  function choose(item: SearchItem) {
+  function choose(item: Entry) {
+    if (item.more) {
+      setExpanded(new Set([...expanded, item.group]));
+      return;
+    }
     if (picking) {
       const action = picking.action;
       onClose(false);
@@ -207,7 +218,7 @@ export function SearchPalette({ onClose }: Props) {
           ref={inputRef}
           type="text"
           role="combobox"
-          aria-expanded="true"
+          aria-expanded={flat.length > 0}
           aria-controls={listId}
           aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
           aria-autocomplete="list"
@@ -221,13 +232,14 @@ export function SearchPalette({ onClose }: Props) {
           onChange={(e) => {
             setQuery(e.target.value);
             setActive(0);
+            setExpanded(new Set());
           }}
           onKeyDown={onKeyDown}
           className="h-12 min-w-0 flex-1 bg-transparent text-body text-ink placeholder:text-ink-3 focus:outline-none"
         />
       </div>
       {noResults && (
-        <p className="px-4 pt-3 text-callout text-ink-2" role="status">
+        <p className="px-4 pt-3 text-callout text-ink-2">
           {t.noResults(q)}
         </p>
       )}
@@ -238,15 +250,19 @@ export function SearchPalette({ onClose }: Props) {
         onMouseDown={(e) => e.preventDefault()}
         className="max-h-[min(60vh,28rem)] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
       >
+        {picking && !data.loading.teams && data.teams.length === 0 && (
+          <p role="presentation" className="px-3 py-3 text-callout text-ink-2">
+            {t.noTeams}
+          </p>
+        )}
         {groups.map((g) => {
           const shown = visible(g);
-          const capped = !picking && !expanded.has(g.id) && g.items.length > GROUP_CAP;
           return (
             <div key={g.id} role="presentation" className="pb-1">
               <div role="presentation" className="px-3 pb-1 pt-2 text-caption font-medium uppercase tracking-wide text-ink-3">
                 {g.label}
               </div>
-              {shown.map((item) => {
+              {shown.map((item: Entry) => {
                 counter++;
                 const i = counter;
                 const Icon = item.icon;
@@ -263,9 +279,10 @@ export function SearchPalette({ onClose }: Props) {
                   >
                     {Icon && <Icon size={18} className="shrink-0 text-ink-3" aria-hidden="true" />}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-body text-ink">{item.label}</span>
+                      <span className={`block truncate text-body ${item.more ? 'text-ink-2' : 'text-ink'}`}>{item.label}</span>
                       {item.sublabel && <span className="block truncate text-footnote text-ink-3">{item.sublabel}</span>}
                     </span>
+                    {item.more && <ChevronDown size={16} className="shrink-0 text-ink-3" aria-hidden="true" />}
                     {item.pick && <ChevronRight size={16} className="shrink-0 text-ink-3" aria-hidden="true" />}
                   </div>
                 );
@@ -274,18 +291,6 @@ export function SearchPalette({ onClose }: Props) {
                 <div aria-hidden="true" className="flex flex-col gap-2 px-3 py-2">
                   <SkeletonBlock className="h-8 w-full" />
                   <SkeletonBlock className="h-8 w-full" />
-                </div>
-              )}
-              {capped && (
-                <div role="presentation" className="px-3 pb-1">
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setExpanded(new Set([...expanded, g.id]))}
-                    className="pressable min-h-[44px] text-callout text-ink-2 hover:text-ink"
-                  >
-                    {t.showAll(g.items.length)}
-                  </button>
                 </div>
               )}
             </div>

@@ -100,6 +100,19 @@ describe('useSearchData', () => {
     expect(err).toHaveBeenCalled();
   });
 
+  it('a failed teams load is retried on the next open, not cached', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(listClubTeams).mockRejectedValueOnce(new Error('offline'));
+    const first = renderHook(() => useSearchData({ opened: true, typed: false }));
+    await waitFor(() => expect(listClubTeams).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(first.result.current.loading.teams).toBe(false));
+    expect(first.result.current.teams).toEqual([]);
+    first.unmount();
+    const second = renderHook(() => useSearchData({ opened: true, typed: false }));
+    await waitFor(() => expect(second.result.current.teams).toHaveLength(2));
+    expect(listClubTeams).toHaveBeenCalledTimes(2);
+  });
+
   it('cache is keyed by club id and cleared on sign-out', async () => {
     const { result, rerender } = renderHook(() => useSearchData({ opened: true, typed: false }));
     await waitFor(() => expect(result.current.teams).toHaveLength(2));

@@ -80,6 +80,8 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   const queue = useRef<Queued[]>([]);
   const pillRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<() => void>(() => {});
+  /** Pointer or focus inside the pill pauses its timer; reset for every notice so a stale flag cannot leak. */
+  const holds = useRef({ pointer: false, focus: false });
 
   const showPlain = useCallback((message: string, durationMs: number) => {
     window.clearTimeout(timer.current);
@@ -90,6 +92,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   /** Closes the current notice and shows the next queued plain one, if any. */
   const close = useCallback(() => {
     window.clearTimeout(timer.current);
+    holds.current = { pointer: false, focus: false };
     const next = queue.current.shift();
     if (next) showPlain(next.message, next.durationMs);
     else setNotice(null);
@@ -135,6 +138,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   const undoable = useCallback(
     (o: UndoableOptions) => {
       runPending(); // a second undoable commits the first at once
+      holds.current = { pointer: false, focus: false };
       pending.current = o;
       setNotice({ id: ++nextId.current, message: o.message, undo: true });
       startUndoTimer();
@@ -191,7 +195,6 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
     );
   }, [pillId, reduced]);
 
-  const holds = useRef({ pointer: false, focus: false });
   const hold = (kind: 'pointer' | 'focus', on: boolean) => {
     holds.current[kind] = on;
     if (!pending.current) return;
@@ -221,7 +224,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
                 type="button"
                 onClick={close}
                 aria-label={t.dismiss}
-                className="-m-1 shrink-0 rounded-sm p-1 opacity-70 hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue"
+                className="-m-1 shrink-0 rounded-sm p-1 opacity-70 hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
               >
                 <X size={16} aria-hidden="true" />
               </button>

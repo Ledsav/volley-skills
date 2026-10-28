@@ -233,6 +233,23 @@ describe('useUndoable', () => {
     expect(o.commit).toHaveBeenCalledTimes(1);
   });
 
+  it('resets the pause flags per notice: a hold left by an undone notice does not freeze the next one', () => {
+    const a = opts();
+    const b = opts({ message: 'Deleted again' });
+    setup(a, b);
+    fireEvent.click(screen.getByText('del'));
+    const undoA = screen.getByRole('button', { name: 'Undo' });
+    fireEvent.pointerEnter(undoA);
+    fireEvent.click(undoA); // the pill unmounts under the pointer: no pointerleave
+    fireEvent.click(screen.getByText('del2'));
+    const undoB = screen.getByRole('button', { name: 'Undo' });
+    fireEvent.focus(undoB);
+    fireEvent.blur(undoB);
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    expect(b.commit).toHaveBeenCalledTimes(1);
+    expect(a.commit).not.toHaveBeenCalled();
+  });
+
   it('logs a failed commit when there is no onCommitError', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const error = new Error('boom');

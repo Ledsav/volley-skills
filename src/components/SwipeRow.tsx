@@ -17,6 +17,7 @@ const ACTION_WIDTH = 76;
 const OPEN_VELOCITY = 0.3; // px/ms
 
 /** Where a release lands. Offsets are signed: negative reveals trailing actions, positive the leading one. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function swipeRelease(i: {
   offset: number;
   velocity: number;
@@ -101,7 +102,12 @@ export function SwipeRow({
     [paint, reduced],
   );
 
-  useEffect(() => () => animRef.current?.stop(), []);
+  useEffect(
+    () => () => {
+      animRef.current?.stop();
+    },
+    [],
+  );
 
   const close = useCallback(() => {
     setState('closed');

@@ -29,6 +29,12 @@ export const layout = {
     settings: 'Settings',
     termsAndPrivacy: 'Terms & privacy',
     signOut: 'Sign out',
+    roleAdmin: 'Admin',
+    roleMember: 'Member',
+    openNavigation: 'Open navigation',
+    search: 'Search',
+    moreActions: 'More actions',
+    closeNavigation: 'Close navigation',
   },
   morePage: {
     title: 'More',

@@ -12,6 +12,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider
 export function useSearch(): SearchApi {
   return useContext(SearchContext);
 }

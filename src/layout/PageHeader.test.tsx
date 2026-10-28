@@ -21,6 +21,11 @@ describe('PageHeader', () => {
     expect(screen.queryByText('New team')).not.toBeInTheDocument();
   });
 
+  it('does not render more items in the content', () => {
+    render(<PageHeader title="Teams" more={[{ kind: 'action', label: 'Export list', onSelect: () => {} }]} />);
+    expect(screen.queryByText('Export list')).not.toBeInTheDocument();
+  });
+
   it('publishes a string title, or chromeTitle for a node title', () => {
     const { rerender } = render(
       <PageChromeProvider>

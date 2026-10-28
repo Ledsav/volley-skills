@@ -5,11 +5,13 @@ import { signOutAndClearLocalData } from '../firebase/signOut';
 import { clearAiLocalData } from '../ai/aiSettings';
 import { storeClub } from '../clubs/activeClub';
 import { clearSignDraft } from '../legal/signDraft';
+import { clearRecents } from '../search/recents';
 
 function clearLocalState() {
   clearAiLocalData();
   storeClub(null);
   clearSignDraft();
+  clearRecents();
 }
 
 /**

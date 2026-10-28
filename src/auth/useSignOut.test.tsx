@@ -41,6 +41,14 @@ describe('useSignOut', () => {
     expect(localStorage.getItem('vcb.signDraft')).toBeNull();
   });
 
+  it('sign-out clears recents', async () => {
+    sessionStorage.setItem('vcb.searchRecents', '[{"id":"t1"}]');
+    render(<Harness />);
+    await act(async () => screen.getByText('go').click());
+    vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
+    expect(sessionStorage.getItem('vcb.searchRecents')).toBeNull();
+  });
+
   it('shows the unsynced dialog when the helper reports unsynced writes', async () => {
     vi.mocked(signOutAndClearLocalData).mockResolvedValueOnce('unsynced');
     render(<Harness />);

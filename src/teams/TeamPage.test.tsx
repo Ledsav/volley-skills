@@ -187,17 +187,15 @@ describe('TeamPage', () => {
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
   });
 
-  it('switches sections from the mobile section picker', async () => {
+  it('switches sections from the section tabs', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
 
     renderTeamPage();
 
-    const picker = await screen.findByRole('combobox', { name: 'Team section' });
-    expect(picker).toHaveValue('roster');
-    expect(picker.parentElement?.className).toContain('sm:hidden');
+    expect(await screen.findByRole('tab', { name: 'Roster' })).toHaveAttribute('aria-selected', 'true');
 
-    fireEvent.change(picker, { target: { value: 'calendar' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
 
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Calendar' })).toHaveAttribute('aria-selected', 'true');
@@ -230,7 +228,6 @@ describe('TeamPage', () => {
     renderTeamPage();
     await screen.findByRole('heading', { name: 'U17 Boys' });
     expect(screen.queryByRole('tab', { name: 'Calendar' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Calendar' })).not.toBeInTheDocument();
   });
 
   it('shows the Calendar tab with trainings access', async () => {
@@ -241,7 +238,6 @@ describe('TeamPage', () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
     expect(await screen.findByRole('tab', { name: 'Calendar' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Calendar' })).toBeInTheDocument();
   });
 
   it('opens the player bulk-import dialog from the roster tab', async () => {

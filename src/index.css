@@ -20,6 +20,7 @@
   --color-on-ink: 255 255 255;
   --color-separator: 222 222 224; /* opaque hairline */
   --color-focus: 0 113 227; /* #0071E3 */
+  --color-segment-thumb: 255 255 255;
   --color-sidebar: 255 255 255;
   /* Legacy aliases (removed in increment 6) */
   --color-slate: 110 110 115;
@@ -61,6 +62,7 @@
   --color-on-ink: 0 0 0;
   --color-separator: 55 55 58;
   --color-focus: 64 156 255; /* #409CFF */
+  --color-segment-thumb: 99 99 102;
   --color-sidebar: 13 13 15; /* #0D0D0F */
   --color-slate: 161 161 166;
   --color-border: 55 55 58;

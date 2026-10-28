@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { useMediaQuery } from './useMediaQuery';
 import { animateSpring, SPRING_DEFAULT } from '../motion/spring';
@@ -33,7 +33,7 @@ export function swipeRelease(i: {
 }
 
 const TONE_CLASS = {
-  destructive: 'bg-red-strong text-on-ink',
+  destructive: 'bg-destructive-fill text-white',
   neutral: 'bg-surface-3 text-ink',
 } as const;
 
@@ -46,8 +46,8 @@ function ActionButton({ action, onDone }: { action: SwipeAction; onDone: () => v
         onDone();
         action.onAction();
       }}
-      style={{ width: ACTION_WIDTH }}
-      className={`flex h-full flex-col items-center justify-center gap-1 text-footnote font-semibold ${TONE_CLASS[action.tone]}`}
+      style={{ minWidth: ACTION_WIDTH }}
+      className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-footnote font-semibold ${TONE_CLASS[action.tone]}`}
     >
       {action.icon}
       <span>{action.label}</span>
@@ -76,6 +76,8 @@ export function SwipeRow({
   const [state, setState] = useState<'closed' | 'open'>('closed');
   const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const leadingRef = useRef<HTMLDivElement>(null);
+  const trailingRef = useRef<HTMLDivElement>(null);
   const xRef = useRef(0);
   const animRef = useRef<{ stop: () => number } | null>(null);
 
@@ -86,7 +88,23 @@ export function SwipeRow({
     xRef.current = x;
     const el = contentRef.current;
     if (el) el.style.transform = x === 0 ? '' : `translateX(${x}px)`;
-  }, []);
+    // The action layers stay hidden while the row is at rest, so their colour never shows at the row's edges,
+    // and stretch with the content on a full swipe so no gap opens between them.
+    const lead = leadingRef.current;
+    if (lead) {
+      lead.style.visibility = x > 0 ? '' : 'hidden';
+      lead.style.width = `${Math.max(leadingWidth, x)}px`;
+    }
+    const trail = trailingRef.current;
+    if (trail) {
+      trail.style.visibility = x < 0 ? '' : 'hidden';
+      trail.style.width = `${Math.max(trailingWidth, -x)}px`;
+    }
+  }, [leadingWidth, trailingWidth]);
+
+  useLayoutEffect(() => {
+    paint(xRef.current);
+  }, [paint, enabled]);
 
   const moveTo = useCallback(
     (target: number, velocity = 0, onComplete?: () => void) => {
@@ -171,12 +189,12 @@ export function SwipeRow({
   return (
     <div ref={rootRef} data-state={state} className="relative overflow-hidden">
       {leading && (
-        <div aria-hidden={hidden || undefined} className="absolute inset-y-0 left-0 flex">
+        <div ref={leadingRef} aria-hidden={hidden || undefined} className="absolute inset-y-0 left-0 flex">
           <ActionButton action={leading} onDone={close} />
         </div>
       )}
       {trailing.length > 0 && (
-        <div aria-hidden={hidden || undefined} className="absolute inset-y-0 right-0 flex">
+        <div ref={trailingRef} aria-hidden={hidden || undefined} className="absolute inset-y-0 right-0 flex">
           {trailing.map((a) => (
             <ActionButton key={a.label} action={a} onDone={close} />
           ))}

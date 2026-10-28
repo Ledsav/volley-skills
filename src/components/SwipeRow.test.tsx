@@ -40,11 +40,23 @@ describe('SwipeRow', () => {
     );
     expect(container.firstElementChild).toHaveAttribute('data-state', 'closed');
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
-    const button = screen.getByRole('button', { name: 'Delete', hidden: true });
+    const button = screen.getByText('Delete').closest('button') as HTMLButtonElement;
     expect(button.closest('[aria-hidden="true"]')).not.toBeNull();
     expect(button).toHaveAttribute('tabindex', '-1');
     fireEvent.click(button);
     expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the action layer hidden while the row is at rest, with white content on the destructive fill', () => {
+    stubPointer(true);
+    render(
+      <SwipeRow trailing={[{ label: 'Delete', tone: 'destructive', undoable: true, onAction: vi.fn() }]}>
+        <p>Row</p>
+      </SwipeRow>,
+    );
+    const button = screen.getByText('Delete').closest('button') as HTMLButtonElement;
+    expect(button.parentElement).toHaveStyle({ visibility: 'hidden' });
+    expect(button).toHaveClass('bg-destructive-fill', 'text-white');
   });
 
   it('does nothing on fine pointers', () => {

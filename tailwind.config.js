@@ -32,6 +32,7 @@ export default {
           3: 'rgb(var(--color-ink-3) / <alpha-value>)',
         },
         'on-ink': 'rgb(var(--color-on-ink) / <alpha-value>)',
+        'destructive-fill': 'rgb(var(--color-destructive-fill) / <alpha-value>)',
         separator: 'rgb(var(--color-separator) / <alpha-value>)',
         focus: 'rgb(var(--color-focus) / <alpha-value>)',
         sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',

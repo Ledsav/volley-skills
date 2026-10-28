@@ -35,4 +35,22 @@ describe('system-setting media queries', () => {
     const block = mediaBlock('prefers-reduced-motion: reduce');
     expect(block).toMatch(/\.pressable:active\s*\{[^}]*transform:\s*none/);
   });
+
+  it('phone type sizes: large-title 30/36 and score 56 below 768px, with tailwind roles reading the variables', () => {
+    const block = mediaBlock('max-width: 767px');
+    expect(block).toMatch(/:root\s*\{[^}]*--fs-large-title:\s*1\.875rem;[^}]*--lh-large-title:\s*2\.25rem;/);
+    expect(block).toMatch(/--fs-score:\s*3\.5rem;/);
+    expect(css).toMatch(/--fs-large-title:\s*2\.125rem;/);
+    expect(css).toMatch(/--fs-score:\s*4\.5rem;/);
+    const tw = readFileSync(resolve(process.cwd(), 'tailwind.config.js'), 'utf8');
+    expect(tw).toMatch(/'large-title':\s*\['var\(--fs-large-title\)'/);
+    expect(tw).toMatch(/score:\s*\['var\(--fs-score\)'/);
+  });
+
+  it('cards get a hairline shadow in light and none in dark', () => {
+    expect(css).toMatch(/:root\s*\{[^}]*--shadow-card:\s*0 1px 2px rgba\(0, 0, 0, 0\.04\);/);
+    expect(css).toMatch(/\.dark\s*\{[^}]*--shadow-card:\s*none;/);
+    const tw = readFileSync(resolve(process.cwd(), 'tailwind.config.js'), 'utf8');
+    expect(tw).toMatch(/card:\s*'var\(--shadow-card\)'/);
+  });
 });

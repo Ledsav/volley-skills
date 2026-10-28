@@ -38,6 +38,11 @@
   --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06);
   --scrim: rgb(0 0 0 / 0.28);
   --tint-alpha: 0.14;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --fs-large-title: 2.125rem;
+  --lh-large-title: 2.5rem;
+  --fs-score: 4.5rem;
+  --lh-score: 4.5rem;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -73,6 +78,17 @@
   --glass-edge: inset 0 0 0 1px rgb(255 255 255 / 0.08);
   --scrim: rgb(0 0 0 / 0.56);
   --tint-alpha: 0.22;
+  --shadow-card: none;
+}
+
+/* Phone type sizes (design system section 3): large-title 30/36, score 56. */
+@media (max-width: 767px) {
+  :root {
+    --fs-large-title: 1.875rem;
+    --lh-large-title: 2.25rem;
+    --fs-score: 3.5rem;
+    --lh-score: 3.5rem;
+  }
 }
 
 @layer base {

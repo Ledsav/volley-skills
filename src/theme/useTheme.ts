@@ -5,6 +5,7 @@ import {
   getThemePreference,
   setThemePreference,
   THEME_CHANGED_EVENT,
+  THEME_PREFERENCE_CHANGED_EVENT,
   type Theme,
   type ThemePreference,
 } from './theme';
@@ -35,7 +36,11 @@ export function useThemePreference(): [ThemePreference, (p: ThemePreference) => 
   useEffect(() => {
     const sync = () => setPref(getThemePreference());
     window.addEventListener(THEME_CHANGED_EVENT, sync);
-    return () => window.removeEventListener(THEME_CHANGED_EVENT, sync);
+    window.addEventListener(THEME_PREFERENCE_CHANGED_EVENT, sync);
+    return () => {
+      window.removeEventListener(THEME_CHANGED_EVENT, sync);
+      window.removeEventListener(THEME_PREFERENCE_CHANGED_EVENT, sync);
+    };
   }, []);
 
   const set = useCallback((p: ThemePreference) => {

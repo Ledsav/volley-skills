@@ -50,7 +50,7 @@ export default {
       },
       // Type roles from design system section 3, in rem so the browser text size scales the layout.
       fontSize: {
-        'large-title': ['2.125rem', { lineHeight: '2.5rem', letterSpacing: '-0.022em', fontWeight: '700' }],
+        'large-title': ['var(--fs-large-title)', { lineHeight: 'var(--lh-large-title)', letterSpacing: '-0.022em', fontWeight: '700' }],
         'title-1': ['1.75rem', { lineHeight: '2.125rem', letterSpacing: '-0.02em', fontWeight: '700' }],
         'title-2': ['1.375rem', { lineHeight: '1.75rem', letterSpacing: '-0.017em', fontWeight: '600' }],
         'title-3': ['1.1875rem', { lineHeight: '1.5rem', letterSpacing: '-0.012em', fontWeight: '600' }],
@@ -60,7 +60,7 @@ export default {
         footnote: ['0.8125rem', { lineHeight: '1.125rem', letterSpacing: '0', fontWeight: '400' }],
         caption: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em', fontWeight: '500' }],
         stat: ['2.5rem', { lineHeight: '2.75rem', letterSpacing: '-0.03em', fontWeight: '700' }],
-        score: ['4.5rem', { lineHeight: '4.5rem', letterSpacing: '-0.04em', fontWeight: '700' }],
+        score: ['var(--fs-score)', { lineHeight: 'var(--lh-score)', letterSpacing: '-0.04em', fontWeight: '700' }],
         display: ['2.75rem', { lineHeight: '2.875rem', letterSpacing: '-0.035em', fontWeight: '700' }],
         // Legacy roles, removed in increment 6.
         title: ['1.375rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
@@ -68,7 +68,7 @@ export default {
       },
       borderRadius: { sm: '8px', md: '12px', lg: '16px', xl: '22px' },
       boxShadow: {
-        card: '0 1px 2px rgba(0,0,0,.04)',
+        card: 'var(--shadow-card)',
         pop: '0 8px 32px rgba(0,0,0,.12)',
         sheet: '0 -8px 40px rgba(0,0,0,.18)',
       },

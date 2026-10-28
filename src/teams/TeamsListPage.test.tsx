@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WithChrome } from '../test/chromeProbe';
 import { describe, expect, it, vi } from 'vitest';
@@ -95,6 +95,26 @@ describe('TeamsListPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
     expect(screen.getByRole('dialog', { name: /Import teams/ })).toBeInTheDocument();
+  });
+
+  it('opens the create dialog from the main action published to the shell', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    render(
+      <MemoryRouter>
+        <WithChrome><TeamsListPage /></WithChrome>
+      </MemoryRouter>
+    );
+    await screen.findByText('U17 Girls');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId('chrome-probe')).getByRole('button', { name: 'Create team' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('opens create team from a pending action', async () => {

@@ -73,6 +73,25 @@ describe('PageChrome', () => {
     expect(read().title).toBe('B');
   });
 
+  it('an unmounting publisher does not clear chrome owned by another that does not re-render', () => {
+    // B is memoised, so removing A never re-renders B and B cannot republish: only the owner token keeps B's title.
+    const StaticB = memo(function StaticB() {
+      usePublishPageChrome({ title: 'B', mainAction: { label: 'B action', onSelect: () => {} } });
+      return null;
+    });
+    const tree = (withA: boolean) => (
+      <PageChromeProvider>
+        <Probe />
+        {withA && <Publisher label="A action" title="A" />}
+        <StaticB />
+      </PageChromeProvider>
+    );
+    const { rerender } = render(tree(true));
+    expect(read().title).toBe('B');
+    rerender(tree(false));
+    expect(read()).toEqual({ title: 'B', action: 'B action', more: 0 });
+  });
+
   it('does not re-render the shell for equal chrome, and keeps onSelect current', () => {
     probeRenders = 0;
     const first = vi.fn();

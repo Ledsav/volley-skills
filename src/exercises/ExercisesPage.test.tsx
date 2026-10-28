@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WithChrome } from '../test/chromeProbe';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -62,6 +62,14 @@ describe('ExercisesPage', () => {
     renderPage();
     await screen.findByText('Pepper');
     expect(screen.queryByRole('button', { name: 'Draft with AI' })).not.toBeInTheDocument();
+  });
+
+  it('opens the exercise form from the main action published to the shell', async () => {
+    renderPage();
+    await screen.findByText('Pepper');
+    expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId('chrome-probe')).getByRole('button', { name: 'New exercise' }));
+    expect(screen.getByText('form-dialog-stub')).toBeInTheDocument();
   });
 
   it('renders exercises from the first page', async () => {

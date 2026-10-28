@@ -87,7 +87,7 @@ export function usePageChromeState(): PageChromeState {
 
 /**
  * A page writes its toolbar state here. It publishes on mount and on change and resets to
- * empty on unmount. If two components publish, the last mounted wins; an unmount only clears
+ * empty on unmount. If two components publish, the last to render wins (an earlier one reclaims the chrome on its next render); an unmount only clears
  * chrome it owns. Handlers stay current through refs, so a new closure does not re-render the shell.
  * Without a provider this is a no-op, so PageHeader works standalone in tests.
  */

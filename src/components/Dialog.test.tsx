@@ -77,15 +77,14 @@ describe('Dialog', () => {
     expect(document.activeElement).toBe(input);
   });
 
-  it('fills the viewport edge-to-edge on mobile when mobileSheet is set, without changing default behavior otherwise', () => {
+  it('opens the large detent when mobileSheet is set, without changing default behavior otherwise', () => {
     const { rerender } = render(
       <Dialog title="Session recording" onClose={vi.fn()} mobileSheet>
         <p>Body</p>
       </Dialog>
     );
 
-    expect(screen.getByRole('dialog').className).toMatch(/h-full/);
-    expect(screen.getByRole('dialog').className).toMatch(/rounded-none/);
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-detent', 'large');
 
     rerender(
       <Dialog title="Session recording" onClose={vi.fn()}>
@@ -93,8 +92,7 @@ describe('Dialog', () => {
       </Dialog>
     );
 
-    expect(screen.getByRole('dialog').className).not.toMatch(/h-full/);
-    expect(screen.getByRole('dialog').className).toMatch(/rounded-lg/);
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-detent', 'content');
   });
 
   it('keeps Tab focus inside the dialog, wrapping at both ends', () => {

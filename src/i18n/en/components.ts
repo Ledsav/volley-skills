@@ -1,5 +1,7 @@
 export const components = {
   close: 'Close',
+  done: 'Done',
+  cancel: 'Cancel',
   dismiss: 'Dismiss',
   edit: 'Edit',
   discardTitle: 'Discard changes?',

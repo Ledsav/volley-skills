@@ -2,6 +2,8 @@ import type { Catalog } from '../catalog';
 
 export const components = {
   close: 'Chiudi',
+  done: 'Fine',
+  cancel: 'Annulla',
   dismiss: 'Ignora',
   edit: 'Modifica',
   discardTitle: 'Scartare le modifiche?',

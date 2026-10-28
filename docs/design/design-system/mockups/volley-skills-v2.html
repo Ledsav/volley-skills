@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volley Skills v2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a reference sheet — page chrome follows the viewer's theme; every specimen is shown in a forced Light (.L) and Dark (.D) panel side by side. Tokens mirror docs/superpowers/specs/2026-10-28-ui-redesign-design.md §5. */
+:root {
+  --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F2F2F7; --surface-3:#E5E5EA;
+  --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#8E8E93; --on-ink:#FFFFFF;
+  --sep:rgba(60,60,67,.14); --glass:rgba(255,255,255,.72); --edge:rgba(0,0,0,.06);
+  --focus:#0071E3;
+  --red:#FF3B30; --orange:#FF9500; --blue:#007AFF; --green:#34C759;
+  --red-t:#D70015; --orange-t:#C93400; --blue-t:#0040DD; --green-t:#248A3D;
+  --tint:14%;
+  --font: Inter, -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --surface-3:#3A3A3C;
+  --ink:#F5F5F7; --ink-2:#A1A1A6; --ink-3:#6E6E73; --on-ink:#000000;
+  --sep:rgba(84,84,88,.48); --glass:rgba(28,28,30,.70); --edge:rgba(255,255,255,.08);
+  --focus:#409CFF;
+  --red:#FF453A; --orange:#FF9F0A; --blue:#0A84FF; --green:#30D158;
+  --red-t:#FF6961; --orange-t:#FFB340; --blue-t:#409CFF; --green-t:#30DB5B;
+  --tint:22%; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --surface-3:#3A3A3C;
+  --ink:#F5F5F7; --ink-2:#A1A1A6; --ink-3:#6E6E73; --on-ink:#000000;
+  --sep:rgba(84,84,88,.48); --glass:rgba(28,28,30,.70); --edge:rgba(255,255,255,.08);
+  --focus:#409CFF;
+  --red:#FF453A; --orange:#FF9F0A; --blue:#0A84FF; --green:#30D158;
+  --red-t:#FF6961; --orange-t:#FFB340; --blue-t:#409CFF; --green-t:#30DB5B;
+  --tint:22%; color-scheme: dark; }
+
+/* Forced specimen themes */
+.L { --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F2F2F7; --surface-3:#E5E5EA; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#8E8E93; --on-ink:#FFFFFF; --sep:rgba(60,60,67,.14); --glass:rgba(255,255,255,.72); --edge:rgba(0,0,0,.06); --focus:#0071E3; --red:#FF3B30; --orange:#FF9500; --blue:#007AFF; --green:#34C759; --red-t:#D70015; --orange-t:#C93400; --blue-t:#0040DD; --green-t:#248A3D; --tint:14%; --side:#FFFFFF; --shadow:0 1px 2px rgba(0,0,0,.04); --float:0 8px 32px rgba(0,0,0,.12); color-scheme: light; }
+.D { --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --surface-3:#3A3A3C; --ink:#F5F5F7; --ink-2:#A1A1A6; --ink-3:#6E6E73; --on-ink:#000000; --sep:rgba(84,84,88,.48); --glass:rgba(28,28,30,.70); --edge:rgba(255,255,255,.08); --focus:#409CFF; --red:#FF453A; --orange:#FF9F0A; --blue:#0A84FF; --green:#30D158; --red-t:#FF6961; --orange-t:#FFB340; --blue-t:#409CFF; --green-t:#30DB5B; --tint:22%; --side:#0D0D0F; --shadow:none; --float:0 0 0 1px rgba(255,255,255,.08), 0 8px 32px rgba(0,0,0,.5); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--font); font-size:15px; line-height:22px; letter-spacing:-.005em; font-feature-settings:"cv11","ss01"; -webkit-font-smoothing:antialiased; }
+.page { max-width:1180px; margin:0 auto; padding-block:48px 96px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); display:flex; flex-direction:column; gap:64px; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { margin:0; text-wrap:balance; }
+.lt { font-size:34px; line-height:40px; font-weight:700; letter-spacing:-.022em; }
+.t2 { font-size:22px; line-height:28px; font-weight:600; letter-spacing:-.017em; }
+.foot { font-size:13px; line-height:18px; color:var(--ink-2); }
+.cap { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.01em; color:var(--ink-2); }
+header.top { display:flex; flex-direction:column; gap:10px; max-width:720px; }
+header.top .over { font-size:13px; color:var(--ink-2); font-weight:500; }
+header.top h1 { font-size:clamp(34px, 6vw, 56px); line-height:1.05; font-weight:700; letter-spacing:-.035em; }
+header.top p { margin:0; color:var(--ink-2); font-size:17px; line-height:26px; }
+section { display:flex; flex-direction:column; gap:20px; }
+section > .head { display:flex; flex-direction:column; gap:4px; max-width:720px; }
+.pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width: 860px) { .pair { grid-template-columns:1fr; } }
+.panel { background:var(--bg); color:var(--ink); border-radius:22px; padding:24px; display:flex; flex-direction:column; gap:20px; min-width:0; outline:1px solid var(--sep); outline-offset:-1px; }
+.panel > .tag { font-size:12px; font-weight:600; color:var(--ink-2); letter-spacing:.01em; }
+
+/* swatches */
+.sw { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; }
+.chip-sw { display:flex; flex-direction:column; gap:6px; }
+.chip-sw i { display:block; height:44px; border-radius:12px; outline:1px solid var(--sep); outline-offset:-1px; }
+.chip-sw b { font-size:12px; font-weight:600; }
+.chip-sw span { font-size:11px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.data { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+@media (max-width: 520px) { .data { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+.dcell { background:var(--surface); border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px; box-shadow:var(--shadow); }
+.dcell i { height:8px; border-radius:4px; display:block; }
+.dcell b { font-size:13px; }
+
+/* type */
+.typerow { display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:baseline; padding:10px 0; border-bottom:1px solid var(--sep); }
+.typerow:last-child { border-bottom:0; }
+.typerow .cap { font-variant-numeric: tabular-nums; }
+
+/* components */
+.btn { font:inherit; font-size:15px; font-weight:600; letter-spacing:-.01em; border:0; border-radius:12px; padding:10px 18px; min-height:44px; cursor:pointer; transition:transform 160ms cubic-bezier(.23,1,.32,1), background-color 160ms ease; }
+.btn:active { transform:scale(.97); transition-duration:100ms; }
+.btn:focus-visible, .seg button:focus-visible, .row:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.btn.pri { background:var(--ink); color:var(--on-ink); }
+.btn.sec { background:var(--surface-2); color:var(--ink); }
+.btn.pl { background:transparent; color:var(--ink); padding-inline:10px; }
+.btn.de { background:transparent; color:var(--red-t); padding-inline:10px; }
+.btn.pill { border-radius:999px; padding:7px 16px; min-height:34px; font-size:14px; }
+.btnrow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+
+.seg { position:relative; display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; background:var(--surface-2); border-radius:10px; padding:2px; isolation:isolate; max-width:100%; }
+.seg .thumb { position:absolute; top:2px; bottom:2px; left:2px; border-radius:8px; background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.04); z-index:-1; transition:transform 320ms cubic-bezier(.32,.72,0,1); }
+.D .seg .thumb { background:#636366; }
+.seg button { font:inherit; font-size:13px; font-weight:500; padding:6px 14px; border:0; background:transparent; color:var(--ink); border-radius:8px; cursor:pointer; white-space:nowrap; }
+.seg button[aria-pressed="true"] { font-weight:600; }
+
+.group { background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+.ghead { padding:0 16px 8px; }
+.row { display:flex; align-items:center; gap:12px; padding:0 16px; min-height:52px; position:relative; cursor:pointer; transition:background-color 120ms ease; }
+.row:active { background:var(--surface-3); }
+.row + .row::before { content:""; position:absolute; top:0; right:0; left:56px; border-top:1px solid var(--sep); }
+.row.nav + .row.nav::before { left:16px; }
+.av { width:32px; height:32px; border-radius:50%; background:var(--surface-2); color:var(--ink-2); display:grid; place-items:center; font-size:12px; font-weight:600; flex:none; }
+.row .main { display:flex; flex-direction:column; min-width:0; flex:1; }
+.row .main b { font-size:15px; font-weight:600; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .main span { font-size:13px; color:var(--ink-2); line-height:18px; }
+.chev { color:var(--ink-3); font-size:17px; }
+.lv { font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.lv.r { background:color-mix(in srgb, var(--red) var(--tint), transparent); color:var(--red-t); }
+.lv.o { background:color-mix(in srgb, var(--orange) var(--tint), transparent); color:var(--orange-t); }
+.lv.b { background:color-mix(in srgb, var(--blue) var(--tint), transparent); color:var(--blue-t); }
+.lv.g { background:color-mix(in srgb, var(--green) var(--tint), transparent); color:var(--green-t); }
+
+.toast { display:flex; align-items:center; gap:14px; background:var(--ink); color:var(--on-ink); border-radius:999px; padding:8px 8px 8px 18px; width:max-content; max-width:100%; box-shadow:var(--float); font-size:14px; }
+.toast button { font:inherit; font-weight:600; border:0; background:color-mix(in srgb, var(--on-ink) 16%, transparent); color:var(--on-ink); border-radius:999px; padding:6px 14px; cursor:pointer; }
+
+.menu { background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%); border-radius:14px; box-shadow:var(--float); padding:6px; width:220px; max-width:100%; display:flex; flex-direction:column; }
+.menu div { padding:8px 10px; border-radius:8px; font-size:14px; display:flex; justify-content:space-between; }
+.menu div:hover { background:color-mix(in srgb, var(--ink) 8%, transparent); }
+.menu hr { border:0; border-top:1px solid var(--sep); margin:4px 6px; }
+.menu .k { color:var(--ink-3); font-size:12px; }
+.menu .dz { color:var(--red-t); }
+.backdrop { background:linear-gradient(135deg, color-mix(in srgb, var(--blue) 30%, var(--bg)), color-mix(in srgb, var(--green) 25%, var(--bg)) 60%, var(--bg)); border-radius:16px; padding:22px; display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+
+/* Screens */
+.screen { border-radius:18px; overflow:hidden; background:var(--bg); color:var(--ink); display:flex; height:520px; outline:1px solid var(--sep); outline-offset:-1px; min-width:0; }
+.sidebar { width:200px; flex:none; background:var(--side); border-right:1px solid var(--sep); padding:14px 10px; display:flex; flex-direction:column; gap:2px; }
+@media (max-width: 1100px) { .screen .sidebar { display:none; } }
+.club { display:flex; gap:10px; align-items:center; padding:4px 8px 14px; }
+.logo { width:30px; height:30px; border-radius:9px; background:var(--ink); color:var(--on-ink); display:grid; place-items:center; font-size:12px; font-weight:700; letter-spacing:-.02em; }
+.nv { font-size:14px; padding:7px 10px; border-radius:9px; color:var(--ink); }
+.nv.on { background:var(--surface-3); font-weight:600; }
+.nl { font-size:12px; color:var(--ink-2); font-weight:500; padding:14px 10px 4px; }
+.content { flex:1; min-width:0; position:relative; overflow:hidden; }
+.toolbar { position:absolute; inset:0 0 auto; height:52px; display:flex; align-items:center; gap:10px; padding:0 16px; background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%); border-bottom:1px solid var(--edge); z-index:2; }
+.toolbar .tt { font-size:15px; font-weight:600; letter-spacing:-.01em; flex:1; }
+.search { display:flex; align-items:center; gap:8px; background:var(--surface-2); border-radius:9px; padding:5px 10px; font-size:13px; color:var(--ink-3); width:190px; }
+@media (max-width: 1100px) { .screen .search { display:none; } }
+.search kbd { margin-left:auto; font-family:inherit; font-size:11px; color:var(--ink-3); border:1px solid var(--sep); border-radius:5px; padding:0 5px; }
+.scroll { position:absolute; inset:0; overflow:hidden; padding:66px 22px 20px; display:flex; flex-direction:column; gap:18px; }
+.tiles { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:12px; }
+@media (max-width: 640px) { .tiles { grid-template-columns:1fr 1fr; } .tiles .live { grid-column:1 / -1; } }
+.tile { background:var(--surface); border-radius:16px; padding:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:4px; min-width:0; }
+.tile .stat { font-size:34px; line-height:38px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; }
+.cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width: 640px) { .cols { grid-template-columns:1fr; } }
+.wl { font-size:11px; font-weight:700; width:22px; height:22px; border-radius:6px; display:grid; place-items:center; flex:none; }
+.wl.w { background:color-mix(in srgb, var(--green) var(--tint), transparent); color:var(--green-t); }
+.wl.l { background:color-mix(in srgb, var(--red) var(--tint), transparent); color:var(--red-t); }
+
+/* Phone */
+.phones { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.phone { width:300px; max-width:100%; height:620px; border-radius:40px; padding:10px; background:#0B0B0C; flex:none; }
+.ps { width:100%; height:100%; border-radius:31px; overflow:hidden; position:relative; background:var(--bg); color:var(--ink); }
+.ps .bar { position:absolute; inset:0 0 auto; height:92px; padding:40px 16px 0; display:flex; align-items:center; gap:10px; background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%); border-bottom:1px solid var(--edge); z-index:2; }
+.ps .bar .tt { flex:1; font-weight:600; font-size:16px; text-align:center; padding-left:60px; }
+.icon { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:var(--surface-2); font-size:15px; color:var(--ink); }
+.icon.pri { background:var(--ink); color:var(--on-ink); font-size:18px; font-weight:500; }
+.ps .body { position:absolute; inset:0; padding:100px 14px 90px; display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+.tabbar { position:absolute; inset:auto 0 0; height:78px; padding:8px 8px 22px; display:grid; grid-template-columns:repeat(5,1fr); background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%); border-top:1px solid var(--edge); z-index:2; }
+.tabbar div { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10px; font-weight:500; color:var(--ink-3); }
+.tabbar div.on { color:var(--ink); }
+.tabbar div i { font-style:normal; font-size:19px; line-height:24px; }
+.segscroll { display:flex; gap:6px; overflow:hidden; }
+.segscroll span { font-size:13px; padding:6px 12px; border-radius:999px; background:var(--surface-2); white-space:nowrap; }
+.segscroll span.on { background:var(--ink); color:var(--on-ink); font-weight:600; }
+.swipe { position:relative; overflow:hidden; }
+.swipe .acts { position:absolute; inset:0 0 0 auto; display:flex; }
+.swipe .acts span { width:76px; display:grid; place-items:center; color:#fff; font-size:13px; font-weight:600; }
+.swipe .slide { position:relative; background:var(--surface); transform:translateX(-76px); }
+.sheet { position:absolute; inset:auto 0 0; background:var(--surface); border-radius:22px 22px 0 0; box-shadow:0 -8px 40px rgba(0,0,0,.18); padding:8px 16px 28px; display:flex; flex-direction:column; gap:12px; z-index:3; }
+.grab { width:36px; height:5px; border-radius:3px; background:var(--surface-3); margin:0 auto 4px; }
+.shead { display:flex; align-items:center; justify-content:space-between; font-size:15px; }
+.shead b { font-weight:600; }
+.shead .ok { font-weight:600; }
+.shead .ok.dis { color:var(--ink-3); }
+.field { background:var(--surface-2); border-radius:10px; padding:10px 12px; font-size:16px; display:flex; justify-content:space-between; }
+.field span { color:var(--ink-2); }
+.scrim { position:absolute; inset:0; background:rgba(0,0,0,.28); z-index:2; }
+
+/* Scouting (always dark) */
+.scout { background:#000; color:#F5F5F7; }
+.sh { position:absolute; inset:0 0 auto; padding:40px 14px 10px; display:flex; flex-direction:column; gap:6px; z-index:2; }
+.score { display:flex; align-items:center; justify-content:space-between; }
+.score .n { font-size:52px; line-height:52px; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.score .mid { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:12px; color:#A1A1A6; }
+.undo { font:inherit; font-size:13px; font-weight:600; background:#2C2C2E; color:#F5F5F7; border:0; border-radius:999px; padding:5px 12px; }
+.strip { background:color-mix(in srgb, #FF453A 22%, transparent); color:#FF6961; font-size:12px; font-weight:500; border-radius:10px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center; }
+.strip b { color:#F5F5F7; font-weight:600; }
+.court { position:absolute; inset:178px 12px 168px; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr; gap:6px; }
+.ct { background:#1C1C1E; border-radius:12px; display:flex; flex-direction:column; justify-content:center; padding:8px; gap:2px; }
+.ct b { font-size:14px; font-weight:600; letter-spacing:-.01em; }
+.ct span { font-size:11px; color:#A1A1A6; font-variant-numeric:tabular-nums; }
+.ct.srv { box-shadow:inset 0 0 0 2px #3A3A3C; }
+.ct.sel { background:#3A3A3C; }
+.grades { position:absolute; inset:auto 12px 96px; display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+.gr { border-radius:10px; height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:20px; font-weight:700; }
+.gr small { font-size:9px; font-weight:500; opacity:.85; }
+.gr.r { background:color-mix(in srgb, #FF453A 22%, #000); color:#FF6961; }
+.gr.o { background:color-mix(in srgb, #FF9F0A 22%, #000); color:#FFB340; }
+.gr.n { background:#2C2C2E; color:#F5F5F7; }
+.gr.g { background:color-mix(in srgb, #30D158 22%, #000); color:#30DB5B; }
+.dock { position:absolute; inset:auto 12px 22px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.dock .pt { display:flex; flex-direction:column; gap:4px; }
+.dock .big { height:44px; border-radius:12px; background:#F5F5F7; color:#000; display:grid; place-items:center; font-weight:700; font-size:15px; }
+.dock .big.them { background:#2C2C2E; color:#F5F5F7; }
+.dock .to { font-size:11px; color:#A1A1A6; text-align:center; }
+
+.notes { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
+.note { background:var(--surface); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:6px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+.note b { font-size:15px; letter-spacing:-.01em; }
+.note p { margin:0; font-size:14px; line-height:20px; color:var(--ink-2); }
+.sample { font-size:12px; color:var(--ink-2); }
+
+/* Sign-in */
+.auth { border-radius:18px; overflow:hidden; background:var(--bg); color:var(--ink); display:grid; grid-template-columns:1.15fr 1fr; height:600px; outline:1px solid var(--sep); outline-offset:-1px; min-width:0; }
+@media (max-width: 1100px) { .auth { grid-template-columns:1fr; height:auto; } .auth .stage { display:none; } }
+.stage { position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; padding:28px 32px 32px; background:var(--bg); }
+.stage .court3d { position:absolute; left:50%; top:46%; width:300px; height:600px; margin:-300px 0 0 -150px; transform:perspective(1100px) rotateX(58deg) rotateZ(-24deg); color:var(--ink-3); opacity:.9; pointer-events:none; }
+.stage .court3d svg { width:100%; height:100%; overflow:visible; }
+.stage .glow { position:absolute; left:50%; top:40%; width:520px; height:520px; margin:-260px 0 0 -260px; border-radius:50%; background:radial-gradient(closest-side, color-mix(in srgb, var(--ink) 7%, transparent), transparent); pointer-events:none; }
+.brand { display:flex; align-items:center; gap:10px; font-weight:600; font-size:15px; letter-spacing:-.01em; position:relative; }
+.claim { position:relative; display:flex; flex-direction:column; gap:10px; max-width:420px; }
+.claim h3 { font-size:44px; line-height:46px; font-weight:700; letter-spacing:-.035em; }
+.claim h3 span { color:var(--ink-3); }
+.claim p { margin:0; color:var(--ink-2); font-size:15px; line-height:22px; }
+.formside { background:var(--surface); display:flex; flex-direction:column; padding:22px 28px 22px; min-width:0; }
+.D .formside { background:#0D0D0F; border-left:1px solid var(--sep); }
+.L .formside { border-left:1px solid var(--sep); }
+.fs-top { display:flex; justify-content:flex-end; gap:8px; align-items:center; }
+.lang { font-size:13px; color:var(--ink-2); padding:6px 8px; }
+.fs-body { flex:1; display:flex; flex-direction:column; justify-content:center; gap:22px; width:100%; max-width:340px; margin:0 auto; }
+.fs-body .ttl { display:flex; flex-direction:column; gap:6px; }
+.fs-body h4 { margin:0; font-size:28px; line-height:34px; font-weight:700; letter-spacing:-.02em; }
+.lbl { font-size:13px; font-weight:500; color:var(--ink-2); display:block; margin-bottom:6px; }
+.inp { width:100%; font:inherit; font-size:16px; color:var(--ink); background:var(--surface-2); border:1px solid transparent; border-radius:12px; padding:12px 14px; outline:none; transition:border-color 120ms ease, box-shadow 120ms ease; }
+.inp::placeholder { color:var(--ink-3); }
+.inp:focus { border-color:var(--focus); box-shadow:0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent); }
+.btn.full { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; }
+.or { display:flex; align-items:center; gap:12px; color:var(--ink-3); font-size:12px; }
+.or::before, .or::after { content:""; flex:1; border-top:1px solid var(--sep); }
+.alt { display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--ink-2); text-align:center; }
+.alt a { color:var(--ink); font-weight:600; text-decoration:none; }
+.alt a:hover { text-decoration:underline; }
+.legal { display:flex; justify-content:center; gap:14px; font-size:12px; color:var(--ink-3); }
+.mail { width:56px; height:56px; border-radius:16px; background:var(--surface-2); display:grid; place-items:center; }
+.ps .auth-ph { position:absolute; inset:0; display:flex; flex-direction:column; padding:44px 20px 26px; gap:18px; background:var(--bg); }
+.ps .auth-ph .court-mini { height:150px; position:relative; margin:0 -20px; overflow:hidden; color:var(--ink-3); }
+.ps .auth-ph .court-mini .court3d { position:absolute; left:50%; top:-40px; width:150px; height:300px; margin-left:-75px; transform:perspective(700px) rotateX(60deg) rotateZ(-24deg); }
+.ps .auth-ph .court-mini svg { width:100%; height:100%; overflow:visible; }
+.ps .auth-ph .court-mini::after { content:""; position:absolute; inset:auto 0 0; height:60px; background:linear-gradient(transparent, var(--bg)); }
+.ph-top { display:flex; justify-content:space-between; align-items:center; }
+.ph-top .btn { min-height:32px; padding:5px 12px; font-size:13px; white-space:nowrap; }
+.ph-top .brand { font-size:14px; white-space:nowrap; gap:8px; }
+.ph-top .brand .logo { width:26px; height:26px; border-radius:8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .seg .thumb, .row { transition:none; }
+  .btn:active { transform:none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .toolbar, .ps .bar, .tabbar, .menu { -webkit-backdrop-filter:none; backdrop-filter:none; background:var(--surface); }
+}
+</style>
+
+<div class="page">
+  <header class="top">
+    <span class="over">UI redesign · visual direction approved 28 Oct 2026</span>
+    <h1>Volley Skills v2</h1>
+    <p>The visual system from the design doc, drawn in both themes. Monochrome chrome, colour only where it means something: level bands, grades, live, errors. Names and scores below are sample data.</p>
+  </header>
+
+  <!-- Colour -->
+  <section>
+    <div class="head"><h2 class="t2">Colour</h2><p class="foot">Chrome is ink on surface. The four data colours each have a fill (bars, dots, tints) and a text form that passes AA.</p></div>
+    <div class="pair">
+      <div class="panel L"><span class="tag">Light</span>
+        <div class="sw">
+          <div class="chip-sw"><i style="background:#F5F5F7"></i><b>bg</b><span>#F5F5F7</span></div>
+          <div class="chip-sw"><i style="background:#FFFFFF"></i><b>surface</b><span>#FFFFFF</span></div>
+          <div class="chip-sw"><i style="background:#F2F2F7"></i><b>surface-2</b><span>#F2F2F7</span></div>
+          <div class="chip-sw"><i style="background:#1D1D1F"></i><b>ink</b><span>#1D1D1F</span></div>
+          <div class="chip-sw"><i style="background:#6E6E73"></i><b>ink-2</b><span>#6E6E73</span></div>
+          <div class="chip-sw"><i style="background:#0071E3"></i><b>focus</b><span>ring only</span></div>
+        </div>
+        <div class="data">
+          <div class="dcell"><i style="background:var(--red)"></i><b style="color:var(--red-t)">Beginner</b><span class="cap">&lt; 4 · grade =</span></div>
+          <div class="dcell"><i style="background:var(--orange)"></i><b style="color:var(--orange-t)">Developing</b><span class="cap">&lt; 6 · grades / −</span></div>
+          <div class="dcell"><i style="background:var(--blue)"></i><b style="color:var(--blue-t)">Advanced</b><span class="cap">&lt; 8</span></div>
+          <div class="dcell"><i style="background:var(--green)"></i><b style="color:var(--green-t)">Elite</b><span class="cap">≥ 8 · grades + #</span></div>
+        </div>
+      </div>
+      <div class="panel D"><span class="tag">Dark</span>
+        <div class="sw">
+          <div class="chip-sw"><i style="background:#000000"></i><b>bg</b><span>#000000</span></div>
+          <div class="chip-sw"><i style="background:#1C1C1E"></i><b>surface</b><span>#1C1C1E</span></div>
+          <div class="chip-sw"><i style="background:#2C2C2E"></i><b>surface-2</b><span>#2C2C2E</span></div>
+          <div class="chip-sw"><i style="background:#F5F5F7"></i><b>ink</b><span>#F5F5F7</span></div>
+          <div class="chip-sw"><i style="background:#A1A1A6"></i><b>ink-2</b><span>#A1A1A6</span></div>
+          <div class="chip-sw"><i style="background:#409CFF"></i><b>focus</b><span>ring only</span></div>
+        </div>
+        <div class="data">
+          <div class="dcell"><i style="background:var(--red)"></i><b style="color:var(--red-t)">Beginner</b><span class="cap">&lt; 4 · grade =</span></div>
+          <div class="dcell"><i style="background:var(--orange)"></i><b style="color:var(--orange-t)">Developing</b><span class="cap">&lt; 6 · grades / −</span></div>
+          <div class="dcell"><i style="background:var(--blue)"></i><b style="color:var(--blue-t)">Advanced</b><span class="cap">&lt; 8</span></div>
+          <div class="dcell"><i style="background:var(--green)"></i><b style="color:var(--green-t)">Elite</b><span class="cap">≥ 8 · grades + #</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Type -->
+  <section>
+    <div class="head"><h2 class="t2">Type</h2><p class="foot">Inter, with tracking that tightens as size grows. Numbers are tabular everywhere.</p></div>
+    <div class="panel" style="background:var(--surface)">
+      <div>
+        <div class="typerow"><span class="cap">large-title 34</span><span class="lt">Today</span></div>
+        <div class="typerow"><span class="cap">title-1 28</span><span style="font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.02em">U17 Women</span></div>
+        <div class="typerow"><span class="cap">title-2 22</span><span class="t2">Next 7 days</span></div>
+        <div class="typerow"><span class="cap">headline 16</span><span style="font-size:16px;font-weight:600;letter-spacing:-.01em">Serve receive &amp; transition</span></div>
+        <div class="typerow"><span class="cap">body 15</span><span>Thursday 18:30 · 90 min · 14 players expected</span></div>
+        <div class="typerow"><span class="cap">footnote 13</span><span class="foot">Season 2026–27 · last updated 2 days ago</span></div>
+        <div class="typerow"><span class="cap">stat 40</span><span class="num" style="font-size:40px;line-height:44px;font-weight:700;letter-spacing:-.03em">6.4</span></div>
+        <div class="typerow"><span class="cap">score 72</span><span class="num" style="font-size:72px;line-height:72px;font-weight:700;letter-spacing:-.04em">18–15</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Components -->
+  <section>
+    <div class="head"><h2 class="t2">Controls</h2><p class="foot">Press any button or row: it reacts on press-down. The segmented controls are live.</p></div>
+    <div class="pair">
+      <div class="panel L"><span class="tag">Light</span>
+        <div class="btnrow"><button class="btn pri" type="button">New training</button><button class="btn sec" type="button">Import</button><button class="btn pl" type="button">Cancel</button><button class="btn de" type="button">Delete match…</button></div>
+        <div class="seg" role="group" aria-label="Team tabs, light"><span class="thumb"></span><button type="button" aria-pressed="true">Roster</button><button type="button" aria-pressed="false">Calendar</button><button type="button" aria-pressed="false">Matches</button><button type="button" aria-pressed="false">Stats</button></div>
+        <div>
+          <div class="ghead cap">Top of the team</div>
+          <div class="group">
+            <div class="row" tabindex="0"><span class="av">LR</span><div class="main"><b>Lucía Romero</b><span>Setter · #4</span></div><span class="lv g num">8.2 Elite</span><span class="chev">›</span></div>
+            <div class="row" tabindex="0"><span class="av">GB</span><div class="main"><b>Giulia Bianchi</b><span>Outside · #11</span></div><span class="lv b num">7.8 Advanced</span><span class="chev">›</span></div>
+            <div class="row" tabindex="0"><span class="av">AM</span><div class="main"><b>Ana Martín</b><span>Libero · #2</span></div><span class="lv o num">5.2 Developing</span><span class="chev">›</span></div>
+            <div class="row" tabindex="0"><span class="av">SK</span><div class="main"><b>Sara Klein</b><span>Middle · #9</span></div><span class="lv r num">3.6 Beginner</span><span class="chev">›</span></div>
+          </div>
+        </div>
+        <div class="backdrop">
+          <div class="menu" role="menu" aria-label="Context menu sample">
+            <div>Open<span class="k">↵</span></div><div>Edit</div><div>Export PDF</div><hr><div class="dz">Delete</div>
+          </div>
+          <div class="toast" role="status">Training T-0042 deleted <button type="button">Undo</button></div>
+        </div>
+      </div>
+      <div class="panel D"><span class="tag">Dark</span>
+        <div class="btnrow"><button class="btn pri" type="button">New training</button><button class="btn sec" type="button">Import</button><button class="btn pl" type="button">Cancel</button><button class="btn de" type="button">Delete match…</button></div>
+        <div class="seg" role="group" aria-label="Team tabs, dark"><span class="thumb"></span><button type="button" aria-pressed="true">Roster</button><button type="button" aria-pressed="false">Calendar</button><button type="button" aria-pressed="false">Matches</button><button type="button" aria-pressed="false">Stats</button></div>
+        <div>
+          <div class="ghead cap">Top of the team</div>
+          <div class="group">
+            <div class="row" tabindex="0"><span class="av">LR</span><div class="main"><b>Lucía Romero</b><span>Setter · #4</span></div><span class="lv g num">8.2 Elite</span><span class="chev">›</span></div>
+            <div class="row" tabindex="0"><span class="av">GB</span><div class="main"><b>Giulia Bianchi</b><span>Outside · #11</span></div><span class="lv b num">7.8 Advanced</span><span class="chev">›</span></div>
+            <div class="row" tabindex="0"><span class="av">AM</span><div class="main"><b>Ana Martín</b><span>Libero · #2</span></div><span class="lv o num">5.2 Developing</span><span class="chev">›</span></div>
+            <div class="row" tabindex="0"><span class="av">SK</span><div class="main"><b>Sara Klein</b><span>Middle · #9</span></div><span class="lv r num">3.6 Beginner</span><span class="chev">›</span></div>
+          </div>
+        </div>
+        <div class="backdrop">
+          <div class="menu" role="menu" aria-label="Context menu sample, dark">
+            <div>Open<span class="k">↵</span></div><div>Edit</div><div>Export PDF</div><hr><div class="dz">Delete</div>
+          </div>
+          <div class="toast" role="status">Training T-0042 deleted <button type="button">Undo</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Desktop screen -->
+  <section>
+    <div class="head"><h2 class="t2">Today, on desktop</h2><p class="foot">Solid sidebar, glass toolbar with search (⌘K) and the main action top-right. The toolbar turns to glass once content scrolls under it.</p></div>
+    <div class="pair">
+      <div class="screen L">
+        <aside class="sidebar">
+          <div class="club"><span class="logo">VC</span><div><div style="font-size:13px;font-weight:600">Volley Club</div><div class="cap">Club admin</div></div></div>
+          <div class="nv on">Today</div>
+          <div class="nl">Coaching</div><div class="nv">Teams</div><div class="nv">Trainings</div><div class="nv">Exercises</div>
+          <div class="nl">Club</div><div class="nv">Skill guides</div><div class="nv">Members &amp; settings</div>
+        </aside>
+        <div class="content">
+          <div class="toolbar"><span class="tt">Today</span><span class="search">Search <kbd>⌘K</kbd></span><button class="btn pri pill" type="button">New match</button></div>
+          <div class="scroll">
+            <div><div class="foot">Tuesday 28 October</div><h3 class="lt">Today</h3></div>
+            <div class="tiles">
+              <div class="tile live"><span class="cap"><span class="dot"></span> Live · U17 Women</span><span class="stat">18–15</span><span class="foot">Set 3 vs Rivals VC · Resume ›</span></div>
+              <div class="tile"><span class="cap">Team level</span><span class="stat">6.4</span><span class="lv b" style="align-self:flex-start">Advanced</span></div>
+              <div class="tile"><span class="cap">Players</span><span class="stat">14</span><span class="foot">U17 Women</span></div>
+            </div>
+            <div class="cols">
+              <div><div class="ghead cap">Next 7 days</div><div class="group">
+                <div class="row nav"><div class="main"><b>Serve receive &amp; transition</b><span>Thu 18:30 · U17 Women</span></div><span class="chev">›</span></div>
+                <div class="row nav"><div class="main"><b>vs Lakeside</b><span>Sat 16:00 · U17 Women</span></div><span class="chev">›</span></div>
+              </div></div>
+              <div><div class="ghead cap">Recent results</div><div class="group">
+                <div class="row nav"><span class="wl w">W</span><div class="main"><b>3–1 vs Rivals VC</b><span>Sat 25 Oct</span></div><span class="chev">›</span></div>
+                <div class="row nav"><span class="wl l">L</span><div class="main"><b>1–3 vs Porto Norte</b><span>Sat 18 Oct</span></div><span class="chev">›</span></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen D">
+        <aside class="sidebar">
+          <div class="club"><span class="logo">VC</span><div><div style="font-size:13px;font-weight:600">Volley Club</div><div class="cap">Club admin</div></div></div>
+          <div class="nv on">Today</div>
+          <div class="nl">Coaching</div><div class="nv">Teams</div><div class="nv">Trainings</div><div class="nv">Exercises</div>
+          <div class="nl">Club</div><div class="nv">Skill guides</div><div class="nv">Members &amp; settings</div>
+        </aside>
+        <div class="content">
+          <div class="toolbar"><span class="tt">Today</span><span class="search">Search <kbd>⌘K</kbd></span><button class="btn pri pill" type="button">New match</button></div>
+          <div class="scroll">
+            <div><div class="foot">Tuesday 28 October</div><h3 class="lt">Today</h3></div>
+            <div class="tiles">
+              <div class="tile live"><span class="cap"><span class="dot"></span> Live · U17 Women</span><span class="stat">18–15</span><span class="foot">Set 3 vs Rivals VC · Resume ›</span></div>
+              <div class="tile"><span class="cap">Team level</span><span class="stat">6.4</span><span class="lv b" style="align-self:flex-start">Advanced</span></div>
+              <div class="tile"><span class="cap">Players</span><span class="stat">14</span><span class="foot">U17 Women</span></div>
+            </div>
+            <div class="cols">
+              <div><div class="ghead cap">Next 7 days</div><div class="group">
+                <div class="row nav"><div class="main"><b>Serve receive &amp; transition</b><span>Thu 18:30 · U17 Women</span></div><span class="chev">›</span></div>
+                <div class="row nav"><div class="main"><b>vs Lakeside</b><span>Sat 16:00 · U17 Women</span></div><span class="chev">›</span></div>
+              </div></div>
+              <div><div class="ghead cap">Recent results</div><div class="group">
+                <div class="row nav"><span class="wl w">W</span><div class="main"><b>3–1 vs Rivals VC</b><span>Sat 25 Oct</span></div><span class="chev">›</span></div>
+                <div class="row nav"><span class="wl l">L</span><div class="main"><b>1–3 vs Porto Norte</b><span>Sat 18 Oct</span></div><span class="chev">›</span></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phones -->
+  <section>
+    <div class="head"><h2 class="t2">On the phone</h2><p class="foot">Roster with a row swiped open, a sheet with Cancel and Save in its header, and live scouting, which is always dark.</p></div>
+    <div class="phones">
+      <div class="phone"><div class="ps L">
+        <div class="bar"><span class="tt">U17 Women</span><span class="icon">⌕</span><span class="icon pri">+</span></div>
+        <div class="body">
+          <div class="segscroll"><span class="on">Roster</span><span>Calendar</span><span>Matches</span><span>Stats</span><span>Plan</span></div>
+          <div class="group">
+            <div class="row"><span class="av">LR</span><div class="main"><b>Lucía Romero</b><span>Setter · #4</span></div><span class="lv g num">8.2</span></div>
+            <div class="row swipe" style="padding:0"><div class="acts"><span style="background:var(--red)">Remove…</span></div><div class="row slide" style="width:100%"><span class="av">GB</span><div class="main"><b>Giulia Bianchi</b><span>Outside · #11</span></div><span class="lv b num">7.8</span></div></div>
+            <div class="row"><span class="av">AM</span><div class="main"><b>Ana Martín</b><span>Libero · #2</span></div><span class="lv o num">5.2</span></div>
+            <div class="row"><span class="av">SK</span><div class="main"><b>Sara Klein</b><span>Middle · #9</span></div><span class="lv r num">3.6</span></div>
+            <div class="row"><span class="av">EM</span><div class="main"><b>Emma Moreau</b><span>Opposite · #7</span></div><span class="lv b num">6.9</span></div>
+            <div class="row"><span class="av">CN</span><div class="main"><b>Chiara Neri</b><span>Outside · #15</span></div><span class="lv o num">5.8</span></div>
+          </div>
+        </div>
+        <div class="tabbar"><div><i>◐</i>Today</div><div class="on"><i>◉</i>Teams</div><div><i>▤</i>Trainings</div><div><i>◇</i>Exercises</div><div><i>⋯</i>More</div></div>
+      </div></div>
+
+      <div class="phone"><div class="ps D">
+        <div class="bar"><span class="tt">Calendar</span><span class="icon">⌕</span><span class="icon pri">+</span></div>
+        <div class="body">
+          <div class="group">
+            <div class="row nav"><div class="main"><b>Thu 30 Oct · 18:30</b><span>Serve receive &amp; transition</span></div></div>
+            <div class="row nav"><div class="main"><b>Sat 1 Nov · 16:00</b><span>Match vs Lakeside</span></div></div>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead"><span>Cancel</span><b>New session</b><span class="ok">Add</span></div>
+          <div class="field">Date<span class="num">Thu 30 Oct</span></div>
+          <div class="field">Time<span class="num">18:30</span></div>
+          <div class="field">Training<span>T-0042 ›</span></div>
+          <div class="field">Notes<span>Optional</span></div>
+        </div>
+      </div></div>
+
+      <div class="phone"><div class="ps scout">
+        <div class="sh">
+          <div class="score"><span class="n">18</span><div class="mid"><span>Set 3 · P4</span><button class="undo" type="button">Undo</button></div><span class="n" style="color:#A1A1A6">15</span></div>
+          <div class="strip">An action could not be saved. <b>Dismiss</b></div>
+        </div>
+        <div class="court">
+          <div class="ct"><b>Bianchi</b><span>#11 · OH</span></div>
+          <div class="ct sel"><b>Neri</b><span>#15 · MB</span></div>
+          <div class="ct"><b>Moreau</b><span>#7 · OPP</span></div>
+          <div class="ct"><b>Martín</b><span>#2 · L</span></div>
+          <div class="ct srv"><b>Romero</b><span>#4 · S · serving</span></div>
+          <div class="ct"><b>Klein</b><span>#9 · MB</span></div>
+        </div>
+        <div class="grades">
+          <div class="gr r">=<small>error</small></div><div class="gr o">/<small>poor</small></div><div class="gr o">−<small>neg</small></div><div class="gr n">!<small>ok</small></div><div class="gr g">+<small>good</small></div><div class="gr g">#<small>perfect</small></div>
+        </div>
+        <div class="dock">
+          <div class="pt"><div class="big">Point us</div><div class="to">T/O · 1 left</div></div>
+          <div class="pt"><div class="big them">Point them</div><div class="to">T/O · 2 left</div></div>
+        </div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- Sign-in -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="court" viewBox="0 0 180 360">
+        <rect x="0" y="0" width="180" height="360" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <line x1="0" y1="120" x2="180" y2="120" stroke="currentColor" stroke-width="1" stroke-dasharray="1 0"/>
+        <line x1="0" y1="240" x2="180" y2="240" stroke="currentColor" stroke-width="1"/>
+        <line x1="-14" y1="180" x2="194" y2="180" style="stroke:var(--ink)" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="-14" cy="180" r="2.4" style="fill:var(--ink)"/><circle cx="194" cy="180" r="2.4" style="fill:var(--ink)"/>
+        <g fill="currentColor" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
+          <text x="30" y="216">4</text><text x="90" y="216">3</text><text x="150" y="216">2</text>
+          <text x="30" y="306">5</text><text x="90" y="306">6</text><text x="150" y="306">1</text>
+        </g>
+        <path d="M150 384 Q 70 230 46 74" fill="none" style="stroke:var(--ink)" stroke-width="1.6" stroke-dasharray="2 5" stroke-linecap="round"/>
+        <ellipse cx="46" cy="76" rx="9" ry="4" style="fill:var(--ink)" opacity=".12"/>
+        <circle cx="46" cy="70" r="6" style="fill:var(--ink)"/>
+        <circle cx="150" cy="384" r="3" style="fill:var(--ink)"/>
+      </symbol>
+      <symbol id="gg" viewBox="0 0 48 48">
+        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
+        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+        <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <section>
+    <div class="head"><h2 class="t2">Sign in</h2><p class="foot">Same elements as today's login: email link, Google, Request access, Create your club, legal links, and the language switch when Italian is on. A hairline court replaces the blue background and the player photo. The dashed line is a serve from zone 1.</p></div>
+    <div class="pair" style="grid-template-columns:1fr">
+      <div class="auth L">
+        <div class="stage">
+          <div class="glow"></div>
+          <div class="court3d"><svg><use href="#court"/></svg></div>
+          <div class="brand"><span class="logo"><svg viewBox="22 22 212 212" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M133.3 115.17A44 44 0 0 1 211.6 54.93A106 106 0 0 1 204.2 201.69A68 68 0 0 0 133.3 115.17Z M136.46 139.01A44 44 0 0 1 149.48 236.94A106 106 0 0 1 26.09 157.15A68 68 0 0 0 136.46 139.01Z M114.24 129.83A44 44 0 0 1 22.92 92.13A106 106 0 0 1 153.71 25.17A68 68 0 0 0 114.24 129.83Z"/></svg></span>Volley Skills</div>
+          <div class="claim"><h3>Players. Progress.<br><span>Together.</span></h3><p>The team tool for volleyball clubs: skills, trainings, matches and scouting in one place.</p></div>
+        </div>
+        <div class="formside">
+          <div class="fs-top"><span class="lang">EN ▾</span><button class="btn sec pill" type="button">Request access</button></div>
+          <form class="fs-body" onsubmit="event.preventDefault()">
+            <div class="ttl"><h4>Welcome back</h4><span class="foot">We'll email you a link to sign in. No password needed.</span></div>
+            <div><label class="lbl" for="em-l">Email</label><input class="inp" id="em-l" type="email" placeholder="coach@yourclub.com" autocomplete="email"></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <button class="btn pri full" type="submit">Send sign-in link <span aria-hidden="true">→</span></button>
+              <div class="or">or</div>
+              <button class="btn sec full" type="button"><svg width="18" height="18" aria-hidden="true"><use href="#gg"/></svg>Continue with Google</button>
+            </div>
+            <div class="alt"><span>Don't have access yet? <a href="#">Request early access</a></span><span><a href="#">Create your club</a></span></div>
+          </form>
+          <div class="legal"><span>Terms</span><span>Privacy</span><span>Sub-processors</span></div>
+        </div>
+      </div>
+      <div class="auth D">
+        <div class="stage">
+          <div class="glow"></div>
+          <div class="court3d"><svg><use href="#court"/></svg></div>
+          <div class="brand"><span class="logo"><svg viewBox="22 22 212 212" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M133.3 115.17A44 44 0 0 1 211.6 54.93A106 106 0 0 1 204.2 201.69A68 68 0 0 0 133.3 115.17Z M136.46 139.01A44 44 0 0 1 149.48 236.94A106 106 0 0 1 26.09 157.15A68 68 0 0 0 136.46 139.01Z M114.24 129.83A44 44 0 0 1 22.92 92.13A106 106 0 0 1 153.71 25.17A68 68 0 0 0 114.24 129.83Z"/></svg></span>Volley Skills</div>
+          <div class="claim"><h3>Players. Progress.<br><span>Together.</span></h3><p>The team tool for volleyball clubs: skills, trainings, matches and scouting in one place.</p></div>
+        </div>
+        <div class="formside">
+          <div class="fs-top"><span class="lang">EN ▾</span><button class="btn sec pill" type="button">Request access</button></div>
+          <form class="fs-body" onsubmit="event.preventDefault()">
+            <div class="ttl"><h4>Welcome back</h4><span class="foot">We'll email you a link to sign in. No password needed.</span></div>
+            <div><label class="lbl" for="em-d">Email</label><input class="inp" id="em-d" type="email" placeholder="coach@yourclub.com" autocomplete="email"></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <button class="btn pri full" type="submit">Send sign-in link <span aria-hidden="true">→</span></button>
+              <div class="or">or</div>
+              <button class="btn sec full" type="button"><svg width="18" height="18" aria-hidden="true"><use href="#gg"/></svg>Continue with Google</button>
+            </div>
+            <div class="alt"><span>Don't have access yet? <a href="#">Request early access</a></span><span><a href="#">Create your club</a></span></div>
+          </form>
+          <div class="legal"><span>Terms</span><span>Privacy</span><span>Sub-processors</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phones">
+      <div class="phone"><div class="ps L"><div class="auth-ph">
+        <div class="ph-top"><div class="brand"><span class="logo"><svg viewBox="22 22 212 212" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M133.3 115.17A44 44 0 0 1 211.6 54.93A106 106 0 0 1 204.2 201.69A68 68 0 0 0 133.3 115.17Z M136.46 139.01A44 44 0 0 1 149.48 236.94A106 106 0 0 1 26.09 157.15A68 68 0 0 0 136.46 139.01Z M114.24 129.83A44 44 0 0 1 22.92 92.13A106 106 0 0 1 153.71 25.17A68 68 0 0 0 114.24 129.83Z"/></svg></span>Volley Skills</div><button class="btn sec pill" type="button">Request access</button></div>
+        <div class="court-mini"><div class="court3d"><svg><use href="#court"/></svg></div></div>
+        <div class="ttl" style="display:flex;flex-direction:column;gap:4px"><h4 style="margin:0;font-size:30px;line-height:36px;font-weight:700;letter-spacing:-.022em">Welcome back</h4><span class="foot">We'll email you a link to sign in.</span></div>
+        <div><label class="lbl" for="em-pl">Email</label><input class="inp" id="em-pl" type="email" placeholder="coach@yourclub.com"></div>
+        <div style="display:flex;flex-direction:column;gap:10px"><button class="btn pri full" type="button">Send sign-in link →</button><button class="btn sec full" type="button"><svg width="18" height="18" aria-hidden="true"><use href="#gg"/></svg>Continue with Google</button></div>
+        <div class="alt" style="margin-top:auto"><span><a href="#">Request early access</a> · <a href="#">Create your club</a></span></div>
+        <div class="legal"><span>Terms</span><span>Privacy</span></div>
+      </div></div></div>
+
+      <div class="phone"><div class="ps D"><div class="auth-ph">
+        <div class="ph-top"><div class="brand"><span class="logo"><svg viewBox="22 22 212 212" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M133.3 115.17A44 44 0 0 1 211.6 54.93A106 106 0 0 1 204.2 201.69A68 68 0 0 0 133.3 115.17Z M136.46 139.01A44 44 0 0 1 149.48 236.94A106 106 0 0 1 26.09 157.15A68 68 0 0 0 136.46 139.01Z M114.24 129.83A44 44 0 0 1 22.92 92.13A106 106 0 0 1 153.71 25.17A68 68 0 0 0 114.24 129.83Z"/></svg></span>Volley Skills</div><button class="btn sec pill" type="button">Request access</button></div>
+        <div class="court-mini"><div class="court3d"><svg><use href="#court"/></svg></div></div>
+        <div class="ttl" style="display:flex;flex-direction:column;gap:4px"><h4 style="margin:0;font-size:30px;line-height:36px;font-weight:700;letter-spacing:-.022em">Welcome back</h4><span class="foot">We'll email you a link to sign in.</span></div>
+        <div><label class="lbl" for="em-pd">Email</label><input class="inp" id="em-pd" type="email" placeholder="coach@yourclub.com"></div>
+        <div style="display:flex;flex-direction:column;gap:10px"><button class="btn pri full" type="button">Send sign-in link →</button><button class="btn sec full" type="button"><svg width="18" height="18" aria-hidden="true"><use href="#gg"/></svg>Continue with Google</button></div>
+        <div class="alt" style="margin-top:auto"><span><a href="#">Request early access</a> · <a href="#">Create your club</a></span></div>
+        <div class="legal"><span>Terms</span><span>Privacy</span></div>
+      </div></div></div>
+
+      <div class="phone"><div class="ps L"><div class="auth-ph">
+        <div class="ph-top"><div class="brand"><span class="logo"><svg viewBox="22 22 212 212" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M133.3 115.17A44 44 0 0 1 211.6 54.93A106 106 0 0 1 204.2 201.69A68 68 0 0 0 133.3 115.17Z M136.46 139.01A44 44 0 0 1 149.48 236.94A106 106 0 0 1 26.09 157.15A68 68 0 0 0 136.46 139.01Z M114.24 129.83A44 44 0 0 1 22.92 92.13A106 106 0 0 1 153.71 25.17A68 68 0 0 0 114.24 129.83Z"/></svg></span>Volley Skills</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px">
+          <div class="mail"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></div>
+          <h4 style="margin:0;font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.02em">Check your email</h4>
+          <p class="foot" style="margin:0;font-size:15px;line-height:22px">We sent a sign-in link to<br><b style="color:var(--ink)">coach@yourclub.com</b>.<br>Open it on this device.</p>
+        </div>
+        <div class="legal"><span>Terms</span><span>Privacy</span></div>
+      </div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><h2 class="t2">What to look for</h2></div>
+    <div class="notes">
+      <div class="note"><b>Is it too grey?</b><p>Buttons and selection are black or white, never blue. Colour only appears on levels, grades, live and errors.</p></div>
+      <div class="note"><b>Does dark feel equal?</b><p>True black background, raised greys for surfaces. Neither theme should feel like the "real" one.</p></div>
+      <div class="note"><b>Scouting at a glance</b><p>Score, corrections and Undo on top; court in the middle; grades and points at the thumb. Recording taps don't animate.</p></div>
+      <div class="note"><b>One main action</b><p>Top-right on every screen: "New match", "+" on the phone. Search sits just left of it.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+document.querySelectorAll('.seg').forEach(function (seg) {
+  var thumb = seg.querySelector('.thumb');
+  var buttons = Array.prototype.slice.call(seg.querySelectorAll('button'));
+  function place(btn) {
+    thumb.style.width = btn.offsetWidth + 'px';
+    thumb.style.transform = 'translateX(' + (btn.offsetLeft - 2) + 'px)';
+  }
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      buttons.forEach(function (b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+      place(btn);
+    });
+  });
+  var on = seg.querySelector('[aria-pressed="true"]');
+  if (on) { thumb.style.transition = 'none'; place(on); requestAnimationFrame(function () { thumb.style.transition = ''; }); }
+  window.addEventListener('resize', function () { var cur = seg.querySelector('[aria-pressed="true"]'); if (cur) place(cur); });
+});
+document.querySelectorAll('.toast button').forEach(function (b) {
+  b.addEventListener('click', function () { b.parentNode.firstChild.textContent = 'Training T-0042 restored '; b.hidden = true; });
+});
+</script>
+
+</html>

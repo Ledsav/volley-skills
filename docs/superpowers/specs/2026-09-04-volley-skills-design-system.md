@@ -1,5 +1,7 @@
 # Volley Skills — Design System
 
+> **Being superseded.** The v2 design system in [`docs/design/design-system/`](../../design/design-system/README.md) replaces this document when `feature/ui-redesign` merges. Until then, this document describes the running app.
+
 Date: 2026-09-04
 Status: Living — describes the shipped app (last reconciled with the code 2026-10-15). Originally distilled from `reference/ChatGPT Image Sep 4, 2026, 03_34_44 PM (1).png`.
 Companion to: `2026-09-04-volley-skills-app-design.md`

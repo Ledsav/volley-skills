@@ -1,5 +1,7 @@
 # Volley Skills — logo guide
 
+> **Being replaced.** The new one-colour Spin mark and identity are in [`docs/design/brand/`](../design/brand/README.md) and ship with `feature/ui-redesign`. Until then, this guide describes the logo in the running app.
+
 The mark is the **Spin Ball**: a volleyball reduced to three swirling panels, with a
 halftone-dot crescent shadow inside the ball. The wordmark is "VOLLEY / SKILLS" in
 Barlow Condensed Black Italic, converted to outlines, with SKILLS tracked to the width

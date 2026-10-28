@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useSignOut } from '../auth/useSignOut';
 import { useNotify } from '../components/Notice';
 import { useMediaQuery } from '../components/useMediaQuery';
 import { ContractEndingBanner } from '../clubs/ContractEndingBanner';
@@ -15,6 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const t = useT().layout;
   const notify = useNotify();
   const notifiedDropped = useRef(false);
+  const { signOut, unsyncedDialog } = useSignOut();
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const navButtonRef = useRef<HTMLButtonElement>(null);
@@ -51,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <aside className="hidden print:hidden w-[248px] shrink-0 overflow-y-auto xl:sticky xl:top-0 xl:flex xl:h-screen">
         <div className="h-full w-full">
-          <Sidebar />
+          <Sidebar onSignOut={signOut} />
         </div>
       </aside>
 
@@ -69,8 +71,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <SidebarOverlay open={navOpen} onClose={() => setNavOpen(false)} returnFocusTo={navButtonRef} />
+      <SidebarOverlay open={navOpen} onClose={() => setNavOpen(false)} returnFocusTo={navButtonRef} onSignOut={signOut} />
       <TabBar />
+      {/* Outside the overlay panel: a transformed/backdrop-filtered ancestor would clip a fixed dialog. */}
+      {unsyncedDialog}
     </div>
   );
 }

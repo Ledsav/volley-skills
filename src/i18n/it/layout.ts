@@ -36,7 +36,6 @@ export const layout = {
     openNavigation: 'Apri la navigazione',
     search: 'Cerca',
     moreActions: 'Altre azioni',
-    closeNavigation: 'Chiudi la navigazione',
   },
   morePage: {
     title: 'Altro',

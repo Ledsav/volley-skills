@@ -34,7 +34,6 @@ export const layout = {
     openNavigation: 'Open navigation',
     search: 'Search',
     moreActions: 'More actions',
-    closeNavigation: 'Close navigation',
   },
   morePage: {
     title: 'More',

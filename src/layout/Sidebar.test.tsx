@@ -29,7 +29,7 @@ beforeEach(() => {
 function renderSidebar(onNavigate?: () => void) {
   return render(
     <MemoryRouter initialEntries={['/teams']}>
-      <Sidebar onNavigate={onNavigate} />
+      <Sidebar onNavigate={onNavigate} onSignOut={() => {}} />
     </MemoryRouter>
   );
 }
@@ -88,12 +88,24 @@ function Harness({ onClose }: { onClose: () => void }) {
           setOpen(false);
         }}
         returnFocusTo={ref}
+        onSignOut={() => {}}
       />
     </MemoryRouter>
   );
 }
 
 describe('SidebarOverlay', () => {
+  it('locks page scroll while open and restores the previous value', () => {
+    document.body.style.overflow = 'scroll';
+    const { unmount } = render(<Harness onClose={() => {}} />);
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    unmount();
+    expect(document.body.style.overflow).toBe('scroll');
+    expect(document.documentElement.style.overflow).toBe('');
+    document.body.style.overflow = '';
+  });
+
   it('is a modal dialog labelled Main and focuses the first link', () => {
     render(<Harness onClose={() => {}} />);
     expect(screen.getByRole('dialog', { name: 'Main' })).toHaveAttribute('aria-modal', 'true');

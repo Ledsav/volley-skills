@@ -161,6 +161,17 @@ describe('AppShell', () => {
     }
   });
 
+  it('shows the unsynced sign-out dialog outside the tablet overlay panel', async () => {
+    mockSignOut.mockResolvedValueOnce('unsynced');
+    renderShell();
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const overlay = screen.getByRole('dialog', { name: 'Main' });
+    fireEvent.click(within(overlay).getByRole('button', { name: /^Account/ }));
+    fireEvent.click(within(overlay).getByRole('menuitem', { name: 'Sign out' }));
+    const confirm = await screen.findByRole('alertdialog');
+    expect(overlay.contains(confirm)).toBe(false);
+  });
+
   describe('club state', () => {
     const DAY = 86_400_000;
     const fmt = (d: Date) => formatDateValue(d, 'long', 'en');

@@ -1,8 +1,7 @@
-import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { ChevronsUpDown, FileText, LogOut, Repeat, Settings } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { useSignOut } from '../auth/useSignOut';
 import { Menu } from '../components/Menu';
 import { usePendingSignups } from '../interest/usePendingSignups';
 import { otherUsableClubs } from '../clubs/activeClub';
@@ -31,11 +30,19 @@ function linkClass({ isActive }: { isActive: boolean }): string {
 }
 
 /** The content of the 248 px column: club header, grouped navigation, account menu. No positioning. */
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function Sidebar({
+  onNavigate,
+  onSignOut,
+  variant = 'solid',
+}: {
+  onNavigate?: () => void;
+  onSignOut: () => void;
+  /** 'solid' is the desktop column; 'glass' sits inside the overlay's glass panel. */
+  variant?: 'solid' | 'glass';
+}) {
   const { access, club, firebaseUser, isPlatformAdmin, memberships, activeClubId, switchClub, role } = useAuth();
   const t = useT().layout;
   const navigate = useNavigate();
-  const { signOut, unsyncedDialog } = useSignOut();
   const pendingSignups = usePendingSignups(!!isPlatformAdmin);
   const email = firebaseUser?.email ?? '';
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
@@ -75,7 +82,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-separator bg-sidebar p-3">
+    <div className={`flex h-full min-h-0 flex-col border-r border-separator p-3 ${variant === 'solid' ? 'bg-sidebar' : ''}`}>
       {/* The logo moves out in Plan 6; the home link stays reachable for assistive tech. */}
       <NavLink to="/" aria-label={t.appShell.homeLabel} onClick={onNavigate} className="sr-only focus:not-sr-only focus:rounded-md focus:px-2 focus:py-1">
         {t.appShell.homeLabel}
@@ -127,11 +134,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             { kind: 'action', label: t.appShell.settings, icon: <Settings size={16} />, onSelect: () => { navigate('/settings'); onNavigate?.(); } },
             { kind: 'action', label: t.appShell.termsAndPrivacy, icon: <FileText size={16} />, onSelect: () => { navigate('/legal/terms'); onNavigate?.(); } },
             { kind: 'divider' },
-            { kind: 'action', label: t.appShell.signOut, icon: <LogOut size={16} />, danger: true, onSelect: signOut },
+            { kind: 'action', label: t.appShell.signOut, icon: <LogOut size={16} />, danger: true, onSelect: onSignOut },
           ]}
         />
       </div>
-      {unsyncedDialog}
     </div>
   );
 }
@@ -143,10 +149,12 @@ export function SidebarOverlay({
   open,
   onClose,
   returnFocusTo,
+  onSignOut,
 }: {
   open: boolean;
   onClose: () => void;
   returnFocusTo: RefObject<HTMLElement>;
+  onSignOut: () => void;
 }) {
   const t = useT().layout;
   const reduced = useReducedMotion();
@@ -157,8 +165,22 @@ export function SidebarOverlay({
     returnFocusTo.current?.focus();
   };
 
-  // Slide in from the left; instant with reduced motion.
+  // Lock page scroll behind the modal; restore whatever was there before.
   useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const prevHtml = html.style.overflow;
+    const prevBody = document.body.style.overflow;
+    html.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+    };
+  }, [open]);
+
+  // Slide in from the left; instant with reduced motion. Layout effect: no frame painted at x=0 first.
+  useLayoutEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
     if (!panel) return;
@@ -208,7 +230,7 @@ export function SidebarOverlay({
     <div role="dialog" aria-modal="true" aria-label={t.appShell.mainNav} onKeyDown={onKeyDown} className="fixed inset-0 z-40 print:hidden">
       <div data-testid="sidebar-scrim" className="absolute inset-0 bg-black/20" onClick={dismiss} />
       <div ref={panelRef} className="glass glass-pop absolute inset-y-0 left-0 overflow-hidden" style={{ width: PANEL_WIDTH }}>
-        <Sidebar onNavigate={onClose} />
+        <Sidebar onNavigate={onClose} onSignOut={onSignOut} variant="glass" />
       </div>
     </div>
   );

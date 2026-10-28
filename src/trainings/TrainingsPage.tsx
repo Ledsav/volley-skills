@@ -9,7 +9,9 @@ import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Input } from '../components/Input';
 import { useDebouncedValue } from '../components/useDebouncedValue';
-import { Sparkles } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
+import { useTakePendingAction } from '../search/pendingAction';
+import type { MenuItem } from '../components/Menu';
 import { TrainingDraftDialog } from '../aiDraft/TrainingDraftDialog';
 import type { NewTrainingInput, Training } from '../types/training';
 import {
@@ -46,6 +48,7 @@ export function TrainingsPage() {
   const [showImport, setShowImport] = useState(false);
   const [showDraft, setShowDraft] = useState(false);
   const notify = useNotify();
+  useTakePendingAction('new-training', () => setDialog({ mode: 'new' }));
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -127,36 +130,17 @@ export function TrainingsPage() {
     void load();
   }
 
+  const moreItems: MenuItem[] = [
+    { kind: 'action', label: p.import, onSelect: () => setShowImport(true) },
+    ...(aiEnabled ? [{ kind: 'action' as const, label: p.draftWithAi, icon: <Sparkles size={16} aria-hidden="true" />, onSelect: () => setShowDraft(true) }] : []),
+  ];
+
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <PageHeader
         title={p.title}
-        actions={
-          <>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => setShowImport(true)}
-            >
-              {p.import}
-            </Button>
-            {aiEnabled && (
-              <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowDraft(true)}>
-                <Sparkles size={16} aria-hidden="true" />
-                {p.draftWithAi}
-              </Button>
-            )}
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => setDialog({ mode: 'new' })}
-            >
-              {p.newTraining}
-            </Button>
-          </>
-        }
+        mainAction={{ label: p.newTraining, icon: Plus, onSelect: () => setDialog({ mode: 'new' }) }}
+        more={moreItems}
         className="mb-4"
       />
 

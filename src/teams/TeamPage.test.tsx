@@ -47,7 +47,7 @@ function LocationProbe() {
   return <div data-testid="loc">{l.pathname + l.search}</div>;
 }
 
-function renderTeamPage(url = '/teams/team-1') {
+function renderTeamPage(url: string | { pathname: string; search?: string; state?: unknown } = '/teams/team-1') {
   return render(
     <MemoryRouter initialEntries={[url]}>
       <NoticeProvider>
@@ -70,6 +70,14 @@ describe('TeamPage', () => {
         access: clubAdminAccess,
       })
     );
+  });
+
+  it('add-player pending action opens the add player dialog', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage({ pathname: '/teams/team-1', search: '?tab=roster', state: { pendingAction: 'add-player' } });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=roster'));
   });
 
   it('uses the lowercased appUser email, not the raw sign-in email, for team admin', async () => {

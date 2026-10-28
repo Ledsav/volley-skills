@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { WithChrome } from '../test/chromeProbe';
 import { describe, expect, it, vi } from 'vitest';
 import { TeamsListPage } from './TeamsListPage';
 import * as teamsApi from './teamsApi';
@@ -37,7 +38,7 @@ describe('TeamsListPage', () => {
 
     render(
       <MemoryRouter>
-        <TeamsListPage />
+        <WithChrome><TeamsListPage /></WithChrome>
       </MemoryRouter>
     );
 
@@ -56,15 +57,15 @@ describe('TeamsListPage', () => {
     );
     vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
 
-    const { container } = render(
+    render(
       <MemoryRouter>
-        <TeamsListPage />
+        <WithChrome><TeamsListPage /></WithChrome>
       </MemoryRouter>
     );
 
     const heading = await screen.findByRole('heading', { name: 'Teams' });
 
-    const page = container.firstChild as HTMLElement;
+    const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
     expect(page.className).toContain('p-4');
     expect(page.className).toContain('sm:p-6');
 
@@ -72,9 +73,8 @@ describe('TeamsListPage', () => {
     expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);
     expect(header.className).toContain('sm:flex-row');
 
-    const actions = screen.getByRole('button', { name: 'Create team' }).parentElement as HTMLElement;
-    expect(actions.className).toContain('grid-flow-col');
-    expect(actions.className).toContain('sm:flex');
+    // the page's actions live in the shell toolbar, not in a content row
+    expect(heading.closest('[data-page-header]')?.querySelector('button')).toBeNull();
   });
 
   it('opens the bulk-import dialog from the Import button', async () => {
@@ -89,7 +89,7 @@ describe('TeamsListPage', () => {
 
     render(
       <MemoryRouter>
-        <TeamsListPage />
+        <WithChrome><TeamsListPage /></WithChrome>
       </MemoryRouter>
     );
 
@@ -97,12 +97,45 @@ describe('TeamsListPage', () => {
     expect(screen.getByRole('dialog', { name: /Import teams/ })).toBeInTheDocument();
   });
 
+  it('opens create team from a pending action', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [], lastDoc: null, hasMore: false });
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/teams', state: { pendingAction: 'new-team' } }]}>
+        <WithChrome>
+          <TeamsListPage />
+        </WithChrome>
+      </MemoryRouter>
+    );
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('does not open create team from a pending action for a member', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [], lastDoc: null, hasMore: false });
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/teams', state: { pendingAction: 'new-team' } }]}>
+        <WithChrome>
+          <TeamsListPage />
+        </WithChrome>
+      </MemoryRouter>
+    );
+    await screen.findByText('No teams assigned yet — ask your club admin.');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('hides Create team and Import from a member', async () => {
     vi.mocked(useAuth).mockReturnValue(authValue());
     vi.spyOn(teamsApi, 'listMyTeams').mockResolvedValue({ teams: [], lastDoc: null, hasMore: false });
     render(
       <MemoryRouter>
-        <TeamsListPage />
+        <WithChrome><TeamsListPage /></WithChrome>
       </MemoryRouter>
     );
     await screen.findByText('No teams assigned yet — ask your club admin.');

@@ -13,6 +13,8 @@ import { CreateTeamDialog } from './CreateTeamDialog';
 import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
 import { PageHeader } from '../layout/PageHeader';
+import { useTakePendingAction } from '../search/pendingAction';
+import { Plus } from 'lucide-react';
 
 /** Up to two letters from a team name, for the card monogram. */
 function teamMonogram(name: string): string {
@@ -32,6 +34,9 @@ export function TeamsListPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const notify = useNotify();
+  useTakePendingAction('new-team', () => {
+    if (access?.isClubAdmin) setShowCreate(true);
+  });
 
   async function loadFirstPage() {
     if (!appUser) return;
@@ -58,18 +63,8 @@ export function TeamsListPage() {
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
       <PageHeader
         title={t.teams.list.title}
-        actions={
-          access?.isClubAdmin ? (
-            <>
-              <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowImport(true)}>
-                {t.teams.list.import}
-              </Button>
-              <Button variant="primary" size="sm" className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-                {t.teams.list.create}
-              </Button>
-            </>
-          ) : undefined
-        }
+        mainAction={access?.isClubAdmin ? { label: t.teams.list.create, icon: Plus, onSelect: () => setShowCreate(true) } : undefined}
+        more={access?.isClubAdmin ? [{ kind: 'action', label: t.teams.list.import, onSelect: () => setShowImport(true) }] : undefined}
       />
 
 

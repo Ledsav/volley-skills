@@ -18,6 +18,7 @@ import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import { SectionTabs } from '../components/SectionTabs';
 import { PageHeader } from '../layout/PageHeader';
+import { useTakePendingAction } from '../search/pendingAction';
 import { PageSkeleton } from '../components/Skeleton';
 import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
@@ -52,6 +53,7 @@ export function TeamPage() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
+  useTakePendingAction('add-player', () => setShowAddPlayer(true));
   const notify = useNotify();
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);

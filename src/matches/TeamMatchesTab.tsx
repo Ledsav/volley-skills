@@ -12,6 +12,7 @@ import { todayIso } from '../calendar/monthGrid';
 import { createMatch, listMatches } from './matchesApi';
 import { DvwImportDialog } from './dvw/DvwImportDialog';
 import { MatchSetupForm } from './MatchSetupForm';
+import { useTakePendingAction } from '../search/pendingAction';
 
 const STATUS_CLASS: Record<MatchStatus, string> = {
   setup: 'bg-border/60 text-ink',
@@ -68,6 +69,8 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
   useEffect(() => {
     if (newMatchDate) setCreatingDate(newMatchDate);
   }, [newMatchDate]);
+
+  useTakePendingAction('new-match', () => setCreatingDate(todayIso()));
 
   function closeCreate() {
     setCreatingDate(null);

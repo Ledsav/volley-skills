@@ -1,5 +1,6 @@
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { WithChrome } from '../test/chromeProbe';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { TrainingsPage } from './TrainingsPage';
 import * as trainingsApi from './trainingsApi';
@@ -56,7 +57,7 @@ function renderPage(initialEntry = '/trainings') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/trainings" element={<TrainingsPage />} />
+        <Route path="/trainings" element={<WithChrome><TrainingsPage /></WithChrome>} />
       </Routes>
     </MemoryRouter>
   );
@@ -84,10 +85,10 @@ describe('TrainingsPage', () => {
   });
 
   it('adapts the page header, gutter, and filter row for mobile', async () => {
-    const { container } = renderPage();
+    renderPage();
     const heading = await screen.findByRole('heading', { name: 'Trainings' });
 
-    const page = container.firstChild as HTMLElement;
+    const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
     expect(page.className).toContain('p-4');
     expect(page.className).toContain('sm:p-6');
 
@@ -95,9 +96,8 @@ describe('TrainingsPage', () => {
     expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);
     expect(header.className).toContain('sm:flex-row');
 
-    const actions = screen.getByRole('button', { name: 'Import' }).parentElement as HTMLElement;
-    expect(actions.className).toContain('grid-flow-col');
-    expect(actions.className).toContain('sm:flex');
+    // the page's actions live in the shell toolbar, not in a content row
+    expect(heading.closest('[data-page-header]')?.querySelector('button')).toBeNull();
 
     // filters wrap instead of overflowing a phone screen; fields are full-width there
     const ageField = screen.getByLabelText('Age group');
@@ -193,6 +193,33 @@ describe('TrainingsPage', () => {
     await flushDebounce();
     expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1);
     expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' });
+  });
+
+  it('more menu holds import and AI draft', async () => {
+    renderPage();
+    await screen.findByText('Passing circuit');
+    expect(screen.getByRole('button', { name: 'New training' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Draft with AI' })).toBeInTheDocument();
+  });
+
+  it('more menu holds only import when AI is off', async () => {
+    clubOver.aiEnabled = false;
+    renderPage();
+    await screen.findByText('Passing circuit');
+    expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Draft with AI' })).not.toBeInTheDocument();
+  });
+
+  it('opens the builder from a pending action', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/trainings', state: { pendingAction: 'new-training' } }]}>
+        <Routes>
+          <Route path="/trainings" element={<WithChrome><TrainingsPage /></WithChrome>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(await screen.findByText('builder-stub')).toBeInTheDocument();
   });
 
   it('hides Draft with AI when the club has AI off', async () => {

@@ -1,4 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { WithChrome } from '../test/chromeProbe';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ExercisesPage } from './ExercisesPage';
 import * as exercisesApi from './exercisesApi';
@@ -38,6 +40,16 @@ const exercise = {
   createdAt: null,
 };
 
+function renderPage(initialEntries: Parameters<typeof MemoryRouter>[0]['initialEntries'] = ['/exercises']) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <WithChrome>
+        <ExercisesPage />
+      </WithChrome>
+    </MemoryRouter>
+  );
+}
+
 describe('ExercisesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,13 +59,13 @@ describe('ExercisesPage', () => {
 
   it('hides Draft with AI when the club has AI off', async () => {
     clubOver.aiEnabled = false;
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
     expect(screen.queryByRole('button', { name: 'Draft with AI' })).not.toBeInTheDocument();
   });
 
   it('renders exercises from the first page', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     const nameEl = await screen.findByText('Pepper');
     expect(nameEl).toBeInTheDocument();
     // The category-filter <select> also contains a "Warm-up" <option>, so scope
@@ -64,10 +76,10 @@ describe('ExercisesPage', () => {
   });
 
   it('adapts the page header and gutter for mobile: title stacks above a full-width action row', async () => {
-    const { container } = render(<ExercisesPage />);
+    renderPage();
     const heading = await screen.findByRole('heading', { name: 'Exercises' });
 
-    const page = container.firstChild as HTMLElement;
+    const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
     expect(page.className).toContain('p-4');
     expect(page.className).toContain('sm:p-6');
 
@@ -75,13 +87,12 @@ describe('ExercisesPage', () => {
     expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);
     expect(header.className).toContain('sm:flex-row');
 
-    const actions = screen.getByRole('button', { name: 'Import' }).parentElement as HTMLElement;
-    expect(actions.className).toContain('grid-flow-col');
-    expect(actions.className).toContain('sm:flex');
+    // the page's actions live in the shell toolbar, not in a content row
+    expect(heading.closest('[data-page-header]')?.querySelector('button')).toBeNull();
   });
 
   it('stacks each exercise entry as a card on mobile, with the description un-clamped', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     const entry = (await screen.findByText('Pepper')).closest('[role="button"]') as HTMLElement;
     expect(entry.className).toMatch(/(^|\s)flex-col(\s|$)/);
     expect(entry.className).toContain('sm:flex-row');
@@ -94,7 +105,7 @@ describe('ExercisesPage', () => {
   });
 
   it('opens the edit dialog when the row is clicked, but not when Delete is clicked', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
 
     fireEvent.click(screen.getByText('Delete'));
@@ -106,7 +117,7 @@ describe('ExercisesPage', () => {
   });
 
   it('opens the edit dialog on keyboard Enter on the row, but not on Enter on the Delete button', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
 
     const row = screen.getByText('Pepper').closest('[role="button"]') as HTMLElement;
@@ -121,7 +132,7 @@ describe('ExercisesPage', () => {
   });
 
   it('reloads with a category filter when a category chip is clicked', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
 
     fireEvent.click(screen.getByRole('button', { name: 'Attack' }));
@@ -130,7 +141,7 @@ describe('ExercisesPage', () => {
   });
 
   it('marks the active category chip and returns to "All" when it is clicked again', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
 
     const attackChip = screen.getByRole('button', { name: 'Attack' });
@@ -144,7 +155,7 @@ describe('ExercisesPage', () => {
 
   it('shows the training usage count in the delete confirmation', async () => {
     vi.mocked(exercisesApi.countTrainingsUsingExercise).mockResolvedValue(2);
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
 
     fireEvent.click(screen.getByText('Delete'));
@@ -154,7 +165,7 @@ describe('ExercisesPage', () => {
 
   it('surfaces an alert and hides the empty state when the first page fails to load', async () => {
     vi.mocked(exercisesApi.listExercises).mockRejectedValueOnce(new Error('permission-denied'));
-    render(<ExercisesPage />);
+    renderPage();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load exercises/i);
     expect(screen.queryByText('No exercises yet.')).not.toBeInTheDocument();
@@ -162,7 +173,7 @@ describe('ExercisesPage', () => {
 
   it('still opens the delete confirmation when the usage count read fails', async () => {
     vi.mocked(exercisesApi.countTrainingsUsingExercise).mockRejectedValue(new Error('offline'));
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
 
     fireEvent.click(screen.getByText('Delete'));
@@ -170,14 +181,19 @@ describe('ExercisesPage', () => {
     expect(await screen.findByText(/could not be determined/i)).toBeInTheDocument();
   });
 
+  it('opens the new exercise form from a pending action', async () => {
+    renderPage([{ pathname: '/exercises', state: { pendingAction: 'new-exercise' } }]);
+    expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
+  });
+
   it('opens the bulk-import dialog from the Import button', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
     expect(screen.getByRole('dialog', { name: /Import exercises/ })).toBeInTheDocument();
   });
 
   it('opens AI drafting and reloads the list after saving', async () => {
-    render(<ExercisesPage />);
+    renderPage();
     await screen.findByText('Pepper');
     fireEvent.click(screen.getByRole('button', { name: 'Draft with AI' }));
     fireEvent.click(screen.getByText('draft-dialog-stub'));

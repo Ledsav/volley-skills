@@ -46,6 +46,15 @@ describe('TeamMatchesTab', () => {
     expect(await screen.findByText('setup-form 2026-11-02')).toBeInTheDocument();
   });
 
+  it('opens the setup form from a pending action', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/teams/t1', search: '?tab=matches', state: { pendingAction: 'new-match' } }]}>
+        <TeamMatchesTab teamId="t1" teamName="Team" />
+      </MemoryRouter>
+    );
+    expect(await screen.findByText(/^setup-form [0-9]{4}-[0-9]{2}-[0-9]{2}$/)).toBeInTheDocument();
+  });
+
   it('opens the setup form from the button', async () => {
     render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: /new match/i }));

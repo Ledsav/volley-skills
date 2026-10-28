@@ -45,4 +45,15 @@ describe('Toolbar', () => {
     expect(button.className).toContain('bg-ink');
     expect(button.className).toContain('rounded-full');
   });
+
+  it('hides the inline title from assistive tech until scrolled', () => {
+    render(<Toolbar title="Trainings" />);
+    const title = screen.getByText('Trainings', { selector: 'header span' });
+    expect(title).toHaveAttribute('aria-hidden', 'true');
+    act(() => {
+      window.scrollY = 24;
+      fireEvent.scroll(window);
+    });
+    expect(title).not.toHaveAttribute('aria-hidden');
+  });
 });

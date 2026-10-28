@@ -37,6 +37,7 @@ export function Toolbar({
     >
       {leading && <div className="flex shrink-0 items-center gap-1">{leading}</div>}
       <span
+        aria-hidden={!scrolled || undefined}
         className={`min-w-0 flex-1 truncate text-headline text-ink transition-opacity duration-150 motion-reduce:transition-none ${
           scrolled ? 'opacity-100' : 'opacity-0'
         }`}

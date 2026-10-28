@@ -192,4 +192,57 @@ describe('useUndoable', () => {
     });
     expect(thrown.onCommitError).toHaveBeenCalledWith(error);
   });
+
+  it('pagehide also closes the undo notice', () => {
+    const o = opts();
+    setup(o);
+    fireEvent.click(screen.getByText('del'));
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'));
+    });
+    expect(o.commit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('Ctrl+Z is ignored from an SVG inside [data-own-undo]', () => {
+    const o = opts();
+    const { container } = setup(o);
+    const own = document.createElement('div');
+    own.setAttribute('data-own-undo', '');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    own.appendChild(svg);
+    container.appendChild(own);
+    fireEvent.click(screen.getByText('del'));
+    fireEvent.keyDown(svg, { key: 'z', ctrlKey: true });
+    expect(o.onUndo).not.toHaveBeenCalled();
+  });
+
+  it('stays paused while focus is inside after the pointer leaves', () => {
+    const o = opts();
+    setup(o);
+    fireEvent.click(screen.getByText('del'));
+    const button = screen.getByRole('button', { name: 'Undo' });
+    fireEvent.pointerEnter(button);
+    fireEvent.focus(button);
+    fireEvent.pointerLeave(button);
+    act(() => vi.advanceTimersByTime(UNDO_MS * 3));
+    expect(o.commit).not.toHaveBeenCalled();
+    fireEvent.blur(button);
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    expect(o.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs a failed commit when there is no onCommitError', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = new Error('boom');
+    const o = opts({ commit: vi.fn().mockRejectedValue(error) });
+    setup(o);
+    fireEvent.click(screen.getByText('del'));
+    await act(async () => {
+      vi.advanceTimersByTime(UNDO_MS);
+    });
+    expect(spy).toHaveBeenCalledWith(error);
+    spy.mockRestore();
+  });
 });

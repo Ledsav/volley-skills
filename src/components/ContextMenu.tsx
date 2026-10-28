@@ -29,6 +29,7 @@ export function useContextMenu({ label, items, disabled }: Options): { targetPro
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const start = useRef<{ x: number; y: number } | null>(null);
   const swallowClick = useRef(false);
+  const swallowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const itemsRef = useRef(items);
   itemsRef.current = items;
 
@@ -75,7 +76,13 @@ export function useContextMenu({ label, items, disabled }: Options): { targetPro
     return () => document.removeEventListener('pointerdown', onDown);
   }, [at]);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      clearTimeout(swallowTimer.current);
+    },
+    [],
+  );
 
   const targetProps: TargetProps = {
     onContextMenu: (e) => {
@@ -113,7 +120,10 @@ export function useContextMenu({ label, items, disabled }: Options): { targetPro
     onPointerUp: () => {
       releasePress();
       // The click that ends the press follows pointerup at once; a later one (keyboard) is a real click.
-      if (swallowClick.current) setTimeout(() => (swallowClick.current = false), SWALLOW_MS);
+      if (swallowClick.current) {
+        clearTimeout(swallowTimer.current);
+        swallowTimer.current = setTimeout(() => (swallowClick.current = false), SWALLOW_MS);
+      }
     },
     onPointerCancel: () => {
       swallowClick.current = false;

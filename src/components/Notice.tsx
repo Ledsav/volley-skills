@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useLocation } from 'react-router-dom';
 import { CheckCircle2, X } from 'lucide-react';
 import { useT } from '../i18n/I18nProvider';
@@ -50,9 +50,10 @@ interface Queued {
 }
 
 function isEditable(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
+  if (!(target instanceof Element)) return false;
+  if (target.closest('[data-own-undo]')) return true;
   const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || !!target.closest('[data-own-undo]');
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (target instanceof HTMLElement && target.isContentEditable);
 }
 
 /** Commits the pending undoable when the pathname changes. Only mounted inside a router. */
@@ -101,7 +102,10 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
     if (!p) return false;
     pending.current = null;
     window.clearTimeout(timer.current);
-    const fail = (e: unknown) => p.onCommitError?.(e);
+    const fail = (e: unknown) => {
+      if (p.onCommitError) p.onCommitError(e);
+      else console.error(e);
+    };
     try {
       void Promise.resolve(p.commit()).catch(fail);
     } catch (e) {
@@ -149,16 +153,14 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
 
   // pagehide commits; unmounting the provider commits.
   useEffect(() => {
-    const onHide = () => {
-      runPending();
-    };
+    const onHide = () => commitAndClose();
     window.addEventListener('pagehide', onHide);
     return () => {
       window.removeEventListener('pagehide', onHide);
       runPending();
       window.clearTimeout(timer.current);
     };
-  }, [runPending]);
+  }, [runPending, commitAndClose]);
 
   // Ctrl+Z / Cmd+Z while the undo notice is showing.
   useEffect(() => {
@@ -175,7 +177,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
 
   // The undo pill rises 12px and fades in over 200ms; reduced motion fades only.
   const pillId = notice?.undo ? notice.id : null;
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = pillRef.current;
     if (pillId === null || !el || typeof el.animate !== 'function') return;
     el.animate(
@@ -189,11 +191,12 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
     );
   }, [pillId, reduced]);
 
-  const pause = () => {
-    if (pending.current) window.clearTimeout(timer.current);
-  };
-  const resume = () => {
-    if (pending.current) startUndoTimer();
+  const holds = useRef({ pointer: false, focus: false });
+  const hold = (kind: 'pointer' | 'focus', on: boolean) => {
+    holds.current[kind] = on;
+    if (!pending.current) return;
+    if (holds.current.pointer || holds.current.focus) window.clearTimeout(timer.current);
+    else startUndoTimer();
   };
 
   return (
@@ -228,11 +231,11 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
             <div
               key={notice.id}
               ref={pillRef}
-              onPointerEnter={pause}
-              onPointerLeave={resume}
-              onFocus={pause}
+              onPointerEnter={() => hold('pointer', true)}
+              onPointerLeave={() => hold('pointer', false)}
+              onFocus={() => hold('focus', true)}
               onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) resume();
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hold('focus', false);
               }}
               className="pointer-events-auto flex max-w-md items-center gap-3 rounded-full bg-ink py-1.5 pl-4 pr-1.5 text-callout text-on-ink shadow-pop"
             >

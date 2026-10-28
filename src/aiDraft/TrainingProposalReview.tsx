@@ -29,7 +29,7 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
   const off = Math.abs(total - targetMinutes) > targetMinutes * 0.1;
   return (
     <div className="flex flex-col gap-4">
-      <p><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{t.badge}</span></p>
+      <p><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">{t.badge}</span></p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="tdraft-name" className="mb-1 block text-sm font-medium text-ink">
@@ -62,7 +62,7 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
         />
       </div>
 
-      <p className={`text-sm tabular-nums ${off ? 'text-orange' : 'text-slate'}`}>
+      <p className={`text-sm tabular-nums ${off ? 'text-orange-strong' : 'text-slate'}`}>
         {r.minutesOfTarget(total, targetMinutes)}
       </p>
       {draft.issues.length > 0 && (
@@ -96,13 +96,13 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <span
                     className={`rounded-sm px-1.5 py-0.5 text-xs font-medium ${
-                      s.kind === 'new' ? 'bg-orange/10 text-orange' : 'bg-bg text-slate'
+                      s.kind === 'new' ? 'bg-orange/10 text-orange-strong' : 'bg-bg text-slate'
                     }`}
                   >
                     {s.kind === 'new' ? r.isNew : r.isLibrary}
                   </span>
                   {category && (
-                    <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{lb.exerciseCategory[category]}</span>
+                    <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">{lb.exerciseCategory[category]}</span>
                   )}
                   <PlayersNote
                     minPlayers={s.kind === 'library' ? s.minPlayers : s.exercise.minPlayers}

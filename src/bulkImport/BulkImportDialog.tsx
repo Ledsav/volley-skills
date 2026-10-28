@@ -178,13 +178,13 @@ export function BulkImportDialog<TInput, TIssue = string>({
         </div>
 
         {parseError && (
-          <p role="alert" className="mt-3 text-sm text-red">
+          <p role="alert" className="mt-3 text-sm text-red-strong">
             {parseError}
           </p>
         )}
 
         {errors.length > 0 && (
-          <ul role="alert" className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-red">
+          <ul role="alert" className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-red-strong">
             {errors.map((message, i) => (
               <li key={i}>{message}</li>
             ))}
@@ -198,7 +198,7 @@ export function BulkImportDialog<TInput, TIssue = string>({
         )}
 
         {commitError && (
-          <p role="alert" className="mt-3 text-sm text-red">
+          <p role="alert" className="mt-3 text-sm text-red-strong">
             {commitError}
           </p>
         )}

@@ -112,7 +112,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               <HealthHint id="team-info-notes-hint" />
             </div>
           </div>
-          {infoError && <p role="alert" className="mt-3 text-sm text-red">{infoError}</p>}
+          {infoError && <p role="alert" className="mt-3 text-sm text-red-strong">{infoError}</p>}
           <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo || gender === ''}>
             {t.teams.settings.saveInfo}
           </Button>
@@ -128,7 +128,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
               <input type="checkbox" checked={includeEvents} onChange={(e) => setIncludeEvents(e.target.checked)} />
               {t.teams.settings.includeEvents}
             </label>
-            {exportError && <p role="alert" className="mt-2 text-sm text-red">{exportError}</p>}
+            {exportError && <p role="alert" className="mt-2 text-sm text-red-strong">{exportError}</p>}
           </div>
           <Button
             variant="secondary"

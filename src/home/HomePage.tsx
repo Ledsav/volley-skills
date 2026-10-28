@@ -66,12 +66,12 @@ export function HomePage() {
       {state.loading ? (
         <PageSkeleton layout="team" label={t.loading} />
       ) : state.errors.teams ? (
-        <p role="alert" className="text-red">{t.teamsError}</p>
+        <p role="alert" className="text-red-strong">{t.teamsError}</p>
       ) : state.teams.length === 0 && !anySection ? (
         <div className="max-w-lg rounded-lg border border-border bg-surface p-6 shadow-card">
           <h2 className="text-lg font-semibold text-ink">{t.noAccessTitle}</h2>
           <p className="mt-2 text-slate">{t.noAccessBody}</p>
-          <Link to="/request-access" className="mt-4 inline-flex min-h-11 items-center rounded-md bg-blue px-4 font-medium text-white hover:bg-blue-strong">
+          <Link to="/request-access" className="mt-4 inline-flex min-h-11 items-center rounded-md bg-blue-strong px-4 font-medium text-on-ink hover:opacity-90">
             {t.requestAccess}
           </Link>
         </div>
@@ -88,7 +88,7 @@ export function HomePage() {
             <section aria-labelledby="your-teams" className="mb-6">
               <div className="mb-2 flex items-baseline justify-between">
                 <h2 id="your-teams" className="text-lg font-semibold text-ink">{t.yourTeams}</h2>
-                {state.hasMoreTeams && <Link to="/teams" className="text-sm text-blue hover:underline">{t.allTeams}</Link>}
+                {state.hasMoreTeams && <Link to="/teams" className="text-sm text-blue-strong hover:underline">{t.allTeams}</Link>}
               </div>
               {state.hasMoreTeams && <p className="mb-2 text-sm text-slate">{t.showingFirst(state.teams.length)}</p>}
               <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

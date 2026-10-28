@@ -97,19 +97,19 @@ export function LoginPage() {
       </Button>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red">
+        <p role="alert" className="mt-3 text-sm text-red-strong">
           {error}
         </p>
       )}
 
       <p className="mt-6 text-center text-sm">
-        <Link to="/request-access" className="text-blue hover:underline">
+        <Link to="/request-access" className="text-blue-strong hover:underline">
           {t.noAccessYet}
         </Link>
       </p>
 
       <p className="mt-2 text-center text-sm">
-        <Link to="/signup" className="text-blue hover:underline">
+        <Link to="/signup" className="text-blue-strong hover:underline">
           {t.createClub}
         </Link>
       </p>

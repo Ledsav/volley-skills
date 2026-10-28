@@ -89,7 +89,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
       {duplicate && (
         <p className="rounded-md border border-orange bg-orange/10 px-3 py-2 text-sm text-ink">
           {d.alreadyImported(duplicate.date, duplicate.opponent)}{' '}
-          <Link to={`/teams/${teamId}/matches/${duplicate.id}`} className="font-medium text-blue hover:underline">
+          <Link to={`/teams/${teamId}/matches/${duplicate.id}`} className="font-medium text-blue-strong hover:underline">
             {d.openExisting}
           </Link>
         </p>
@@ -224,7 +224,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
       )}
 
       {blocking.length > 0 && (
-        <ul data-testid="blocking-issues" className="flex flex-col gap-1 text-sm text-red">
+        <ul data-testid="blocking-issues" className="flex flex-col gap-1 text-sm text-red-strong">
           {blocking.map((m, i) => (
             <li key={i} role="alert">{m}</li>
           ))}

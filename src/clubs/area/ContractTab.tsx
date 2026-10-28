@@ -66,11 +66,11 @@ export function ContractTab() {
           <span className="mt-1 flex flex-wrap gap-x-4">
             {accepted && (
               <>
-                <Link className="text-blue underline" to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>{c.terms}</Link>
-                <Link className="text-blue underline" to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>{c.dpa}</Link>
+                <Link className="text-blue-strong underline" to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>{c.terms}</Link>
+                <Link className="text-blue-strong underline" to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>{c.dpa}</Link>
               </>
             )}
-            <Link className="text-blue underline" to="/legal/subprocessors">{c.subprocessors}</Link>
+            <Link className="text-blue-strong underline" to="/legal/subprocessors">{c.subprocessors}</Link>
           </span>
         </Row>
       </dl>
@@ -88,7 +88,7 @@ export function ContractTab() {
       {OPERATOR_CONTACT_EMAIL && (
         <p className="text-sm text-slate">
           {c.questionsPrefix}
-          <a className="text-blue underline" href={`mailto:${OPERATOR_CONTACT_EMAIL}`}>{OPERATOR_CONTACT_EMAIL}</a>{c.questionsSuffix}
+          <a className="text-blue-strong underline" href={`mailto:${OPERATOR_CONTACT_EMAIL}`}>{OPERATOR_CONTACT_EMAIL}</a>{c.questionsSuffix}
         </p>
       )}
       {confirming && (

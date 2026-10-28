@@ -29,7 +29,7 @@ export function NotFoundPage() {
         {t.nothingLivesAt}<code className="rounded-sm bg-bg px-1 text-ink">{pathname}</code>
       </p>
       <div className="mt-6 flex gap-2">
-        <Link to="/" className="inline-flex min-h-11 items-center rounded-md bg-blue px-4 font-medium text-white hover:bg-blue-strong">
+        <Link to="/" className="inline-flex min-h-11 items-center rounded-md bg-blue-strong px-4 font-medium text-on-ink hover:opacity-90">
           {t.goHome}
         </Link>
         <button

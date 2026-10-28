@@ -8,7 +8,7 @@ function Denied() {
   const t = useT().auth.shared;
   return (
     <AuthShell>
-      <p role="alert" className="text-red">{t.noAccess}</p>
+      <p role="alert" className="text-red-strong">{t.noAccess}</p>
     </AuthShell>
   );
 }

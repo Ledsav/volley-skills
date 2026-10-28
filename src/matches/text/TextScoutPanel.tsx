@@ -211,7 +211,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
     <section aria-label={tx.ariaLabel} className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-3">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-ink">{tx.title}</h2>
-        <button type="button" onClick={onClose} className="min-h-11 rounded-md px-3 text-sm text-blue hover:bg-blue/10">{tx.close}</button>
+        <button type="button" onClick={onClose} className="min-h-11 rounded-md px-3 text-sm text-blue-strong hover:bg-blue/10">{tx.close}</button>
       </div>
       <p className="text-xs tabular-nums text-slate">
         {tx.inserting(!!anchorId, anchorState.score.us, anchorState.score.them, anchorState.set || '–', anchorState.rotation, anchorState.serving === 'us')}
@@ -222,7 +222,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           <p className="text-sm text-slate">{tx.noProvider}</p>
           <Link
             to="/settings"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-3 py-1.5 text-sm font-medium text-blue-strong hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
             {tx.openSettings}
           </Link>
@@ -251,7 +251,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           </>
         )}
       </div>
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-strong">{error}</p>}
 
       {batch && (
         <div className="flex flex-col gap-2">
@@ -295,7 +295,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
             </label>
           </div>
           {mismatch && (
-            <p role="alert" className="text-sm text-red">
+            <p role="alert" className="text-sm text-red-strong">
               {tx.mismatch(afterState.score.us, afterState.score.them, actual.us, actual.them)}
             </p>
           )}

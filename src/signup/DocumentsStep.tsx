@@ -30,7 +30,7 @@ function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }:
           target="_blank"
           rel="noopener noreferrer"
           onClick={onRead}
-          className="text-sm text-blue hover:underline"
+          className="text-sm text-blue-strong hover:underline"
         >
           {t.openInNewTab}<span className="sr-only"> ({title})</span>
         </a>
@@ -107,7 +107,7 @@ export function DocumentsStep({ termsVersion, dpaVersion, lang, onLangChange, on
       />
       <p className="text-sm text-slate">
         {t.signup.documents.listOf}{' '}
-        <a href={`/legal/subprocessors?lang=${lang}`} target="_blank" rel="noopener noreferrer" className="text-blue hover:underline">
+        <a href={`/legal/subprocessors?lang=${lang}`} target="_blank" rel="noopener noreferrer" className="text-blue-strong hover:underline">
           {t.legal.docTitles.subprocessors}
         </a>{' '}
         {t.signup.documents.isPart}

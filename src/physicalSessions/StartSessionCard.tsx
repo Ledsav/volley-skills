@@ -52,11 +52,11 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
           <Input id="session-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full sm:w-48" />
           <Button variant="primary" onClick={() => void handleStart()} className="w-full sm:w-auto">{s.start.startNew}</Button>
         </div>
-        {error && <p role="alert" className="mt-3 text-sm text-red">{error}</p>}
+        {error && <p role="alert" className="mt-3 text-sm text-red-strong">{error}</p>}
       </div>
 
       <h3 className="mb-2 text-sm font-semibold text-ink">{s.start.pastSessions}</h3>
-      {loadError && <p role="alert" className="text-sm text-red">{loadError}</p>}
+      {loadError && <p role="alert" className="text-sm text-red-strong">{loadError}</p>}
       {!loadError && pastSessions.length === 0 && <p className="text-sm text-slate">{s.start.noSessions}</p>}
       <ul className="divide-y divide-border rounded-md border border-border">
         {pastSessions.map((p) => (

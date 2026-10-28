@@ -114,7 +114,7 @@ export function AccessRequestsPanel({ onGrant }: { onGrant?: (email: string) => 
         )}
       </div>
 
-      {error && <p role="alert" className="mb-3 text-sm text-red">{t[error]}</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-red-strong">{t[error]}</p>}
 
       {loaded && signups.length === 0 && !error ? (
         <p className="text-sm text-slate">{t.empty}</p>

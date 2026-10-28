@@ -11,7 +11,7 @@ export function NextUpBlock({ items, failed }: { items: FeedItem[]; failed: bool
   return (
     <section aria-labelledby="next-up" className="rounded-lg border border-border bg-surface p-4 shadow-card">
       <h2 id="next-up" className="mb-3 text-lg font-semibold text-ink">{t.nextUp.title}</h2>
-      {failed && <p role="alert" className="mb-2 text-sm text-red">{t.nextUp.error}</p>}
+      {failed && <p role="alert" className="mb-2 text-sm text-red-strong">{t.nextUp.error}</p>}
       {items.length === 0 ? (
         <p className="text-slate">{t.nextUp.empty}</p>
       ) : (

@@ -20,7 +20,7 @@ export function Tab({ active, onClick, children }: TabProps) {
       role="tab"
       aria-selected={active}
       className={`shrink-0 cursor-pointer border-b-2 px-1 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${
-        active ? 'border-blue text-blue' : 'border-transparent text-slate hover:text-ink'
+        active ? 'border-blue text-blue-strong' : 'border-transparent text-slate hover:text-ink'
       }`}
     >
       {children}

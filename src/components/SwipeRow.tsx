@@ -33,7 +33,7 @@ export function swipeRelease(i: {
 }
 
 const TONE_CLASS = {
-  destructive: 'bg-red text-white',
+  destructive: 'bg-red-strong text-on-ink',
   neutral: 'bg-surface-3 text-ink',
 } as const;
 

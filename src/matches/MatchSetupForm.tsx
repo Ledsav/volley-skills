@@ -195,7 +195,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
 
       <fieldset>
         <legend className="mb-2 text-sm font-semibold text-ink">{m.roster}</legend>
-        <p className={`mb-2 text-sm tabular-nums ${tooMany ? 'font-medium text-red' : 'text-slate'}`}>
+        <p className={`mb-2 text-sm tabular-nums ${tooMany ? 'font-medium text-red-strong' : 'text-slate'}`}>
           {m.selected(checkedPlayers.length, MAX_ROSTER)}
         </p>
         <ul className="grid gap-2 sm:grid-cols-2">
@@ -233,7 +233,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], number: Number(e.target.value) } }))}
               />
               {isDuplicate(p.id) && (
-                <span className="w-full text-xs font-medium text-red">{m.duplicate(picks[p.id].number)}</span>
+                <span className="w-full text-xs font-medium text-red-strong">{m.duplicate(picks[p.id].number)}</span>
               )}
             </li>
           ))}
@@ -299,7 +299,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
       </fieldset>
 
       {saved && !error && <p role="status" className="text-sm text-green-strong">{m.saved}</p>}
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-strong">{error}</p>}
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>{t.common.cancel}</Button>

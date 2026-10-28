@@ -20,7 +20,7 @@ import { useT } from '../i18n/I18nProvider';
 
 const chipClass = (active: boolean) =>
   `shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-    active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+    active ? 'bg-blue-strong text-on-ink' : 'border border-border bg-surface text-slate hover:bg-bg'
   }`;
 
 const FORM_ID = 'training-form';
@@ -270,7 +270,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2">
               <span className="text-sm font-medium text-ink">{ex.name}</span>
-              <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+              <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">
                 {lb.exerciseCategory[ex.category]}
               </span>
               <PlayersNote minPlayers={ex.minPlayers} suggested={suggestedPlayersValue} />
@@ -422,7 +422,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                       className="aspect-square w-14 shrink-0 overflow-hidden rounded-sm border border-border bg-surface"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className={`block truncate text-sm font-medium ${row.name ? 'text-ink' : 'text-red'}`}>
+                      <span className={`block truncate text-sm font-medium ${row.name ? 'text-ink' : 'text-red-strong'}`}>
                         {row.name ?? (
                           <span className="inline-flex items-center gap-1">
                             <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
@@ -476,7 +476,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                       type="button"
                       aria-label={m.remove(i + 1)}
                       onClick={() => removeRow(i)}
-                      className={`${rowIconBtn} text-red hover:text-red-strong`}
+                      className={`${rowIconBtn} text-red-strong hover:text-red-strong`}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -569,7 +569,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         </div>
 
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red">
+          <p role="alert" className="mt-3 text-sm text-red-strong">
             {error}
           </p>
         )}

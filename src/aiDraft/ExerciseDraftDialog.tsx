@@ -232,10 +232,10 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-sm text-red-strong">
             {error.text}{' '}
             {error.settingsLink && (
-              <Link to="/settings" className="text-blue hover:underline">
+              <Link to="/settings" className="text-blue-strong hover:underline">
                 {t.openSettings}
               </Link>
             )}

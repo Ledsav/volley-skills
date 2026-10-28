@@ -32,7 +32,7 @@ export function WelcomePage() {
         {!isPlatformAdmin && (
           <Link
             to="/signup/club"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-4 py-2 font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-4 py-2 font-medium text-blue-strong hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
             {w.createClub}
           </Link>

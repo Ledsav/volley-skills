@@ -57,7 +57,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   if (!firebaseUser) return null;
 
   if (playersError) {
-    return <p role="alert" className="text-sm text-red">{playersError}</p>;
+    return <p role="alert" className="text-sm text-red-strong">{playersError}</p>;
   }
 
   if (!players) {
@@ -65,7 +65,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }
 
   if (error) {
-    return <p role="alert" className="text-sm text-red">{error}</p>;
+    return <p role="alert" className="text-sm text-red-strong">{error}</p>;
   }
 
   if (team.activeTestingSessionId && session) {

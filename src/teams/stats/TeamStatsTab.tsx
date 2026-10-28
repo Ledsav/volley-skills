@@ -75,7 +75,7 @@ export default function TeamStatsTab({ team }: { team: Team }) {
     downloadText(teamStatsCsvFileName(team.name, view.filtered), teamStatsCsv(view.season.players, format), 'text/csv;charset=utf-8');
   }
 
-  if (error) return <p role="alert" className="text-red">{t.loadError}</p>;
+  if (error) return <p role="alert" className="text-red-strong">{t.loadError}</p>;
   if (!view) return <p className="text-slate">{tt.teams.shared.loadingStats}</p>;
 
   const { coverage, season, filtered } = view;
@@ -132,7 +132,7 @@ export default function TeamStatsTab({ team }: { team: Team }) {
           </select>
         </label>
         <div className="ml-auto flex gap-2">
-          <Link to={`/teams/${team.id}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange px-4 font-medium text-white hover:bg-orange-strong">
+          <Link to={`/teams/${team.id}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange-strong px-4 font-medium text-on-ink hover:opacity-90">
             <Trophy size={16} aria-hidden="true" /> {t.seasonAwards}
           </Link>
           <Menu

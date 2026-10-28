@@ -68,7 +68,7 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
         <label htmlFor="club-name" className="text-sm font-medium text-ink">{p.nameLabel}</label>
         <Input id="club-name" value={name} disabled={restricted} onChange={(e) => setName(e.target.value)}
           aria-invalid={!!nameError} aria-describedby={nameError ? 'club-name-error' : undefined} />
-        {nameError && <p id="club-name-error" role="alert" className="text-sm text-red">{nameError}</p>}
+        {nameError && <p id="club-name-error" role="alert" className="text-sm text-red-strong">{nameError}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -119,7 +119,7 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
         </div>
       </div>
 
-      {error && <p role="alert" className="text-red">{error}</p>}
+      {error && <p role="alert" className="text-red-strong">{error}</p>}
       {!restricted && (
         <Button type="submit" variant="primary" className="w-full sm:w-auto sm:self-start" disabled={saving}>
           {t.common.save}

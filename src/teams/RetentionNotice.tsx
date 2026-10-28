@@ -70,7 +70,7 @@ export function RetentionNotice({ teamId, gender = 'mixed', onDeleted }: Retenti
         {due.map((p) => (
           <li key={p.id} className="flex items-center justify-between gap-3 py-2">
             <span className="min-w-0 truncate">
-              <Link to={`/teams/${teamId}/players/${p.id}`} className="text-blue hover:underline">
+              <Link to={`/teams/${teamId}/players/${p.id}`} className="text-blue-strong hover:underline">
                 {p.fullName}
               </Link>
               <span className="text-slate">

@@ -130,7 +130,7 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
           <Textarea rows={3} maxLength={REASON_MAX} value={reason} onChange={(e) => setReason(e.target.value)} />
           <span className="self-end text-xs font-normal tabular-nums text-slate">{reason.length}/{REASON_MAX}</span>
         </label>
-        {(dateError || error) && <p role="alert" className="text-sm text-red">{dateError ?? error}</p>}
+        {(dateError || error) && <p role="alert" className="text-sm text-red-strong">{dateError ?? error}</p>}
       </div>
     </Dialog>
   );

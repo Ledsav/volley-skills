@@ -67,7 +67,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
         <button
           type="button"
           onClick={() => dispatch({ type: 'deleteSelected' })}
-          className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
+          className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red-strong hover:bg-red/10"
         >
           {p.delete}
         </button>
@@ -226,7 +226,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
               type="checkbox"
               checked={item.curved}
               onChange={(e) => set({ curved: e.target.checked })}
-              className="h-4 w-4 rounded-sm border-border text-blue focus:outline-none focus:ring-2 focus:ring-blue"
+              className="h-4 w-4 rounded-sm border-border text-blue-strong focus:outline-none focus:ring-2 focus:ring-blue"
             />
             <span className="font-medium text-ink">{p.curved}</span>
           </label>
@@ -351,7 +351,7 @@ export function PropertiesPanel({ item, dispatch, selectedCount }: Props) {
       <button
         type="button"
         onClick={() => dispatch({ type: 'deleteItem', id: item.id })}
-        className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red hover:bg-red/10"
+        className="inline-flex min-h-11 items-center justify-center rounded-md border border-red px-3 py-1.5 font-medium text-red-strong hover:bg-red/10"
       >
         {p.deleteElement}
       </button>

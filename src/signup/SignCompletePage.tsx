@@ -104,7 +104,7 @@ export function SignCompletePage() {
 
       {view === 'error' && (
         <>
-          <p role="alert" className="text-center text-red">{t.error}</p>
+          <p role="alert" className="text-center text-red-strong">{t.error}</p>
           <div className="mt-4 flex justify-center">
             <Button variant="primary" onClick={() => void run()}>{t.tryAgain}</Button>
           </div>
@@ -112,7 +112,7 @@ export function SignCompletePage() {
       )}
 
       {resendError && (
-        <p role="alert" className="mt-3 text-center text-sm text-red">{t.resendError}</p>
+        <p role="alert" className="mt-3 text-center text-sm text-red-strong">{t.resendError}</p>
       )}
       {unsyncedDialog}
     </AuthShell>

@@ -24,7 +24,7 @@ const LOCALES: { id: ClubLocale; label: string }[] = [
 type Errors = Partial<Record<'name' | 'country' | 'person' | 'authority', true>>;
 
 function FieldError({ id, message }: { id: string; message?: string }) {
-  return message ? <p id={id} role="alert" className="text-sm text-red">{message}</p> : null;
+  return message ? <p id={id} role="alert" className="text-sm text-red-strong">{message}</p> : null;
 }
 
 /** /signup/club: club details, then the documents, then the specific approval and the signing link. */

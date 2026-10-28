@@ -23,9 +23,9 @@ export function RequireSignedIn({ children }: { children: ReactNode }) {
   if (authError) {
     return (
       <AuthShell>
-        <p role="alert" className="text-red">
+        <p role="alert" className="text-red-strong">
           {t.wentWrong}
-          <a href="/login" className="font-medium text-blue hover:underline">
+          <a href="/login" className="font-medium text-blue-strong hover:underline">
             {t.tryAgain}
           </a>
           .

@@ -37,7 +37,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
           <li key={d.key} className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row">
             <DraftDiagramPreview scene={d.scene} label={r.diagramFor(d.name)} onOpen={() => setZoomed(d)} />
             <div className="min-w-0 flex-1">
-              <p className="mb-1"><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{t.badge}</span></p>
+              <p className="mb-1"><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">{t.badge}</span></p>
               {editing === d.key ? (
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-ink" htmlFor={`draft-name-${d.key}`}>
@@ -81,7 +81,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-ink">{d.name}</span>
                     {d.category && (
-                      <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+                      <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">
                         {lb.exerciseCategory[d.category]}
                       </span>
                     )}

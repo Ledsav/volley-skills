@@ -146,7 +146,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
             </span>
           )}
           {entry.category && (
-            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">
               {lb.exerciseCategory[entry.category]}
             </span>
           )}
@@ -165,7 +165,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
         </div>
 
         {!entry.name ? (
-          <p className="text-sm text-red">{d.wasDeleted}</p>
+          <p className="text-sm text-red-strong">{d.wasDeleted}</p>
         ) : (
           <>
             <section aria-label={d.diagrams}>
@@ -174,7 +174,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
                   {d.loadingDiagrams}
                 </div>
               )}
-              {diagrams === 'error' && <p className="text-sm text-red">{d.diagramsError}</p>}
+              {diagrams === 'error' && <p className="text-sm text-red-strong">{d.diagramsError}</p>}
               {Array.isArray(diagrams) && diagrams.length === 0 && (
                 <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-slate">
                   {d.noDiagrams}

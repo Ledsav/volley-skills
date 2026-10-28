@@ -37,7 +37,7 @@ export function LegalNoticeBanner() {
       node: (
         <>
           {doc === 'terms' ? t.termsUpdated(fmt(v.effectiveFrom)) : t.dpaUpdated(fmt(v.effectiveFrom))}
-          <Link className="text-blue underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>
+          <Link className="text-blue-strong underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>
             {t.review}<span className="sr-only">{doc === 'terms' ? t.reviewTerms : t.reviewDpa}</span>
           </Link>
         </>
@@ -51,9 +51,9 @@ export function LegalNoticeBanner() {
       node: (
         <>
           {t.subprocessorsChange(fmt(sub.effectiveFrom))}{' '}
-          <Link className="text-blue underline" to={`/legal/subprocessors?v=${encodeURIComponent(sub.version)}`}>{t.seeList}</Link>
+          <Link className="text-blue-strong underline" to={`/legal/subprocessors?v=${encodeURIComponent(sub.version)}`}>{t.seeList}</Link>
           {' · '}
-          <a className="text-blue underline" href={`mailto:${OPERATOR.contactEmail}`}>{t.contactOperator}</a>
+          <a className="text-blue-strong underline" href={`mailto:${OPERATOR.contactEmail}`}>{t.contactOperator}</a>
         </>
       ),
     });

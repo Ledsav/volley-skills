@@ -37,9 +37,9 @@ function inline(text: string, keyPrefix = 'i'): ReactNode[] {
       const label = inline(m[3], key);
       const link = safeHref(m[4]);
       if (!link) out.push(<Fragment key={key}>{label}</Fragment>);
-      else if (link.kind === 'internal') out.push(<Link key={key} to={link.href} className="text-blue hover:underline">{label}</Link>);
-      else if (link.kind === 'external') out.push(<a key={key} href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue hover:underline">{label}</a>);
-      else out.push(<a key={key} href={link.href} className="text-blue hover:underline">{label}</a>);
+      else if (link.kind === 'internal') out.push(<Link key={key} to={link.href} className="text-blue-strong hover:underline">{label}</Link>);
+      else if (link.kind === 'external') out.push(<a key={key} href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-strong hover:underline">{label}</a>);
+      else out.push(<a key={key} href={link.href} className="text-blue-strong hover:underline">{label}</a>);
     }
     rest = rest.slice(m.index + m[0].length);
   }

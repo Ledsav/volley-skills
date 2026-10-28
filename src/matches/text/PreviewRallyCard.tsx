@@ -27,7 +27,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
     <li className={`rounded-md border p-2 ${issues.some((x) => x.blocking) ? 'border-red' : 'border-border'} bg-surface`}>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-semibold text-ink">{t.textScout.preview.rally(n)}</span>
-        <button type="button" aria-label={t.textScout.preview.deleteRally(n)} onClick={onDelete} className="flex h-11 w-11 items-center justify-center rounded-md text-red hover:bg-red/10">
+        <button type="button" aria-label={t.textScout.preview.deleteRally(n)} onClick={onDelete} className="flex h-11 w-11 items-center justify-center rounded-md text-red-strong hover:bg-red/10">
           <Trash2 size={16} aria-hidden="true" />
         </button>
       </div>
@@ -100,7 +100,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
         {rally.point?.reason && <span className="text-xs text-slate">{t.labels.pointReason[rally.point.reason]}</span>}
       </label>
       {issues.map((x, i) => (
-        <p key={i} className={`mt-1 text-xs ${x.blocking ? 'text-red' : 'text-orange-strong'}`}>{issueMessage(x, t)}</p>
+        <p key={i} className={`mt-1 text-xs ${x.blocking ? 'text-red-strong' : 'text-orange-strong'}`}>{issueMessage(x, t)}</p>
       ))}
     </li>
   );

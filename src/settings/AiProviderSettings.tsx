@@ -25,7 +25,7 @@ function errorText(e: AiError, provider: AiProvider, t: Catalog['settings']['ai'
 }
 
 const INPUT_CLASS = 'w-full min-h-11';
-const EXT_LINK_CLASS = 'text-sm text-blue hover:underline';
+const EXT_LINK_CLASS = 'text-sm text-blue-strong hover:underline';
 
 type Status = { kind: 'testing' | 'ok' | 'error'; text: string };
 
@@ -63,7 +63,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
   }
 
   const statusColor =
-    status?.kind === 'ok' ? 'text-green-strong' : status?.kind === 'error' ? 'text-red' : 'text-slate';
+    status?.kind === 'ok' ? 'text-green-strong' : status?.kind === 'error' ? 'text-red-strong' : 'text-slate';
 
   return (
     <SettingsSection title={t.title} description={t.description}>
@@ -186,7 +186,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
       </p>
       <p className="text-xs text-slate">
         {t.privacy}{' '}
-        <Link to="/privacy" className="text-blue hover:underline">
+        <Link to="/privacy" className="text-blue-strong hover:underline">
           {t.whatsSent}
         </Link>
       </p>

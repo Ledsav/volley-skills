@@ -157,7 +157,7 @@ export function PeopleTab() {
 
   return (
     <div>
-      {error && !confirm && <p role="alert" className="mb-4 text-red">{error}</p>}
+      {error && !confirm && <p role="alert" className="mb-4 text-red-strong">{error}</p>}
       <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
         <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
           <div className="mb-3 flex flex-col gap-2">
@@ -180,7 +180,7 @@ export function PeopleTab() {
                 <button type="button" onClick={() => select(x.email)} title={x.email}
                   aria-current={selected === x.email}
                   className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                    selected === x.email ? 'bg-blue/10 font-semibold text-blue' : 'text-ink hover:bg-bg'
+                    selected === x.email ? 'bg-blue/10 font-semibold text-blue-strong' : 'text-ink hover:bg-bg'
                   }`}>
                   <span className="min-w-0 flex-1 truncate">{x.email}</span>
                   {x.email === ownerEmail && (

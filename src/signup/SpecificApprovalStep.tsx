@@ -58,7 +58,7 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
           </Button>
         </div>
       )}
-      {error && <p role="alert" className="text-sm text-red">{t.sendFailed}</p>}
+      {error && <p role="alert" className="text-sm text-red-strong">{t.sendFailed}</p>}
     </div>
   );
 }

@@ -47,7 +47,7 @@ export function ExportTab() {
         </Button>
       </div>
       {running && <p role="status" className="text-sm text-slate">{progress}</p>}
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-strong">{error}</p>}
     </section>
   );
 }

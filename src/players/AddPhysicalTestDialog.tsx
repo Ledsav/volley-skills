@@ -339,7 +339,7 @@ export function AddPhysicalTestDialog({
           </Button>
         </div>
         {error && (
-          <p role="alert" className="mt-3 text-right text-sm text-red">
+          <p role="alert" className="mt-3 text-right text-sm text-red-strong">
             {error}
           </p>
         )}

@@ -42,7 +42,7 @@ export function FinishSignInPage() {
   return (
     <AuthShell title="Volley Skills">
       {error ? (
-        <p role="alert" className="text-red">
+        <p role="alert" className="text-red-strong">
           {t[error]}
         </p>
       ) : (

@@ -93,7 +93,7 @@ export function TeamsListPage() {
                   {teamMonogram(team.name)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold text-ink group-hover:text-blue">{team.name}</div>
+                  <div className="truncate font-semibold text-ink group-hover:text-blue-strong">{team.name}</div>
                   <p className="mt-0.5 truncate text-sm text-slate">
                     {team.ageGroup}
                   </p>

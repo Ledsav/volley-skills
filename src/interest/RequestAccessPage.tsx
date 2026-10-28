@@ -44,7 +44,7 @@ export function RequestAccessPage() {
           {tr.gotRequest}
         </p>
         <p className="mt-6 text-center text-sm">
-          <Link to="/login" className="text-blue hover:underline">
+          <Link to="/login" className="text-blue-strong hover:underline">
             {tr.backToSignIn}
           </Link>
         </p>
@@ -101,7 +101,7 @@ export function RequestAccessPage() {
 
         <p className="mb-4 text-xs text-slate">
           {tr.privacyBefore}
-          <Link to="/privacy" className="text-blue hover:underline">
+          <Link to="/privacy" className="text-blue-strong hover:underline">
             {tr.privacyLink}
           </Link>
           .
@@ -114,7 +114,7 @@ export function RequestAccessPage() {
       </form>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red">
+        <p role="alert" className="mt-3 text-sm text-red-strong">
           {error}
         </p>
       )}

@@ -82,7 +82,7 @@ export function ClubsTable() {
         </select>
       </div>
 
-      {error && <p role="alert" className="mb-3 text-sm text-red">{p[error]}</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-red-strong">{p[error]}</p>}
 
       {/* pb-24: room for the row menu to open below the last row inside the scroller. */}
       <div className="overflow-x-auto rounded-lg border border-border bg-surface pb-24 shadow-card">

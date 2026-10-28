@@ -65,7 +65,7 @@ export function PhotoCropDialog({ open, file, onCancel, onDone }: { open: boolea
   return (
     <Dialog onClose={onCancel} title={t.title}>
       <p className="mb-3 text-sm text-slate">{t.note}</p>
-      {error && <p role="alert" className="mb-3 text-red">{error}</p>}
+      {error && <p role="alert" className="mb-3 text-red-strong">{error}</p>}
       {bitmap && (
         <>
           <canvas

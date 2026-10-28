@@ -45,7 +45,7 @@ export function MorePage() {
               <Icon size={18} strokeWidth={1.5} aria-hidden="true" className="text-slate" />
               <span className="flex-1">{label}</span>
               {pending && pendingSignups > 0 && (
-                <span className="rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-white">
+                <span className="rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-on-ink">
                   {pendingSignups}<span className="sr-only">{t.morePage.pendingSignups}</span>
                 </span>
               )}
@@ -72,7 +72,7 @@ export function MorePage() {
             <span className="flex-1">{t.appShell.switchTo(m.clubName)}</span>
           </button>
         ))}
-        <button type="button" className={`${ROW} text-red`} onClick={signOut}>
+        <button type="button" className={`${ROW} text-red-strong`} onClick={signOut}>
           <LogOut size={18} strokeWidth={1.5} aria-hidden="true" />
           <span className="flex-1">{t.appShell.signOut}</span>
         </button>

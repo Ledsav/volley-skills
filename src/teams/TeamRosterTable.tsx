@@ -154,7 +154,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
       </div>
 
       {startingError && (
-        <p role="alert" className="mb-3 text-sm text-red">
+        <p role="alert" className="mb-3 text-sm text-red-strong">
           {startingError}
         </p>
       )}
@@ -262,7 +262,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
                   </label>
                 </td>
                 <td className="px-3 py-2">
-                  <Link to={`/teams/${teamId}/players/${player.id}`} className="text-blue hover:underline">
+                  <Link to={`/teams/${teamId}/players/${player.id}`} className="text-blue-strong hover:underline">
                     {player.fullName}
                   </Link>
                 </td>

@@ -231,7 +231,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
                         exerciseId={row.exerciseId}
                         className="aspect-square w-10 shrink-0 overflow-hidden rounded-sm border border-border"
                       />
-                      <span className={`min-w-0 flex-1 truncate text-sm ${row.name ? 'text-ink' : 'text-red'}`}>
+                      <span className={`min-w-0 flex-1 truncate text-sm ${row.name ? 'text-ink' : 'text-red-strong'}`}>
                         {row.name ?? (
                           <span className="inline-flex items-center gap-1">
                             <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
@@ -258,7 +258,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         <HealthHint id="session-notes-hint" />
 
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red">
+          <p role="alert" className="mt-3 text-sm text-red-strong">
             {error}
           </p>
         )}

@@ -52,11 +52,11 @@ export function TimelineDrawer({ events, state, roster, onDelete, onEdit, onInse
               <CornerDownRight size={16} aria-hidden="true" />
             </button>
             {ev.type === 'action' && (
-              <button type="button" aria-label={t.scout.timeline.edit} onClick={() => onEdit(ev)} className="flex h-11 w-11 items-center justify-center rounded-md text-blue hover:bg-blue/10">
+              <button type="button" aria-label={t.scout.timeline.edit} onClick={() => onEdit(ev)} className="flex h-11 w-11 items-center justify-center rounded-md text-blue-strong hover:bg-blue/10">
                 <Pencil size={16} aria-hidden="true" />
               </button>
             )}
-            <button type="button" aria-label={t.scout.timeline.delete} onClick={() => onDelete([ev.id])} className="flex h-11 w-11 items-center justify-center rounded-md text-red hover:bg-red/10">
+            <button type="button" aria-label={t.scout.timeline.delete} onClick={() => onDelete([ev.id])} className="flex h-11 w-11 items-center justify-center rounded-md text-red-strong hover:bg-red/10">
               <Trash2 size={16} aria-hidden="true" />
             </button>
           </li>

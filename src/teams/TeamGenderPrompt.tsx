@@ -41,7 +41,7 @@ export function TeamGenderPrompt({ teamId, onSaved }: TeamGenderPromptProps) {
         ))}
       </div>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red">
+        <p role="alert" className="mt-2 text-sm text-red-strong">
           {t.teams.gender.saveError}
         </p>
       )}

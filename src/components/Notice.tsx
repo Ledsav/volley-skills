@@ -218,7 +218,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
               key={notice.id}
               className="pointer-events-auto flex max-w-md items-start gap-3 rounded-md bg-ink px-4 py-3 text-sm text-surface shadow-pop"
             >
-              <CheckCircle2 size={18} strokeWidth={1.75} aria-hidden="true" className="mt-px shrink-0 text-green" />
+              <CheckCircle2 size={18} strokeWidth={1.75} aria-hidden="true" className="mt-px shrink-0 text-green-strong" />
               <p className="flex-1">{notice.message}</p>
               <button
                 type="button"

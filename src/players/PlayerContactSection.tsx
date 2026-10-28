@@ -188,7 +188,7 @@ export function PlayerContactSection({
               </Button>
             </div>
             {error && (
-              <p role="alert" className="mt-3 text-sm text-red">
+              <p role="alert" className="mt-3 text-sm text-red-strong">
                 {error}
               </p>
             )}

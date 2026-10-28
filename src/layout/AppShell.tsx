@@ -23,7 +23,7 @@ function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
 // BookOpen…) are ambiguous. Five 11px labels fit a 375px bar.
 function bottomTabClass({ isActive }: { isActive: boolean }): string {
   return `flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] font-medium leading-tight sm:gap-1 sm:text-xs ${
-    isActive ? 'text-blue' : 'text-slate'
+    isActive ? 'text-blue-strong' : 'text-slate'
   }`;
 }
 
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tabs = phoneTabs(access, !!isPlatformAdmin);
 
   const badge = (count: number, className: string) =>
-    count > 0 ? <span className={`rounded-full bg-orange-strong font-semibold text-white ${className}`}>{count}</span> : null;
+    count > 0 ? <span className={`rounded-full bg-orange-strong font-semibold text-on-ink ${className}`}>{count}</span> : null;
 
   const renderSidebarLink = ({ to, label, Icon, end, pending }: NavItem) => (
     <NavLink key={to} to={to} end={end} className={sidebarLinkClass}>
@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="relative">
             <MenuIcon size={22} strokeWidth={1.5} />
             {pendingSignups > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-white">
+              <span className="absolute -right-1.5 -top-1.5 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-on-ink">
                 {pendingSignups}
               </span>
             )}

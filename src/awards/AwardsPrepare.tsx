@@ -80,11 +80,11 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           <h1 className="text-title font-semibold text-ink">{ta.title}</h1>
           <p className="text-slate">{props.heading}</p>
         </div>
-        <span role="status" className={`text-sm ${props.saveState === 'error' ? 'text-red' : 'text-slate'}`}>{ta.saveState[props.saveState]}</span>
+        <span role="status" className={`text-sm ${props.saveState === 'error' ? 'text-red-strong' : 'text-slate'}`}>{ta.saveState[props.saveState]}</span>
         {!noWinners && (
           <Menu
             label={ta.export}
-            triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-4 font-medium text-blue hover:bg-blue/10"
+            triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-4 font-medium text-blue-strong hover:bg-blue/10"
             trigger={<><Share2 size={16} aria-hidden="true" /> {ta.export}</>}
             items={[
               { kind: 'action', label: ta.winnerCards, onSelect: props.onExportAll },
@@ -100,7 +100,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
       </header>
 
       {noWinners && <p className="mb-3 text-sm text-slate">{ta.noWinners}</p>}
-      {props.notice && <p role="alert" className="mb-3 text-sm text-red">{props.notice}</p>}
+      {props.notice && <p role="alert" className="mb-3 text-sm text-red-strong">{props.notice}</p>}
 
       <section aria-label={ta.cardSettings} className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-surface p-4">
         <label className="text-sm text-slate">{ta.palette}
@@ -205,7 +205,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
                     <Button variant="ghost" size="sm" aria-label={ta.moveDown(a.title)} disabled={i === awards.length - 1} onClick={() => onAction({ type: 'move', key: a.key, dir: 1 })}><ArrowDown size={16} aria-hidden="true" /></Button>
                     {props.photoAllowed(a.key) ? (
                       <>
-                        <label className="inline-flex cursor-pointer items-center gap-1 text-sm text-blue">
+                        <label className="inline-flex cursor-pointer items-center gap-1 text-sm text-blue-strong">
                           <ImagePlus size={16} aria-hidden="true" /> {photo ? ta.changePhoto : ta.addPhoto}
                           <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFor({ key: a.key, file: f }); e.target.value = ''; }} />
                         </label>

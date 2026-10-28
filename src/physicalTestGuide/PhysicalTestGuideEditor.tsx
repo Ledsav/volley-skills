@@ -42,7 +42,7 @@ export function PhysicalTestGuideEditor() {
 
   if (loadError) {
     return (
-      <p role="alert" className="p-6 text-red">
+      <p role="alert" className="p-6 text-red-strong">
         {loadError}
       </p>
     );
@@ -70,7 +70,7 @@ export function PhysicalTestGuideEditor() {
         {t.common.save}
       </Button>
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red">
+        <p role="alert" className="mt-3 text-sm text-red-strong">
           {error}
         </p>
       )}

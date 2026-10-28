@@ -169,7 +169,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
       </div>
 
       {error && (
-        <p role="alert" className="mb-3 text-sm text-red">
+        <p role="alert" className="mb-3 text-sm text-red-strong">
           {error}
         </p>
       )}
@@ -231,11 +231,11 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                 <span
                   aria-label={isToday ? t.calendar.tab.todayDate(cell.date) : undefined}
                   className={`block w-full text-right text-xs tabular-nums ${
-                    isToday ? 'font-semibold text-blue' : 'text-slate'
+                    isToday ? 'font-semibold text-blue-strong' : 'text-slate'
                   }`}
                 >
                   {isToday ? (
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue text-white">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-strong text-on-ink">
                       {Number(cell.date.slice(-2))}
                     </span>
                   ) : (
@@ -250,7 +250,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                     <li key={session.id} className="flex items-center gap-1.5 rounded-sm bg-blue/10 py-0.5 pl-1.5 pr-1 text-xs">
                       <Link
                         to={sessionLink(teamId, session)}
-                        className="min-w-0 flex-1 truncate text-blue hover:underline"
+                        className="min-w-0 flex-1 truncate text-blue-strong hover:underline"
                         title={sessionLabel(session)}
                       >
                         {sessionLabel(session)}
@@ -259,7 +259,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                         type="button"
                         aria-label={t.calendar.tab.removeSession(session.trainingBusinessId, session.date)}
                         onClick={() => onRemove(session)}
-                        className="shrink-0 rounded-sm p-0.5 text-red hover:bg-red/10 hover:text-red-strong"
+                        className="shrink-0 rounded-sm p-0.5 text-red-strong hover:bg-red/10 hover:text-red-strong"
                       >
                         <X size={11} strokeWidth={2} />
                       </button>
@@ -270,7 +270,7 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
                   type="button"
                   onClick={() => onAdd(cell.date)}
                   aria-label={t.calendar.tab.addTrainingOn(cell.date)}
-                  className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate transition-colors hover:bg-blue/10 hover:text-blue focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue group-hover:text-blue"
+                  className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate transition-colors hover:bg-blue/10 hover:text-blue-strong focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue-strong group-hover:text-blue-strong"
                 >
                   <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
                   <span>{t.calendar.tab.add}</span>
@@ -361,7 +361,7 @@ function MobileMonthView({
                     isSelected
                       ? 'bg-navy font-semibold text-white'
                       : isToday
-                        ? 'font-semibold text-blue ring-1 ring-inset ring-blue'
+                        ? 'font-semibold text-blue-strong ring-1 ring-inset ring-blue'
                         : 'text-ink'
                   }`}
                 >
@@ -415,7 +415,7 @@ function MobileMonthView({
                 className="flex items-center gap-2 rounded-md border border-l-4 border-border border-l-blue bg-surface pl-3 shadow-card"
               >
                 <Link to={sessionLink(teamId, session)} className="min-w-0 flex-1 py-2.5">
-                  <span className="block text-xs font-medium tabular-nums text-blue">{session.trainingBusinessId}</span>
+                  <span className="block text-xs font-medium tabular-nums text-blue-strong">{session.trainingBusinessId}</span>
                   <span className="block truncate text-sm font-medium text-ink">{session.trainingName}</span>
                   {session.notes && <span className="mt-0.5 block truncate text-xs text-slate">{session.notes}</span>}
                 </Link>
@@ -423,7 +423,7 @@ function MobileMonthView({
                   type="button"
                   aria-label={t.calendar.tab.removeSession(session.trainingBusinessId, session.date)}
                   onClick={() => onRemove(session)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-red hover:bg-red/10"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-red-strong hover:bg-red/10"
                 >
                   <X size={18} aria-hidden="true" />
                 </button>

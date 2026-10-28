@@ -90,16 +90,16 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
         }}
         className={`relative flex min-h-20 min-w-0 select-none flex-col items-center justify-center gap-1 rounded-md border px-1 pb-1.5 pt-5 disabled:opacity-60 ${
           isSelected
-            ? 'border-blue-strong bg-blue text-white shadow-card ring-2 ring-blue-strong'
+            ? 'border-blue-strong bg-blue-strong text-on-ink shadow-card ring-2 ring-blue-strong'
             : isLibero
               ? 'border-orange bg-orange/20 text-ink'
               : 'border-border bg-surface text-ink shadow-card'
         }`}
       >
-        {zoneLabel(isSelected ? 'text-white/75' : 'text-slate')}
+        {zoneLabel(isSelected ? 'text-on-ink/75' : 'text-slate')}
         <span className="absolute right-1.5 top-1 flex items-center gap-1">
           {isSelected && autoSelected && (
-            <span aria-hidden="true" className="rounded-sm bg-white/20 px-1 text-[11px] font-medium leading-4 text-white">
+            <span aria-hidden="true" className="rounded-sm bg-on-ink/20 px-1 text-[11px] font-medium leading-4 text-on-ink">
               {t.scout.court.auto}
             </span>
           )}

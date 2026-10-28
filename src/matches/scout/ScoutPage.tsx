@@ -394,7 +394,7 @@ export function ScoutPage() {
   if (notFound) {
     return <NotFoundState title={tr.matches.page.notFoundTitle} message={tr.matches.page.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={tr.matches.page.backToTeam} />;
   }
-  if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
+  if (loadError || eventsError) return <p role="alert" className="p-6 text-red-strong">{loadError ?? eventsError}</p>;
   if (!match || !state) return <p className="p-6 text-slate">{tr.matches.page.loading}</p>;
 
   if (locked) {
@@ -594,7 +594,7 @@ export function ScoutPage() {
       {anchorId && (
         <div className="flex items-center justify-between bg-blue/10 px-4 py-2 text-sm text-ink">
           <span>{sp.inserting}</span>
-          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">{sp.backToLive}</button>
+          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue-strong">{sp.backToLive}</button>
         </div>
       )}
       {!state.inSet && !state.matchOver && (

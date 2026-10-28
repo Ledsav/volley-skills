@@ -19,7 +19,7 @@ function Gate({ section, children }: { section: SectionKey; children: ReactNode 
   if (access?.sections[section]) return <>{children}</>;
   return (
     <AuthShell>
-      <p role="alert" className="text-red">{t.noAccess}</p>
+      <p role="alert" className="text-red-strong">{t.noAccess}</p>
     </AuthShell>
   );
 }

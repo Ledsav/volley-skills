@@ -136,7 +136,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {training.ageGroupTarget && (
-            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">
               {training.ageGroupTarget}
             </span>
           )}
@@ -167,13 +167,13 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
         )}
 
         {loadFailed && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-sm text-red-strong">
             {v.loadError}
           </p>
         )}
 
         {pdfError && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-sm text-red-strong">
             {pdfError}
           </p>
         )}
@@ -182,7 +182,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
           <button
             type="button"
             onClick={() => setAskingNotes(true)}
-            className="self-start rounded-sm text-sm font-medium text-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="self-start rounded-sm text-sm font-medium text-blue-strong hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
             {v.editTeamNotes}
           </button>
@@ -219,7 +219,7 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
                     />
                     <span className="min-w-0 flex-1">
                       <span
-                        className={`block truncate text-sm font-medium ${entry.name ? 'text-ink' : 'text-red'}`}
+                        className={`block truncate text-sm font-medium ${entry.name ? 'text-ink' : 'text-red-strong'}`}
                       >
                         {entry.name ?? (
                           <span className="inline-flex items-center gap-1">

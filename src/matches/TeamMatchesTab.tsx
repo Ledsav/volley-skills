@@ -87,7 +87,7 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
           {l.newMatch}
         </Button>
       </div>
-      {error && <p role="alert" className="mb-3 text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-red-strong">{error}</p>}
       {matches.length === 0 && !error ? (
         <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-slate">{l.none}</p>
       ) : (
@@ -103,7 +103,7 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
               </span>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[m.status]}`}>{t.labels.matchStatus[m.status]}</span>
               {m.status === 'live' && (
-                <Link to={`/teams/${teamId}/matches/${m.id}/scout`} className="text-sm font-medium text-blue hover:underline">
+                <Link to={`/teams/${teamId}/matches/${m.id}/scout`} className="text-sm font-medium text-blue-strong hover:underline">
                   {l.resume}
                 </Link>
               )}

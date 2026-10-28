@@ -140,7 +140,7 @@ export function PlayerCardPage() {
 
   if (error) {
     return (
-      <p role="alert" className="p-6 text-red">
+      <p role="alert" className="p-6 text-red-strong">
         {error}
       </p>
     );
@@ -364,7 +364,7 @@ export function PlayerCardPage() {
                       {c.recordConsent}
                     </Button>
                     {consentError && (
-                      <p role="alert" className="mt-2 text-sm text-red">
+                      <p role="alert" className="mt-2 text-sm text-red-strong">
                         {consentError}
                       </p>
                     )}
@@ -387,7 +387,7 @@ export function PlayerCardPage() {
                       <p className="mt-1 text-caption text-slate">{c.photoRecordedBy(player.photoConsentBy)}</p>
                     )}
                     {photoError && (
-                      <p role="alert" className="mt-2 text-sm text-red">
+                      <p role="alert" className="mt-2 text-sm text-red-strong">
                         {photoError}
                       </p>
                     )}
@@ -416,7 +416,7 @@ export function PlayerCardPage() {
                   </Button>
                 )}
                 {leftError && (
-                  <p role="alert" className="mt-2 text-sm text-red">
+                  <p role="alert" className="mt-2 text-sm text-red-strong">
                     {leftError}
                   </p>
                 )}
@@ -429,7 +429,7 @@ export function PlayerCardPage() {
                   </Button>
                 </div>
                 {exportError && (
-                  <p role="alert" className="mt-3 text-sm text-red">
+                  <p role="alert" className="mt-3 text-sm text-red-strong">
                     {exportError}
                   </p>
                 )}

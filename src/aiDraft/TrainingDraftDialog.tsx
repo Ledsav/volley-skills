@@ -256,7 +256,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                         )
                       }
                       className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-                        active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+                        active ? 'bg-blue-strong text-on-ink' : 'border border-border bg-surface text-slate hover:bg-bg'
                       }`}
                     >
                       {lb.exerciseCategory[c.key]}
@@ -281,10 +281,10 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-sm text-red-strong">
             {error.text}{' '}
             {error.settingsLink && (
-              <Link to="/settings" className="text-blue hover:underline">
+              <Link to="/settings" className="text-blue-strong hover:underline">
                 {t.openSettings}
               </Link>
             )}

@@ -23,7 +23,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed' }: PlayerMatchStatsSectionProps) {
   const m = useT().players.matchStats;
-  if (error) return <p role="alert" className="text-sm text-red">{m.loadError}</p>;
+  if (error) return <p role="alert" className="text-sm text-red-strong">{m.loadError}</p>;
   if (!season) return <p className="text-sm text-slate">{m.loading}</p>;
   if (season.matchesPlayed === 0) return <p className="text-sm text-slate">{m.none(gender)}</p>;
 
@@ -53,7 +53,7 @@ export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed
               <tr key={row.matchId} className="border-t border-border">
                 <td className="whitespace-nowrap px-2 py-2 text-slate">{row.date}</td>
                 <td className="px-2 py-2">
-                  <Link to={`/teams/${teamId}/matches/${row.matchId}`} className="text-blue hover:underline">
+                  <Link to={`/teams/${teamId}/matches/${row.matchId}`} className="text-blue-strong hover:underline">
                     {row.opponent}
                   </Link>
                 </td>

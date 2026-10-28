@@ -67,7 +67,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                   className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'deleteDiagram', id: d.id })}
                 >
-                  <Trash2 className="h-4 w-4 text-red" />
+                  <Trash2 className="h-4 w-4 text-red-strong" />
                 </button>
               </>
             )}

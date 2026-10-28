@@ -40,7 +40,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
           <RoleChip role={isLibero ? 'L' : player.positionCategory} libero={isLibero} />
         </p>
         {!isLibero && (
-          <button type="button" onClick={onSub} className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-blue hover:bg-blue/10">
+          <button type="button" onClick={onSub} className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-blue-strong hover:bg-blue/10">
             <ArrowLeftRight size={16} aria-hidden="true" /> {t.scout.actionSheet.substitute}
           </button>
         )}
@@ -57,7 +57,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             aria-pressed={s === skill}
             onClick={() => setSkill(s)}
             className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm ${
-              s === skill ? 'border-blue bg-blue text-white' : 'border-border bg-surface text-ink'
+              s === skill ? 'border-blue bg-blue-strong text-on-ink' : 'border-border bg-surface text-ink'
             }`}
           >
             {t.labels.skill[s]}

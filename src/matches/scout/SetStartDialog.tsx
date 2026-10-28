@@ -146,7 +146,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
             type="button"
             aria-pressed={mode === value}
             onClick={() => switchMode(value)}
-            className={`min-h-11 rounded-sm px-4 text-sm font-medium ${mode === value ? 'bg-blue text-white' : 'text-ink hover:bg-bg'}`}
+            className={`min-h-11 rounded-sm px-4 text-sm font-medium ${mode === value ? 'bg-blue-strong text-on-ink' : 'text-ink hover:bg-bg'}`}
           >
             {label}
           </button>

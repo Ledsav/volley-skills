@@ -99,7 +99,7 @@ export function PastSessionDialog({
       }
     >
       {error && (
-        <p role="alert" className="text-sm text-red">
+        <p role="alert" className="text-sm text-red-strong">
           {error}
         </p>
       )}

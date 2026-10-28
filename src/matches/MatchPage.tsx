@@ -56,7 +56,7 @@ export function MatchPage() {
   if (notFound) {
     return <NotFoundState title={p.notFoundTitle} message={p.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={p.backToTeam} />;
   }
-  if (error) return <p role="alert" className="p-6 text-red">{error}</p>;
+  if (error) return <p role="alert" className="p-6 text-red-strong">{error}</p>;
   if (!match) return <PageSkeleton layout="match" label={p.loading} />;
 
   // Setup-phase writes are fire-and-forget like scouting events: offline, a
@@ -103,7 +103,7 @@ export function MatchPage() {
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <Link to={`/teams/${teamId}`} className="mb-3 inline-flex items-center gap-1 text-sm text-blue hover:underline print:hidden">
+      <Link to={`/teams/${teamId}`} className="mb-3 inline-flex items-center gap-1 text-sm text-blue-strong hover:underline print:hidden">
         <ChevronLeft size={16} aria-hidden="true" /> {p.backToTeam}
       </Link>
       <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6 print:border-0 print:p-0 print:shadow-none">
@@ -122,7 +122,7 @@ export function MatchPage() {
                 {dirty && <span className="text-xs text-slate">{p.saveFirst}</span>}
                 <Button variant="primary" disabled={dirty} onClick={startScouting}>{p.startScouting}</Button>
               </div>
-              {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
+              {actionError && <p role="alert" className="text-sm text-red-strong">{actionError}</p>}
             </div>
             <MatchSetupForm
               teamId={teamId}
@@ -149,7 +149,7 @@ export function MatchPage() {
                 </Link>
               </div>
             </div>
-            {actionError && <p role="alert" className="mt-2 text-sm text-red">{actionError}</p>}
+            {actionError && <p role="alert" className="mt-2 text-sm text-red-strong">{actionError}</p>}
           </div>
         )}
         {match.status === 'finished' && (
@@ -157,7 +157,7 @@ export function MatchPage() {
             <div className="flex flex-wrap justify-end gap-2">
               <Menu
                 label={p.export}
-                triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-3 text-sm font-medium text-blue hover:bg-blue/10 disabled:opacity-50"
+                triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-md border border-blue bg-surface px-3 text-sm font-medium text-blue-strong hover:bg-blue/10 disabled:opacity-50"
                 trigger={
                   <>
                     <Download size={16} aria-hidden="true" /> {p.export} <ChevronDown size={16} aria-hidden="true" />
@@ -170,12 +170,12 @@ export function MatchPage() {
                   { kind: 'action', label: p.csvEn, icon: <FileSpreadsheet size={16} />, onSelect: () => exportCsv('en') },
                 ]}
               />
-              <Link to={`/teams/${teamId}/matches/${matchId}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange px-4 font-medium text-white hover:bg-orange-strong">
+              <Link to={`/teams/${teamId}/matches/${matchId}/awards`} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-orange-strong px-4 font-medium text-on-ink hover:opacity-90">
                 <Trophy size={16} aria-hidden="true" /> {p.awards}
               </Link>
               <Button variant="secondary" size="sm" onClick={reopen}>{p.reopen}</Button>
             </div>
-            {actionError && <p role="alert" className="text-sm text-red">{actionError}</p>}
+            {actionError && <p role="alert" className="text-sm text-red-strong">{actionError}</p>}
           </div>
         )}
         {match.status !== 'setup' && report && <MatchReport match={match} report={report} set={reportSet} onSetChange={setReportSet} />}

@@ -288,7 +288,7 @@ export function SessionQualityPanel({
                     type="button"
                     aria-label={s.removeAttempt(index + 1)}
                     onClick={() => removeAttempt(index)}
-                    className="rounded-full p-1 text-red hover:bg-red/10"
+                    className="rounded-full p-1 text-red-strong hover:bg-red/10"
                   >
                     x
                   </button>
@@ -331,7 +331,7 @@ export function SessionQualityPanel({
             {s.finish}
           </Button>
         </div>
-        {error && <p role="alert" className="mt-3 text-sm text-red">{error}</p>}
+        {error && <p role="alert" className="mt-3 text-sm text-red-strong">{error}</p>}
     </Dialog>
   );
 }

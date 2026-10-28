@@ -41,7 +41,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
           type="button"
           onClick={() => void handleCopy()}
           className={`inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${
-            copyState === 'copied' ? 'text-green-strong' : copyState === 'failed' ? 'text-red' : 'text-slate hover:text-ink'
+            copyState === 'copied' ? 'text-green-strong' : copyState === 'failed' ? 'text-red-strong' : 'text-slate hover:text-ink'
           }`}
         >
           <Icon className="h-3.5 w-3.5" aria-hidden="true" />

@@ -259,7 +259,7 @@ export function PlayerSkillsSection({
                         type="checkbox"
                         checked={skills[key].priority}
                         onChange={(e) => updatePriority(key, e.target.checked)}
-                        className="h-4 w-4 rounded-sm border-border text-blue focus:outline-none focus:ring-2 focus:ring-blue"
+                        className="h-4 w-4 rounded-sm border-border text-blue-strong focus:outline-none focus:ring-2 focus:ring-blue"
                       />
                       {p.skills.focusArea}
                     </label>
@@ -293,7 +293,7 @@ export function PlayerSkillsSection({
               </Button>
             </div>
             {error && (
-              <p role="alert" className="mt-3 text-sm text-red">
+              <p role="alert" className="mt-3 text-sm text-red-strong">
                 {error}
               </p>
             )}

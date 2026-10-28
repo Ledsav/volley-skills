@@ -21,7 +21,7 @@ export function LiveNowBlock({ items }: { items: FeedMatch[] }) {
             </p>
             <Link
               to={`/teams/${team.id}/matches/${match.id}/scout`}
-              className="mt-3 inline-flex min-h-11 items-center rounded-md bg-red px-4 font-medium text-white hover:bg-red-strong"
+              className="mt-3 inline-flex min-h-11 items-center rounded-md bg-red-strong px-4 font-medium text-on-ink hover:opacity-90"
             >
               {t.resumeScouting}
             </Link>

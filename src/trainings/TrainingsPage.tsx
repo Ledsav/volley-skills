@@ -187,7 +187,7 @@ export function TrainingsPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 text-red">
+        <p role="alert" className="mb-4 text-red-strong">
           {error}
         </p>
       )}

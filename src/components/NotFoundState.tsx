@@ -39,7 +39,7 @@ export function NotFoundState({ title, message, backTo, backLabel, illustration 
           ))}
         </div>
       )}
-      <Link to={backTo} className="mt-6 inline-flex min-h-11 items-center rounded-md bg-blue px-4 font-medium text-white hover:bg-blue-strong">
+      <Link to={backTo} className="mt-6 inline-flex min-h-11 items-center rounded-md bg-blue-strong px-4 font-medium text-on-ink hover:opacity-90">
         {backLabel}
       </Link>
     </div>

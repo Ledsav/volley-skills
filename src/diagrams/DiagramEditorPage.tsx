@@ -38,7 +38,7 @@ import { useT } from '../i18n/I18nProvider';
 const SNAP = 2.5;
 
 const toolBtn =
-  'inline-flex h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-[11px] font-medium text-ink hover:bg-bg disabled:opacity-40 aria-pressed:bg-blue/10 aria-pressed:text-blue';
+  'inline-flex h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-[11px] font-medium text-ink hover:bg-bg disabled:opacity-40 aria-pressed:bg-blue/10 aria-pressed:text-blue-strong';
 const zoomBtn =
   'inline-flex h-10 w-10 items-center justify-center text-slate hover:bg-bg hover:text-ink';
 
@@ -442,8 +442,8 @@ export function DiagramEditorPage() {
   if (loadError) {
     return (
       <div className="p-6">
-        <p role="alert" className="text-red">{loadError}</p>
-        <Link to="/exercises" className="mt-3 inline-block text-blue underline">{ed.backToExercisesLink}</Link>
+        <p role="alert" className="text-red-strong">{loadError}</p>
+        <Link to="/exercises" className="mt-3 inline-block text-blue-strong underline">{ed.backToExercisesLink}</Link>
       </div>
     );
   }
@@ -483,10 +483,10 @@ export function DiagramEditorPage() {
     <div className="fixed inset-0 z-40 flex flex-col bg-bg lg:static lg:z-auto lg:h-screen">
       {isDesktop ? (
         <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2">
-          <button type="button" onClick={leaveEditor} className="text-sm text-blue">{ed.exercises}</button>
+          <button type="button" onClick={leaveEditor} className="text-sm text-blue-strong">{ed.exercises}</button>
           <div className="flex items-center gap-3">
             {courtSettings}
-            {saveError && <span role="alert" className="text-xs text-red">{saveError}</span>}
+            {saveError && <span role="alert" className="text-xs text-red-strong">{saveError}</span>}
             <Button
               variant="secondary"
               size="sm"
@@ -515,7 +515,7 @@ export function DiagramEditorPage() {
               type="button"
               onClick={leaveEditor}
               aria-label={ed.backToExercises}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-blue hover:bg-bg"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-blue-strong hover:bg-bg"
             >
               <ChevronLeft className="h-6 w-6" aria-hidden="true" />
             </button>
@@ -546,7 +546,7 @@ export function DiagramEditorPage() {
                 aria-label={ed.courtSettings}
                 aria-expanded={settingsOpen}
                 onClick={() => setSettingsOpen((v) => !v)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-bg aria-expanded:bg-blue/10 aria-expanded:text-blue"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-bg aria-expanded:bg-blue/10 aria-expanded:text-blue-strong"
               >
                 <Settings2 className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -556,7 +556,7 @@ export function DiagramEditorPage() {
             </Button>
           </div>
           {saveError && (
-            <p role="alert" className="px-3 pb-2 text-xs text-red">
+            <p role="alert" className="px-3 pb-2 text-xs text-red-strong">
               {saveError}
             </p>
           )}
@@ -722,7 +722,7 @@ export function DiagramEditorPage() {
                   dispatch({ type: 'deleteSelected' });
                   setMobilePanel(null);
                 }}
-                className={`${toolBtn} text-red`}
+                className={`${toolBtn} text-red-strong`}
               >
                 <Trash2 className="h-5 w-5" aria-hidden="true" />
                 {t.common.delete}

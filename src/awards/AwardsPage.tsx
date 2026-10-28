@@ -333,7 +333,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
   if (load.state === 'error') {
     return (
       <div className="p-6">
-        <p role="alert" className="text-red">{ta.loadError}</p>
+        <p role="alert" className="text-red-strong">{ta.loadError}</p>
         <Button variant="secondary" className="mt-3" onClick={() => { setLoad({ state: 'loading' }); setAttempt((n) => n + 1); }}>{ta.tryAgain}</Button>
       </div>
     );

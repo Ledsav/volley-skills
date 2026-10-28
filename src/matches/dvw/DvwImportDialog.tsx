@@ -152,8 +152,8 @@ export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported 
           </p>
           {failed && (
             <>
-              <p role="alert" className="text-sm text-red">{d.notFinished}</p>
-              {discardError && <p role="alert" className="text-sm text-red">{discardError}</p>}
+              <p role="alert" className="text-sm text-red-strong">{d.notFinished}</p>
+              {discardError && <p role="alert" className="text-sm text-red-strong">{discardError}</p>}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => void discard()}>{d.discard}</Button>
                 <Button variant="primary" onClick={() => void run(running)}>{d.retry}</Button>
@@ -181,7 +181,7 @@ export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported 
           </label>
           <p className="text-sm text-slate">{d.help}</p>
           {busy && <p className="text-sm text-slate">{d.reading}</p>}
-          {error && <p role="alert" className="text-sm text-red">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-strong">{error}</p>}
           <p className="text-xs text-slate">{d.disclaimer}</p>
         </div>
       )}

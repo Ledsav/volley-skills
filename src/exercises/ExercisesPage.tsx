@@ -127,7 +127,7 @@ export function ExercisesPage() {
           aria-pressed={category === ''}
           onClick={() => setCategory('')}
           className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-            category === '' ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+            category === '' ? 'bg-blue-strong text-on-ink' : 'border border-border bg-surface text-slate hover:bg-bg'
           }`}
         >
           {p.all}
@@ -139,7 +139,7 @@ export function ExercisesPage() {
             aria-pressed={category === c.key}
             onClick={() => setCategory(c.key)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              category === c.key ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
+              category === c.key ? 'bg-blue-strong text-on-ink' : 'border border-border bg-surface text-slate hover:bg-bg'
             }`}
           >
             {lb.exerciseCategory[c.key]}
@@ -148,7 +148,7 @@ export function ExercisesPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 text-red">
+        <p role="alert" className="mb-4 text-red-strong">
           {error}
         </p>
       )}
@@ -183,7 +183,7 @@ export function ExercisesPage() {
               <div className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-medium text-ink">{exercise.name}</span>
-                  <span className="rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
+                  <span className="rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue-strong">
                     {lb.exerciseCategory[exercise.category]}
                   </span>
                 </div>

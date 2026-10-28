@@ -103,7 +103,7 @@ export function LegalReviewScreen() {
               <Input id="review-person" value={person} onChange={(e) => setPerson(e.target.value)} autoComplete="name"
                 aria-invalid={errors.person ? true : undefined}
                 aria-describedby={errors.person ? 'review-person-error' : undefined} />
-              {errors.person && <p id="review-person-error" role="alert" className="text-sm text-red">{t.signup.shared.nameRequired}</p>}
+              {errors.person && <p id="review-person-error" role="alert" className="text-sm text-red-strong">{t.signup.shared.nameRequired}</p>}
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="review-authority" className="flex items-start gap-2 text-sm text-ink">
@@ -113,7 +113,7 @@ export function LegalReviewScreen() {
                   className="mt-1 h-4 w-4" />
                 <span>{t.signup.shared.authority}</span>
               </label>
-              {errors.authority && <p id="review-authority-error" role="alert" className="text-sm text-red">{t.signup.shared.authorityRequired}</p>}
+              {errors.authority && <p id="review-authority-error" role="alert" className="text-sm text-red-strong">{t.signup.shared.authorityRequired}</p>}
             </div>
             <div><Button type="submit" variant="primary">{t.signup.shared.next}</Button></div>
           </form>

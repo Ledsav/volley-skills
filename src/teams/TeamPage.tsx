@@ -74,7 +74,7 @@ export function TeamPage() {
   if (loadError && !team) {
     return (
       <div role="alert" className="p-6">
-        <p className="text-red">{t.teams.page.loadError}</p>
+        <p className="text-red-strong">{t.teams.page.loadError}</p>
         <Button variant="secondary" size="sm" className="mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
           {t.teams.page.tryAgain}
         </Button>

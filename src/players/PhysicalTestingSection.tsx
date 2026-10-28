@@ -56,7 +56,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
   return (
     <div className="flex h-full flex-col">
       {loadError && (
-        <p role="alert" className="text-sm text-red">
+        <p role="alert" className="text-sm text-red-strong">
           {loadError}
         </p>
       )}

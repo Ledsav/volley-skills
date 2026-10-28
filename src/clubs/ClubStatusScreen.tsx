@@ -34,11 +34,11 @@ export function ClubStatusScreen({ kind }: { kind: ClubStatusKind }) {
           {accepted && (
             <p className="mt-3 text-center text-sm text-slate">
               {s.accepted}{' '}
-              <Link to={`/legal/terms?v=${accepted.terms}`} className="text-blue hover:underline">
+              <Link to={`/legal/terms?v=${accepted.terms}`} className="text-blue-strong hover:underline">
                 {s.termsOfService(accepted.terms)}
               </Link>
               {s.and}
-              <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-blue hover:underline">
+              <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-blue-strong hover:underline">
                 {s.dpa(accepted.dpa)}
               </Link>
             </p>

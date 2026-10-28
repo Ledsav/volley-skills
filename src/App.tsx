@@ -35,6 +35,9 @@ const DiagramEditorPage = lazy(() =>
   import('./diagrams/DiagramEditorPage').then((m) => ({ default: m.DiagramEditorPage })),
 );
 
+// Dev-only: the guard is a build-time constant, so production bundles drop the gallery entirely.
+const UiGallery = import.meta.env.DEV ? lazy(() => import('./dev/UiGallery')) : null;
+
 const AwardsPage = lazy(() => import('./awards/AwardsPage'));
 const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
 
@@ -73,6 +76,18 @@ export function App() {
             <Route path="/signup" element={<SignupInfoPage />} />
             <Route path="/signup/club" element={<RequireSignedIn><SignupPage /></RequireSignedIn>} />
             <Route path="/sign/complete" element={<RequireSignedIn><SignCompletePage /></RequireSignedIn>} />
+            {UiGallery && (
+              <Route
+                path="/dev/ui"
+                element={
+                  <RequireSignedIn>
+                    <Suspense fallback={null}>
+                      <UiGallery />
+                    </Suspense>
+                  </RequireSignedIn>
+                }
+              />
+            )}
             <Route
               path="/platform"
               element={

@@ -9,18 +9,17 @@ describe('StatusChip', () => {
 
   it('renders Active with the green tint class', () => {
     render(<StatusChip status="Active" />);
-    expect(screen.getByText('Active')).toHaveClass('bg-green/10', 'text-green-strong');
+    expect(screen.getByText('Active')).toHaveClass('bg-green-tint', 'text-green-strong');
   });
 
   it('renders Completed with the solid, self-inverting fill', () => {
-    // bg-ink/text-bg (not text-white) so this chip still inverts correctly
-    // in dark mode, where `ink` becomes the light color and `bg` the dark one.
+    // bg-ink/text-on-ink so this chip still inverts correctly in dark mode.
     render(<StatusChip status="Completed" />);
-    expect(screen.getByText('Completed')).toHaveClass('bg-ink', 'text-bg');
+    expect(screen.getByText('Completed')).toHaveClass('bg-ink', 'text-on-ink');
   });
 
   it('renders Not started with the muted slate treatment', () => {
     render(<StatusChip status="Not started" />);
-    expect(screen.getByText('Not started')).toHaveClass('bg-bg', 'text-slate');
+    expect(screen.getByText('Not started')).toHaveClass('bg-surface-2', 'text-ink-2');
   });
 });

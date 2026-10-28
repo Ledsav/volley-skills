@@ -31,6 +31,10 @@ describe('system-setting media queries', () => {
     expect(block).toMatch(/\.dark\s*\{[^}]*--color-separator:\s*56 56 58;/);
   });
 
+  it('pressable eases hover colour changes as well as the press scale', () => {
+    expect(css).toMatch(/\.pressable\s*\{[^}]*transition:[^;}]*background-color/);
+  });
+
   it('reduced motion turns the press scale off', () => {
     const block = mediaBlock('prefers-reduced-motion: reduce');
     expect(block).toMatch(/\.pressable:active\s*\{[^}]*transform:\s*none/);

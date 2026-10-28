@@ -2,7 +2,7 @@ import type { Catalog } from '../catalog';
 
 export const layout = {
   nav: {
-    home: 'Home',
+    home: 'Oggi',
     coaching: 'Coaching',
     teams: 'Squadre',
     trainings: 'Allenamenti',

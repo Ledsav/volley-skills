@@ -1,5 +1,5 @@
 export const home = {
-  title: 'Home',
+  title: 'Today',
   greetingMorning: 'Good morning',
   greetingAfternoon: 'Good afternoon',
   greetingEvening: 'Good evening',

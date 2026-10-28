@@ -42,7 +42,7 @@ describe('AppShell', () => {
     const { container } = renderShell();
     const nav = within(aside(container)).getByRole('navigation', { name: 'Main' });
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent?.replace(/\d+$/, '').trim());
-    expect(labels).toEqual(['Home', 'Teams', 'Trainings', 'Exercises', 'Guides', 'Members & settings', 'Clubs & sign-ups']);
+    expect(labels).toEqual(['Today', 'Teams', 'Trainings', 'Exercises', 'Guides', 'Members & settings', 'Clubs & sign-ups']);
     expect(within(group(container, 'Coaching')).getAllByRole('link').map((l) => l.textContent)).toEqual(['Teams', 'Trainings', 'Exercises']);
     expect(within(group(container, 'Club')).getByRole('link', { name: 'Members & settings' })).toHaveAttribute('href', '/club');
     expect(within(group(container, 'Platform')).getByRole('link', { name: /Clubs & sign-ups/ })).toHaveAttribute('href', '/platform');
@@ -114,7 +114,7 @@ describe('AppShell', () => {
   it('shows text labels in the phone bottom bar, with More for everything else', () => {
     const { container } = renderShell();
     const bottomBar = container.querySelector('nav.fixed') as HTMLElement;
-    for (const label of ['Home', 'Teams', 'Trainings', 'Exercises', 'More']) {
+    for (const label of ['Today', 'Teams', 'Trainings', 'Exercises', 'More']) {
       expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
     }
     expect(within(bottomBar).getByRole('link', { name: 'More' })).toHaveAttribute('href', '/more');
@@ -125,7 +125,7 @@ describe('AppShell', () => {
     expect(screen.getByText('Page content').parentElement).toHaveClass('mx-auto', 'max-w-screen-xl');
   });
 
-  it('has a skip link to main and Home first in the sidebar', () => {
+  it('has a skip link to main and Today first in the sidebar', () => {
     vi.mocked(useAuth).mockReturnValue(authValue());
     renderShell();
     const skip = screen.getByRole('link', { name: 'Skip to content' });
@@ -133,8 +133,8 @@ describe('AppShell', () => {
     expect(document.getElementById('main')?.tagName).toBe('MAIN');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent?.trim());
-    expect(labels.indexOf('Home')).toBeGreaterThanOrEqual(0);
-    expect(labels.indexOf('Home')).toBeLessThan(labels.indexOf('Teams'));
+    expect(labels.indexOf('Today')).toBeGreaterThanOrEqual(0);
+    expect(labels.indexOf('Today')).toBeLessThan(labels.indexOf('Teams'));
   });
 
   it('caps the phone bottom bar at 5 items for a club admin, with no club pages on it', () => {

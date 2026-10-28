@@ -1,6 +1,6 @@
 export const layout = {
   nav: {
-    home: 'Home',
+    home: 'Today',
     coaching: 'Coaching',
     teams: 'Teams',
     trainings: 'Trainings',

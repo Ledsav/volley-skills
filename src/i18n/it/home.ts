@@ -1,7 +1,7 @@
 import type { Catalog } from '../catalog';
 
 export const home = {
-  title: 'Home',
+  title: 'Oggi',
   greetingMorning: 'Buongiorno',
   greetingAfternoon: 'Buon pomeriggio',
   greetingEvening: 'Buonasera',

@@ -5,6 +5,7 @@ export const components = {
   done: 'Fine',
   cancel: 'Annulla',
   dismiss: 'Ignora',
+  undo: 'Annulla',
   edit: 'Modifica',
   discardTitle: 'Scartare le modifiche?',
   discardMessage: 'Le modifiche non sono state salvate.',

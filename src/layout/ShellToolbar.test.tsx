@@ -70,7 +70,7 @@ describe('ShellToolbar', () => {
 
   it('search entry calls open', () => {
     const open = vi.fn();
-    vi.spyOn(search, 'useSearch').mockReturnValue({ open });
+    vi.spyOn(search, 'useSearch').mockReturnValue({ open, close: () => {}, isOpen: false });
     renderToolbar();
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(open).toHaveBeenCalled();

@@ -1,0 +1,323 @@
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight, Search } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { Sheet } from '../components/Sheet';
+import { SkeletonBlock } from '../components/Skeleton';
+import { useMediaQuery } from '../components/useMediaQuery';
+import { useT } from '../i18n/I18nProvider';
+import { actionItems, goToItems, teamActionPath } from './localSources';
+import { rankItems } from './match';
+import { withPendingAction } from './pendingAction';
+import { pushRecent, readRecents, type Recent } from './recents';
+import type { SearchGroupId, SearchItem } from './types';
+import { useSearchData } from './useSearchData';
+
+const GROUP_CAP = 5;
+
+interface ViewGroup {
+  id: SearchGroupId;
+  label: string;
+  /** Every matching item; the view shows the first few unless expanded. */
+  items: SearchItem[];
+  /** Placeholder rows while the group's data is still loading. */
+  skeleton: boolean;
+}
+
+interface Props {
+  /** `restoreFocus` is false when the close is a navigation, whose new page owns focus. */
+  onClose: (restoreFocus?: boolean) => void;
+}
+
+export function SearchPalette({ onClose }: Props) {
+  const t = useT().search;
+  const { access, isPlatformAdmin, activeClubId } = useAuth();
+  const navigate = useNavigate();
+  const wide = useMediaQuery('(min-width: 768px)', true);
+  const listId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const [expanded, setExpanded] = useState<ReadonlySet<SearchGroupId>>(() => new Set());
+  const [picking, setPicking] = useState<SearchItem | null>(null);
+  const [announce, setAnnounce] = useState('');
+  const q = query.trim();
+
+  const data = useSearchData({ opened: true, typed: q.length > 0 });
+  const recents = useMemo<Recent[]>(() => (activeClubId ? readRecents(activeClubId) : []), [activeClubId]);
+
+  const actions = useMemo(
+    () => actionItems(access, false, data.teams.length > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [access, data.teams.length],
+  );
+  const goto = useMemo(() => goToItems(access, isPlatformAdmin), [access, isPlatformAdmin]);
+
+  const recentIdsFor = (group: SearchGroupId) =>
+    recents.filter((r) => r.group === group).map((r) => r.id.slice(group.length + 1));
+
+  const anyLoading = data.loading.teams || data.loading.players || data.loading.matches;
+
+  const { groups, noResults } = useMemo(() => {
+    const label = (id: keyof typeof t.groups) => t.groups[id];
+    const out: ViewGroup[] = [];
+    if (picking) {
+      const teams = q ? rankItems(q, data.teams, recentIdsFor('teams')) : data.teams;
+      out.push({ id: 'teams', label: t.chooseTeam, items: teams, skeleton: data.loading.teams && teams.length === 0 });
+      return { groups: out, noResults: false };
+    }
+    if (!q) {
+      if (recents.length > 0) {
+        out.push({
+          id: 'recent',
+          label: label('recent'),
+          items: recents.map((r) => ({ id: r.id, group: 'recent', label: r.label, sublabel: r.sublabel, to: r.to })),
+          skeleton: false,
+        });
+      }
+      out.push({ id: 'goto', label: label('goto'), items: goto, skeleton: false });
+      return { groups: out, noResults: false };
+    }
+    const ranked = (id: SearchGroupId, items: SearchItem[]) => rankItems(q, items, recentIdsFor(id));
+    const defs: [SearchGroupId, keyof typeof t.groups, SearchItem[], boolean][] = [
+      ['goto', 'goto', goto, false],
+      ['actions', 'actions', actions, false],
+      ['teams', 'teams', data.teams, data.loading.teams],
+      ['players', 'players', data.players, data.loading.players],
+      ['matches', 'matches', data.matches, data.loading.matches],
+    ];
+    for (const [id, name, items, loading] of defs) {
+      const matched = ranked(id, items);
+      if (matched.length > 0 || loading) out.push({ id, label: label(name), items: matched, skeleton: loading && matched.length === 0 });
+    }
+    if (out.length === 0) {
+      return { groups: [{ id: 'actions' as const, label: label('actions'), items: actions, skeleton: false }], noResults: true };
+    }
+    return { groups: out, noResults: false };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, picking, data, goto, actions, recents]);
+
+  const visible = (g: ViewGroup) => (picking || expanded.has(g.id) ? g.items : g.items.slice(0, GROUP_CAP));
+  const flat = groups.flatMap((g) => visible(g));
+  const groupStarts: number[] = [];
+  {
+    let n = 0;
+    for (const g of groups) {
+      const count = visible(g).length;
+      if (count > 0) groupStarts.push(n);
+      n += count;
+    }
+  }
+  const activeIndex = flat.length === 0 ? -1 : Math.min(active, flat.length - 1);
+  const optionId = (i: number) => `${listId}-opt-${i}`;
+  const matchTotal = noResults ? 0 : groups.reduce((n, g) => n + g.items.length, 0);
+
+  useEffect(() => {
+    if (!q || anyLoading) return;
+    const id = setTimeout(() => setAnnounce(t.results(matchTotal)), 300);
+    return () => clearTimeout(id);
+  }, [q, anyLoading, matchTotal, t]);
+
+  useEffect(() => {
+    // The phone sheet focuses its own panel after mount; take focus back for the field.
+    inputRef.current?.focus();
+    const id = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (activeIndex >= 0) document.getElementById(optionId(activeIndex))?.scrollIntoView?.({ block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex]);
+
+  function choose(item: SearchItem) {
+    if (picking) {
+      const action = picking.action;
+      onClose(false);
+      if (action) navigate(teamActionPath(action, item.id), withPendingAction(action));
+      return;
+    }
+    if (item.pick) {
+      setPicking(item);
+      setQuery('');
+      setActive(0);
+      return;
+    }
+    if (activeClubId && item.to && item.group !== 'actions') {
+      const recent =
+        item.group === 'recent'
+          ? recents.find((r) => r.id === item.id)
+          : { id: `${item.group}:${item.id}`, group: item.group, label: item.label, sublabel: item.sublabel, to: item.to };
+      if (recent) pushRecent(activeClubId, recent);
+    }
+    onClose(false);
+    if (item.run) item.run();
+    else if (item.to) navigate(item.to, item.action ? withPendingAction(item.action) : undefined);
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    const n = flat.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (n > 0) setActive((activeIndex + (e.key === 'ArrowDown' ? 1 : -1) + n) % n);
+    } else if (e.key === 'Enter') {
+      const item = flat[activeIndex];
+      if (!item) return;
+      e.preventDefault();
+      if (e.metaKey || e.ctrlKey) {
+        if (item.to && !picking) {
+          window.open(item.to, '_blank', 'noopener');
+          onClose();
+        }
+        return;
+      }
+      choose(item);
+    } else if (e.key === 'Escape') {
+      // Handled here so a surrounding phone sheet does not also close.
+      e.preventDefault();
+      e.stopPropagation();
+      if (query) {
+        setQuery('');
+        setActive(0);
+      } else if (picking) {
+        setPicking(null);
+        setActive(0);
+      } else {
+        onClose();
+      }
+    } else if (e.key === 'Tab' && groupStarts.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = Math.max(0, activeIndex);
+      if (e.shiftKey) {
+        const before = groupStarts.filter((s) => s < idx);
+        setActive(before.length > 0 ? before[before.length - 1] : groupStarts[groupStarts.length - 1]);
+      } else {
+        setActive(groupStarts.find((s) => s > idx) ?? groupStarts[0]);
+      }
+    }
+  }
+
+  let counter = -1;
+  const body = (
+    <div data-search-palette className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center gap-3 border-b border-separator px-4">
+        <Search size={18} className="shrink-0 text-ink-3" aria-hidden="true" />
+        <input
+          ref={inputRef}
+          type="text"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls={listId}
+          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          aria-autocomplete="list"
+          aria-label={t.title}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint="search"
+          placeholder={t.placeholder}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setActive(0);
+          }}
+          onKeyDown={onKeyDown}
+          className="h-12 min-w-0 flex-1 bg-transparent text-body text-ink placeholder:text-ink-3 focus:outline-none"
+        />
+      </div>
+      {noResults && (
+        <p className="px-4 pt-3 text-callout text-ink-2" role="status">
+          {t.noResults(q)}
+        </p>
+      )}
+      <div
+        id={listId}
+        role="listbox"
+        aria-label={t.title}
+        onMouseDown={(e) => e.preventDefault()}
+        className="max-h-[min(60vh,28rem)] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
+      >
+        {groups.map((g) => {
+          const shown = visible(g);
+          const capped = !picking && !expanded.has(g.id) && g.items.length > GROUP_CAP;
+          return (
+            <div key={g.id} role="presentation" className="pb-1">
+              <div role="presentation" className="px-3 pb-1 pt-2 text-caption font-medium uppercase tracking-wide text-ink-3">
+                {g.label}
+              </div>
+              {shown.map((item) => {
+                counter++;
+                const i = counter;
+                const Icon = item.icon;
+                const isActive = i === activeIndex;
+                return (
+                  <div
+                    key={`${item.group}:${item.id}`}
+                    id={optionId(i)}
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => choose(item)}
+                    onMouseMove={() => !isActive && setActive(i)}
+                    className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-md px-3 py-2 ${isActive ? 'bg-surface-2' : ''}`}
+                  >
+                    {Icon && <Icon size={18} className="shrink-0 text-ink-3" aria-hidden="true" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-body text-ink">{item.label}</span>
+                      {item.sublabel && <span className="block truncate text-footnote text-ink-3">{item.sublabel}</span>}
+                    </span>
+                    {item.pick && <ChevronRight size={16} className="shrink-0 text-ink-3" aria-hidden="true" />}
+                  </div>
+                );
+              })}
+              {g.skeleton && (
+                <div aria-hidden="true" className="flex flex-col gap-2 px-3 py-2">
+                  <SkeletonBlock className="h-8 w-full" />
+                  <SkeletonBlock className="h-8 w-full" />
+                </div>
+              )}
+              {capped && (
+                <div role="presentation" className="px-3 pb-1">
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setExpanded(new Set([...expanded, g.id]))}
+                    className="pressable min-h-[44px] text-callout text-ink-2 hover:text-ink"
+                  >
+                    {t.showAll(g.items.length)}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div aria-live="polite" role="status" className="sr-only">
+        {q ? announce : ''}
+      </div>
+    </div>
+  );
+
+  if (!wide) {
+    return (
+      <Sheet title={t.title} onClose={() => onClose()} detent="large">
+        {body}
+      </Sheet>
+    );
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/20" onMouseDown={() => onClose()} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.title}
+        className="glass glass-pop fixed left-1/2 top-[18vh] z-50 flex max-h-[70vh] w-[640px] max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl"
+      >
+        {body}
+      </div>
+    </>
+  );
+}
+

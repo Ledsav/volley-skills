@@ -8,6 +8,10 @@ import '@fontsource/inter/800.css';
 import { App } from './App';
 import { resetCacheIfSchemaChanged } from './firebase/schemaVersion';
 import './index.css';
+import { startSystemThemeSync } from './theme/theme';
+
+// Follow the OS colour scheme live while the theme preference is System.
+startSystemThemeSync();
 
 // Clear a pre-migration offline cache before Firestore is first used (spec §9.7).
 void resetCacheIfSchemaChanged().finally(() => {

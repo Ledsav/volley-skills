@@ -301,7 +301,8 @@ note "Exercises and trainings need a connection".
 3. The Firestore delete runs when the notice expires, or immediately when:
    - another undoable action replaces it;
    - the person navigates away (route change);
-   - the page hides (`pagehide`).
+   - the page is hidden (`visibilitychange` to hidden, or `pagehide`). Phones often skip `pagehide` when the
+     person switches apps, so a hidden page is the reliable signal; switching tabs therefore ends the undo window.
 
    If the page is killed before then, the item simply survives, which is the safe failure.
 4. **Undo** restores the row and cancels the write.
@@ -612,7 +613,7 @@ run by the user on a phone, as well as tests.
   - spring maths, including interruption from the current value and velocity handoff;
   - `searchTokens` derivation and normalisation;
   - search ranking, access filtering and caps;
-  - deferred-delete undo: commit on expiry, navigation and `pagehide`, Undo restores, failure restores with an error;
+  - deferred-delete undo: commit on expiry, navigation and page hide, Undo restores, failure restores with an error;
   - the sheet dirty guard on flick;
   - each of B1–B13 and §4.4–4.5;
   - the reduced-motion and reduced-transparency branches;

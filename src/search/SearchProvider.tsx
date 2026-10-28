@@ -14,8 +14,13 @@ const DIAGRAM_ROUTE = /^\/exercises\/[^/]+\/diagram\/?$/;
 export function SearchProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const openerRef = useRef<HTMLElement | null>(null);
+  const isOpenRef = useRef(false);
+  isOpenRef.current = isOpen;
 
   const open = useCallback(() => {
+    // Already open: keep the first opener, so closing returns focus to where the person was.
+    if (isOpenRef.current) return;
+    isOpenRef.current = true;
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setIsOpen(true);
   }, []);
@@ -36,9 +41,9 @@ export function SearchProvider({ children }: { children: ReactNode }) {
         closeWith(true);
         return;
       }
-      // Never interrupt an open sheet or dialog (it may hold unsaved edits), nor the diagram editor.
+      // Never interrupt an open sheet, dialog or alert dialog (it may hold unsaved edits), nor the diagram editor.
       if (DIAGRAM_ROUTE.test(window.location.pathname)) return;
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       open();
     };

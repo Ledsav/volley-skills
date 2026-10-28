@@ -9,7 +9,7 @@ import { useT } from '../i18n/I18nProvider';
 import { actionItems, goToItems, teamActionPath } from './localSources';
 import { rankItems } from './match';
 import { withPendingAction } from './pendingAction';
-import { pushRecent, readRecents, type Recent } from './recents';
+import { pushRecent, readRecents, searchKey, type Recent } from './recents';
 import type { SearchGroupId, SearchItem } from './types';
 import { useSearchData } from './useSearchData';
 
@@ -33,7 +33,7 @@ interface Props {
 
 export function SearchPalette({ onClose }: Props) {
   const t = useT().search;
-  const { access, isPlatformAdmin, activeClubId } = useAuth();
+  const { access, isPlatformAdmin, activeClubId, appUser } = useAuth();
   const navigate = useNavigate();
   const wide = useMediaQuery('(min-width: 768px)', true);
   const listId = useId();
@@ -46,7 +46,8 @@ export function SearchPalette({ onClose }: Props) {
   const q = query.trim();
 
   const data = useSearchData({ opened: true, typed: q.length > 0 });
-  const recents = useMemo<Recent[]>(() => (activeClubId ? readRecents(activeClubId) : []), [activeClubId]);
+  const recentsKey = searchKey(activeClubId, appUser?.email);
+  const recents = useMemo<Recent[]>(() => (activeClubId ? readRecents(recentsKey) : []), [activeClubId, recentsKey]);
 
   const actions = useMemo(
     () => actionItems(access, false, data.teams.length > 0),
@@ -159,7 +160,7 @@ export function SearchPalette({ onClose }: Props) {
         item.group === 'recent'
           ? recents.find((r) => r.id === item.id)
           : { id: `${item.group}:${item.id}`, group: item.group, label: item.label, sublabel: item.sublabel, to: item.to };
-      if (recent) pushRecent(activeClubId, recent);
+      if (recent) pushRecent(recentsKey, recent);
     }
     onClose(false);
     if (item.run) item.run();
@@ -196,9 +197,11 @@ export function SearchPalette({ onClose }: Props) {
       } else {
         onClose();
       }
-    } else if (e.key === 'Tab' && groupStarts.length > 0) {
+    } else if (e.key === 'Tab') {
+      // Always trapped, even with no groups: Tab never falls through to the page behind the palette.
       e.preventDefault();
       e.stopPropagation();
+      if (groupStarts.length === 0) return;
       const idx = Math.max(0, activeIndex);
       if (e.shiftKey) {
         const before = groupStarts.filter((s) => s < idx);

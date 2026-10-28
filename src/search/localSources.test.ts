@@ -12,8 +12,9 @@ describe('localSources', () => {
 
   it('club admin gets New team', () => {
     const admin: Access = { isClubAdmin: true, sections: { exercises: true, trainings: true, guides: true } };
-    const ids = actionItems(admin, false).map((i) => i.id);
-    expect(ids).toEqual(['new-team', 'new-training', 'new-exercise', 'new-match', 'add-player']);
+    expect(actionItems(admin, false, true).map((i) => i.id)).toEqual(['new-team', 'new-training', 'new-exercise', 'new-match', 'add-player']);
+    // A club with no teams: nothing to pick, so no team-picker actions.
+    expect(actionItems(admin, false, false).map((i) => i.id)).toEqual(['new-team', 'new-training', 'new-exercise']);
     expect(goToItems(admin, false).map((i) => i.id)).toContain('/club');
   });
 

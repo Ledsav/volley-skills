@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ access: mocks.access ?? admin, isPlatformAdmin: false, activeClubId: 'c1' }),
+  useAuth: () => ({ access: mocks.access ?? admin, isPlatformAdmin: false, activeClubId: 'c1', appUser: { email: 'me@x.org' } }),
 }));
 vi.mock('./useSearchData', () => ({ useSearchData: () => mocks.data }));
 
@@ -53,7 +53,7 @@ afterEach(() => vi.useRealTimers());
 
 describe('SearchPalette', () => {
   it('empty query shows recents then Go to', () => {
-    pushRecent('c1', { id: 'teams:t1', group: 'teams', label: 'Falcons U17', to: '/teams/t1' });
+    pushRecent('c1|me@x.org', { id: 'teams:t1', group: 'teams', label: 'Falcons U17', to: '/teams/t1' });
     setup();
     const headings = screen.getAllByText(/^(Recent|Go to)$/).map((h) => h.textContent);
     expect(headings).toEqual(['Recent', 'Go to']);
@@ -145,12 +145,38 @@ describe('SearchPalette', () => {
     expect(screen.queryByText('Actions')).toBeNull();
   });
 
-  it('the team picker says so when the club has no teams', () => {
+  it('a club admin whose club has no teams gets no New match or Add player', () => {
     mocks.data.teams = [];
     const { input } = setup();
     type(input, 'add pl');
-    fireEvent.click(screen.getByRole('option', { name: /Add player/ }));
-    expect(screen.getByText('No teams yet')).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Add player/ })).toBeNull();
+    type(input, 'new ma');
+    expect(screen.queryByRole('option', { name: /New match/ })).toBeNull();
+    type(input, 'new te');
+    expect(screen.getByRole('option', { name: /New team/ })).toBeInTheDocument();
+  });
+
+  it('Tab stays in the palette when there are no groups', () => {
+    const none = { isClubAdmin: false, sections: { exercises: false, trainings: false, guides: false } };
+    mocks.access = none;
+    mocks.data.teams = [];
+    const { input } = setup();
+    type(input, 'zzzz');
+    expect(screen.queryAllByRole('option')).toHaveLength(0);
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    act(() => {
+      input.dispatchEvent(tab);
+    });
+    expect(tab.defaultPrevented).toBe(true);
+  });
+
+  it('drops malformed recents instead of crashing', () => {
+    sessionStorage.setItem(
+      'vcb.searchRecents',
+      JSON.stringify({ key: 'c1|me@x.org', items: [{ id: 5, group: 'teams', label: 'x', to: '/x' }, null, { id: 'teams:t1', group: 'teams', label: 'Falcons U17', to: '/teams/t1' }] }),
+    );
+    setup();
+    expect(screen.getByRole('option', { name: /Falcons U17/ })).toBeInTheDocument();
   });
 
   it('a team-picker action asks for a team first', () => {

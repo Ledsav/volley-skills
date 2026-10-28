@@ -113,6 +113,16 @@ describe('useSearchData', () => {
     expect(listClubTeams).toHaveBeenCalledTimes(2);
   });
 
+  it('a failed teams load ends the Players and Matches skeletons', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(listClubTeams).mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useSearchData({ opened: true, typed: true }));
+    await waitFor(() => expect(listClubTeams).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.loading.teams).toBe(false));
+    expect(result.current.loading.players).toBe(false);
+    expect(result.current.loading.matches).toBe(false);
+  });
+
   it('cache is keyed by club id and cleared on sign-out', async () => {
     const { result, rerender } = renderHook(() => useSearchData({ opened: true, typed: false }));
     await waitFor(() => expect(result.current.teams).toHaveLength(2));

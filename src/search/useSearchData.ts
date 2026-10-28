@@ -5,6 +5,7 @@ import { formatDate } from '../i18n/format';
 import { loadTeamRoster, listMatches } from '../matches/matchesApi';
 import { listClubTeams, listMyTeams } from '../teams/teamsApi';
 import type { Team } from '../types/team';
+import { searchKey } from './recents';
 import type { SearchItem } from './types';
 
 const MAX_TEAMS = 20;
@@ -148,7 +149,7 @@ export interface SearchData {
 export function useSearchData({ opened, typed }: { opened: boolean; typed: boolean }): SearchData {
   const { activeClubId, access, appUser } = useAuth();
   const email = appUser?.email ?? '';
-  const key = `${activeClubId ?? ''}|${email}`;
+  const key = searchKey(activeClubId, email);
   const snapshot = useSyncExternalStore(subscribe, () => store);
   const current = snapshot.key === key ? snapshot : emptyStore(key);
   const isClubAdmin = !!access?.isClubAdmin;
@@ -177,7 +178,7 @@ export function useSearchData({ opened, typed }: { opened: boolean; typed: boole
     if (typed && store.key === key && store.teamsStatus === 'done' && store.detailStatus === 'idle') void loadDetail();
   }, [typed, key, snapshot.key, snapshot.teamsStatus, snapshot.detailStatus]);
 
-  const detailPending = typed && (current.detailStatus === 'idle' || current.detailStatus === 'loading');
+  const detailPending = typed && current.teamsStatus !== 'failed' && (current.detailStatus === 'idle' || current.detailStatus === 'loading');
   return {
     teams: current.teams,
     players: current.players,

@@ -65,6 +65,33 @@ describe('SearchProvider', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it('does not open while an alert dialog (ConfirmDialog) is open', () => {
+    setup();
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'alertdialog');
+    dialog.setAttribute('aria-modal', 'true');
+    document.body.appendChild(dialog);
+    afterDialog = dialog;
+    const event = ctrlK();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('open() while already open keeps the first opener', () => {
+    setup();
+    const opener = screen.getByText('probe false');
+    opener.focus();
+    fireEvent.click(opener);
+    const input = screen.getByRole('combobox');
+    act(() => {
+      input.focus();
+    });
+    // A second open while open (e.g. the open button again) must not make the input the opener.
+    fireEvent.click(screen.getByText('probe true'));
+    ctrlK();
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('does not open on the diagram editor route', () => {
     window.history.pushState({}, '', '/exercises/e1/diagram');
     setup();

@@ -57,4 +57,17 @@ describe('recents', () => {
     sessionStorage.setItem(RECENTS_KEY, '{not json');
     expect(readRecents('c1')).toEqual([]);
   });
+
+  it('is keyed by club and person', () => {
+    pushRecent('c1|a@x.org', rec(1));
+    expect(readRecents('c1|b@x.org')).toEqual([]);
+  });
+
+  it('drops entries with a wrong shape', () => {
+    sessionStorage.setItem(
+      RECENTS_KEY,
+      JSON.stringify({ key: 'c1', items: [{ id: 3, group: 'teams', label: 'x', to: '/x' }, null, 'str', rec(2)] }),
+    );
+    expect(readRecents('c1').map((r) => r.id)).toEqual(['t2']);
+  });
 });

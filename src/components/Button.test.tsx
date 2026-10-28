@@ -23,7 +23,7 @@ describe('Button', () => {
       </Button>
     );
     const button = screen.getByRole('button', { name: 'Remove' });
-    expect(button.className).toContain('text-red');
+    expect(button.className).toContain('text-red-strong');
     expect(button.className).not.toContain('bg-red ');
   });
 
@@ -47,6 +47,38 @@ describe('Button', () => {
     );
     const button = screen.getByRole('button', { name: 'Import' });
     expect(button.className).toContain('cursor-pointer');
-    expect(button.className).toContain('focus-visible:ring-blue');
+    expect(button.className).toContain('focus-visible:ring-focus');
+  });
+
+  it('primary is an ink fill with on-ink text', () => {
+    render(
+      <Button variant="primary" onClick={vi.fn()}>
+        Go
+      </Button>
+    );
+    const button = screen.getByRole('button', { name: 'Go' });
+    expect(button.className).toContain('bg-ink');
+    expect(button.className).toContain('text-on-ink');
+  });
+
+  it('every button gets press feedback', () => {
+    render(
+      <Button variant="ghost" onClick={vi.fn()}>
+        Tap
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'Tap' }).className).toContain('pressable');
+  });
+
+  it('pill size is a rounded-full compact button', () => {
+    render(
+      <Button variant="primary" size="pill" onClick={vi.fn()}>
+        Add
+      </Button>
+    );
+    const c = screen.getByRole('button', { name: 'Add' }).className;
+    expect(c).toContain('rounded-full');
+    expect(c).toContain('min-h-9');
+    expect(c).toContain('text-callout');
   });
 });

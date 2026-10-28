@@ -63,6 +63,7 @@ export function Sheet(props: SheetProps) {
   const headerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [edited, setEdited] = useState(false);
   const markEdited = guardUnsaved ? () => setEdited(true) : undefined;
@@ -89,6 +90,10 @@ export function Sheet(props: SheetProps) {
     yRef.current = y;
     const panel = panelRef.current;
     if (panel) panel.style.transform = `translateY(${y}px)`;
+    // The panel is full height and translated, so its bottom edge is below the screen at the content detent.
+    // Pull the footer back up by the same amount so it stays at the visible bottom; it travels down with the sheet below that.
+    const footer = footerRef.current;
+    if (footer) footer.style.transform = `translateY(${-Math.min(y, detentsRef.current.content)}px)`;
     const scrim = scrimRef.current;
     const h = detentsRef.current.height;
     if (scrim && h > 0) scrim.style.opacity = String(Math.min(1, Math.max(0, 1 - y / h)));
@@ -119,13 +124,14 @@ export function Sheet(props: SheetProps) {
     if (!phone) return;
     const panel = panelRef.current;
     if (!panel) return;
-    const BODY_PADDING = 40; // py-5 top + bottom
     const measure = () => {
+      const bodyStyle = bodyRef.current ? getComputedStyle(bodyRef.current) : null;
+      const bodyPadding = bodyStyle ? (parseFloat(bodyStyle.paddingTop) || 0) + (parseFloat(bodyStyle.paddingBottom) || 0) : 0;
       const height = panel.offsetHeight;
       const contentHeight =
         (headerRef.current?.offsetHeight ?? 0) +
         (innerRef.current?.offsetHeight ?? 0) +
-        BODY_PADDING +
+        bodyPadding +
         (footerRef.current?.offsetHeight ?? 0);
       // Long forms start large, as the spec says: content over 60% of the viewport opens large.
       const startsLarge = detent === 'large' || contentHeight > 0.6 * window.innerHeight;
@@ -216,7 +222,7 @@ export function Sheet(props: SheetProps) {
   );
 
   const body = (
-    <div onChange={markEdited} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 [scrollbar-gutter:stable] md:px-6">
+    <div ref={bodyRef} onChange={markEdited} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 [scrollbar-gutter:stable] md:px-6">
       <div ref={innerRef}>{children}</div>
     </div>
   );
@@ -279,7 +285,7 @@ export function Sheet(props: SheetProps) {
                 <h2 className="min-w-0 truncate text-headline text-ink">{title}</h2>
                 <div className="justify-self-end">
                   {confirmButton ??
-                    (footer ? null : (
+                    (footer || guardUnsaved || dirty ? null : (
                       <Button variant="ghost" onClick={requestClose}>
                         {t.done}
                       </Button>

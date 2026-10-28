@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Sheet, useSheetClose } from './Sheet';
 import { decideRelease } from './sheetRelease';
 
-function mockPhone() {
+function mockPhone(reducedMotion = false) {
   window.matchMedia = ((query: string) => ({
-    matches: query.includes('max-width: 767px'),
+    matches: query.includes('max-width: 767px') || (reducedMotion && query.includes('prefers-reduced-motion')),
     media: query,
     addEventListener: () => {},
     removeEventListener: () => {},
@@ -81,6 +81,7 @@ describe('Sheet', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -135,6 +136,50 @@ describe('Sheet', () => {
     expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('sr-only');
+  });
+
+  it('phone with guardUnsaved or dirty shows no header Done', () => {
+    mockPhone();
+    const { unmount } = render(
+      <Sheet title="Edit" onClose={vi.fn()} guardUnsaved>
+        <p>Body</p>
+      </Sheet>,
+    );
+    expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument();
+    unmount();
+    render(
+      <Sheet title="Edit" onClose={vi.fn()} dirty>
+        <p>Body</p>
+      </Sheet>,
+    );
+    expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument();
+  });
+
+  it('phone footer stays within the visible area at the content detent', () => {
+    mockPhone(true);
+    const heights: Record<string, number> = { dialog: 700, header: 50, inner: 100, footer: 60 };
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.getAttribute('role') === 'dialog') return heights.dialog;
+      if (this.tagName === 'FOOTER') return heights.footer;
+      if (this.parentElement?.className.includes('overflow-y-auto')) return heights.inner;
+      if (this.className.includes('touch-none')) return heights.header;
+      return 0;
+    });
+    try {
+      render(
+        <Sheet title="Edit" onClose={vi.fn()} footer={<button>Save</button>}>
+          <p>Body</p>
+        </Sheet>,
+      );
+      const y = parseFloat(/translateY\((-?[\d.]+)px\)/.exec(screen.getByRole('dialog').style.transform)![1]);
+      const shift = parseFloat(/translateY\((-?[\d.]+)px\)/.exec(document.querySelector('footer')!.style.transform)![1]);
+      // Content detent: panel (700) minus header, body and footer (50 + 100 + 60).
+      expect(y).toBe(490);
+      // The footer's bottom edge lands exactly on the screen bottom (offset 0), not below it.
+      expect(y + shift).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('remounts the layout on phone to desktop, dropping the imperative scrim opacity', () => {

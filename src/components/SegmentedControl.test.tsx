@@ -43,15 +43,38 @@ describe('SegmentedControl', () => {
     expect(onChange).toHaveBeenLastCalledWith('c'); // wraps
   });
 
-  it('long labels never wrap: the track keeps nowrap and horizontal scrolling', () => {
+  it('long labels never wrap: nowrap, horizontal scrolling, and the track (not the page) scrolls to the selection', () => {
+    const page = vi.fn();
+    Element.prototype.scrollIntoView = page;
     const { rerender } = render(<SegmentedControl label="Mode" options={options} value="a" onChange={vi.fn()} />);
     const track = screen.getByRole('radiogroup');
     expect(track.className).toContain('whitespace-nowrap');
     expect(track.className).toContain('overflow-x-auto');
-    const scroll = Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>;
-    scroll.mockClear();
+    Object.defineProperty(track, 'clientWidth', { configurable: true, value: 100 });
+    const charlie = screen.getByRole('radio', { name: 'Charlie' });
+    Object.defineProperty(charlie, 'offsetLeft', { configurable: true, value: 260 });
+    Object.defineProperty(charlie, 'offsetWidth', { configurable: true, value: 80 });
     rerender(<SegmentedControl label="Mode" options={options} value="c" onChange={vi.fn()} />);
-    expect(scroll).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' });
-    expect(scroll.mock.contexts[scroll.mock.contexts.length - 1]).toBe(screen.getByRole('radio', { name: 'Charlie' }));
+    expect(track.scrollLeft).toBe(240); // right edge 340 - width 100
+    expect(page).not.toHaveBeenCalled();
+  });
+
+  it('re-rendering with a new-but-equal options array does not scroll the track again', () => {
+    const make = () => options.map((o) => ({ ...o }));
+    const { rerender } = render(<SegmentedControl label="Mode" options={make()} value="c" onChange={vi.fn()} />);
+    const track = screen.getByRole('radiogroup');
+    const charlie = screen.getByRole('radio', { name: 'Charlie' });
+    Object.defineProperty(charlie, 'offsetLeft', { configurable: true, value: 260 });
+    Object.defineProperty(charlie, 'offsetWidth', { configurable: true, value: 80 });
+    Object.defineProperty(track, 'clientWidth', { configurable: true, value: 100 });
+    track.scrollLeft = 7; // the user scrolled by hand
+    rerender(<SegmentedControl label="Mode" options={make()} value="c" onChange={vi.fn()} />);
+    expect(track.scrollLeft).toBe(7);
+  });
+
+  it('with a value that matches no option, the first option is the tab stop', () => {
+    render(<SegmentedControl label="Mode" options={options} value={'zzz' as 'a'} onChange={vi.fn()} />);
+    expect(screen.getByRole('radio', { name: 'Alpha' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('radio', { name: 'Bravo' })).toHaveAttribute('tabindex', '-1');
   });
 });

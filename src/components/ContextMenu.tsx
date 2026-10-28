@@ -6,6 +6,7 @@ import { MenuList } from './MenuList';
 export const LONG_PRESS_MS = 500;
 const MOVE_TOLERANCE = 10;
 const MARGIN = 8;
+const SWALLOW_MS = 300;
 
 interface Options {
   label: string;
@@ -81,7 +82,12 @@ export function useContextMenu({ label, items, disabled }: Options): { targetPro
       if (disabled) return;
       e.preventDefault();
       targetRef.current = e.currentTarget;
-      if (!at) open(e.clientX, e.clientY);
+      if (at) return;
+      if (e.clientX === 0 && e.clientY === 0) {
+        // Keyboard invocation (Shift+F10 / Menu key) reports no pointer position.
+        const r = e.currentTarget.getBoundingClientRect();
+        open(r.left, r.bottom);
+      } else open(e.clientX, e.clientY);
     },
     onPointerDown: (e: PointerEvent<HTMLElement>) => {
       swallowClick.current = false;
@@ -104,8 +110,15 @@ export function useContextMenu({ label, items, disabled }: Options): { targetPro
       if (!s || timer.current === undefined) return;
       if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > MOVE_TOLERANCE) releasePress();
     },
-    onPointerUp: releasePress,
-    onPointerCancel: releasePress,
+    onPointerUp: () => {
+      releasePress();
+      // The click that ends the press follows pointerup at once; a later one (keyboard) is a real click.
+      if (swallowClick.current) setTimeout(() => (swallowClick.current = false), SWALLOW_MS);
+    },
+    onPointerCancel: () => {
+      swallowClick.current = false;
+      releasePress();
+    },
     onClickCapture: (e) => {
       if (!swallowClick.current) return;
       swallowClick.current = false;

@@ -116,6 +116,8 @@
     backdrop-filter: blur(24px) saturate(180%);
     box-shadow: var(--glass-edge);
   }
+  /* Floating menus: the glass edge and the pop shadow together (plain .glass would drop shadow-pop). */
+  .glass-pop { box-shadow: var(--glass-edge), 0 8px 32px rgba(0, 0, 0, 0.12); }
   .bg-red-tint { background-color: rgb(var(--color-red) / var(--tint-alpha)); }
   .bg-orange-tint { background-color: rgb(var(--color-orange) / var(--tint-alpha)); }
   .bg-blue-tint { background-color: rgb(var(--color-blue) / var(--tint-alpha)); }

@@ -97,4 +97,32 @@ describe('useContextMenu', () => {
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
+
+  it('a keyboard context-menu key (clientX/Y 0) opens at the row, not the viewport corner', () => {
+    render(<Harness />);
+    const row = screen.getByText('Row');
+    row.getBoundingClientRect = () => ({ left: 120, bottom: 64, top: 40, right: 200, width: 80, height: 24, x: 120, y: 40, toJSON: () => ({}) });
+    fireEvent.contextMenu(row, { clientX: 0, clientY: 0 });
+    const menu = screen.getByRole('menu');
+    expect(menu.style.left).toBe('120px');
+    expect(menu.style.top).toBe('64px');
+  });
+
+  it('pointercancel clears the swallow, and so does time after the press ends', () => {
+    const onParentClick = vi.fn();
+    render(<Harness onParentClick={onParentClick} />);
+    const row = screen.getByText('Row');
+    fireEvent.pointerDown(row, { pointerType: 'touch', clientX: 10, clientY: 10 });
+    act(() => void vi.advanceTimersByTime(LONG_PRESS_MS));
+    fireEvent.pointerCancel(row, { pointerType: 'touch' });
+    fireEvent.click(row);
+    expect(onParentClick).toHaveBeenCalledTimes(1);
+
+    fireEvent.pointerDown(row, { pointerType: 'touch', clientX: 10, clientY: 10 });
+    act(() => void vi.advanceTimersByTime(LONG_PRESS_MS));
+    fireEvent.pointerUp(row, { pointerType: 'touch' });
+    act(() => void vi.advanceTimersByTime(400));
+    fireEvent.click(row); // a later keyboard click is not swallowed
+    expect(onParentClick).toHaveBeenCalledTimes(2);
+  });
 });

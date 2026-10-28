@@ -52,7 +52,7 @@ export function MenuList({ id, label, items, onClose, className = '', style }: M
       aria-label={label}
       onKeyDown={onKeyDown}
       style={style}
-      className={`menu-pop glass min-w-52 rounded-[14px] p-1 text-ink shadow-pop ${className}`.trim()}
+      className={`menu-pop glass glass-pop min-w-52 rounded-[14px] p-1 text-ink ${className}`.trim()}
     >
       {items.map((item, i) => {
         if (item.kind === 'divider') return <div key={i} role="separator" className="my-1 h-px bg-separator" />;

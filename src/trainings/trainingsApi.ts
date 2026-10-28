@@ -1,6 +1,7 @@
 import {
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -17,6 +18,7 @@ import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
+import { searchTokens } from '../search/searchTokens.js';
 import type { NewTrainingInput, Training, TrainingUpdate } from '../types/training';
 import { formatBusinessId } from './businessId';
 
@@ -38,6 +40,7 @@ export async function createTraining(
     tx.set(counterRef, { lastSequence: nextSequence });
     tx.set(trainingRef, {
       businessId: nextBusinessId,
+      searchTokens: searchTokens(input.name, nextBusinessId),
       ...optionalForCreate(input, ['suggestedPlayers', 'targets']),
       exerciseIds: input.exercises.map((e) => e.exerciseId),
       createdBy: creatorUid,
@@ -50,12 +53,23 @@ export async function createTraining(
   return { id: trainingRef.id, businessId };
 }
 
-export async function updateTraining(trainingId: string, updates: TrainingUpdate): Promise<void> {
+export async function updateTraining(
+  trainingId: string,
+  updates: TrainingUpdate,
+  businessId: string
+): Promise<void> {
   const payload = optionalForUpdate(updates, ['suggestedPlayers', 'targets']);
+  if (updates.name !== undefined) payload.searchTokens = searchTokens(updates.name, businessId);
   if (updates.exercises) {
     payload.exerciseIds = updates.exercises.map((e) => e.exerciseId);
   }
   await updateDoc(clubDoc('trainings', trainingId), payload);
+}
+
+export async function getTraining(trainingId: string): Promise<Training | null> {
+  const snapshot = await getDoc(clubDoc('trainings', trainingId));
+  if (!snapshot.exists()) return null;
+  return { id: snapshot.id, ...snapshot.data() } as Training;
 }
 
 export async function deleteTraining(trainingId: string): Promise<void> {
@@ -137,8 +151,10 @@ export async function bulkCreateTrainings(
 
       inputs.forEach((input, i) => {
         const trainingRef = doc(clubCol('trainings'));
+        const businessId = formatBusinessId(lastSequence + i + 1);
         tx.set(trainingRef, {
-          businessId: formatBusinessId(lastSequence + i + 1),
+          businessId,
+          searchTokens: searchTokens(input.name, businessId),
           ...optionalForCreate(input, ['suggestedPlayers', 'targets']),
           exerciseIds: input.exercises.map((e) => e.exerciseId),
           createdBy: creatorUid,

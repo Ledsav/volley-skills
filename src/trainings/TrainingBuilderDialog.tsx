@@ -223,11 +223,15 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
     try {
       const done = training
         ? await save(() =>
-            updateTraining(training.id, {
-              ...fields,
-              suggestedPlayers: suggestedPlayers.value,
-              targets: targets.length > 0 ? targets : null,
-            })
+            updateTraining(
+              training.id,
+              {
+                ...fields,
+                suggestedPlayers: suggestedPlayers.value,
+                targets: targets.length > 0 ? targets : null,
+              },
+              training.businessId
+            )
           )
         : await save(
             () =>

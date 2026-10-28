@@ -18,6 +18,7 @@ import { useT } from '../i18n/I18nProvider';
 import { animateSpring, SPRING_DEFAULT, SPRING_FLICK } from '../motion/spring';
 import { nearest, project, rubberband } from '../motion/gesture';
 import { useReducedMotion } from '../motion/useReducedMotion';
+import { decideRelease } from './sheetRelease';
 
 export interface SheetProps {
   title: string;
@@ -38,20 +39,6 @@ export interface SheetProps {
 }
 
 const PHONE_QUERY = '(max-width: 767px)';
-const FLICK_VELOCITY = 0.5; // px/ms
-const CLOSE_FRACTION = 0.3;
-
-/** What a drag release means: close, ask to discard (dirty), or settle on a detent. */
-export function decideRelease(i: {
-  offset: number;
-  velocity: number;
-  height: number;
-  dirty: boolean;
-}): 'close' | 'guard' | 'snap' {
-  const closes = i.velocity > FLICK_VELOCITY || i.offset > CLOSE_FRACTION * i.height;
-  if (!closes) return 'snap';
-  return i.dirty ? 'guard' : 'close';
-}
 
 const SheetCloseContext = createContext<() => void>(() => {});
 
@@ -75,6 +62,7 @@ export function Sheet(props: SheetProps) {
   const scrimRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [edited, setEdited] = useState(false);
   const markEdited = guardUnsaved ? () => setEdited(true) : undefined;
@@ -131,20 +119,42 @@ export function Sheet(props: SheetProps) {
     if (!phone) return;
     const panel = panelRef.current;
     if (!panel) return;
-    const height = panel.offsetHeight;
-    const contentHeight = (headerRef.current?.offsetHeight ?? 0) + (innerRef.current?.offsetHeight ?? 0);
-    const contentOffset = Math.max(0, height - contentHeight - 48);
-    // Long forms start large, as the spec says: content over 60% of the viewport opens large.
-    const startsLarge = detent === 'large' || contentHeight > 0.6 * window.innerHeight;
-    const rest = startsLarge ? 0 : contentOffset;
-    detentsRef.current = { large: 0, content: rest, height };
-    paint(reduced ? rest : height);
-    if (!reduced) moveTo(rest);
+    const BODY_PADDING = 40; // py-5 top + bottom
+    const measure = () => {
+      const height = panel.offsetHeight;
+      const contentHeight =
+        (headerRef.current?.offsetHeight ?? 0) +
+        (innerRef.current?.offsetHeight ?? 0) +
+        BODY_PADDING +
+        (footerRef.current?.offsetHeight ?? 0);
+      // Long forms start large, as the spec says: content over 60% of the viewport opens large.
+      const startsLarge = detent === 'large' || contentHeight > 0.6 * window.innerHeight;
+      return { height, content: startsLarge ? 0 : Math.max(0, height - contentHeight) };
+    };
+    const first = measure();
+    detentsRef.current = { large: 0, content: first.content, height: first.height };
+    paint(reduced ? first.content : first.height);
+    if (!reduced) moveTo(first.content);
+
+    // Content or footer size changes (a field appears, text wraps): keep a resting content detent snug.
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        const prev = detentsRef.current;
+        const next = measure();
+        const resting = !animRef.current && Math.abs(yRef.current - prev.content) < 1;
+        detentsRef.current = { large: 0, content: next.content, height: next.height };
+        if (resting && next.content !== prev.content) paint(next.content);
+      });
+      if (innerRef.current) observer.observe(innerRef.current);
+      if (footerRef.current) observer.observe(footerRef.current);
+    }
     return () => {
+      observer?.disconnect();
       animRef.current?.stop();
       animRef.current = null;
     };
-    // Measure once per layout switch; later drags use these detents.
+    // Re-run only on layout switch; later drags use the detents above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
 
@@ -163,7 +173,7 @@ export function Sheet(props: SheetProps) {
         return start;
       }
       const downVelocity = vy * dy; // px/ms, positive downward
-      const verdict = decideRelease({ offset: my, velocity: downVelocity, height, dirty: isDirty });
+      const verdict = decideRelease({ offset: my, velocity: downVelocity, height: Math.max(1, height - start), dirty: isDirty });
       if (verdict === 'close') {
         moveTo(height, downVelocity * 1000, onClose);
       } else if (verdict === 'guard') {
@@ -214,6 +224,7 @@ export function Sheet(props: SheetProps) {
   const bottomBar =
     footer || (!phone && confirm) ? (
       <footer
+        ref={footerRef}
         onChange={markEdited}
         className="flex shrink-0 items-center justify-end gap-3 border-t border-separator bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:px-6 md:pb-3"
       >
@@ -244,7 +255,7 @@ export function Sheet(props: SheetProps) {
   if (phone) {
     return (
       <SheetCloseContext.Provider value={requestClose}>
-        <div className="fixed inset-0 z-50">
+        <div key="sheet" className="fixed inset-0 z-50">
           <div ref={scrimRef} data-testid="dialog-backdrop" className="absolute inset-0 bg-[var(--scrim)]" onClick={requestClose} />
           <div
             ref={panelRef}
@@ -267,11 +278,12 @@ export function Sheet(props: SheetProps) {
                 </div>
                 <h2 className="min-w-0 truncate text-headline text-ink">{title}</h2>
                 <div className="justify-self-end">
-                  {confirmButton ?? (
-                    <Button variant="ghost" onClick={requestClose}>
-                      {t.done}
-                    </Button>
-                  )}
+                  {confirmButton ??
+                    (footer ? null : (
+                      <Button variant="ghost" onClick={requestClose}>
+                        {t.done}
+                      </Button>
+                    ))}
                 </div>
               </div>
               <button type="button" onClick={requestClose} aria-label={t.close} className="sr-only">
@@ -290,6 +302,7 @@ export function Sheet(props: SheetProps) {
   return (
     <SheetCloseContext.Provider value={requestClose}>
       <div
+        key="dialog"
         data-testid="dialog-backdrop"
         className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--scrim)] p-4"
         onClick={requestClose}
@@ -306,12 +319,12 @@ export function Sheet(props: SheetProps) {
           className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-surface shadow-pop focus:outline-none ${DESKTOP_WIDTH[size]}`}
         >
           <header className="flex shrink-0 items-center justify-between gap-4 border-b border-separator px-6 py-4">
-            <h2 className="min-w-0 truncate text-title-3 text-ink">{title}</h2>
+            <h2 className="min-w-0 truncate text-title-2 text-ink">{title}</h2>
             <button
               type="button"
               onClick={requestClose}
               aria-label={t.close}
-              className="pressable -mr-2 inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="pressable -mr-2 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>

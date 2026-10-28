@@ -78,6 +78,7 @@ describe('Button', () => {
     );
     const c = screen.getByRole('button', { name: 'Add' }).className;
     expect(c).toContain('rounded-full');
+    expect(c).not.toContain('rounded-md');
     expect(c).toContain('min-h-9');
     expect(c).toContain('text-callout');
   });

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { decideRelease, Sheet, useSheetClose } from './Sheet';
+import { Sheet, useSheetClose } from './Sheet';
+import { decideRelease } from './sheetRelease';
 
 function mockPhone() {
   window.matchMedia = ((query: string) => ({
@@ -34,6 +35,10 @@ describe('decideRelease', () => {
   });
   it('guards instead of closing when dirty', () => {
     expect(decideRelease({ offset: 200, velocity: 0, height: 500, dirty: true })).toBe('guard');
+  });
+  it('a slow drag can close a short sheet because the threshold uses the visible height', () => {
+    expect(decideRelease({ offset: 100, velocity: 0, height: 300, dirty: false })).toBe('close');
+    expect(decideRelease({ offset: 100, velocity: 0, height: 600, dirty: false })).toBe('snap');
   });
   it('snaps back otherwise', () => {
     expect(decideRelease({ offset: 50, velocity: 0.1, height: 500, dirty: false })).toBe('snap');
@@ -118,5 +123,45 @@ describe('Sheet', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('phone with a footer shows no header Done, only the title and the hidden Close', () => {
+    mockPhone();
+    render(
+      <Sheet title="Edit" onClose={vi.fn()} footer={<button>Save</button>}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('sr-only');
+  });
+
+  it('remounts the layout on phone to desktop, dropping the imperative scrim opacity', () => {
+    let phone = true;
+    const listeners = new Set<() => void>();
+    window.matchMedia = ((query: string) => ({
+      get matches() {
+        return phone && query.includes('max-width: 767px');
+      },
+      media: query,
+      addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+      removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+    })) as unknown as typeof window.matchMedia;
+    render(
+      <Sheet title="Edit" onClose={vi.fn()}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-layout', 'sheet');
+    screen.getByTestId('dialog-backdrop').style.opacity = '0.5';
+    act(() => {
+      phone = false;
+      listeners.forEach((fn) => (fn as (e: { matches: boolean }) => void)({ matches: false }));
+    });
+    const panel = screen.getByRole('dialog');
+    expect(panel).toHaveAttribute('data-layout', 'dialog');
+    expect(panel.style.opacity).toBe('');
+    expect(screen.getByTestId('dialog-backdrop').style.opacity).toBe('');
   });
 });

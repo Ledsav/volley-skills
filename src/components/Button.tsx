@@ -7,12 +7,12 @@ type ButtonSize = 'sm' | 'md' | 'icon' | 'pill';
 // mobile touch-target size, regardless of how tight its padding/text is. The
 // `icon` size opts out for dense desktop toolbars (36px square).
 const BASE_CLASS =
-  'inline-flex items-center justify-center rounded-md font-semibold tracking-[-0.01em] pressable transition-[transform,background-color] duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center font-semibold tracking-[-0.01em] pressable cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50';
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
-  sm: 'min-h-11 px-3 py-1.5 text-sm',
-  md: 'min-h-11 px-4 py-2',
-  icon: 'h-9 w-9 text-sm',
+  sm: 'min-h-11 rounded-md px-3 py-1.5 text-sm',
+  md: 'min-h-11 rounded-md px-4 py-2',
+  icon: 'h-9 w-9 rounded-md text-sm',
   pill: 'min-h-9 rounded-full px-4 text-callout font-semibold',
 };
 

@@ -23,6 +23,7 @@ import { physicalTestGuide } from './physicalTestGuide';
 import { platform } from './platform';
 import { players } from './players';
 import { scout } from './scout';
+import { search } from './search';
 import { settings } from './settings';
 import { signup } from './signup';
 import { skillGuide } from './skillGuide';
@@ -31,4 +32,4 @@ import { textScout } from './textScout';
 import { theme } from './theme';
 import { trainings } from './trainings';
 
-export const it = { admin, ai, aiDraft, auth, awards, bulkImport, calendar, clubs, common, components, diagrams, dvw, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, settings, signup, skillGuide, teams, textScout, theme, trainings } satisfies Catalog;
+export const it = { admin, ai, aiDraft, auth, awards, bulkImport, calendar, clubs, common, components, diagrams, dvw, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, search, settings, signup, skillGuide, teams, textScout, theme, trainings } satisfies Catalog;

@@ -18,7 +18,7 @@ function Harness({ onRun = vi.fn(), onParentClick = vi.fn() }: { onRun?: () => v
   });
   return (
     <div onClick={onParentClick}>
-      <a href="/x" {...targetProps}>
+      <a href="#x" {...targetProps}>
         Row
       </a>
       {menu}

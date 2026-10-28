@@ -195,7 +195,8 @@ export function Sheet(props: SheetProps) {
   );
 
   // ---- Desktop entry: fade + scale .96 -> 1 (opacity only under reduced motion). ----
-  useEffect(() => {
+  // Layout effect so the first painted frame is already at opacity 0.
+  useLayoutEffect(() => {
     if (phone) return;
     const panel = panelRef.current;
     if (!panel || typeof panel.animate !== 'function') return;

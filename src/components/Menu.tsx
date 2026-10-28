@@ -53,7 +53,7 @@ export function Menu({ label, trigger, items, triggerClassName = '', align = 'en
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((v) => !v)}
-        className={`cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${triggerClassName}`.trim()}
+        className={`cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${triggerClassName}`.trim()}
       >
         {trigger}
       </button>

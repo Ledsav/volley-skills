@@ -81,6 +81,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<() => void>(() => {});
   /** Pointer or focus inside the pill pauses its timer; reset for every notice so a stale flag cannot leak. */
+  const returnFocus = useRef<HTMLElement | null>(null);
   const holds = useRef({ pointer: false, focus: false });
 
   const showPlain = useCallback((message: string, durationMs: number) => {
@@ -138,6 +139,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   const undoable = useCallback(
     (o: UndoableOptions) => {
       runPending(); // a second undoable commits the first at once
+      returnFocus.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
       holds.current = { pointer: false, focus: false };
       pending.current = o;
       setNotice({ id: ++nextId.current, message: o.message, undo: true });
@@ -153,14 +155,24 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
     window.clearTimeout(timer.current);
     p.onUndo?.();
     closeRef.current();
+    // The focused Undo button unmounts with the pill; hand focus back to where the user was.
+    const back = returnFocus.current;
+    returnFocus.current = null;
+    if (back?.isConnected) back.focus();
   }, []);
 
   // pagehide commits; unmounting the provider commits.
   useEffect(() => {
     const onHide = () => commitAndClose();
+    // A backgrounded mobile app may be killed without pagehide; commit when the page becomes hidden too.
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') commitAndClose();
+    };
     window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
       runPending();
       window.clearTimeout(timer.current);
     };

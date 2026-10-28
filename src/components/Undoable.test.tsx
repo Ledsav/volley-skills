@@ -205,6 +205,29 @@ describe('useUndoable', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
+  it('commits and closes when the page becomes hidden', () => {
+    const o = opts();
+    setup(o);
+    fireEvent.click(screen.getByText('del'));
+    const spy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    spy.mockRestore();
+    expect(o.commit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+
+  it('Undo hands focus back to the element that started the delete', () => {
+    const o = opts();
+    setup(o);
+    const del = screen.getByText('del');
+    del.focus();
+    fireEvent.click(del);
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(del).toHaveFocus();
+  });
+
   it('Ctrl+Z is ignored from an SVG inside [data-own-undo]', () => {
     const o = opts();
     const { container } = setup(o);

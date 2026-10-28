@@ -20,8 +20,8 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   primary: 'bg-ink text-on-ink hover:bg-ink/90',
   secondary: 'bg-surface-2 text-ink hover:bg-surface-3',
   ghost: 'text-ink hover:bg-surface-2',
-  // Quiet destructive: for row-level "Delete"/"Remove" actions. Solid `destructive`
-  // stays reserved for confirm buttons and standalone danger-zone actions.
+  // Quiet destructive: for row-level "Delete"/"Remove" actions. `destructive` is red
+  // text (design system §8), for confirm buttons and standalone danger-zone actions.
   dangerGhost: 'text-red-strong hover:bg-red-tint',
   destructive: 'font-semibold text-red-strong hover:bg-red-tint',
 };

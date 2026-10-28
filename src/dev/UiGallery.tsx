@@ -65,7 +65,7 @@ function SampleRow({ sample, onDelete }: { sample: Sample; onDelete: () => void 
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <h2 className="mb-3 mt-8 text-title text-ink">{children}</h2>;
+  return <h2 className="mb-3 mt-8 text-title-3 text-ink">{children}</h2>;
 }
 
 export default function UiGallery() {
@@ -90,7 +90,7 @@ export default function UiGallery() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas pb-24">
+    <div className="min-h-screen bg-bg pb-24">
       <Toolbar
         title="UI gallery"
         actions={

@@ -12,6 +12,7 @@
 import { createRequire } from 'node:module';
 
 import { clubRoot, parseClubArg } from './clubArg.mjs';
+import { searchTokens } from '../../src/search/searchTokens.js';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -280,6 +281,7 @@ async function main() {
     const ref = root.collection('exercises').doc(`demo-${ex.key}`);
     batch.set(ref, {
       name: ex.name,
+      searchTokens: searchTokens(ex.name),
       description: ex.description,
       category: ex.category,
       createdBy: CREATED_BY,
@@ -303,9 +305,11 @@ async function main() {
       order: idx + 1,
       durationMinutes,
     }));
+    const businessId = `TR-${String(i + 1).padStart(4, '0')}`;
     batch.set(root.collection('trainings').doc(`demo-training-${i + 1}`), {
-      businessId: `TR-${String(i + 1).padStart(4, '0')}`,
+      businessId,
       name: t.name,
+      searchTokens: searchTokens(t.name, businessId),
       description: t.description,
       ageGroupTarget: t.ageGroupTarget,
       exercises,

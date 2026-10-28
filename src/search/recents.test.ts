@@ -11,9 +11,9 @@ describe('recents', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('keeps the newest 8, deduped by id', () => {
-    for (let i = 1; i <= 10; i++) pushRecent(rec(i));
-    pushRecent(rec(5));
-    const ids = readRecents().map((r) => r.id);
+    for (let i = 1; i <= 10; i++) pushRecent('c1', rec(i));
+    pushRecent('c1', rec(5));
+    const ids = readRecents('c1').map((r) => r.id);
     expect(ids).toHaveLength(8);
     expect(ids[0]).toBe('t5');
     expect(ids.filter((id) => id === 't5')).toHaveLength(1);
@@ -21,7 +21,7 @@ describe('recents', () => {
   });
 
   it('uses sessionStorage, never localStorage', () => {
-    pushRecent(rec(1));
+    pushRecent('c1', rec(1));
     expect(sessionStorage.getItem(RECENTS_KEY)).not.toBeNull();
     expect(localStorage.length).toBe(0);
     clearRecents();
@@ -38,13 +38,23 @@ describe('recents', () => {
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    expect(readRecents()).toEqual([]);
-    expect(() => pushRecent(rec(1))).not.toThrow();
+    expect(readRecents('c1')).toEqual([]);
+    expect(() => pushRecent('c1', rec(1))).not.toThrow();
     expect(() => clearRecents()).not.toThrow();
+  });
+
+  it('a different club id reads empty and replaces the list', () => {
+    pushRecent('c1', rec(1));
+    expect(readRecents('c2')).toEqual([]);
+    expect(sessionStorage.getItem(RECENTS_KEY)).toBeNull();
+    pushRecent('c1', rec(1));
+    pushRecent('c2', rec(2));
+    expect(readRecents('c2').map((r) => r.id)).toEqual(['t2']);
+    expect(readRecents('c1')).toEqual([]);
   });
 
   it('ignores corrupt stored data', () => {
     sessionStorage.setItem(RECENTS_KEY, '{not json');
-    expect(readRecents()).toEqual([]);
+    expect(readRecents('c1')).toEqual([]);
   });
 });

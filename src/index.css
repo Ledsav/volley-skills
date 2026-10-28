@@ -2,49 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light theme (default) — matches docs/superpowers/specs/2026-09-04-volley-skills-design-system.md §2 */
+/* Light theme (default) - docs/design/design-system/README.md section 2 (v2). Colours are R G B triplets so
+   Tailwind alpha modifiers work. Fills (DEFAULT) are for dots, bars and tints; -strong is the AA text form. */
 :root {
-  /* Tells the browser which palette to paint native controls with — the
-     <input type="date"> picker glyph, number spinners, native scrollbars.
-     These live in browser shadow DOM and ignore `color`/text-ink, so without
-     this they'd render light-mode dark on the dark surface. */
+  /* Tells the browser which palette to paint native controls with (date picker glyph, spinners, scrollbars).
+     These live in browser shadow DOM and ignore `color`, so without this they render light on the dark surface. */
   color-scheme: light;
 
-  --color-navy: 35 86 168; /* #2356A8 */
-  --color-blue: 40 101 246; /* #2865F6 */
-  --color-blue-strong: 30 79 220; /* #1E4FDC */
-  --color-orange: 249 115 22; /* #F97316 */
-  --color-orange-strong: 194 65 12; /* #C2410C — AA as text on white and on orange/10 */
-  --color-green: 16 152 97; /* #109861 */
-  --color-green-strong: 12 124 79; /* #0C7C4F */
-  --color-red: 220 38 38; /* #DC2626 */
-  --color-red-strong: 185 28 28; /* #B91C1C */
-  --color-ink: 15 23 42; /* #0F172A */
-  --color-slate: 100 116 139; /* #64748B */
-  --color-border: 226 232 240; /* #E2E8F0 */
-  --color-bg: 248 250 252; /* #F8FAFC */
+  --color-navy: 35 86 168; /* legacy alias, unchanged until increment 6 */
+  --color-bg: 245 245 247; /* #F5F5F7 */
   --color-surface: 255 255 255; /* #FFFFFF */
+  --color-surface-2: 242 242 247; /* #F2F2F7 */
+  --color-surface-3: 229 229 234; /* #E5E5EA */
+  --color-ink: 29 29 31; /* #1D1D1F */
+  --color-ink-2: 110 110 115; /* #6E6E73 */
+  --color-ink-3: 142 142 147; /* #8E8E93 */
+  --color-on-ink: 255 255 255;
+  --color-separator: 222 222 224; /* opaque hairline */
+  --color-focus: 0 113 227; /* #0071E3 */
+  --color-sidebar: 255 255 255;
+  /* Legacy aliases (removed in increment 6) */
+  --color-slate: 110 110 115;
+  --color-border: 222 222 224;
+
+  --color-red: 255 59 48; /* #FF3B30 */
+  --color-red-strong: 205 0 20; /* #CD0014 - spec #D70015 darkened one step for AA on the 14% tint */
+  --color-orange: 255 149 0; /* #FF9500 */
+  --color-orange-strong: 201 52 0; /* #C93400 */
+  --color-blue: 0 122 255; /* #007AFF */
+  --color-blue-strong: 0 64 221; /* #0040DD */
+  --color-green: 52 199 89; /* #34C759 */
+  --color-green-strong: 30 125 55; /* #1E7D37 - spec #248A3D darkened one step for AA */
+
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06);
+  --scrim: rgb(0 0 0 / 0.28);
+  --tint-alpha: 0.14;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Dark theme — spec §2.3: brand hues lightened to hold contrast, navy stays
-   the darkest structural color (it's still darker than the page canvas). */
 .dark {
   color-scheme: dark;
 
-  --color-navy: 28 69 134; /* #1C4586 — same hue as light navy, darkened */
-  --color-blue: 112 149 255; /* #7095FF */
-  --color-blue-strong: 147 176 255; /* #93B0FF */
-  --color-orange: 251 146 60; /* #FB923C */
-  --color-orange-strong: 253 186 116; /* #FDBA74 */
-  --color-green: 52 201 138; /* #34C98A */
-  --color-green-strong: 110 220 174; /* #6EDCAE */
-  --color-red: 248 113 113; /* #F87171 */
-  --color-red-strong: 252 165 165; /* #FCA5A5 */
-  --color-ink: 234 240 251; /* #EAF0FB — flips to the light text color */
-  --color-slate: 147 163 190; /* #93A3BE */
-  --color-border: 36 50 82; /* #243252 */
-  --color-bg: 11 18 32; /* #0B1220 */
-  --color-surface: 18 27 46; /* #121B2E */
+  --color-navy: 28 69 134;
+  --color-bg: 0 0 0;
+  --color-surface: 28 28 30; /* #1C1C1E */
+  --color-surface-2: 44 44 46; /* #2C2C2E */
+  --color-surface-3: 58 58 60; /* #3A3A3C */
+  --color-ink: 245 245 247; /* #F5F5F7 */
+  --color-ink-2: 161 161 166; /* #A1A1A6 */
+  --color-ink-3: 110 110 115; /* #6E6E73 */
+  --color-on-ink: 0 0 0;
+  --color-separator: 55 55 58;
+  --color-focus: 64 156 255; /* #409CFF */
+  --color-sidebar: 13 13 15; /* #0D0D0F */
+  --color-slate: 161 161 166;
+  --color-border: 55 55 58;
+
+  --color-red: 255 69 58; /* #FF453A */
+  --color-red-strong: 255 105 97; /* #FF6961 */
+  --color-orange: 255 159 10; /* #FF9F0A */
+  --color-orange-strong: 255 179 64; /* #FFB340 */
+  --color-blue: 10 132 255; /* #0A84FF */
+  --color-blue-strong: 64 156 255; /* #409CFF */
+  --color-green: 48 209 88; /* #30D158 */
+  --color-green-strong: 48 219 91; /* #30DB5B */
+
+  --glass: rgb(28 28 30 / 0.7);
+  --glass-edge: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  --scrim: rgb(0 0 0 / 0.56);
+  --tint-alpha: 0.22;
 }
 
 @layer base {
@@ -57,9 +85,57 @@
   /* One keyboard-focus look everywhere, matching Button's ring, for the custom
      controls (calendar cells, chips, toolbar icons) that don't set their own. */
   :focus-visible {
-    outline: 2px solid rgb(var(--color-blue));
+    outline: 2px solid rgb(var(--color-focus));
     outline-offset: 2px;
   }
+}
+
+@layer utilities {
+  /* Floating chrome only (design system section 5). Never on cards, rows or the sidebar. */
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: var(--glass-edge);
+  }
+  .bg-red-tint { background-color: rgb(var(--color-red) / var(--tint-alpha)); }
+  .bg-orange-tint { background-color: rgb(var(--color-orange) / var(--tint-alpha)); }
+  .bg-blue-tint { background-color: rgb(var(--color-blue) / var(--tint-alpha)); }
+  .bg-green-tint { background-color: rgb(var(--color-green) / var(--tint-alpha)); }
+  .pressable { transition: transform 160ms var(--ease-out); }
+  .pressable:active { transform: scale(0.97); transition-duration: 100ms; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    --glass: rgb(var(--color-surface));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-separator: 198 198 200; /* #C6C6C8 */
+    --color-ink-2: 88 88 93;
+  }
+  .dark {
+    --color-separator: 56 56 58; /* #38383A */
+    --color-ink-2: 190 190 195;
+  }
+  .glass {
+    --glass: rgb(var(--color-surface));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :where(button, input, select, textarea):not(:focus-visible) {
+    outline: 1px solid rgb(var(--color-ink-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pressable { transition: none; }
+  .pressable:active { transform: none; }
 }
 
 @media print {

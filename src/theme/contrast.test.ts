@@ -35,15 +35,40 @@ function tint(color: [number, number, number], alpha: number, base: [number, num
 }
 
 const AA = 4.5;
+type RGB = [number, number, number];
+
+const LEVEL_HUE: Record<Level, string> = {
+  Beginner: 'red',
+  Developing: 'orange',
+  Advanced: 'blue',
+  Elite: 'green',
+};
+const TINT_ALPHA = { light: 0.14, dark: 0.22 };
 
 describe('design-token contrast (WCAG AA)', () => {
   for (const theme of ['light', 'dark'] as const) {
     const surface = token(theme, 'surface');
+    const bg = token(theme, 'bg');
+    it(`${theme}: ink-2 reads on surface and on bg`, () => {
+      expect(contrast(token(theme, 'ink-2'), surface)).toBeGreaterThanOrEqual(AA);
+      expect(contrast(token(theme, 'ink-2'), bg)).toBeGreaterThanOrEqual(AA);
+    });
+    it(`${theme}: on-ink reads on ink`, () => {
+      expect(contrast(token(theme, 'on-ink'), token(theme, 'ink'))).toBeGreaterThanOrEqual(AA);
+    });
     for (const hue of ['red', 'orange', 'blue', 'green']) {
-      it(`${theme}: ${hue}-strong text reads on surface and on its /10 tint`, () => {
-        const text = token(theme, `${hue}-strong`);
-        expect(contrast(text, surface)).toBeGreaterThanOrEqual(AA);
-        expect(contrast(text, tint(token(theme, hue), 0.1, surface))).toBeGreaterThanOrEqual(AA);
+      it(`${theme}: ${hue}-strong text reads on surface`, () => {
+        expect(contrast(token(theme, `${hue}-strong`), surface)).toBeGreaterThanOrEqual(AA);
+      });
+    }
+    for (const level of Object.keys(LEVEL_HUE) as Level[]) {
+      it(`${theme}: ${level} pill text reads on its tint`, () => {
+        const hue = LEVEL_HUE[level];
+        const textClass = levelPillClass(level).split(' ').find((c) => /^text-\w+-strong$/.test(c));
+        expect(textClass).toBe(`text-${hue}-strong`);
+        const text = token(theme, textClass!.replace(/^text-/, ''));
+        const bgTint = tint(token(theme, hue), TINT_ALPHA[theme], surface);
+        expect(contrast(text, bgTint)).toBeGreaterThanOrEqual(AA);
       });
     }
     it(`${theme}: white text reads on an orange-strong badge`, () => {
@@ -51,6 +76,26 @@ describe('design-token contrast (WCAG AA)', () => {
       expect(contrast([255, 255, 255], token(theme, 'orange-strong'))).toBeGreaterThanOrEqual(AA);
     });
   }
+});
+
+describe('v2 chrome tokens (design system 2.1)', () => {
+  const expected: Record<string, [RGB, RGB]> = {
+    bg: [[245, 245, 247], [0, 0, 0]],
+    surface: [[255, 255, 255], [28, 28, 30]],
+    'surface-2': [[242, 242, 247], [44, 44, 46]],
+    'surface-3': [[229, 229, 234], [58, 58, 60]],
+    ink: [[29, 29, 31], [245, 245, 247]],
+    'ink-2': [[110, 110, 115], [161, 161, 166]],
+    'ink-3': [[142, 142, 147], [110, 110, 115]],
+    'on-ink': [[255, 255, 255], [0, 0, 0]],
+    separator: [[222, 222, 224], [55, 55, 58]],
+    focus: [[0, 113, 227], [64, 156, 255]],
+    sidebar: [[255, 255, 255], [13, 13, 15]],
+  };
+  it.each(Object.keys(expected))('%s has the spec value in both themes', (name) => {
+    expect(token('light', name)).toEqual(expected[name][0]);
+    expect(token('dark', name)).toEqual(expected[name][1]);
+  });
 });
 
 describe('level pills use the readable -strong text tokens', () => {

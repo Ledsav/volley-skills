@@ -87,9 +87,11 @@ export function App() {
                 path="/dev/ui"
                 element={
                   <RequireSignedIn>
-                    <Suspense fallback={null}>
-                      <UiGallery />
-                    </Suspense>
+                    <SearchProvider>
+                      <Suspense fallback={null}>
+                        <UiGallery />
+                      </Suspense>
+                    </SearchProvider>
                   </RequireSignedIn>
                 }
               />

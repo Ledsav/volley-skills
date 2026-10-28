@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -14,6 +15,7 @@ import { StatTile } from '../components/StatTile';
 import { StatusChip } from '../components/StatusChip';
 import { SwipeRow } from '../components/SwipeRow';
 import { MainAction, Toolbar } from '../components/Toolbar';
+import { useSearch } from '../search/SearchProvider';
 import { useThemePreference } from '../theme/useTheme';
 import type { ThemePreference } from '../theme/theme';
 import type { Level } from '../types/player';
@@ -70,6 +72,7 @@ function SectionTitle({ children }: { children: string }) {
 
 export default function UiGallery() {
   const [pref, setPref] = useThemePreference();
+  const search = useSearch();
   const [seg, setSeg] = useState('a');
   const [sheet, setSheet] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -184,6 +187,16 @@ export default function UiGallery() {
             }}
           />
         </GroupedList>
+
+        <SectionTitle>Shell</SectionTitle>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/" className="text-body text-ink underline">
+            Open the shell (Today)
+          </Link>
+          <Button variant="secondary" size="sm" onClick={() => search.open()}>
+            Open search palette
+          </Button>
+        </div>
 
         <SectionTitle>Stat tiles, chip, skeleton</SectionTitle>
         <div className="grid grid-cols-2 gap-3">

@@ -17,7 +17,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   const id = `more-${title.toLowerCase()}`;
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="mb-2 px-1 text-footnote text-ink-3">{title}</h2>
+      <h2 id={id} className="mb-2 px-1 text-footnote text-ink-2">{title}</h2>
       <div className="flex flex-col overflow-hidden rounded-lg bg-surface">{children}</div>
     </section>
   );
@@ -44,7 +44,7 @@ export function MorePage() {
         <Section key={g.id} title={g.label ?? ''}>
           {g.items.map(({ to, label, Icon, pending }) => (
             <Link key={to} to={to} className={ROW}>
-              <Icon size={18} strokeWidth={1.5} aria-hidden="true" className="text-ink-3" />
+              <Icon size={18} strokeWidth={1.75} aria-hidden="true" className="text-ink-3" />
               <span className="flex-1">{label}</span>
               {pending && pendingSignups > 0 && (
                 <span className="rounded-full bg-orange-strong px-1.5 py-0.5 text-xs font-semibold text-on-ink">
@@ -59,23 +59,23 @@ export function MorePage() {
 
       <Section title={t.morePage.account}>
         <Link to="/settings" className={ROW}>
-          <Settings size={18} strokeWidth={1.5} aria-hidden="true" className="text-ink-3" />
+          <Settings size={18} strokeWidth={1.75} aria-hidden="true" className="text-ink-3" />
           <span className="flex-1">{t.appShell.settings}</span>
           <ChevronRight size={16} aria-hidden="true" className="text-ink-3" />
         </Link>
         <Link to="/legal/terms" className={ROW}>
-          <FileText size={18} strokeWidth={1.5} aria-hidden="true" className="text-ink-3" />
+          <FileText size={18} strokeWidth={1.75} aria-hidden="true" className="text-ink-3" />
           <span className="flex-1">{t.appShell.termsAndPrivacy}</span>
           <ChevronRight size={16} aria-hidden="true" className="text-ink-3" />
         </Link>
         {otherClubs.map((m) => (
           <button key={m.clubId} type="button" className={ROW} onClick={() => switchClub(m.clubId)}>
-            <Repeat size={18} strokeWidth={1.5} aria-hidden="true" className="text-ink-3" />
+            <Repeat size={18} strokeWidth={1.75} aria-hidden="true" className="text-ink-3" />
             <span className="flex-1">{t.appShell.switchTo(m.clubName)}</span>
           </button>
         ))}
         <button type="button" className={`${ROW} text-red-strong`} onClick={signOut}>
-          <LogOut size={18} strokeWidth={1.5} aria-hidden="true" />
+          <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
           <span className="flex-1">{t.appShell.signOut}</span>
         </button>
       </Section>

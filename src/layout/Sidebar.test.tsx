@@ -54,6 +54,11 @@ describe('Sidebar', () => {
     expect(screen.queryByRole('button', { name: /^Club:/ })).not.toBeInTheDocument();
   });
 
+  it('uses 36 px link rows on the desktop column', () => {
+    renderSidebar();
+    expect(screen.getByRole('link', { name: 'Teams' })).toHaveClass('min-h-9');
+  });
+
   it('marks the active item with aria-current', () => {
     renderSidebar();
     expect(screen.getByRole('link', { name: 'Teams' })).toHaveAttribute('aria-current', 'page');
@@ -112,6 +117,13 @@ describe('SidebarOverlay', () => {
     const links = within(screen.getByRole('dialog')).getAllByRole('link');
     expect(document.activeElement?.getAttribute('href')).toBe('/');
     expect(links.length).toBeGreaterThan(0);
+  });
+
+  it('uses 44 px link rows in the overlay', () => {
+    render(<Harness onClose={() => {}} />);
+    const link = within(screen.getByRole('dialog')).getByRole('link', { name: 'Teams' });
+    expect(link).toHaveClass('min-h-11');
+    expect(link).not.toHaveClass('min-h-9');
   });
 
   it('overlay closes on navigation', () => {

@@ -1,21 +1,19 @@
 import { NavLink } from 'react-router-dom';
 import { Menu as MenuIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { usePendingSignups } from '../interest/usePendingSignups';
 import { useT } from '../i18n/I18nProvider';
 import { phoneTabs } from './navModel';
 
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `pressable flex min-h-[49px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 pt-1.5 pb-1 text-[10px] font-medium leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-    isActive ? 'text-ink' : 'text-ink-3'
+    isActive ? 'text-ink' : 'text-ink-2'
   }`;
 }
 
 /** The phone's bottom bar: icon and label per tab (at most 5), More for everything else. */
-export function TabBar() {
+export function TabBar({ pendingSignups = 0 }: { pendingSignups?: number }) {
   const { access, isPlatformAdmin } = useAuth();
   const t = useT().layout;
-  const pendingSignups = usePendingSignups(!!isPlatformAdmin);
   const tabs = phoneTabs(access, !!isPlatformAdmin);
 
   return (

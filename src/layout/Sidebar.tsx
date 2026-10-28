@@ -3,7 +3,6 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { ChevronsUpDown, FileText, LogOut, Repeat, Settings } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Menu } from '../components/Menu';
-import { usePendingSignups } from '../interest/usePendingSignups';
 import { otherUsableClubs } from '../clubs/activeClub';
 import { useT } from '../i18n/I18nProvider';
 import { animateSpring, SPRING_DEFAULT } from '../motion/spring';
@@ -23,34 +22,38 @@ function clubInitials(name: string): string {
     .toUpperCase();
 }
 
-function linkClass({ isActive }: { isActive: boolean }): string {
-  return `pressable flex min-h-9 items-center gap-3 rounded-md px-3 text-callout focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+/** Overlay rows are 44 px for touch; the desktop column stays at 36 px. */
+const linkClass = (variant: 'solid' | 'glass') => ({ isActive }: { isActive: boolean }): string => {
+  return `pressable flex ${variant === 'glass' ? 'min-h-11' : 'min-h-9'} items-center gap-3 rounded-md px-3 text-callout focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
     isActive ? 'bg-surface-3 font-semibold text-ink' : 'text-ink-2 hover:bg-surface-2'
   }`;
-}
+};
 
 /** The content of the 248 px column: club header, grouped navigation, account menu. No positioning. */
 export function Sidebar({
   onNavigate,
   onSignOut,
+  pendingSignups = 0,
   variant = 'solid',
 }: {
-  onNavigate?: () => void;
+  /** Called with the destination after a link or menu item navigates. */
+  onNavigate?: (to: string) => void;
   onSignOut: () => void;
+  /** Unreviewed sign-ups (platform admin); counted once in AppShell. */
+  pendingSignups?: number;
   /** 'solid' is the desktop column; 'glass' sits inside the overlay's glass panel. */
   variant?: 'solid' | 'glass';
 }) {
   const { access, club, firebaseUser, isPlatformAdmin, memberships, activeClubId, switchClub, role } = useAuth();
   const t = useT().layout;
   const navigate = useNavigate();
-  const pendingSignups = usePendingSignups(!!isPlatformAdmin);
   const email = firebaseUser?.email ?? '';
   const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase();
   const otherClubs = otherUsableClubs(memberships, activeClubId);
   const groups = navGroups(access, !!isPlatformAdmin);
 
   const renderLink = ({ to, label, Icon, end, pending }: NavItem) => (
-    <NavLink key={to} to={to} end={end} className={linkClass} onClick={onNavigate}>
+    <NavLink key={to} to={to} end={end} className={linkClass(variant)} onClick={() => onNavigate?.(to)}>
       <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
       {label}
       {pending && pendingSignups > 0 && (
@@ -64,7 +67,7 @@ export function Sidebar({
       <div key={g.id} className="flex flex-col gap-0.5">{g.items.map(renderLink)}</div>
     ) : (
       <div key={g.id} role="group" aria-labelledby={`nav-${g.id}`} className="mt-5 flex flex-col gap-0.5">
-        <p id={`nav-${g.id}`} className="px-3 pb-1 text-footnote font-semibold text-ink-3">{g.label}</p>
+        <p id={`nav-${g.id}`} className="px-3 pb-1 text-footnote font-semibold text-ink-2">{g.label}</p>
         {g.items.map(renderLink)}
       </div>
     );
@@ -84,7 +87,7 @@ export function Sidebar({
   return (
     <div className={`flex h-full min-h-0 flex-col border-r border-separator p-3 ${variant === 'solid' ? 'bg-sidebar' : ''}`}>
       {/* The logo moves out in Plan 6; the home link stays reachable for assistive tech. */}
-      <NavLink to="/" aria-label={t.appShell.homeLabel} onClick={onNavigate} className="sr-only focus:not-sr-only focus:rounded-md focus:px-2 focus:py-1">
+      <NavLink to="/" aria-label={t.appShell.homeLabel} onClick={() => onNavigate?.('/')} className="sr-only focus:not-sr-only focus:rounded-md focus:bg-surface focus:px-2 focus:py-1 focus:shadow-pop focus:outline-none focus:ring-2 focus:ring-focus">
         {t.appShell.homeLabel}
       </NavLink>
       {club && (
@@ -131,8 +134,8 @@ export function Sidebar({
             </>
           }
           items={[
-            { kind: 'action', label: t.appShell.settings, icon: <Settings size={16} />, onSelect: () => { navigate('/settings'); onNavigate?.(); } },
-            { kind: 'action', label: t.appShell.termsAndPrivacy, icon: <FileText size={16} />, onSelect: () => { navigate('/legal/terms'); onNavigate?.(); } },
+            { kind: 'action', label: t.appShell.settings, icon: <Settings size={16} />, onSelect: () => { navigate('/settings'); onNavigate?.('/settings'); } },
+            { kind: 'action', label: t.appShell.termsAndPrivacy, icon: <FileText size={16} />, onSelect: () => { navigate('/legal/terms'); onNavigate?.('/legal/terms'); } },
             { kind: 'divider' },
             { kind: 'action', label: t.appShell.signOut, icon: <LogOut size={16} />, danger: true, onSelect: onSignOut },
           ]}
@@ -150,11 +153,16 @@ export function SidebarOverlay({
   onClose,
   returnFocusTo,
   onSignOut,
+  onNavigate,
+  pendingSignups,
 }: {
   open: boolean;
   onClose: () => void;
   returnFocusTo: RefObject<HTMLElement>;
   onSignOut: () => void;
+  /** After closing for a navigation, with the destination (AppShell uses it for a same-route click). */
+  onNavigate?: (to: string) => void;
+  pendingSignups?: number;
 }) {
   const t = useT().layout;
   const reduced = useReducedMotion();
@@ -230,7 +238,15 @@ export function SidebarOverlay({
     <div role="dialog" aria-modal="true" aria-label={t.appShell.mainNav} onKeyDown={onKeyDown} className="fixed inset-0 z-40 print:hidden">
       <div data-testid="sidebar-scrim" className="absolute inset-0 bg-black/20" onClick={dismiss} />
       <div ref={panelRef} className="glass glass-pop absolute inset-y-0 left-0 overflow-hidden" style={{ width: PANEL_WIDTH }}>
-        <Sidebar onNavigate={onClose} onSignOut={onSignOut} variant="glass" />
+        <Sidebar
+          onNavigate={(to) => {
+            onClose();
+            onNavigate?.(to);
+          }}
+          onSignOut={onSignOut}
+          pendingSignups={pendingSignups}
+          variant="glass"
+        />
       </div>
     </div>
   );

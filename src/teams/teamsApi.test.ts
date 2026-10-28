@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
-import { bulkCreateTeams, createTeam, deleteTeam, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
+import { bulkCreateTeams, createTeam, deleteTeam, listClubTeams, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
 import { deleteCollection } from '../firebase/deleteCollection';
 
 const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
@@ -125,6 +125,19 @@ describe('teamsApi', () => {
       )
     ).rejects.toThrow(/capped at 100 entries/);
     expect(batchCommit).not.toHaveBeenCalled();
+  });
+
+  it('lists every club team with no where clause and a page limit of 20', async () => {
+    mockWhere.mockClear();
+    mockLimit.mockClear();
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'team-1', data: () => ({ name: 'U17' }) }] });
+
+    const { teams, hasMore } = await listClubTeams();
+
+    expect(teams).toEqual([{ id: 'team-1', name: 'U17' }]);
+    expect(hasMore).toBe(false);
+    expect(mockWhere).not.toHaveBeenCalled();
+    expect(mockLimit).toHaveBeenCalledWith(20);
   });
 
   it('lists teams filtered to the given admin email', async () => {

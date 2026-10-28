@@ -96,6 +96,13 @@ describe('teams rules', () => {
     await assertFails(db.doc('clubs/club-a/teams/team-1').update({ name: 'Hijack' }));
   });
 
+  it('a club admin can list teams without a where clause; a member cannot', async () => {
+    const env = await getTestEnv();
+    const listAll = (email: string) => dbAs(env, email).collection('clubs/club-a/teams').orderBy('createdAt', 'desc').limit(20).get();
+    await assertSucceeds(listAll('super@example.com'));
+    await assertFails(listAll('plain@example.com'));
+  });
+
   describe('gender', () => {
     const NEW = { name: 'U19', adminEmails: ['coach@example.com'], createdBy: 'uid-super@example.com' };
 

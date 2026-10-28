@@ -67,7 +67,7 @@ export async function bulkCreateTeams(
   return inputs.length;
 }
 
-interface TeamsPage {
+export interface TeamsPage {
   teams: Team[];
   lastDoc: QueryDocumentSnapshot | null;
   // A full page might still be the last one — but a page shorter than the
@@ -82,6 +82,18 @@ export async function listMyTeams(email: string, afterDoc: QueryDocumentSnapshot
   const q = afterDoc
     ? query(base, where('adminEmails', 'array-contains', email), orderBy('createdAt', 'desc'), startAfter(afterDoc), limit(TEAMS_PAGE_SIZE))
     : query(base, where('adminEmails', 'array-contains', email), orderBy('createdAt', 'desc'), limit(TEAMS_PAGE_SIZE));
+  const snapshot = await getDocs(q);
+  const teams = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Team);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { teams, lastDoc, hasMore: snapshot.docs.length === TEAMS_PAGE_SIZE };
+}
+
+/** The first-page-or-next list of every club team; club admins only (rules refuse a plain member). */
+export async function listClubTeams(afterDoc: QueryDocumentSnapshot | null = null): Promise<TeamsPage> {
+  const base = clubCol('teams');
+  const q = afterDoc
+    ? query(base, orderBy('createdAt', 'desc'), startAfter(afterDoc), limit(TEAMS_PAGE_SIZE))
+    : query(base, orderBy('createdAt', 'desc'), limit(TEAMS_PAGE_SIZE));
   const snapshot = await getDocs(q);
   const teams = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Team);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;

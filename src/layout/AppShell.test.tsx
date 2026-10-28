@@ -148,6 +148,19 @@ describe('AppShell', () => {
     expect(within(bottom).queryByText('Members & settings')).toBeNull();
   });
 
+  it('tab bar has at most 5 tabs with visible labels', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
+    renderShell();
+    const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
+    const tabs = within(bottom).getAllByRole('link');
+    expect(tabs.length).toBeLessThanOrEqual(5);
+    for (const tab of tabs) {
+      expect(tab.querySelector('svg')).not.toBeNull();
+      expect(tab.textContent?.trim()).not.toBe('');
+      expect(tab.querySelector('.sr-only')).toBeNull();
+    }
+  });
+
   describe('club state', () => {
     const DAY = 86_400_000;
     const fmt = (d: Date) => formatDateValue(d, 'long', 'en');

@@ -13,6 +13,8 @@ import { MinimalShell } from './layout/MinimalShell';
 import { PlatformPage } from './platform/PlatformPage';
 import { RequireSection } from './auth/RequireSection';
 import { AppShell } from './layout/AppShell';
+import { PageChromeProvider } from './layout/PageChrome';
+import { SearchProvider } from './search/SearchProvider';
 import { LoginPage } from './auth/LoginPage';
 import { FinishSignInPage } from './auth/FinishSignInPage';
 import { TeamsListPage } from './teams/TeamsListPage';
@@ -54,9 +56,13 @@ function PlatformShell({ children }: { children: ReactNode }) {
 function AuthenticatedLayout() {
   return (
     <RequireAuth>
-      <AppShell>
-        <Outlet />
-      </AppShell>
+      <PageChromeProvider>
+        <SearchProvider>
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        </SearchProvider>
+      </PageChromeProvider>
     </RequireAuth>
   );
 }

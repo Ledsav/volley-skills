@@ -173,6 +173,13 @@ describe('ScoutPage', () => {
     }
   });
 
+  it('the set-point prompt sits below the two-row header', async () => {
+    const corr: MatchEvent = { id: 'e2', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    renderPage([setStart, corr]);
+    const prompt = await screen.findByRole('dialog', { name: 'Set point' });
+    expect(prompt).toHaveClass('top-32', 'md:top-36');
+  });
+
   it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
     renderPage([setStart]);
     const dock = await screen.findByRole('region', { name: 'Match events' });
@@ -760,6 +767,27 @@ describe('ScoutPage', () => {
       expect(tabs.map((t) => t.textContent)).toEqual(['Court', 'Live', 'Timeline', 'Text']);
       expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
       expect(list.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('pins the action panel above the dock, outside the scrolling main, so grades never need a scroll', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      const panel = screen.getByRole('region', { name: /^Actions for/ });
+      const main = screen.getByRole('main');
+      const dock = screen.getByRole('region', { name: 'Match events' });
+      expect(main.contains(panel)).toBe(false);
+      expect(panel.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(main.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // The pinned block does not shrink or scroll with the court.
+      expect(panel.parentElement).toHaveClass('shrink-0');
+    });
+
+    it('header budget: split-score row is 56 px and the Undo pill is at least 44 px wide', async () => {
+      renderPage([setStart]);
+      const header = await screen.findByRole('banner');
+      const score = within(header).getByRole('button', { name: 'Correct score' });
+      expect(score.parentElement).toHaveClass('h-14');
+      expect(within(header).getByRole('button', { name: 'Undo' })).toHaveClass('min-w-11');
     });
 
     it('hides the Text tab when the club has AI off', async () => {

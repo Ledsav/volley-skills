@@ -100,7 +100,7 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
   return (
     <p
       role="status"
-      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-3 py-1.5 text-callout font-medium tabular-nums text-on-ink shadow-pop"
+      className="pointer-events-none fixed bottom-40 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-3 py-1.5 text-callout font-medium tabular-nums text-on-ink shadow-pop"
     >
       {hint}
     </p>
@@ -539,6 +539,23 @@ export function ScoutPage() {
     { kind: 'action', label: sp.exit, onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}`) },
   ];
 
+  // Desktop: inline under the court. Phones: pinned above the dock, outside the scrolling main, so the
+  // grades never need a scroll while the court shrinks.
+  const actionPanel =
+    panelPlayer && panelSkill && selection ? (
+    <ActionSheet
+      key={`${panelPlayer.playerId}-${selection.seq}`}
+      player={panelPlayer}
+      isLibero={liberoIds.has(panelPlayer.playerId)}
+      skills={panelSkills}
+      skill={panelSkill}
+      onSkillChange={chooseSkill}
+      onClose={() => select(null)}
+      onSub={() => openSub(panelPlayer.playerId)}
+      onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
+    />
+    ) : null;
+
   const courtColumn = (
     <div className="flex min-h-full flex-col gap-3">
       {!quickScore && (
@@ -563,19 +580,7 @@ export function ScoutPage() {
           {!panelPlayer && <BenchStrip players={bench} names={names} onSelect={(id) => select(id)} disabled={!state.inSet} />}
         </>
       )}
-      {panelPlayer && panelSkill && selection && (
-        <ActionSheet
-          key={`${panelPlayer.playerId}-${selection.seq}`}
-          player={panelPlayer}
-          isLibero={liberoIds.has(panelPlayer.playerId)}
-          skills={panelSkills}
-          skill={panelSkill}
-          onSkillChange={chooseSkill}
-          onClose={() => select(null)}
-          onSub={() => openSub(panelPlayer.playerId)}
-          onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
-        />
-      )}
+      {isDesktop && actionPanel}
       {!state.inSet && <p className="py-2 text-center text-callout text-ink-2">{sp.startToRecord}</p>}
     </div>
   );
@@ -667,6 +672,7 @@ export function ScoutPage() {
             {phoneTab === 'timeline' && timeline}
             {textPanel}
           </main>
+          {phoneTab === 'court' && actionPanel && <div className="shrink-0 px-3 pb-2">{actionPanel}</div>}
         </>
       )}
       {state.inSet && (
@@ -741,7 +747,7 @@ export function ScoutPage() {
         <div
           role="dialog"
           aria-label={sp.setPoint}
-          className="fixed inset-x-3 top-28 z-40 rounded-xl bg-surface p-4 shadow-pop md:inset-x-auto md:left-1/2 md:w-[420px] md:-translate-x-1/2"
+          className="fixed inset-x-3 top-32 z-40 rounded-xl bg-surface p-4 shadow-pop md:inset-x-auto md:left-1/2 md:w-[420px] md:top-36 md:-translate-x-1/2"
         >
           <p className="mb-3 text-headline text-ink">
             {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}

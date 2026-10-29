@@ -113,6 +113,7 @@ export const scout = {
     pending: (n) => `${n} in coda`,
     synced: 'in sync',
     tools: 'Strumenti partita',
+    live: (set: number) => `In diretta · Set ${set}`,
   },
   sub: {
     title: (number, name) => `Cambio per #${number} ${name}`,

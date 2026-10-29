@@ -113,6 +113,7 @@ export const scout = {
     pending: (n: number) => `${n} pending`,
     synced: 'synced',
     tools: 'Match tools',
+    live: (set: number) => `Live · Set ${set}`,
   },
   sub: {
     title: (number: number, name: string) => `Substitute #${number} ${name}`,

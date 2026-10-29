@@ -28,6 +28,7 @@ interface RallyBarProps {
 export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format, size = 'normal' }: RallyBarProps) {
   const t = useT();
   const pointSize = size === 'large' ? 'min-h-24 text-title-2' : 'min-h-14 text-headline';
+  const timeoutSize = size === 'large' ? 'min-h-20' : 'min-h-14';
   const flash = (e: PointerEvent<HTMLButtonElement>) => tapFlash(e.currentTarget);
   const timeout = (team: Side) => {
     const left = Math.max(0, format.timeoutsPerSet - timeoutsUsed[team]);
@@ -38,7 +39,7 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
         onClick={() => onTimeout(team)}
         aria-label={t.scout.rally.timeoutAria(t.matches.shared.side(team), left)}
         title={t.scout.rally.timeoutTitle(t.matches.shared.side(team), keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem'))}
-        className={`flex min-h-14 items-center justify-center rounded-md bg-surface px-2 text-callout tabular-nums text-ink ${
+        className={`flex ${timeoutSize} items-center justify-center rounded-md px-2 text-footnote tabular-nums text-ink-2 ${
           team === 'us' ? '[grid-area:tu]' : '[grid-area:tt]'
         }`}
       >

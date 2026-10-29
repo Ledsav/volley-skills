@@ -3,7 +3,8 @@ import { ArrowLeftRight, X } from 'lucide-react';
 import type { Grade, RosterEntry, Skill } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
 import { validGrades } from '../skillGrades';
-import { GRADE_CLASS } from './gradeStyles';
+import { tapFlash } from '../../motion/tapFlash';
+import { SCOUT_GRADE_CLASS } from './gradeStyles';
 import { Kbd } from './Kbd';
 import { RoleChip } from './RoleChip';
 
@@ -31,20 +32,20 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
   return (
     <section
       aria-label={t.scout.actionSheet.actionsFor(player.number, player.name)}
-      className="rounded-lg border border-border bg-surface p-3 shadow-pop"
+      className="rounded-lg bg-surface p-3"
     >
       <div className="mb-2 flex items-center gap-2">
         <p className="flex min-w-0 flex-1 items-center gap-2 text-ink">
-          <span className="min-w-0 truncate text-lg font-bold">{player.name}</span>
-          <span className="shrink-0 font-bold tabular-nums">#{player.number}</span>
+          <span className="min-w-0 truncate text-headline">{player.name}</span>
+          <span className="shrink-0 text-callout tabular-nums text-ink-2">#{player.number}</span>
           <RoleChip role={isLibero ? 'L' : player.positionCategory} libero={isLibero} />
         </p>
         {!isLibero && (
-          <button type="button" onClick={onSub} className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-blue-strong hover:bg-blue/10">
+          <button type="button" onClick={onSub} className="flex min-h-11 items-center gap-1 rounded-md px-2 text-callout text-ink hover:bg-surface-2">
             <ArrowLeftRight size={16} aria-hidden="true" /> {t.scout.actionSheet.substitute}
           </button>
         )}
-        <button type="button" aria-label={t.scout.actionSheet.close} onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg">
+        <button type="button" aria-label={t.scout.actionSheet.close} onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2">
           <X size={18} aria-hidden="true" />
         </button>
       </div>
@@ -55,9 +56,10 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             key={s}
             type="button"
             aria-pressed={s === skill}
+            onPointerDown={(e) => tapFlash(e.currentTarget)}
             onClick={() => setSkill(s)}
-            className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm ${
-              s === skill ? 'border-blue bg-blue-strong text-on-ink' : 'border-border bg-surface text-ink'
+            className={`inline-flex min-h-14 shrink-0 items-center gap-1.5 rounded-full px-4 text-callout md:min-h-11 ${
+              s === skill ? 'bg-ink text-on-ink' : 'bg-surface-2 text-ink'
             }`}
           >
             {t.labels.skill[s]}
@@ -72,12 +74,13 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             key={g}
             type="button"
             aria-label={`${g} ${t.labels.grade[skill][g]}`}
+            onPointerDown={(e) => tapFlash(e.currentTarget)}
             onClick={() => onGrade(skill, g)}
-            className={`relative flex min-h-14 flex-col items-center justify-center rounded-md text-sm font-semibold ${GRADE_CLASS[g]}`}
+            className={`relative flex min-h-14 flex-col items-center justify-center rounded-md ${SCOUT_GRADE_CLASS[g]}`}
           >
             <Kbd className="absolute right-1 top-1">{g}</Kbd>
-            <span className="text-lg leading-none" aria-hidden="true">{g}</span>
-            <span className="text-xs" aria-hidden="true">{t.labels.grade[skill][g]}</span>
+            <span className="text-title-2" aria-hidden="true">{g}</span>
+            <span className="text-caption" aria-hidden="true">{t.labels.grade[skill][g]}</span>
           </button>
         ))}
       </div>

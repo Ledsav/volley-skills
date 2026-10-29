@@ -5,7 +5,7 @@ export function Kbd({ children, className = '' }: { children: ReactNode; classNa
   return (
     <kbd
       aria-hidden="true"
-      className={`hidden min-w-4 items-center justify-center rounded-sm border border-border bg-bg px-1 font-sans text-[10px] font-medium leading-4 text-slate lg:inline-flex ${className}`}
+      className={`hidden min-w-4 items-center justify-center rounded-sm border border-separator bg-surface-2 px-1 font-sans text-[10px] font-medium leading-4 text-ink-2 lg:inline-flex ${className}`}
     >
       {children}
     </kbd>

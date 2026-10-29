@@ -161,6 +161,18 @@ describe('ScoutPage', () => {
     expect((container.querySelector('[data-scout-root]') as HTMLElement).contains(alert)).toBe(true);
   });
 
+  it('header holds score, rotation and Undo; tools stay in the menu', async () => {
+    renderPage([setStart]);
+    const header = await screen.findByRole('banner');
+    for (const name of ['Correct score', 'Previous rotation', 'Next rotation', 'Undo', 'Match tools']) {
+      expect(within(header).getByRole('button', { name })).toBeInTheDocument();
+    }
+    const dock = screen.getByRole('region', { name: 'Match events' });
+    for (const name of ['Correct score', 'Previous rotation', 'Next rotation', 'Undo', 'Match tools']) {
+      expect(within(dock).queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+  });
+
   it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
     renderPage([setStart]);
     const dock = await screen.findByRole('region', { name: 'Match events' });

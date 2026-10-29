@@ -100,7 +100,7 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
   return (
     <p
       role="status"
-      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-md bg-ink px-3 py-1.5 text-sm font-medium tabular-nums text-on-ink shadow-pop"
+      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-3 py-1.5 text-callout font-medium tabular-nums text-on-ink shadow-pop"
     >
       {hint}
     </p>
@@ -665,7 +665,7 @@ export function ScoutPage() {
       {state.inSet && (
         <section
           aria-label={sp.events}
-          className="shrink-0 border-t border-border bg-surface px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-pop"
+          className="shrink-0 border-t border-separator bg-bg px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2"
         >
           <div className="mx-auto w-full max-w-3xl">
             <RallyBar

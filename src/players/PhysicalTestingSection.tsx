@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useClubFeatures } from '../clubs/useClubFeatures';
-import { Button } from '../components/Button';
+import { ChevronRight, Plus } from 'lucide-react';
+import { formatDate } from '../i18n/format';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
 import { PHYSICAL_TEST_ORDER, visibleTestTypes } from '../types/physicalTest';
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
@@ -75,30 +76,48 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
           {PHYSICAL_TEST_ORDER.filter((type) => visible.includes(type) || !!latestByType[type]).map((testType) => {
             const latest = latestByType[testType];
             const canAdd = isAdmin && visible.includes(testType);
+            const label = t.labels.physicalTest[testType];
+            const body = (
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="flex items-center gap-1.5 text-headline text-ink">
+                  {label}
+                  <PendingDot pending={sync.isPending(`test:${testType}`)} />
+                </span>
+                <span className="text-footnote tabular-nums text-ink-2">
+                  {latest ? `${formatPhysicalTestSummary(latest)} · ${formatDate(latest.date, 'short')}` : p.noData}
+                </span>
+              </span>
+            );
             return (
-              <li key={testType} className="flex min-h-[52px] flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
-                <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-headline text-ink">
-                    {t.labels.physicalTest[testType]}
-                    <PendingDot pending={sync.isPending(`test:${testType}`)} />
-                  </p>
-                  <p className="text-footnote tabular-nums text-ink-2">
-                    {latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : p.noData}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => {
+              // One row per quality: the row opens its history (only when there is some), "+" adds an entry.
+              <li key={testType} className="flex min-h-[52px] items-center gap-2">
+                {latest ? (
+                  <button
+                    type="button"
+                    aria-label={p.historyAria(label)}
+                    onClick={() => {
                       setDeleteError(null);
                       setHistoryType(testType);
-                    }}>
-                    {p.viewHistory}
-                  </Button>
-                  {canAdd && (
-                    <Button variant="secondary" size="sm" onClick={() => setActiveDialogType(testType)}>
-                      {p.addNew}
-                    </Button>
-                  )}
-                </div>
+                    }}
+                    className="-mx-2 flex min-h-[52px] min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus active:bg-surface-3"
+                  >
+                    {body}
+                    <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-ink-3" />
+                  </button>
+                ) : (
+                  <div className="flex min-w-0 flex-1 items-center py-2">{body}</div>
+                )}
+                {canAdd && (
+                  <button
+                    type="button"
+                    aria-label={p.addAria(label)}
+                    title={p.addAria(label)}
+                    onClick={() => setActiveDialogType(testType)}
+                    className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-2 text-ink hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  >
+                    <Plus size={18} aria-hidden="true" />
+                  </button>
+                )}
               </li>
             );
           })}

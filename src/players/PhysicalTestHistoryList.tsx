@@ -1,10 +1,11 @@
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, History, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { useContextMenu } from '../components/ContextMenu';
 import { useUndoable } from '../components/Notice';
 import { Sheet } from '../components/Sheet';
+import { TabEmptyState } from '../teams/TabEmptyState';
 import { SkeletonBlock } from '../components/Skeleton';
 import { SwipeRow } from '../components/SwipeRow';
 import type { PhysicalTest, PhysicalTestType } from '../types/physicalTest';
@@ -186,7 +187,7 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
   const shown = tests.filter((test) => !hidden.has(test.id));
 
   return (
-    <Sheet title={h.title(t.labels.physicalTest[testType])} onClose={onClose} size="lg" detent="large">
+    <Sheet title={h.title(t.labels.physicalTest[testType])} onClose={onClose} size="lg" variant="view">
       {deleteError && (
         <p role="alert" className="mb-3 text-callout text-red-strong">
           {deleteError}
@@ -200,7 +201,7 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
           ))}
         </div>
       )}
-      {loaded && shown.length === 0 && <p className="text-ink-2">{h.none}</p>}
+      {loaded && shown.length === 0 && <TabEmptyState icon={History} title={h.none} />}
       {shown.length > 0 && (
         <ul className="mt-3 divide-y divide-separator overflow-hidden rounded-lg bg-surface-2">
           {shown.map((test) => (

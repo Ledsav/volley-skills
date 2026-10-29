@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { GroupedList, ListRow } from '../components/GroupedList';
 import { Sheet } from '../components/Sheet';
 import { useT } from '../i18n/I18nProvider';
@@ -13,11 +14,18 @@ export function EditPickerSheet({ onPick, onClose }: { onPick: (section: EditTar
     { id: 'contact', label: c.tiles.contact },
     { id: 'guardians', label: c.tiles.guardians },
   ];
+  // A picker, not a form: one close action (Done on phones). The group is a filled inset list so it reads as a
+  // group on the white sheet, and each row says it opens something with a chevron.
   return (
-    <Sheet title={c.edit} onClose={onClose}>
-      <GroupedList>
+    <Sheet title={c.edit} onClose={onClose} variant="view">
+      <GroupedList className="[&>ul]:bg-surface-2 [&>ul]:shadow-none">
         {rows.map((r) => (
-          <ListRow key={r.id} title={r.label} onClick={() => onPick(r.id)} />
+          <ListRow
+            key={r.id}
+            title={r.label}
+            onClick={() => onPick(r.id)}
+            trailing={<ChevronRight size={18} aria-hidden="true" className="text-ink-3" />}
+          />
         ))}
       </GroupedList>
     </Sheet>

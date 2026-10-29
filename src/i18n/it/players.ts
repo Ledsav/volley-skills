@@ -77,7 +77,8 @@ export const players = {
     useAria: (skill: string, score: number) => `Usa ${score} per ${skill}`,
     adapted: (skill: string, score: number) => `${skill} impostata a ${score}`,
     editTitle: 'Modifica abilità',
-    saveSkills: 'Salva abilità',
+    suggestionLegend: 'Le frecce indicano il voto suggerito dai dati delle partite. Tocca per applicarlo.',
+    use: (score: number) => `Usa ${score}`,
     saveFailedRange: 'Impossibile salvare le abilità. Controlla che ogni punteggio sia tra 1 e 10, poi riprova.',
     saveFailed: 'Impossibile salvare le abilità. Riprova.',
   },
@@ -179,8 +180,8 @@ export const players = {
   physical: {
     loadError: 'Impossibile caricare i test atletici. Aggiorna la pagina.',
     noData: 'Ancora nessun dato',
-    viewHistory: 'Vedi storico',
-    addNew: 'Aggiungi',
+    historyAria: (test: string) => `${test}: vedi lo storico`,
+    addAria: (test: string) => `Aggiungi una misura: ${test}`,
     summary: {
       approachJump: (jump: string, touch: string) => `${jump} cm (tocco ${touch} cm)`,
       shuttle: (right: string, left: string) => `D ${right}s / S ${left}s`,

@@ -47,9 +47,11 @@ describe('PlayerIdentityCard', () => {
     expect(screen.getByText('AR')).toBeInTheDocument();
     expect(screen.getByText(/#7/)).toBeInTheDocument();
     expect(screen.getByText(/Outside/)).toBeInTheDocument();
-    // The team is both the header footnote and a registration fact.
-    expect(screen.getAllByText('U17 A')).toHaveLength(2);
-    expect(within(screen.getByText('Team').closest('div')!).getByText('U17 A')).toBeInTheDocument();
+    // The team is the header footnote only; the facts don't repeat it (or the age group).
+    expect(screen.getAllByText('U17 A')).toHaveLength(1);
+    expect(screen.queryByText('Team')).not.toBeInTheDocument();
+    expect(screen.queryByText('Age group')).not.toBeInTheDocument();
+    expect(within(screen.getByText('Date of birth').closest('div')!).getByText(/4 Mar 2011/)).toBeInTheDocument();
     expect(screen.getByText('2026-27')).toBeInTheDocument();
     expect(screen.getByText('J-000123')).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
-import { Input, FIELD_CLASS } from '../components/Input';
+import { Input, FIELD_CLASS, FIELD_LABEL_CLASS } from '../components/Input';
 import { Sheet } from '../components/Sheet';
 import { useSave } from '../components/useSave';
 import { updatePlayerGuardians } from './playersApi';
@@ -96,9 +96,12 @@ export function GuardiansSection({
         <ul className="divide-y divide-separator">
           {player.guardians.map((guardian, index) => (
             <li key={index} className="flex min-h-11 flex-col justify-center gap-0.5 py-3">
+              {/* With no name the relation is the title, so nothing starts with an empty indent. */}
               <p className="text-headline text-ink">
-                {guardian.name}
-                <span className="ml-2 text-callout font-normal text-ink-2">{p.shared.relations[guardian.relation]}</span>
+                {guardian.name.trim() || p.shared.relations[guardian.relation]}
+                {guardian.name.trim() && (
+                  <span className="ml-2 text-callout font-normal text-ink-2">{p.shared.relations[guardian.relation]}</span>
+                )}
               </p>
               <p className="text-callout tabular-nums text-ink-2">{guardian.phone || '—'}</p>
               <p className="break-all text-callout text-ink-2">{guardian.email || '—'}</p>
@@ -117,7 +120,7 @@ export function GuardiansSection({
           <form id="player-guardians-form" onSubmit={handleSave} aria-label={p.guardians.dialogTitle}>
             {guardians.map((guardian, index) => (
               <div key={index} className="mb-4 rounded-lg border border-separator p-3">
-                <label htmlFor={`edit-guardian-relation-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-relation-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.relation}
                 </label>
                 <select
@@ -131,7 +134,7 @@ export function GuardiansSection({
                   <option value="other">{p.shared.relations.other}</option>
                 </select>
 
-                <label htmlFor={`edit-guardian-name-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-name-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.guardianName}
                 </label>
                 <Input
@@ -142,7 +145,7 @@ export function GuardiansSection({
                   className="mb-3 w-full"
                 />
 
-                <label htmlFor={`edit-guardian-phone-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-phone-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.guardianPhone}
                 </label>
                 <Input
@@ -152,7 +155,7 @@ export function GuardiansSection({
                   className="mb-3 w-full"
                 />
 
-                <label htmlFor={`edit-guardian-email-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-email-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.guardianEmail}
                 </label>
                 <Input

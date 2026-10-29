@@ -119,7 +119,7 @@ describe('PlayerSkillsSection', () => {
     fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
     fireEvent.change(screen.getByLabelText('Attack'), { target: { value: '8' } });
-    fireEvent.click(screen.getByText('Save skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
       expect(playersApi.updatePlayerSkills).toHaveBeenCalledWith(
@@ -159,7 +159,7 @@ describe('PlayerSkillsSection', () => {
 
     fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
-    const save = screen.getByRole('button', { name: 'Save skills' });
+    const save = screen.getByRole('button', { name: 'Save' });
     fireEvent.click(save);
     fireEvent.click(save);
     expect(playersApi.updatePlayerSkills).toHaveBeenCalledTimes(1);
@@ -175,7 +175,7 @@ describe('PlayerSkillsSection', () => {
 
     fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '99' } });
-    fireEvent.click(screen.getByText('Save skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(onPlayerUpdated).not.toHaveBeenCalled();
@@ -240,7 +240,7 @@ describe('PlayerSkillsSection', () => {
     expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
     expect(screen.queryByText('Edit skills')).not.toBeInTheDocument();
     expect(screen.queryAllByLabelText('Focus area')).toHaveLength(0);
-    expect(screen.queryByText('Save skills')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.getByText('6')).toBeInTheDocument();
   });
 });
@@ -322,7 +322,7 @@ describe('offline saves', () => {
     renderOffline({ player: basePlayer });
     fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
-    fireEvent.click(screen.getByText('Save skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument());
     expect(screen.getByText('Saved on this device · will sync')).toBeInTheDocument();
   });

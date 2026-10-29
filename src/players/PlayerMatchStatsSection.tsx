@@ -1,4 +1,7 @@
 import { Link } from 'react-router-dom';
+import { Trophy } from 'lucide-react';
+import { formatDate } from '../i18n/format';
+import { TabEmptyState } from '../teams/TabEmptyState';
 import { StatTile } from '../components/StatTile';
 import { fmtEff, fmtPct } from '../matches/format';
 import type { SeasonStats } from './matchRating';
@@ -15,9 +18,11 @@ interface PlayerMatchStatsSectionProps {
 
 export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed' }: PlayerMatchStatsSectionProps) {
   const m = useT().players.matchStats;
-  if (error) return <p role="alert" className="text-callout text-red-strong">{m.loadError}</p>;
-  if (!season) return <p className="text-callout text-ink-2">{m.loading}</p>;
-  if (season.matchesPlayed === 0) return <p className="text-callout text-ink-2">{m.none(gender)}</p>;
+  // The section has no card of its own: the tiles sit on the canvas and the table brings its card (no card-in-card).
+  const card = 'rounded-lg bg-surface p-4 shadow-card';
+  if (error) return <p role="alert" className={`${card} text-callout text-red-strong`}>{m.loadError}</p>;
+  if (!season) return <p className={`${card} text-callout text-ink-2`}>{m.loading}</p>;
+  if (season.matchesPlayed === 0) return <div className={card}><TabEmptyState icon={Trophy} title={m.none(gender)} /></div>;
 
   const th = 'sticky top-0 bg-surface px-2 py-2 text-caption font-medium text-ink-2';
   return (
@@ -29,7 +34,7 @@ export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed
         <StatTile label={m.receptionPos} value={fmtPct(season.receptionPos)} />
         <StatTile label={m.ptsErr} value={`${season.points} / ${season.errors}`} />
       </div>
-      <div className="overflow-x-auto">
+      <div className={`overflow-x-auto ${card} py-2`}>
         <table className="w-full text-callout tabular-nums">
           <thead className="text-left">
             <tr>
@@ -44,7 +49,7 @@ export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed
           <tbody className="divide-y divide-separator">
             {season.rows.map((row) => (
               <tr key={row.matchId}>
-                <td className="whitespace-nowrap px-2 py-2 text-ink-2">{row.date}</td>
+                <td className="whitespace-nowrap px-2 py-2 text-ink-2" title={row.date}>{formatDate(row.date, 'short')}</td>
                 <td className="px-2 py-2">
                   <Link to={`/teams/${teamId}/matches/${row.matchId}`} className="text-ink underline-offset-2 hover:underline">
                     {row.opponent}

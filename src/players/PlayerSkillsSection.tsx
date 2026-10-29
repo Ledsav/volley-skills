@@ -184,7 +184,8 @@ export function PlayerSkillsSection({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,220px)_1fr] sm:items-center">
+      {/* The radar gets a real column (≥ 260 px, labels at caption size) and sits at the top, beside the meters. */}
+      <div className="grid gap-4 md:grid-cols-[minmax(260px,340px)_1fr] md:items-start md:gap-6">
         <div>
           <SkillRadarChart
             scores={SKILL_ORDER.map((key) => player.skills[key]?.score ?? null)}
@@ -243,6 +244,14 @@ export function PlayerSkillsSection({
           })}
         </ul>
       </div>
+      {isAdmin && SKILL_ORDER.some((key) => suggestionFor(ratings?.[key], player.skills[key]?.score ?? null) !== null) && (
+        <p className="mt-3 flex items-center gap-1.5 text-footnote text-ink-2">
+          <span aria-hidden="true" className="inline-flex items-center rounded-full bg-green-tint px-1.5 text-green-strong">
+            <ArrowUp className="h-3 w-3" />
+          </span>
+          {p.skills.suggestionLegend}
+        </p>
+      )}
 
       {editing && isAdmin && (
         <Sheet
@@ -250,7 +259,7 @@ export function PlayerSkillsSection({
           detent="large"
           onClose={() => onEditingChange(false)}
           guardUnsaved
-          confirm={{ label: p.skills.saveSkills, onConfirm: () => void handleSave(), disabled: saving }}
+          confirm={{ label: t.common.save, onConfirm: () => void handleSave(), disabled: saving }}
         >
           <div>
             <p className="mb-4 text-callout text-ink-2">
@@ -295,26 +304,24 @@ export function PlayerSkillsSection({
                         type="checkbox"
                         checked={skills[key].priority}
                         onChange={(e) => updatePriority(key, e.target.checked)}
-                        className="h-4 w-4 rounded-sm border-separator accent-[rgb(var(--color-ink))] focus:outline-none focus:ring-2 focus:ring-focus"
                       />
                       {p.skills.focusArea}
                     </label>
                     {suggestionFor(rating, skills[key].score) !== null && rating && value !== null && (
-                      <div className="flex items-center gap-2 text-footnote tabular-nums text-ink-2">
-                        <div className="w-40" title={matchLine(rating)}>
-                          <SkillMeter score={skills[key].score} suggested={suggestedScore(value)} />
-                        </div>
+                      // One line: what the match data says, and a button that applies it (no second meter).
+                      <div className="flex items-center gap-3 text-footnote tabular-nums text-ink-2">
+                        <span className="min-w-0 flex-1">{p.skills.suggests(matchLine(rating), suggestedScore(value))}</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           aria-label={p.skills.useAria(lb.playerSkill[key], suggestedScore(value))}
                           onClick={() => updateScore(key, String(suggestedScore(value)))}
-                          className={`min-h-11 gap-0.5 rounded-full !px-3 text-footnote tabular-nums ${
+                          className={`min-h-11 shrink-0 gap-1 rounded-full !px-3 text-footnote tabular-nums ${
                             suggestedScore(value) > (skills[key].score ?? 0) ? 'bg-green-tint text-green-strong' : 'bg-orange-tint text-orange-strong'
                           }`}
                         >
                           {suggestedScore(value) > (skills[key].score ?? 0) ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : <ArrowDown className="h-3 w-3" aria-hidden="true" />}
-                          {suggestedScore(value)}
+                          {p.skills.use(suggestedScore(value))}
                         </Button>
                       </div>
                     )}

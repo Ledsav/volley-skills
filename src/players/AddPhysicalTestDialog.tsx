@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Sheet } from '../components/Sheet';
 import { useSave } from '../components/useSave';
-import { Input, Textarea, FIELD_CLASS } from '../components/Input';
+import { Input, Textarea, FIELD_CLASS, FIELD_LABEL_CLASS } from '../components/Input';
 import { HealthHint } from '../components/HealthHint';
 import { AttemptsInput } from '../components/AttemptsInput';
 import { computeBodyMassRatio } from './physicalTestMath';
@@ -146,7 +146,7 @@ export function AddPhysicalTestDialog({
       <form id="physical-test-form" onSubmit={handleSubmit} aria-label={a.formLabel(testName)}>
 
         <div className="mb-4">
-          <label htmlFor="physical-test-date" className="mb-1 block text-sm font-medium text-ink">
+          <label htmlFor="physical-test-date" className={FIELD_LABEL_CLASS}>
             {a.date}
           </label>
           <Input id="physical-test-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="w-full" />
@@ -155,7 +155,7 @@ export function AddPhysicalTestDialog({
         {testType === 'growth' && (
           <>
             <div className="mb-4">
-              <label htmlFor="growth-height" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="growth-height" className={FIELD_LABEL_CLASS}>
                 {a.heightCm}
               </label>
               <Input
@@ -170,7 +170,7 @@ export function AddPhysicalTestDialog({
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="growth-body-mass" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="growth-body-mass" className={FIELD_LABEL_CLASS}>
                 {a.bodyMassKg}
               </label>
               <Input
@@ -205,7 +205,7 @@ export function AddPhysicalTestDialog({
         {testType === 'approachJump' && (
           <>
             <div className="mb-4">
-              <label htmlFor="standing-reach" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="standing-reach" className={FIELD_LABEL_CLASS}>
                 {a.standingReachCm}
               </label>
               <Input
@@ -245,7 +245,7 @@ export function AddPhysicalTestDialog({
         {testType === 'shuttle5105' && (
           <>
             <div className="mb-4">
-              <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="shuttle-right" className={FIELD_LABEL_CLASS}>
                 {a.rightFirstS}
               </label>
               <Input
@@ -260,7 +260,7 @@ export function AddPhysicalTestDialog({
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="shuttle-left" className={FIELD_LABEL_CLASS}>
                 {a.leftFirstS}
               </label>
               <Input
@@ -291,7 +291,7 @@ export function AddPhysicalTestDialog({
         {testType === 'strength' && (
           <>
             <div className="mb-4">
-              <label htmlFor="strength-mode" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="strength-mode" className={FIELD_LABEL_CLASS}>
                 {a.mode}
               </label>
               <select
@@ -307,7 +307,7 @@ export function AddPhysicalTestDialog({
             {strengthMode === 'weighted' ? (
               <>
                 <div className="mb-4">
-                  <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">
+                  <label htmlFor="strength-exercise" className={FIELD_LABEL_CLASS}>
                     {a.exercise}
                   </label>
                   <select
@@ -322,7 +322,7 @@ export function AddPhysicalTestDialog({
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">
+                  <label htmlFor="strength-weight" className={FIELD_LABEL_CLASS}>
                     {a.weightKg}
                   </label>
                   <Input
@@ -345,7 +345,7 @@ export function AddPhysicalTestDialog({
             ) : (
               <>
                 <div className="mb-4">
-                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">
+                  <label htmlFor="strength-bodyweight-exercise" className={FIELD_LABEL_CLASS}>
                     {a.exercise}
                   </label>
                   <select
@@ -359,7 +359,7 @@ export function AddPhysicalTestDialog({
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">
+                  <label htmlFor="strength-reps" className={FIELD_LABEL_CLASS}>
                     {a.reps}
                   </label>
                   <Input id="strength-reps" type="number" inputMode="numeric" value={reps} onChange={(e) => setReps(e.target.value)} required className={STAT_INPUT} />
@@ -370,7 +370,7 @@ export function AddPhysicalTestDialog({
         )}
 
         <div className="mb-4 mt-4">
-          <label htmlFor="physical-test-notes" className="mb-1 block text-sm font-medium text-ink">
+          <label htmlFor="physical-test-notes" className={FIELD_LABEL_CLASS}>
             {a.notes}
           </label>
           <Textarea id="physical-test-notes" aria-describedby="physical-test-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" />

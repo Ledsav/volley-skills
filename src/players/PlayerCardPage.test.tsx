@@ -553,7 +553,7 @@ describe('PlayerCardPage offline saves', () => {
     fireEvent.change(await screen.findByLabelText('Serve'), { target: { value: '6' } });
     // The queued write is registered after the click's microtasks, so keep them inside act.
     await act(async () => {
-      fireEvent.click(screen.getByText('Save skills'));
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     });
   }
 

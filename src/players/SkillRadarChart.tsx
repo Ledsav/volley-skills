@@ -15,6 +15,9 @@ const FILL_CLASS: Record<Level, string> = {
   Elite: 'fill-green/15',
 };
 
+const VIEW_TOP = 46;
+const VIEW_SIDE = 16;
+
 const STROKE_CLASS: Record<Level, string> = {
   Beginner: 'stroke-red',
   Developing: 'stroke-orange',
@@ -31,8 +34,10 @@ export function SkillRadarChart({ scores, labels, level }: SkillRadarChartProps)
 
   return (
     <svg
-      viewBox={`0 0 ${geometry.size} ${geometry.size}`}
-      className="mx-auto block w-full max-w-[280px] sm:max-w-[320px] lg:max-w-[360px]"
+      // Cropped to the web and its labels (the 320 square leaves ~50 px empty above and below) and a little wider for
+      // long Italian labels, so the chart and its labels render near full size (≥ 12 px) in a 260–340 px column.
+      viewBox={`${-VIEW_SIDE} ${VIEW_TOP} ${geometry.size + 2 * VIEW_SIDE} ${geometry.size - 2 * VIEW_TOP}`}
+      className="mx-auto block w-full max-w-[340px] overflow-visible"
       role="img"
       aria-label={r.ariaLabel(summary)}
     >
@@ -47,7 +52,7 @@ export function SkillRadarChart({ scores, labels, level }: SkillRadarChartProps)
         <circle key={i} cx={point.x} cy={point.y} r={3} className={strokeClass} fill="currentColor" />
       ))}
       {geometry.axisLabels.map((axis, i) => (
-        <text key={i} x={axis.x} y={axis.y} textAnchor={axis.textAnchor} dominantBaseline="middle" className="fill-ink-2 text-[11px] font-medium">
+        <text key={i} x={axis.x} y={axis.y} textAnchor={axis.textAnchor} dominantBaseline="middle" className="fill-ink-2 text-[14px] font-medium">
           {axis.label}
         </text>
       ))}

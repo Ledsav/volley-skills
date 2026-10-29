@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { FIELD_CLASS, Input } from '../components/Input';
+import { FIELD_CLASS, FIELD_LABEL_CLASS, Input } from '../components/Input';
+import { SwitchRow } from '../components/Switch';
 import { Sheet } from '../components/Sheet';
 import { useSave } from '../components/useSave';
 import { updatePlayerContact } from './playersApi';
@@ -147,7 +148,7 @@ export function PlayerContactSection({
           confirm={{ label: t.common.save, form: 'player-contact-form', disabled: saving }}
         >
           <form id="player-contact-form" onSubmit={handleSave} aria-label={p.contact.formLabel}>
-            <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
+            <label htmlFor="player-name" className={FIELD_LABEL_CLASS}>
               {p.contact.name}
             </label>
             <Input
@@ -158,7 +159,7 @@ export function PlayerContactSection({
               className="mb-3 w-full"
             />
 
-            <label htmlFor="player-number" className="mb-1 block text-sm font-medium text-ink">
+            <label htmlFor="player-number" className={FIELD_LABEL_CLASS}>
               {p.contact.shirtNumber}
             </label>
             <Input
@@ -170,7 +171,7 @@ export function PlayerContactSection({
               className="mb-3 w-full"
             />
 
-            <label htmlFor="player-position-category" className="mb-1 block text-sm font-medium text-ink">
+            <label htmlFor="player-position-category" className={FIELD_LABEL_CLASS}>
               {p.shared.position}
             </label>
             <select
@@ -186,7 +187,7 @@ export function PlayerContactSection({
               ))}
             </select>
 
-            <label htmlFor="player-shirt-size" className="mb-1 block text-sm font-medium text-ink">
+            <label htmlFor="player-shirt-size" className={FIELD_LABEL_CLASS}>
               {p.shared.shirtSize}
             </label>
             <select
@@ -203,12 +204,9 @@ export function PlayerContactSection({
               ))}
             </select>
 
-            <label className="mb-3 flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
-              <input type="checkbox" checked={starting} onChange={(e) => setStarting(e.target.checked)} />
-              {p.contact.startingPlayer}
-            </label>
+            <SwitchRow label={p.contact.startingPlayer} checked={starting} onChange={setStarting} className="mb-3" />
 
-            <label htmlFor="player-phone" className="mb-1 block text-sm font-medium text-ink">
+            <label htmlFor="player-phone" className={FIELD_LABEL_CLASS}>
               {p.shared.phone}
             </label>
             <Input

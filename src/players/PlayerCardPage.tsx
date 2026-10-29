@@ -280,7 +280,8 @@ function PlayerCardContent() {
         {/* Every section stays mounted (hidden when inactive): switching never
             refetches, and Physical keeps feeding the KPI tiles above. */}
         <div role="tabpanel" aria-label={SECTION_LABEL.skills} hidden={section !== 'skills'}>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Skills take the full width (radar beside the meters); the next objective follows. */}
+          <div className="flex flex-col gap-4">
             <Section
               title={c.tiles.skills}
               pending={sync.isPending('skills')}
@@ -289,7 +290,6 @@ function PlayerCardContent() {
                   <SuggestionToggle on={showSuggestions} onChange={(on) => { setShowSuggestions(on); writeSuggestionPref(on); }} />
                 ) : undefined
               }
-              className="lg:col-span-2"
             >
               <PlayerSkillsSection
                 teamId={teamId}
@@ -304,7 +304,7 @@ function PlayerCardContent() {
                 onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
               />
             </Section>
-            <Section title={c.tiles.nextObjective}>
+            <Section title={c.tiles.nextObjective} className="max-w-[720px]">
               {next ? (
                 <div>
                   <p className="text-headline text-ink">{next.objective}</p>
@@ -324,7 +324,7 @@ function PlayerCardContent() {
         </div>
         {isAdmin && (
           <div role="tabpanel" aria-label={SECTION_LABEL.matches} hidden={section !== 'matches'}>
-            <Section title={c.tiles.matchStats}>
+            <Section title={c.tiles.matchStats} plain>
               <PlayerMatchStatsSection gender={gender} teamId={teamId} season={season} error={matchStatsError} />
             </Section>
           </div>

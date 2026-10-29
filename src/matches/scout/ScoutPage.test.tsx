@@ -63,6 +63,7 @@ const setStart: MatchEvent = {
 };
 
 let pushEvents: (e: MatchEvent[]) => void = () => undefined;
+let pushMatch: (m: Match | null) => void = () => undefined;
 
 function renderPage(events: MatchEvent[]) {
   vi.mocked(api.subscribeEvents).mockImplementation((_t, _m, onChange) => {
@@ -105,6 +106,10 @@ describe('ScoutPage', () => {
     vi.mocked(api.getMatch).mockResolvedValue(match);
     vi.mocked(api.getUsageProfile).mockResolvedValue({ players: {} });
     vi.mocked(api.claimDevice).mockResolvedValue();
+    vi.mocked(api.subscribeMatch).mockImplementation((_t, _m, cb) => {
+      pushMatch = cb;
+      return () => undefined;
+    });
     vi.mocked(api.updateMatchResult).mockResolvedValue();
     vi.mocked(api.addEvent).mockReturnValue({ id: 'new', written: Promise.resolve() });
     vi.mocked(api.deleteEvents).mockResolvedValue();
@@ -389,6 +394,34 @@ describe('ScoutPage', () => {
     renderPage([setStart]);
     expect(await screen.findByRole('alertdialog', { name: /another device/i })).toBeInTheDocument();
     expect(api.claimDevice).not.toHaveBeenCalled();
+  });
+
+  it('a takeover blocks taps and keys even with the action panel open', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+    expect(screen.getByRole('region', { name: /^Actions for/ })).toBeInTheDocument();
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Scouting moved to another device' });
+    expect(within(dialog).getByRole('button', { name: 'Leave' })).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('alertdialog', { name: 'Scouting moved to another device' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '+ Good' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Point us/ }));
+    fireEvent.keyDown(window, { key: 'p' });
+    expect(api.addEvent).not.toHaveBeenCalled();
+  });
+
+  it('Take back claims the device and closes the sheet; Leave opens the match page', async () => {
+    renderPage([setStart]);
+    await screen.findByRole('button', { name: '#7 Ana' });
+    vi.mocked(api.claimDevice).mockClear();
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Take back' }));
+    expect(api.claimDevice).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave' }));
+    expect(await screen.findByText('match page')).toBeInTheDocument();
   });
 
   it('keeps the device heartbeat firing while points change the result', async () => {

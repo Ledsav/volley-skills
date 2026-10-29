@@ -31,6 +31,8 @@ import { keyLabel } from './hotkeys';
 import { Kbd } from './Kbd';
 import { RallyBar, type ReasonPrompt } from './RallyBar';
 import { onlyImports, undoTarget } from './undoTarget';
+import { TakeoverSheet } from './TakeoverSheet';
+import { useDeviceTakeover } from './useDeviceTakeover';
 import { StatusStrip, type StatusStripProps } from './StatusStrip';
 import { pickStrip } from './pickStrip';
 import { useWriteError } from './useWriteError';
@@ -44,7 +46,6 @@ import { TimelineDrawer } from './TimelineDrawer';
 import { readQuickScore, writeQuickScore } from './quickScore';
 import { useScoutHotkeys, type ScoutHotkeysOptions } from './useScoutHotkeys';
 
-const HEARTBEAT_MS = 60_000;
 const REASON_PROMPT_MS = 5_000;
 const AUTO_SELECT_KEY = 'vcb.scoutAutoSelect';
 
@@ -192,11 +193,7 @@ export function ScoutPage() {
   }, [teamId, matchId, deviceId, navigate]);
 
   const matchLoaded = match !== null;
-  useEffect(() => {
-    if (!matchLoaded || locked) return;
-    const t = window.setInterval(() => void claimDevice(teamId, matchId, deviceId).catch(() => undefined), HEARTBEAT_MS);
-    return () => window.clearInterval(t);
-  }, [matchLoaded, locked, teamId, matchId, deviceId]);
+  const { takenOver, takeBack } = useDeviceTakeover({ teamId, matchId, deviceId, active: matchLoaded && !locked });
 
   const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
   const roster = useMemo(() => rosterMap(match?.roster ?? []), [match]);
@@ -224,12 +221,12 @@ export function ScoutPage() {
 
   // Keep the list/calendar result current without replaying there.
   useEffect(() => {
-    if (!match || !state || locked) return;
+    if (!match || !state || locked || takenOver) return;
     const result = resultFromState(state);
     if (sameResult(result, match.result)) return;
     setMatch({ ...match, result });
     updateMatchResult(teamId, matchId, result).catch(() => undefined);
-  }, [state, match, locked, teamId, matchId]);
+  }, [state, match, locked, takenOver, teamId, matchId]);
 
   // Double-tap guards: one setEnd per set, one finish per click-through.
   const endedSetRef = useRef<number | null>(null);
@@ -248,7 +245,7 @@ export function ScoutPage() {
 
   const record = useCallback(
     (payload: MatchEventPayload, source: EventSource = 'tap'): string | null => {
-      if (!events || !firebaseUser) return null;
+      if (!events || !firebaseUser || takenOver) return null;
       setReasonPrompt(null);
       const order = nextOrder(events, anchorId, lastWriteRef.current, maxOrderRef.current);
       const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
@@ -266,11 +263,11 @@ export function ScoutPage() {
       }
       return id;
     },
-    [events, firebaseUser, anchorId, teamId, matchId, writeError],
+    [events, firebaseUser, takenOver, anchorId, teamId, matchId, writeError],
   );
 
   function mergeText(payloads: MatchEventPayload[], orders: number[]): boolean {
-    if (!firebaseUser || payloads.length === 0) return false;
+    if (!firebaseUser || takenOver || payloads.length === 0) return false;
     const chunkId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `chunk-${Date.now()}`;
     payloads.forEach((payload, i) => {
       const { id, written } = addEvent(teamId, matchId, { ...payload, order: orders[i], source: 'text', chunkId }, firebaseUser.uid);
@@ -771,6 +768,9 @@ export function ScoutPage() {
           if (entry && state.inSet && !quickScore) select(entry.playerId);
         }}
       />
+      {takenOver && (
+        <TakeoverSheet onTakeBack={takeBack} onLeave={() => navigate(`/teams/${teamId}/matches/${matchId}`)} />
+      )}
       {helpOpen && <HotkeyCheatSheet onClose={() => setHelpOpen(false)} />}
 
       {pendingUndo && (

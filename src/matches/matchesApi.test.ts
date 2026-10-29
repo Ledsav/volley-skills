@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT } from '../types/match';
-import { addEvent, createMatch, listFinishedMatches, listMatchesInRange, loadTeamRoster, subscribeEvents } from './matchesApi';
+import { addEvent, createMatch, listFinishedMatches, listMatchesInRange, loadTeamRoster, subscribeEvents, subscribeMatch } from './matchesApi';
 import * as playersApi from '../players/playersApi';
 
 const m = vi.hoisted(() => ({
@@ -86,6 +86,18 @@ describe('matchesApi', () => {
     const onChange = vi.fn();
     subscribeEvents('team-1', 'm1', onChange, vi.fn());
     expect(onChange).toHaveBeenCalledWith([{ id: 'e1', order: 1 }, { id: 'e2', order: 2 }], 1);
+  });
+
+  it('subscribes to the match doc and maps a missing doc to null', () => {
+    m.onSnapshot.mockImplementation((_ref, next) => {
+      next({ exists: () => true, id: 'm1', data: () => ({ opponent: 'Rivals' }) });
+      next({ exists: () => false, id: 'm1', data: () => undefined });
+      return () => undefined;
+    });
+    const onChange = vi.fn();
+    subscribeMatch('team-1', 'm1', onChange, vi.fn());
+    expect(onChange).toHaveBeenNthCalledWith(1, { id: 'm1', opponent: 'Rivals' });
+    expect(onChange).toHaveBeenNthCalledWith(2, null);
   });
 
   it('loads every roster page', async () => {

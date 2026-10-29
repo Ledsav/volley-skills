@@ -21,6 +21,7 @@ import { nextRotation, prevRotation, replay, resultFromState, rosterRoles, sameR
 import { playerForm } from '../scoutStats';
 import { POINT_REASONS, rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
+import { ScoutRoot } from './ScoutRoot';
 import { ActionSheet } from './ActionSheet';
 import { BenchStrip } from './BenchStrip';
 import { CorrectionDialog } from './CorrectionDialog';
@@ -99,7 +100,7 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
   return (
     <p
       role="status"
-      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-md bg-ink px-3 py-1.5 text-sm font-medium tabular-nums text-white shadow-pop"
+      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-md bg-ink px-3 py-1.5 text-sm font-medium tabular-nums text-on-ink shadow-pop"
     >
       {hint}
     </p>
@@ -386,23 +387,41 @@ export function ScoutPage() {
   }
 
   if (notFound) {
-    return <NotFoundState title={tr.matches.page.notFoundTitle} message={tr.matches.page.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={tr.matches.page.backToTeam} />;
+    return (
+      <ScoutRoot>
+        <NotFoundState title={tr.matches.page.notFoundTitle} message={tr.matches.page.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={tr.matches.page.backToTeam} />
+      </ScoutRoot>
+    );
   }
-  if (loadError || eventsError) return <p role="alert" className="p-6 text-red-strong">{loadError ?? eventsError}</p>;
-  if (!match || !state) return <p className="p-6 text-slate">{tr.matches.page.loading}</p>;
+  if (loadError || eventsError) {
+    return (
+      <ScoutRoot>
+        <p role="alert" className="p-6 text-red-strong">{loadError ?? eventsError}</p>
+      </ScoutRoot>
+    );
+  }
+  if (!match || !state) {
+    return (
+      <ScoutRoot>
+        <p className="p-6 text-ink-2">{tr.matches.page.loading}</p>
+      </ScoutRoot>
+    );
+  }
 
   if (locked) {
     return (
-      <ConfirmDialog
-        title={sp.lockedTitle}
-        message={sp.lockedMessage}
-        confirmLabel={sp.lockedConfirm}
-        onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
-        onConfirm={() => {
-          setLocked(false);
-          void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
-        }}
-      />
+      <ScoutRoot>
+        <ConfirmDialog
+          title={sp.lockedTitle}
+          message={sp.lockedMessage}
+          confirmLabel={sp.lockedConfirm}
+          onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
+          onConfirm={() => {
+            setLocked(false);
+            void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
+          }}
+        />
+      </ScoutRoot>
     );
   }
 
@@ -599,7 +618,7 @@ export function ScoutPage() {
 
   return (
     // A fixed full-height frame: header and events dock never scroll away; only the middle does.
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-bg">
+    <ScoutRoot>
       <ScoutHeader
         state={state}
         format={match.format}
@@ -786,6 +805,6 @@ export function ScoutPage() {
           }}
         />
       )}
-    </div>
+    </ScoutRoot>
   );
 }

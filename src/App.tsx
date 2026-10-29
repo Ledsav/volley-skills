@@ -1,4 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
+import { ScoutRoot } from './matches/scout/ScoutRoot';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { NoticeProvider } from './components/Notice';
@@ -45,7 +46,8 @@ const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ 
 
 function LazyFallback({ what }: { what: 'editor' | 'scouting' | 'awards' }) {
   const t = useT();
-  return <div className="p-6 text-slate">{t.layout.lazyLoading[what]}</div>;
+  const message = <div className="p-6 text-ink-2">{t.layout.lazyLoading[what]}</div>;
+  return what === 'scouting' ? <ScoutRoot>{message}</ScoutRoot> : message;
 }
 
 function PlatformShell({ children }: { children: ReactNode }) {

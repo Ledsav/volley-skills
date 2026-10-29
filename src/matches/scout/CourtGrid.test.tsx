@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LiberoConfig } from '../../types/match';
 import { rosterMap } from '../format';
 import { ROSTER } from '../testFixtures';
@@ -70,12 +70,12 @@ describe('CourtGrid', () => {
     const { rerender } = render(<CourtGrid {...props} autoSelected />);
     const tile = screen.getByRole('button', { name: '#7 Ana' });
     expect(tile).toHaveAttribute('aria-pressed', 'true');
-    expect(tile).toHaveClass('bg-blue-strong', 'text-on-ink');
+    expect(tile).toHaveClass('bg-surface-3');
     expect(within(tile).getByText('auto')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveClass('bg-blue-strong');
+    expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveClass('bg-surface-3');
 
     rerender(<CourtGrid {...props} autoSelected={false} />);
-    expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveClass('bg-blue-strong');
+    expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveClass('bg-surface-3');
     expect(screen.queryByText('auto')).not.toBeInTheDocument();
   });
 
@@ -106,5 +106,34 @@ describe('CourtGrid', () => {
   it('keeps the libero name on the tile next to the libero chip', () => {
     const tile = renderGrid([{ playerId: 'lib', mode: 'receiving', replaces: ['mb2'] }]);
     expect(within(tile).getByText('Lara')).toBeInTheDocument();
+  });
+
+  describe('press feedback', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      delete (navigator as { vibrate?: unknown }).vibrate;
+    });
+
+    it('tiles flash on press and never scale', () => {
+      const tile = renderGrid([]);
+      fireEvent.pointerDown(tile);
+      expect(tile).toHaveAttribute('data-flash');
+      expect(tile.className).not.toMatch(/pressable|scale/);
+    });
+
+    it('a long-press vibrates once for 10 ms; a tap does not', () => {
+      vi.useFakeTimers();
+      const vibrate = vi.fn();
+      Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
+      const tile = renderGrid([]);
+      fireEvent.pointerDown(tile);
+      fireEvent.pointerUp(tile);
+      vi.advanceTimersByTime(600);
+      expect(vibrate).not.toHaveBeenCalled();
+      fireEvent.pointerDown(tile);
+      vi.advanceTimersByTime(500);
+      expect(vibrate).toHaveBeenCalledTimes(1);
+      expect(vibrate).toHaveBeenCalledWith(10);
+    });
   });
 });

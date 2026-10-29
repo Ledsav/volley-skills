@@ -2,6 +2,7 @@ import { Volleyball } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import type { LiberoConfig, RoleMap, RosterEntry } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
+import { tapFlash } from '../../motion/tapFlash';
 import { shortNames } from '../format';
 import { RoleChip } from './RoleChip';
 
@@ -56,13 +57,15 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
     );
     if (!entry) {
       return (
-        <div key={zone} className="relative min-h-20 rounded-md border border-dashed border-border">
-          {zoneLabel('text-slate')}
+        <div key={zone} className="relative min-h-[72px] rounded-md border border-dashed border-separator md:min-h-20">
+          {zoneLabel('text-ink-2')}
         </div>
       );
     }
     const isLibero = id === activeLiberoId;
     const isSelected = selectedId === id;
+    // The server: P1 while we serve, otherwise the on-court setter by per-set role.
+    const isServer = servingUs ? zone === 0 : !isLibero && (roles?.[id] ?? entry.positionCategory) === 'S';
     const f = form(id);
     const note = [serves ? t.scout.court.serving : null, f ? t.scout.court.form[f] : null].filter(Boolean).join(' · ');
     return (
@@ -73,11 +76,13 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
         title={note || undefined}
         aria-pressed={isSelected}
         disabled={disabled}
-        onPointerDown={() => {
+        onPointerDown={(e) => {
           if (disabled) return;
+          tapFlash(e.currentTarget);
           longPressed.current = false;
           timer.current = window.setTimeout(() => {
             longPressed.current = true;
+            navigator.vibrate?.(10);
             onLongPress(id);
           }, LONG_PRESS_MS);
         }}
@@ -88,33 +93,28 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
         onClick={() => {
           if (!disabled && !longPressed.current) onSelect(id);
         }}
-        className={`relative flex min-h-20 min-w-0 select-none flex-col items-center justify-center gap-1 rounded-md border px-1 pb-1.5 pt-5 disabled:opacity-60 ${
-          isSelected
-            ? 'border-blue-strong bg-blue-strong text-on-ink shadow-card ring-2 ring-blue-strong'
-            : isLibero
-              ? 'border-orange bg-orange/20 text-ink'
-              : 'border-border bg-surface text-ink shadow-card'
-        }`}
+        className={`relative flex min-h-[72px] min-w-0 select-none flex-col items-center justify-center gap-1 rounded-md px-1 pb-1.5 pt-5 text-ink disabled:opacity-60 md:min-h-20 ${
+          isSelected ? 'bg-surface-3 ring-2 ring-ink' : isLibero ? 'bg-orange-tint' : 'bg-surface'
+        } ${isServer && !isSelected ? 'ring-2 ring-inset ring-surface-3' : ''}`}
       >
-        {zoneLabel(isSelected ? 'text-on-ink/75' : 'text-slate')}
+        {zoneLabel('text-ink-2')}
         <span className="absolute right-1.5 top-1 flex items-center gap-1">
           {isSelected && autoSelected && (
-            <span aria-hidden="true" className="rounded-sm bg-on-ink/20 px-1 text-[11px] font-medium leading-4 text-on-ink">
+            <span aria-hidden="true" className="rounded-sm bg-ink px-1 text-[11px] font-medium leading-4 text-on-ink">
               {t.scout.court.auto}
             </span>
           )}
           {f && (
-            <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${f === 'bad' ? 'bg-red' : 'bg-green'} ${isSelected ? 'ring-2 ring-white' : ''}`} />
+            <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${f === 'bad' ? 'bg-red' : 'bg-green'}`} />
           )}
         </span>
-        <span className="max-w-full truncate text-base font-bold leading-tight sm:text-lg">{names.get(id) ?? entry.name}</span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-base font-bold tabular-nums leading-none">#{entry.number}</span>
+        <span className="max-w-full truncate text-headline">{names.get(id) ?? entry.name}</span>
+        <span className="flex items-center gap-1.5 text-ink-2">
+          <span className="text-callout tabular-nums leading-none">#{entry.number}</span>
           <RoleChip
             role={isLibero ? 'L' : (roles?.[id] ?? entry.positionCategory)}
             label={isLibero ? t.scout.court.liberoTile[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : undefined}
             libero={isLibero}
-            inverted={isSelected}
           />
         </span>
       </button>
@@ -122,16 +122,16 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
   };
 
   return (
-    <div className="rounded-lg border-2 border-orange-strong bg-orange/10 p-2">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-2 flex items-center gap-2" aria-hidden="true">
         <span className="h-1 flex-1 rounded-full bg-ink" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate">{t.scout.court.net}</span>
+        <span className="text-caption text-ink-2">{t.scout.court.net}</span>
         <span className="h-1 flex-1 rounded-full bg-ink" />
       </div>
-      <div className="grid grid-cols-3 gap-2">{FRONT_ZONES.map(tile)}</div>
+      <div className="grid flex-1 grid-cols-3 grid-rows-[1fr] gap-2">{FRONT_ZONES.map(tile)}</div>
       {/* The attack line: front row above, back row below. */}
-      <div className="my-2 border-t-2 border-dashed border-orange-strong/40" aria-hidden="true" />
-      <div className="grid grid-cols-3 gap-2">{BACK_ZONES.map(tile)}</div>
+      <div className="my-2 border-t-2 border-dashed border-separator" aria-hidden="true" />
+      <div className="grid flex-1 grid-cols-3 grid-rows-[1fr] gap-2">{BACK_ZONES.map(tile)}</div>
     </div>
   );
 }

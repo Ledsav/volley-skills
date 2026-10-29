@@ -116,6 +116,51 @@ describe('ScoutPage', () => {
     vi.mocked(api.updateEvent).mockResolvedValue();
   });
 
+  it('forces dark on its own root', async () => {
+    const { container } = renderPage([setStart]);
+    const root = container.querySelector('[data-scout-root]') as HTMLElement;
+    expect(root).toHaveClass('dark');
+    expect(root.style.colorScheme).toBe('dark');
+    await screen.findByRole('region', { name: 'Match events' });
+    const loaded = container.querySelector('[data-scout-root]') as HTMLElement;
+    expect(loaded).toHaveClass('dark');
+    expect(loaded.style.colorScheme).toBe('dark');
+  });
+
+  it("never touches the html element's theme", async () => {
+    const before = document.documentElement.classList.contains('dark');
+    const { unmount } = renderPage([setStart]);
+    await screen.findByRole('region', { name: 'Match events' });
+    expect(document.documentElement.classList.contains('dark')).toBe(before);
+    unmount();
+    expect(document.documentElement.classList.contains('dark')).toBe(before);
+  });
+
+  it('menus and sheets render inside the dark root', async () => {
+    const e2: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    const { container } = renderPage([setStart, e2]);
+    const root = () => container.querySelector('[data-scout-root]') as HTMLElement;
+    await openTools();
+    expect(root().contains(screen.getByRole('menu'))).toBe(true);
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    const deletes = await screen.findAllByRole('button', { name: 'Delete' });
+    fireEvent.click(deletes[deletes.length - 1]);
+    expect(root().contains(await screen.findByRole('alertdialog', { name: 'Delete set start?' }))).toBe(true);
+  });
+
+  it('the set start dialog renders inside the dark root', async () => {
+    const { container } = renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    expect((container.querySelector('[data-scout-root]') as HTMLElement).contains(dialog)).toBe(true);
+  });
+
+  it('the locked alert renders inside the dark root', async () => {
+    vi.mocked(api.getMatch).mockResolvedValue({ ...match, activeDevice: { id: 'other-device', at: Date.now() } });
+    const { container } = renderPage([setStart]);
+    const alert = await screen.findByRole('alertdialog', { name: /another device/i });
+    expect((container.querySelector('[data-scout-root]') as HTMLElement).contains(alert)).toBe(true);
+  });
+
   it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
     renderPage([setStart]);
     const dock = await screen.findByRole('region', { name: 'Match events' });

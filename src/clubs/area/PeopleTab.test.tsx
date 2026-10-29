@@ -7,6 +7,9 @@ import * as clubAdminApi from '../clubAdminApi';
 import { useAuth } from '../../auth/AuthContext';
 import { authValue, clubAdminAccess, testClub } from '../../test/authValue';
 import type { Member } from '../../types/club';
+import { NoticeProvider } from '../../components/Notice';
+import { WithChrome } from '../../test/chromeProbe';
+import { useMediaQuery } from '../../components/useMediaQuery';
 
 vi.mock('../../access/accessApi');
 vi.mock('../../access/membersApi', async (orig) => ({
@@ -16,6 +19,16 @@ vi.mock('../../access/membersApi', async (orig) => ({
 vi.mock('../clubAdminApi');
 vi.mock('../../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../firebase/config', () => ({ db: {} }));
+vi.mock('../../components/useMediaQuery', () => ({ useMediaQuery: vi.fn(() => false) }));
+
+function renderTab() {
+  return render(<NoticeProvider><WithChrome><PeopleTab /></WithChrome></NoticeProvider>);
+}
+
+async function openAddSheet() {
+  fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
+  return screen.findByRole('dialog', { name: 'Add person' });
+}
 
 const teams = [{ id: 't1', name: 'U15' }, { id: 't2', name: 'U17' }];
 const m = (email: string, role: 'admin' | 'member'): Member => ({ email, role, clubId: 'club-1', addedBy: 'x', addedAt: null as never });
@@ -31,6 +44,7 @@ function signInAs(ownerEmail: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useMediaQuery).mockReturnValue(false);
   members = [m('owner@example.com', 'admin'), m('second@example.com', 'admin'), m('coach@example.com', 'member')];
   signInAs('owner@example.com');
   vi.mocked(accessApi.emptyGrantSet).mockReturnValue({ teamIds: [], sections: { exercises: false, trainings: false, guides: false } });
@@ -52,7 +66,7 @@ async function openPerson(email: string) {
 
 describe('PeopleTab', () => {
   it('lists every member with a role badge and the owner marked', async () => {
-    render(<PeopleTab />);
+    renderTab();
     const owner = await screen.findByRole('button', { name: /owner@example.com/ });
     expect(owner).toHaveTextContent('Owner');
     expect(owner).toHaveTextContent('Admin');
@@ -61,29 +75,107 @@ describe('PeopleTab', () => {
   });
 
   it('adds a person as member or admin', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await screen.findByText('coach@example.com');
-    expect(screen.getByLabelText('Role')).toHaveValue('member');
-    fireEvent.change(screen.getByLabelText('Add person by email'), { target: { value: '  NEW@Example.com ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
+    let dialog = await openAddSheet();
+    expect(within(dialog).getByLabelText('Role')).toHaveValue('member');
+    fireEvent.change(within(dialog).getByLabelText('Add person by email'), { target: { value: '  NEW@Example.com ' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add person' }));
     await waitFor(() => expect(membersApi.addMember).toHaveBeenCalledWith('new@example.com', 'member', 'owner@example.com'));
-    fireEvent.change(screen.getByLabelText('Add person by email'), { target: { value: 'boss@example.com' } });
-    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'admin' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add person' })).toBeNull());
+    dialog = await openAddSheet();
+    fireEvent.change(within(dialog).getByLabelText('Add person by email'), { target: { value: 'boss@example.com' } });
+    fireEvent.change(within(dialog).getByLabelText('Role'), { target: { value: 'admin' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add person' }));
     await waitFor(() => expect(membersApi.addMember).toHaveBeenCalledWith('boss@example.com', 'admin', 'owner@example.com'));
   });
 
   it("shows 'already a member' when adding an existing member", async () => {
     vi.mocked(membersApi.addMember).mockRejectedValue(new Error('already-member'));
-    render(<PeopleTab />);
+    renderTab();
     await screen.findByText('coach@example.com');
-    fireEvent.change(screen.getByLabelText('Add person by email'), { target: { value: 'coach@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('already a member');
+    const dialog = await openAddSheet();
+    fireEvent.change(within(dialog).getByLabelText('Add person by email'), { target: { value: 'coach@example.com' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add person' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('already a member');
+  });
+
+  it('Add person in the toolbar opens the add sheet', async () => {
+    renderTab();
+    await screen.findByText('coach@example.com');
+    const dialog = await openAddSheet();
+    expect(within(dialog).getByLabelText('Add person by email')).toBeInTheDocument();
+  });
+
+  it('Cancel after typing an email asks to discard', async () => {
+    renderTab();
+    await screen.findByText('coach@example.com');
+    const dialog = await openAddSheet();
+    fireEvent.change(within(dialog).getByLabelText('Add person by email'), { target: { value: 'x@example.com' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
+
+  it('Make admin is instant and offers Undo, which writes the previous role back', async () => {
+    renderTab();
+    await openPerson('coach@example.com');
+    fireEvent.click(screen.getByRole('button', { name: 'Make admin' }));
+    await waitFor(() => expect(membersApi.setMemberRole).toHaveBeenCalledWith('coach@example.com', 'admin'));
+    expect(await screen.findByText('coach@example.com is now an admin')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(membersApi.setMemberRole).toHaveBeenLastCalledWith('coach@example.com', 'member'));
+  });
+
+  it('demoting another admin offers Undo', async () => {
+    renderTab();
+    await openPerson('second@example.com');
+    fireEvent.click(screen.getByRole('button', { name: 'Make member' }));
+    await waitFor(() => expect(membersApi.setMemberRole).toHaveBeenCalledWith('second@example.com', 'member'));
+    expect(await screen.findByText('second@example.com is now a member')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(membersApi.setMemberRole).toHaveBeenLastCalledWith('second@example.com', 'admin'));
+  });
+
+  it('a refused undo shows the role error and reloads', async () => {
+    renderTab();
+    await openPerson('coach@example.com');
+    fireEvent.click(screen.getByRole('button', { name: 'Make admin' }));
+    await screen.findByText('coach@example.com is now an admin');
+    vi.mocked(membersApi.setMemberRole).mockRejectedValueOnce(new Error('permission-denied'));
+    const calls = vi.mocked(membersApi.listMembers).mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not change the role. Please try again.');
+    await waitFor(() => expect(vi.mocked(membersApi.listMembers).mock.calls.length).toBeGreaterThan(calls));
+  });
+
+  it('on a narrow screen, choosing a person opens their access in a sheet', async () => {
+    vi.mocked(useMediaQuery).mockReturnValue(true);
+    renderTab();
+    await openPerson('coach@example.com');
+    const dialog = await screen.findByRole('dialog', { name: 'coach@example.com' });
+    expect(await within(dialog).findByRole('checkbox', { name: 'U15' })).toBeInTheDocument();
+  });
+
+  it('closing the person sheet with unsaved grants asks to discard', async () => {
+    vi.mocked(useMediaQuery).mockReturnValue(true);
+    renderTab();
+    await openPerson('coach@example.com');
+    const dialog = await screen.findByRole('dialog', { name: 'coach@example.com' });
+    fireEvent.click(await within(dialog).findByRole('checkbox', { name: 'U17' }));
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
+
+  it('right-click on the owner offers Make member disabled with the reason', async () => {
+    renderTab();
+    fireEvent.contextMenu(await screen.findByRole('button', { name: /owner@example.com/ }), { clientX: 10, clientY: 10 });
+    const menu = await screen.findByRole('menu', { name: 'Actions for owner@example.com' });
+    expect(within(menu).getByRole('menuitem', { name: /Make member/ })).toHaveAttribute('aria-disabled', 'true');
+    expect(within(menu).getAllByText('The club owner stays an admin. Transfer ownership first.').length).toBeGreaterThan(0);
   });
 
   it('saves a diff of the toggled grants', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(await screen.findByRole('checkbox', { name: 'U17' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Trainings' }));
@@ -100,7 +192,7 @@ describe('PeopleTab', () => {
     vi.mocked(membersApi.setMemberRole).mockImplementation(async (email, role) => {
       members = members.map((x) => (x.email === email ? { ...x, role } : x));
     });
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(screen.getByRole('button', { name: 'Make admin' }));
     await waitFor(() => expect(membersApi.setMemberRole).toHaveBeenCalledWith('coach@example.com', 'admin'));
@@ -109,7 +201,7 @@ describe('PeopleTab', () => {
   });
 
   it('disables demote and remove for the owner, with the reason as hint', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('owner@example.com');
     expect(screen.getByRole('button', { name: 'Make member' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Remove from club' })).toBeDisabled();
@@ -119,7 +211,7 @@ describe('PeopleTab', () => {
   it('disables demote and remove for the last admin, with the reason as hint', async () => {
     members = [m('solo@example.com', 'admin'), m('coach@example.com', 'member')];
     signInAs('gone@example.com');
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('solo@example.com');
     expect(screen.getByRole('button', { name: 'Make member' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Remove from club' })).toBeDisabled();
@@ -127,7 +219,7 @@ describe('PeopleTab', () => {
   });
 
   it('transfers ownership to another admin after confirmation', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('second@example.com');
     fireEvent.click(screen.getByRole('button', { name: 'Make owner' }));
     const dialog = screen.getByRole('alertdialog', { name: 'Make second@example.com the club owner?' });
@@ -144,7 +236,7 @@ describe('PeopleTab', () => {
       club: testClub({ ownerEmail: 'owner@example.com' }),
     }));
     members = [...members, m('third@example.com', 'admin')];
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('third@example.com');
     fireEvent.click(screen.getByRole('button', { name: 'Make owner' }));
     const dialog = screen.getByRole('alertdialog', { name: 'Make third@example.com the club owner?' });
@@ -153,7 +245,7 @@ describe('PeopleTab', () => {
   });
 
   it('Remove from club removes grants and membership after confirmation', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(screen.getByRole('button', { name: 'Remove from club' }));
     expect(membersApi.removeFromClub).not.toHaveBeenCalled();
@@ -172,7 +264,7 @@ describe('PeopleTab', () => {
         appUser: { uid: 'u-2', email: 'second@example.com' },
         club: testClub({ ownerEmail: 'owner@example.com' }),
       }));
-      render(<PeopleTab />);
+      renderTab();
       await openPerson('second@example.com');
       fireEvent.click(screen.getByRole('button', { name: 'Make member' }));
       const dialog = screen.getByRole('alertdialog', { name: 'Stop being an admin?' });
@@ -186,19 +278,20 @@ describe('PeopleTab', () => {
   });
 
   it('refuses to add a malformed email', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await screen.findByText('coach@example.com');
+    const dialog = await openAddSheet();
     for (const bad of ['coach', 'coach@example', 'co ach@example.com', '@example.com']) {
-      fireEvent.change(screen.getByLabelText('Add person by email'), { target: { value: bad } });
-      fireEvent.click(screen.getByRole('button', { name: 'Add person' }));
-      expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address.');
+      fireEvent.change(within(dialog).getByLabelText('Add person by email'), { target: { value: bad } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Add person' }));
+      expect(await within(dialog).findByRole('alert')).toHaveTextContent('Enter a valid email address.');
     }
     expect(membersApi.addMember).not.toHaveBeenCalled();
   });
 
   it('surfaces an error if data fails to load', async () => {
     vi.mocked(accessApi.listAllTeams).mockRejectedValueOnce(new Error('permission-denied'));
-    render(<PeopleTab />);
+    renderTab();
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i);
   });
 
@@ -207,7 +300,7 @@ describe('PeopleTab', () => {
     vi.mocked(accessApi.listAllTeams)
       .mockResolvedValueOnce({ teams, lastDoc: c1, hasMore: true })
       .mockResolvedValueOnce({ teams: [{ id: 't3', name: 'U19' }], lastDoc: null, hasMore: false });
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(await screen.findByRole('button', { name: 'Load more teams' }));
     expect(await screen.findByRole('checkbox', { name: 'U19' })).toBeInTheDocument();
@@ -217,7 +310,7 @@ describe('PeopleTab', () => {
 
   it('the filter narrows only the loaded teams', async () => {
     vi.mocked(accessApi.listAllTeams).mockResolvedValue({ teams, lastDoc: null, hasMore: true });
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     const filter = await screen.findByRole('searchbox', { name: 'Filter teams' });
     fireEvent.change(filter, { target: { value: '17' } });
@@ -232,7 +325,7 @@ describe('PeopleTab', () => {
     vi.mocked(accessApi.listGrantHolders).mockResolvedValue([
       { email: 'coach@example.com', grants: { teamIds: ['t1', 't99'], sections: { exercises: false, trainings: false, guides: false } } },
     ]);
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(await screen.findByRole('checkbox', { name: 'U17' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -244,7 +337,7 @@ describe('PeopleTab', () => {
   });
 
   it('loads the team list once, not on every reload', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(await screen.findByRole('checkbox', { name: 'U17' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -257,7 +350,7 @@ describe('PeopleTab', () => {
     vi.mocked(accessApi.listAllTeams)
       .mockResolvedValueOnce({ teams, lastDoc: null, hasMore: true })
       .mockRejectedValueOnce(new Error('offline'));
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     fireEvent.click(await screen.findByRole('button', { name: 'Load more teams' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load more teams. Please try again.');
@@ -266,7 +359,7 @@ describe('PeopleTab', () => {
   });
 
   it('marks the selected person', async () => {
-    render(<PeopleTab />);
+    renderTab();
     await openPerson('coach@example.com');
     expect(screen.getByRole('button', { name: /coach@example.com/ })).toHaveAttribute('aria-current', 'true');
   });

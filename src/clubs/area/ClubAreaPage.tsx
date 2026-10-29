@@ -14,7 +14,7 @@ type ClubTab = 'profile' | 'people' | 'export' | 'contract';
 const TAB_IDS: ClubTab[] = ['profile', 'people', 'export', 'contract'];
 
 /** Tabs whose body publishes the toolbar itself (a main action), so the header must not. */
-const OWN_CHROME = new Set<ClubTab>(['export']);
+const OWN_CHROME = new Set<ClubTab>(['people', 'export']);
 
 /**
  * `restricted` (a paused club, or one whose contract has ended) keeps Profile read-only,

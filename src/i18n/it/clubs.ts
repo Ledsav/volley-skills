@@ -101,6 +101,9 @@ export const clubs = {
     makeMember: 'Rendi membro',
     makeAdmin: 'Rendi amministratore',
     makeOwner: 'Rendi titolare',
+    madeAdmin: (e: string) => `${e} ora è admin`,
+    madeMember: (e: string) => `${e} ora è membro`,
+    rowMenu: (e: string) => `Azioni per ${e}`,
     removeFromClub: 'Rimuovi dal club',
     reason: {
       owner: 'Il titolare del club resta amministratore. Trasferisci prima la titolarità.',

@@ -88,6 +88,11 @@ export const scout = {
     player: 'Player',
     recPlus: 'Rec +',
     ptsErr: 'Pts / Err',
+    team: 'Team',
+    sideOut: 'Side-out',
+    breakPoint: 'Break',
+    oppErrors: 'Opp. err',
+    weakest: 'Weak rot',
     footer: (sideOut: string, breakPct: string, rec: string, oppErrors: number, weakest: number | null) =>
       `Side-out ${sideOut} · Break ${breakPct} · Rec + ${rec} · Opp errors ${oppErrors}${weakest !== null ? ` · Weakest rotation ${weakest}` : ''}`,
   },

@@ -43,7 +43,7 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
         aria-label={t.scout.rally.timeoutAria(t.matches.shared.side(team), left)}
         title={t.scout.rally.timeoutTitle(t.matches.shared.side(team), keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem'))}
         // A real but lighter button than Point: outlined, no fill, same 56 px target.
-        className={`flex ${timeoutSize} min-w-0 items-center justify-center gap-1.5 rounded-md border border-separator px-3 text-callout font-medium tabular-nums text-ink hover:bg-surface-2 ${
+        className={`flex ${timeoutSize} min-w-0 items-center justify-center gap-1.5 rounded-md border border-ink-3/60 px-3 text-callout font-medium tabular-nums text-ink hover:bg-surface-2 ${
           team === 'us' ? '[grid-area:tu]' : '[grid-area:tt]'
         }`}
       >

@@ -140,7 +140,7 @@ export function MatchPage() {
       ? { label: p.startScouting, icon: Play, disabled: dirty, onSelect: startScouting }
       : match.status === 'finished'
         ? { label: p.awards, icon: Trophy, onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}/awards`) }
-        : undefined;
+        : { label: p.resumeScouting, icon: Play, onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}/scout`) };
 
   return (
     <PageContainer>
@@ -181,25 +181,29 @@ export function MatchPage() {
         </>
       )}
 
+      {/* Live: "Resume scouting" is the toolbar's main action; this row says the match is live and offers Finish. */}
       {match.status === 'live' && (
-        <div className="mb-4 rounded-lg bg-green-tint p-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-headline text-ink">{p.inProgress}</span>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" disabled={!state} onClick={() => void finish()}>{p.finish}</Button>
-              <Link
-                to={`/teams/${teamId}/matches/${matchId}/scout`}
-                className="inline-flex min-h-11 items-center rounded-md bg-ink px-3 text-sm font-semibold tracking-[-0.01em] text-on-ink hover:bg-ink/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-              >
-                {p.resumeScouting}
-              </Link>
-            </div>
+        <div className="mb-6 print:hidden">
+          <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span className="inline-flex items-center gap-2 text-callout text-ink-2">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red" />
+              {p.inProgress}
+            </span>
+            <Button variant="secondary" size="sm" disabled={!state} onClick={() => void finish()}>{p.finish}</Button>
           </div>
           {actionError && <p role="alert" className="mt-2 text-callout text-red-strong">{actionError}</p>}
         </div>
       )}
       {match.status === 'finished' && actionError && <p role="alert" className="mb-3 text-callout text-red-strong print:hidden">{actionError}</p>}
-      {match.status !== 'setup' && report && <MatchReport match={match} report={report} set={reportSet} onSetChange={setReportSet} />}
+      {match.status !== 'setup' && report && (
+        <MatchReport
+          match={match}
+          report={report}
+          set={reportSet}
+          onSetChange={setReportSet}
+          inPlay={match.status === 'live' && state?.inSet ? { set: state.set, us: state.score.us, them: state.score.them } : null}
+        />
+      )}
 
       {confirmDelete && (
         <ConfirmDialog

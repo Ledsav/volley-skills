@@ -107,6 +107,10 @@ export const matches = {
     setN: (n: number) => `Set ${n}`,
     setScores: 'Punteggi dei set',
     won: 'Vinta',
+    leading: 'In vantaggio',
+    trailing: 'In svantaggio',
+    level: 'In parità',
+    setInPlay: (n: number) => `Set ${n} · in corso`,
     lost: 'Persa',
     rotationsNote: 'In ordine di campo 1, 6, 5, 4, 3, 2. La più debole ha il saldo punti più basso.',
     set: 'Set',
@@ -128,6 +132,7 @@ export const matches = {
     timeouts: 'Time-out',
     timeoutLine: (set: number, team: Side, us: number, them: number, won: number, lost: number) =>
       `Set ${set} · TO ${SIDE[team]} sul ${us}–${them} → scambi successivi ${won}–${lost}`,
+    sourceLead: 'Azioni registrate:',
     tapped: (pct: number) => `${pct}% da tocchi`,
     fromText: (pct: number) => `${pct}% da testo`,
     imported: 'Importata da DataVolley',

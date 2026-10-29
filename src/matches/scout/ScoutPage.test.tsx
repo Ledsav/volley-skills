@@ -857,7 +857,8 @@ describe('ScoutPage', () => {
       fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
       const panel = screen.getByRole('region', { name: /^Actions for/ });
       const chip = within(panel).getAllByRole('button', { pressed: true })[0];
-      expect(chip.parentElement?.nextElementSibling).toHaveClass('bg-gradient-to-l');
+      // The strip fades whichever edge hides more fundamentals (ScrollStrip), clear of Substitute and Close.
+      expect(chip.parentElement).toHaveClass('scroll-strip');
       expect(within(panel).getByText('Substitute')).toHaveClass('hidden', 'lg:inline');
       expect(within(panel).getByText('#7').closest('p')).toHaveClass('hidden', 'md:flex');
     });

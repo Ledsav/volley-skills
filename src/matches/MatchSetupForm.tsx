@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
-import { FIELD_CLASS, Input } from '../components/Input';
+import { Field, FIELD_LABEL_CLASS, Input } from '../components/Input';
+import { Select } from '../components/Select';
 import {
   DEFAULT_FORMAT,
   type Competition,
@@ -26,8 +27,11 @@ interface MatchSetupFormProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
+// The fieldset itself stays unstyled: a background or border on it would draw the legend in the card's top edge
+// (the classic notch). The legend sits above the card as a section header, inset to the card's text.
+const FIELDSET = 'min-w-0';
+const LEGEND = 'mb-2 px-4 text-footnote font-medium text-ink-2';
 const GROUP = 'rounded-lg bg-surface p-4';
-const LEGEND = 'mb-2 text-footnote text-ink-2';
 
 /** `role` = this match's role for the player (snapshot only; the profile is untouched). */
 type Picks = Record<string, { checked: boolean; number: number; role: PositionCategory }>;
@@ -149,60 +153,57 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         onDirtyChange?.(true);
       }}
       className="flex flex-col gap-4">
-      <fieldset className={GROUP}>
+      <fieldset className={FIELDSET}>
         <legend className={LEGEND}>{m.details}</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
-            {m.date}
+        <div className={`${GROUP} grid gap-3 sm:grid-cols-2`}>
+          <Field label={m.date}>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
-            {m.opponent}
+          </Field>
+          <Field label={m.opponent}>
             <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
-            {m.competition}
-            <select className={FIELD_CLASS} value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
+          </Field>
+          <Field label={m.competition}>
+            <Select value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
               <option value="league">{t.labels.competition.league}</option>
               <option value="cup">{t.labels.competition.cup}</option>
               <option value="friendly">{t.labels.competition.friendly}</option>
               <option value="tournament">{t.labels.competition.tournament}</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
-            {m.venue}
-            <select className={FIELD_CLASS} value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
+            </Select>
+          </Field>
+          <Field label={m.venue}>
+            <Select value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
               <option value="home">{t.matches.shared.home}</option>
               <option value="away">{t.matches.shared.away}</option>
-            </select>
-          </label>
+            </Select>
+          </Field>
         </div>
       </fieldset>
 
-      <fieldset className={`${GROUP} grid grid-cols-2 gap-3 sm:grid-cols-5`}>
+      <fieldset className={FIELDSET}>
         <legend className={LEGEND}>{m.format}</legend>
-        <label className="flex flex-col gap-1 text-footnote text-ink-2">
-          {m.bestOf}
-          <select className={FIELD_CLASS} value={format.bestOf} onChange={(e) => setNum('bestOf', Number(e.target.value) as 3 | 5)}>
+        <div className={`${GROUP} grid grid-cols-2 gap-3 sm:grid-cols-5`}>
+        <Field label={m.bestOf}>
+          <Select value={format.bestOf} onChange={(e) => setNum('bestOf', Number(e.target.value) as 3 | 5)}>
             <option value={3}>3</option>
             <option value={5}>5</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
         {([
           ['setPoints', m.setPoints],
           ['decidingSetPoints', m.decidingSet],
           ['subsPerSet', m.subsPerSet],
           ['timeoutsPerSet', m.timeoutsPerSet],
         ] as const).map(([key, label]) => (
-          <label key={key} className="flex flex-col gap-1 text-footnote text-ink-2">
-            {label}
+          <Field key={key} label={label}>
             <Input type="number" min={0} value={format[key]} onChange={(e) => setNum(key, Number(e.target.value))} />
-          </label>
+          </Field>
         ))}
+        </div>
       </fieldset>
 
-      <fieldset className={GROUP}>
+      <fieldset className={FIELDSET}>
         <legend className={LEGEND}>{m.roster}</legend>
+        <div className={GROUP}>
         <p className={`mb-2 text-callout tabular-nums ${tooMany ? 'font-semibold text-red-strong' : 'text-ink-2'}`}>
           {m.selected(checkedPlayers.length, MAX_ROSTER)}
         </p>
@@ -219,9 +220,9 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], checked: e.target.checked } }))}
               />
               <span className="min-w-0 flex-1 truncate text-callout text-ink">#{p.number} {p.fullName}</span>
-              <select
+              <Select
                 aria-label={m.roleFor(p.fullName)}
-                className={`${FIELD_CLASS} ${ON_ROW} min-h-11 w-20 px-2 text-base sm:text-sm`}
+                className={`${ON_ROW} min-h-11 w-24 text-base sm:text-sm`}
                 value={picks[p.id]?.role ?? p.positionCategory}
                 onChange={(e) =>
                   setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], role: e.target.value as PositionCategory } }))
@@ -230,7 +231,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 {POSITION_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.value}</option>
                 ))}
-              </select>
+              </Select>
               <Input
                 type="number"
                 aria-label={m.numberFor(p.fullName)}
@@ -246,17 +247,18 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
             </li>
           ))}
         </ul>
+        </div>
       </fieldset>
 
-      <fieldset className={`${GROUP} flex flex-col gap-3`}>
+      <fieldset className={FIELDSET}>
         <legend className={LEGEND}>{m.liberos}</legend>
+        <div className={`${GROUP} flex flex-col gap-3`}>
         {[0, 1].map((i) => (
           <div key={i} className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1 text-footnote text-ink-2">
-              {m.libero(i + 1)}
-              <select
+            <Field label={m.libero(i + 1)}>
+              <Select
                 aria-label={m.libero(i + 1)}
-                className={FIELD_CLASS}
+                
                 value={liberoPicks[i].playerId}
                 onChange={(e) =>
                   setLiberoPicks((cur) => cur.map((l, j) => (j === i ? { ...l, playerId: e.target.value } : l)))
@@ -266,13 +268,12 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 {checkedPlayers.map((p) => (
                   <option key={p.id} value={p.id}>{p.fullName} (#{picks[p.id].number})</option>
                 ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-footnote text-ink-2">
-              {m.onCourt}
-              <select
+              </Select>
+            </Field>
+            <Field label={m.onCourt}>
+              <Select
                 aria-label={m.liberoMode(i + 1)}
-                className={FIELD_CLASS}
+                
                 value={liberoPicks[i].mode}
                 onChange={(e) =>
                   setLiberoPicks((cur) => cur.map((l, j) => (j === i ? { ...l, mode: e.target.value as LiberoMode } : l)))
@@ -281,16 +282,16 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 {LIBERO_MODES.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Field>
           </div>
         ))}
         {liberoIds.size > 0 && (
           <div>
-            <p className="mb-1 text-footnote text-ink-2">{m.replaces}</p>
+            <p className={FIELD_LABEL_CLASS}>{m.replaces}</p>
             <div className="flex flex-wrap gap-2">
               {checkedPlayers.filter((p) => !liberoIds.has(p.id)).map((p) => (
-                <label key={p.id} className="flex min-h-11 items-center gap-1 rounded-md bg-surface-2 px-3 text-callout text-ink">
+                <label key={p.id} className="flex min-h-11 items-center gap-2 rounded-md bg-surface-2 px-3 text-callout tabular-nums text-ink">
                   <input
                     type="checkbox"
                     checked={(replaces ?? []).includes(p.id)}
@@ -304,6 +305,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
             </div>
           </div>
         )}
+        </div>
       </fieldset>
 
       {saved && !error && <p role="status" className="text-callout text-green-strong">{m.saved}</p>}

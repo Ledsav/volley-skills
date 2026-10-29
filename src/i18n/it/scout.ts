@@ -89,6 +89,11 @@ export const scout = {
     player: 'Giocatore',
     recPlus: 'Ric +',
     ptsErr: 'Pt / Err',
+    team: 'Squadra',
+    sideOut: 'Cambio palla',
+    breakPoint: 'Break',
+    oppErrors: 'Err. avv.',
+    weakest: 'Rot. debole',
     footer: (sideOut, breakPct, rec, oppErrors, weakest) =>
       `Cambio palla ${sideOut} · Break ${breakPct} · Ric + ${rec} · Errori avv. ${oppErrors}${weakest !== null ? ` · Rotazione più debole ${weakest}` : ''}`,
   },

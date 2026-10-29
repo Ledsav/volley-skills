@@ -107,6 +107,10 @@ export const matches = {
     setN: (n: number) => `Set ${n}`,
     setScores: 'Set scores',
     won: 'Won',
+    leading: 'Leading',
+    trailing: 'Trailing',
+    level: 'Level',
+    setInPlay: (n: number) => `Set ${n} · live`,
     lost: 'Lost',
     rotationsNote: 'In court order 1, 6, 5, 4, 3, 2. The weakest has the lowest points won minus lost.',
     set: 'Set',
@@ -128,6 +132,7 @@ export const matches = {
     timeouts: 'Timeouts',
     timeoutLine: (set: number, team: Side, us: number, them: number, won: number, lost: number) =>
       `Set ${set} · T/O ${SIDE[team]} at ${us}–${them} → next rallies ${won}–${lost}`,
+    sourceLead: 'Actions recorded:',
     tapped: (pct: number) => `${pct}% tapped`,
     fromText: (pct: number) => `${pct}% from text`,
     imported: 'Imported from DataVolley',

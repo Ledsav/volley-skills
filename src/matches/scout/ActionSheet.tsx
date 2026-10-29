@@ -7,6 +7,7 @@ import { tapFlash } from '../../motion/tapFlash';
 import { SCOUT_GRADE_CLASS } from './gradeStyles';
 import { Kbd } from './Kbd';
 import { RoleChip } from './RoleChip';
+import { ScrollStrip } from '../../components/ScrollStrip';
 
 interface ActionSheetProps {
   player: RosterEntry;
@@ -41,8 +42,8 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
           <span className="shrink-0 text-callout tabular-nums text-ink-2">#{player.number}</span>
           <RoleChip role={isLibero ? 'L' : player.positionCategory} libero={isLibero} />
         </p>
-        <div className="relative min-w-0 flex-1">
-        <div className="flex gap-1.5 overflow-x-auto pr-6 [scrollbar-width:none] lg:pr-0">
+        {/* The fundamentals scroll in their own lane, left of Substitute and Close; the strip fades the edge that hides more. */}
+        <ScrollStrip className="flex min-w-0 flex-1 gap-1.5">
           {skills.map((s) => (
             <button
               key={s}
@@ -58,10 +59,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
               <Kbd>{s}</Kbd>
             </button>
           ))}
-        </div>
-        {/* End fade: more fundamentals wait to the right (rank 4+ may need a swipe). */}
-        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-surface to-transparent lg:hidden" />
-        </div>
+        </ScrollStrip>
         {!isLibero && (
           <button
             type="button"
@@ -87,11 +85,14 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             aria-label={`${g} ${t.labels.grade[skill][g]}`}
             onPointerDown={(e) => tapFlash(e.currentTarget)}
             onClick={() => onGrade(skill, g)}
-            className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md px-0.5 ${SCOUT_GRADE_CLASS[g]}`}
+            className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md px-1 ${SCOUT_GRADE_CLASS[g]}`}
           >
             <Kbd className="absolute right-1 top-1">{g}</Kbd>
-            <span className="text-title-2" aria-hidden="true">{g}</span>
-            <span className="max-w-full truncate text-caption" aria-hidden="true">{t.labels.grade[skill][g]}</span>
+            <span className="text-title-3 md:text-title-2" aria-hidden="true">{g}</span>
+            {/* Up to two short lines ("Free / ball") instead of an ellipsis; still inside the 56 px button. */}
+            <span className="line-clamp-2 max-w-full break-words text-center text-[11px] font-medium leading-[13px] md:text-caption" aria-hidden="true">
+              {t.labels.grade[skill][g]}
+            </span>
           </button>
         ))}
       </div>

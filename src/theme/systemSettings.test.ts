@@ -57,4 +57,13 @@ describe('system-setting media queries', () => {
     const tw = readFileSync(resolve(process.cwd(), 'tailwind.config.js'), 'utf8');
     expect(tw).toMatch(/card:\s*'var\(--shadow-card\)'/);
   });
+
+  it('the canvas eases a theme change over 200 ms, instantly with reduced motion', () => {
+    expect(css).toMatch(/html,\s*body\s*\{[^}]*transition:\s*background-color 200ms ease/);
+    expect(mediaBlock('prefers-reduced-motion: reduce')).toMatch(/html,\s*body\s*\{[^}]*transition:\s*none/);
+  });
+
+  it('forced colors keep a visible focus outline', () => {
+    expect(mediaBlock('forced-colors: active')).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px solid CanvasText/);
+  });
 });

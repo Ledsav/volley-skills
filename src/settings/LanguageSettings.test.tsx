@@ -22,7 +22,8 @@ describe('language choice (Italian enabled)', () => {
     localStorage.setItem('vcb.locale', 'en');
     renderIt();
     expect(screen.getByRole('heading', { name: 'Language' })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Language'), { target: { value: 'it' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Language English' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Italiano' }));
     expect(await screen.findByRole('heading', { name: 'Lingua' })).toBeInTheDocument();
     expect(localStorage.getItem('vcb.locale')).toBe('it');
     expect(document.documentElement.lang).toBe('it');

@@ -102,6 +102,11 @@
   body {
     @apply bg-bg font-sans text-ink;
   }
+  /* The theme switch eases the canvas colour (§6.7); reduced motion makes it instant. */
+  html,
+  body {
+    transition: background-color 200ms ease;
+  }
   /* One keyboard-focus look everywhere, matching Button's ring, for the custom
      controls (calendar cells, chips, toolbar icons) that don't set their own. */
   :focus-visible {
@@ -179,6 +184,12 @@
   .menu-pop { animation: menu-fade 160ms linear; }
   .pressable { transition: none; }
   .pressable:active { transform: none; }
+  html,
+  body { transition: none; }
+}
+
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid CanvasText; }
 }
 
 @media print {

@@ -59,22 +59,22 @@ export function RetentionNotice({ teamId, gender = 'mixed', onDeleted }: Retenti
   return (
     <section
       aria-labelledby="retention-heading"
-      className="mb-4 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink"
+      className="mb-4 rounded-lg bg-orange-tint p-4 text-ink"
     >
-      <h2 id="retention-heading" className="font-medium">
+      <h2 id="retention-heading" className="text-headline">
         {t.teams.retention.heading(due.length, gender)}
       </h2>
-      <p className="mt-1 text-slate">
+      <p className="mt-1 text-callout text-ink-2">
         {t.teams.retention.body(RETENTION_MONTHS)}
       </p>
-      <ul className="mt-2 divide-y divide-orange/30">
+      <ul className="mt-2 divide-y divide-separator">
         {due.map((p) => (
           <li key={p.id} className="flex items-center justify-between gap-3 py-2">
             <span className="min-w-0 truncate">
-              <Link to={`/teams/${teamId}/players/${p.id}`} className="text-blue-strong hover:underline">
+              <Link to={`/teams/${teamId}/players/${p.id}`} className="text-ink underline-offset-2 hover:underline">
                 {p.fullName}
               </Link>
-              <span className="text-slate">
+              <span className="text-footnote text-ink-2">
                 {' '}
                 · {t.teams.retention.left} <span className="tabular-nums">{p.leftClubAt}</span>
               </span>

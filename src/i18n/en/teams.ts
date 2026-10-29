@@ -1,3 +1,4 @@
+import { sameForAll } from '../agree';
 import { plural } from '../plural';
 import type { Gender } from '../catalog';
 
@@ -78,7 +79,8 @@ export const teams = {
       settings: 'Settings',
     },
     importPlayers: 'Import players',
-    addPlayer: '+ Add player',
+    addPlayer: sameForAll('Add player'),
+    editPlan: 'Edit plan',
     playerRemoved: 'Player removed.',
     importPlayersTitle: 'Import players',
     importPlayersHint: 'Imported players start with consent not given — confirm each one on their card.',

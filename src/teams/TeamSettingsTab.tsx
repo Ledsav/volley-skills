@@ -75,16 +75,15 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   }
 
   return (
-    <div>
-      <div className="divide-y divide-border rounded-lg border border-border bg-surface shadow-card">
-        <form onSubmit={handleSaveInfo} className="p-4">
-          <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">{t.teams.settings.infoTitle}</h2>
+    <div className="flex flex-col gap-4">
+        <form onSubmit={handleSaveInfo} className="rounded-lg bg-surface p-4 shadow-card">
+          <h2 className="mb-3 text-title-3 text-ink">{t.teams.settings.infoTitle}</h2>
           <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
               {t.teams.settings.teamName}
               <Input value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
               {t.teams.gender.label}
               <select
                 className={`${FIELD_CLASS} w-full`}
@@ -102,33 +101,33 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
               {t.teams.settings.description}
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </label>
-            <div className="flex flex-col gap-1 text-sm font-medium text-ink">
+            <div className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
               <label htmlFor="team-info-notes">{t.teams.settings.notes}</label>
               <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
               <HealthHint id="team-info-notes-hint" />
             </div>
           </div>
-          {infoError && <p role="alert" className="mt-3 text-sm text-red-strong">{infoError}</p>}
+          {infoError && <p role="alert" className="mt-3 text-callout text-red-strong">{infoError}</p>}
           <Button variant="primary" size="sm" type="submit" className="mt-3 w-full sm:w-auto" disabled={savingInfo || gender === ''}>
             {t.teams.settings.saveInfo}
           </Button>
         </form>
 
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <section className="flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{t.teams.settings.exportTitle}</h2>
-            <p className="mt-1 text-sm text-slate">
+            <h2 className="text-title-3 text-ink">{t.teams.settings.exportTitle}</h2>
+            <p className="mt-1 text-callout text-ink-2">
               {t.teams.settings.exportBody(!!access?.sections.trainings)}
             </p>
-            <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+            <label className="mt-2 flex items-center gap-2 text-callout text-ink">
               <input type="checkbox" checked={includeEvents} onChange={(e) => setIncludeEvents(e.target.checked)} />
               {t.teams.settings.includeEvents}
             </label>
-            {exportError && <p role="alert" className="mt-2 text-sm text-red-strong">{exportError}</p>}
+            {exportError && <p role="alert" className="mt-2 text-callout text-red-strong">{exportError}</p>}
           </div>
           <Button
             variant="secondary"
@@ -139,13 +138,13 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           >
             {exporting ? t.teams.settings.exporting : t.teams.settings.exportButton}
           </Button>
-        </div>
+        </section>
 
         {access?.isClubAdmin && (
-          <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <section className="flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{t.teams.settings.dangerTitle}</h2>
-              <p className="mt-1 text-sm text-slate">
+              <h2 className="text-title-3 text-ink">{t.teams.settings.dangerTitle}</h2>
+              <p className="mt-1 text-callout text-ink-2">
                 {t.teams.settings.dangerBody}
               </p>
             </div>
@@ -157,9 +156,8 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
             >
               {t.teams.settings.deleteButton}
             </Button>
-          </div>
+          </section>
         )}
-      </div>
 
       {showDeleteConfirm && (
         <ConfirmDialog

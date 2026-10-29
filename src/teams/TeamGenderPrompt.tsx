@@ -30,9 +30,9 @@ export function TeamGenderPrompt({ teamId, onSaved }: TeamGenderPromptProps) {
   }
 
   return (
-    <section className="mb-4 rounded-lg border border-border bg-surface p-4 shadow-card" aria-label={t.teams.gender.label}>
-      <h2 className="text-base font-semibold text-ink">{t.teams.gender.prompt}</h2>
-      <p className="mt-1 text-sm text-slate">{t.teams.gender.promptHint}</p>
+    <section className="mb-4 rounded-lg bg-surface p-4 shadow-card" aria-label={t.teams.gender.label}>
+      <h2 className="text-headline text-ink">{t.teams.gender.prompt}</h2>
+      <p className="mt-1 text-callout text-ink-2">{t.teams.gender.promptHint}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {GENDERS.map((g) => (
           <Button key={g} variant="secondary" size="sm" disabled={saving} onClick={() => void choose(g)}>
@@ -41,7 +41,7 @@ export function TeamGenderPrompt({ teamId, onSaved }: TeamGenderPromptProps) {
         ))}
       </div>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-strong">
+        <p role="alert" className="mt-2 text-callout text-red-strong">
           {t.teams.gender.saveError}
         </p>
       )}

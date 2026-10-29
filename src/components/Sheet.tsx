@@ -36,6 +36,8 @@ export interface SheetProps {
   guardUnsaved?: boolean;
   /** Phone starting detent. */
   detent?: 'content' | 'large';
+  /** `view` sheets (read-only) show Done in the phone header and never a leading Cancel. */
+  variant?: 'form' | 'view';
 }
 
 const PHONE_QUERY = '(max-width: 767px)';
@@ -48,13 +50,24 @@ export function useSheetClose(): () => void {
   return useContext(SheetCloseContext);
 }
 
+/** A Cancel button for custom footers: the sheet's guarded close (asks to discard when dirty). */
+export function SheetCancelButton({ className }: { className?: string }) {
+  const t = useT().components;
+  const close = useSheetClose();
+  return (
+    <Button variant="ghost" onClick={close} className={className}>
+      {t.cancel}
+    </Button>
+  );
+}
+
 const DESKTOP_WIDTH: Record<NonNullable<SheetProps['size']>, string> = {
   md: 'max-w-[560px]',
   lg: 'max-w-[720px]',
 };
 
 export function Sheet(props: SheetProps) {
-  const { title, onClose, children, size = 'md', footer, confirm, dirty = false, guardUnsaved = false, detent = 'content' } = props;
+  const { title, onClose, children, size = 'md', footer, confirm, dirty = false, guardUnsaved = false, detent = 'content', variant = 'form' } = props;
   const t = useT().components;
   const phone = useMediaQuery(PHONE_QUERY, false);
   const reduced = useReducedMotion();
@@ -279,18 +292,26 @@ export function Sheet(props: SheetProps) {
               <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-ink-3/40" aria-hidden="true" />
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
                 <div className="justify-self-start">
-                  <Button variant="ghost" onClick={requestClose}>
-                    {t.cancel}
-                  </Button>
+                  {variant === 'view' ? null : (
+                    <Button variant="ghost" onClick={requestClose}>
+                      {t.cancel}
+                    </Button>
+                  )}
                 </div>
                 <h2 className="min-w-0 truncate text-headline text-ink">{title}</h2>
                 <div className="justify-self-end">
-                  {confirmButton ??
+                  {variant === 'view' ? (
+                    <Button variant="ghost" onClick={requestClose}>
+                      {t.done}
+                    </Button>
+                  ) : (
+                    (confirmButton ??
                     (footer || guardUnsaved || dirty ? null : (
                       <Button variant="ghost" onClick={requestClose}>
                         {t.done}
                       </Button>
-                    ))}
+                    )))
+                  )}
                 </div>
               </div>
               <button type="button" onClick={requestClose} aria-label={t.close} className="sr-only">

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Sheet, useSheetClose } from './Sheet';
+import { Sheet, SheetCancelButton, useSheetClose } from './Sheet';
 import { decideRelease } from './sheetRelease';
 
 function mockPhone(reducedMotion = false) {
@@ -136,6 +136,39 @@ describe('Sheet', () => {
     expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('sr-only');
+  });
+
+  it('a view sheet shows Done and no Cancel in the phone header, even with a footer', () => {
+    mockPhone();
+    const onClose = vi.fn();
+    render(
+      <Sheet title="Plan" variant="view" onClose={onClose} footer={<button>Share</button>}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('SheetCancelButton asks to discard when the sheet is dirty and closes at once when clean', () => {
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <Sheet title="Edit" onClose={onClose} dirty footer={<SheetCancelButton />}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    unmount();
+    render(
+      <Sheet title="Edit" onClose={onClose} footer={<SheetCancelButton />}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('phone with guardUnsaved or dirty shows no header Done', () => {

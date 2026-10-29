@@ -37,7 +37,9 @@ export const exercises = {
       'The number of trainings using this exercise could not be determined. Deleting it may leave some trainings with a missing exercise entry.',
     usedIn: (n: number) =>
       `This exercise is used in ${n} training(s). Deleting it will leave those trainings with a missing exercise entry.`,
-    notUsed: 'This exercise is not used in any training.',
+    deletedNotice: (n: string) => `Exercise “${n}” deleted`,
+    rowMenu: (n: string) => `Actions for ${n}`,
+    edit: 'Edit',
     confirmDelete: 'Yes, delete exercise',
   },
   form: {

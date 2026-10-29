@@ -1,6 +1,6 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Sparkles } from 'lucide-react';
 import { useTakePendingAction } from '../search/pendingAction';
@@ -11,13 +11,15 @@ import { ExerciseDraftDialog } from '../aiDraft/ExerciseDraftDialog';
 import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
+import { FilterChips } from '../components/Chip';
+import { SkeletonBlock } from '../components/Skeleton';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
 import { ExerciseFormDialog } from './ExerciseFormDialog';
 import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, getExercise, listExercises } from './exercisesApi';
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
 import { exerciseImportIssueText } from './exercisesImportMessages';
-import { useNotify } from '../components/Notice';
+import { useNotify, useUndoable } from '../components/Notice';
+import { ExerciseRow } from './ExerciseRow';
 import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
 
@@ -35,6 +37,14 @@ export function ExercisesPage() {
   const [showImport, setShowImport] = useState(false);
   const [showDraft, setShowDraft] = useState(false);
   const notify = useNotify();
+  const undoable = useUndoable();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   useTakePendingAction('new-exercise', () => setDialog({ mode: 'new' }));
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -45,6 +55,7 @@ export function ExercisesPage() {
   const [dialog, setDialog] = useState<{ mode: 'new' } | { mode: 'edit'; exercise: Exercise } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ exercise: Exercise; usageCount: number } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
 
   async function loadFirstPage() {
     const page = await listExercises(null, category || null);
@@ -89,7 +100,43 @@ export function ExercisesPage() {
       .catch(() => {});
   }, [exerciseParam, setSearchParams]);
 
-  async function askDelete(exercise: Exercise) {
+  function setHiddenId(id: string, value: boolean) {
+    setHidden((current) => {
+      const next = new Set(current);
+      if (value) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function dropFromList(id: string) {
+    setExercises((current) => current.filter((e) => e.id !== id));
+    setHiddenId(id, false);
+  }
+
+  // Unused exercise: the card leaves at once and the delete runs when the Undo notice expires.
+  function deleteWithUndo(exercise: Exercise) {
+    setHiddenId(exercise.id, true);
+    undoable({
+      message: p.deletedNotice(exercise.name),
+      commit: async () => {
+        await deleteExercise(exercise.id);
+        if (mounted.current) dropFromList(exercise.id);
+      },
+      onUndo: () => {
+        if (mounted.current) setHiddenId(exercise.id, false);
+      },
+      onCommitError: () => {
+        if (mounted.current) {
+          setHiddenId(exercise.id, false);
+          setDeleteError(p.deleteError);
+        }
+      },
+    });
+  }
+
+  // A used exercise is a high-impact delete: it keeps the confirm naming the number of trainings.
+  async function requestDelete(exercise: Exercise) {
     setDeleteError(null);
     let usageCount = USAGE_UNKNOWN;
     try {
@@ -97,7 +144,8 @@ export function ExercisesPage() {
     } catch {
       usageCount = USAGE_UNKNOWN;
     }
-    setPendingDelete({ exercise, usageCount });
+    if (usageCount === 0) deleteWithUndo(exercise);
+    else setPendingDelete({ exercise, usageCount });
   }
 
   async function confirmDelete() {
@@ -108,9 +156,11 @@ export function ExercisesPage() {
       setDeleteError(p.deleteError);
       return;
     }
+    dropFromList(pendingDelete.exercise.id);
     setPendingDelete(null);
-    void loadFirstPage();
   }
+
+  const visible = exercises.filter((e) => !hidden.has(e.id));
 
   const moreItems: MenuItem[] = [
     { kind: 'action', label: p.import, onSelect: () => setShowImport(true) },
@@ -118,7 +168,7 @@ export function ExercisesPage() {
   ];
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-[1080px] p-4 sm:p-6 lg:p-8">
       <PageHeader
         title={p.title}
         mainAction={{ label: p.newExercise, icon: Plus, onSelect: () => setDialog({ mode: 'new' }) }}
@@ -126,94 +176,48 @@ export function ExercisesPage() {
         className="mb-4"
       />
 
-      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label={p.filterByCategory}>
-        <button
-          type="button"
-          aria-pressed={category === ''}
-          onClick={() => setCategory('')}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-            category === '' ? 'bg-blue-strong text-on-ink' : 'border border-border bg-surface text-slate hover:bg-bg'
-          }`}
-        >
-          {p.all}
-        </button>
-        {EXERCISE_CATEGORIES.map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            aria-pressed={category === c.key}
-            onClick={() => setCategory(c.key)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              category === c.key ? 'bg-blue-strong text-on-ink' : 'border border-border bg-surface text-slate hover:bg-bg'
-            }`}
-          >
-            {lb.exerciseCategory[c.key]}
-          </button>
-        ))}
-      </div>
+      <FilterChips
+        label={p.filterByCategory}
+        options={[{ id: '' as ExerciseCategory | '', label: p.all }, ...EXERCISE_CATEGORIES.map((c) => ({ id: c.key as ExerciseCategory | '', label: lb.exerciseCategory[c.key] }))]}
+        value={category}
+        onChange={setCategory}
+        className="mb-4"
+      />
 
       {error && (
         <p role="alert" className="mb-4 text-red-strong">
           {error}
         </p>
       )}
+      {deleteError && !pendingDelete && (
+        <p role="alert" className="mb-4 text-red-strong">
+          {deleteError}
+        </p>
+      )}
 
+      {!loaded && !error && (
+        <div role="status" aria-label={t.common.loading} className="space-y-px">
+          <SkeletonBlock className="h-[72px]" />
+          <SkeletonBlock className="h-[72px]" />
+          <SkeletonBlock className="h-[72px]" />
+        </div>
+      )}
 
-      {/* Mobile: a separated card per entry (own border + shadow). Tablet/desktop:
-          one bordered container with hairline dividers between rows. */}
-      <div className="space-y-3 sm:space-y-0 sm:divide-y sm:divide-border sm:rounded-lg sm:border sm:border-border sm:bg-surface sm:shadow-card">
-        {loaded && exercises.length === 0 && (
-          <p className="rounded-lg border border-border bg-surface p-4 text-slate shadow-card sm:rounded-none sm:border-0 sm:shadow-none">
-            {p.none}
-          </p>
-        )}
-        {exercises.map((exercise) => (
-          <div
-            key={exercise.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => setDialog({ mode: 'edit', exercise })}
-            onKeyDown={(e) => {
-              if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                e.preventDefault();
-                setDialog({ mode: 'edit', exercise });
-              }
-            }}
-            className="flex cursor-pointer flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-card hover:bg-bg sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none"
-          >
-            <div className="flex items-start gap-3">
-              <div onClick={(e) => e.stopPropagation()}>
-                <DiagramThumbnail exerciseId={exercise.id} />
-              </div>
-              <div className="min-w-0 text-left">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="font-medium text-ink">{exercise.name}</span>
-                  <span className="rounded-sm bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue-strong">
-                    {lb.exerciseCategory[exercise.category]}
-                  </span>
-                </div>
-                {exercise.description && (
-                  <p className="mt-1 line-clamp-2 text-sm text-slate sm:line-clamp-1">
-                    {exercise.description}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-end border-t border-border pt-3 sm:border-0 sm:pt-0">
-              <Button
-                variant="dangerGhost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void askDelete(exercise);
-                }}
-              >
-                {t.common.delete}
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {loaded && visible.length === 0 && (
+        <p className="rounded-lg bg-surface p-4 text-ink-2 shadow-card">{p.none}</p>
+      )}
+      {visible.length > 0 && (
+        <ul className="overflow-hidden rounded-lg bg-surface shadow-card md:grid md:grid-cols-3 md:gap-3 md:overflow-visible md:rounded-none md:bg-transparent md:shadow-none lg:grid-cols-4">
+          {visible.map((exercise) => (
+            <ExerciseRow
+              key={exercise.id}
+              exercise={exercise}
+              onOpen={() => setDialog({ mode: 'edit', exercise })}
+              onDelete={() => void requestDelete(exercise)}
+            />
+          ))}
+        </ul>
+      )}
 
       {hasMore && (
         <Button
@@ -267,13 +271,7 @@ export function ExercisesPage() {
       {pendingDelete && (
         <ConfirmDialog
           title={p.deleteTitle(pendingDelete.exercise.name)}
-          message={
-            pendingDelete.usageCount === USAGE_UNKNOWN
-              ? p.usageUnknown
-              : pendingDelete.usageCount > 0
-                ? p.usedIn(pendingDelete.usageCount)
-                : p.notUsed
-          }
+          message={pendingDelete.usageCount === USAGE_UNKNOWN ? p.usageUnknown : p.usedIn(pendingDelete.usageCount)}
           confirmLabel={p.confirmDelete}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setPendingDelete(null)}

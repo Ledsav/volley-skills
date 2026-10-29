@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act } from '@testing-library/react';
+import { NoticeProvider, UNDO_MS } from '../components/Notice';
 import { WithChrome } from '../test/chromeProbe';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { ExercisesPage } from './ExercisesPage';
 import * as exercisesApi from './exercisesApi';
 
@@ -43,9 +45,19 @@ const exercise = {
 function renderPage(initialEntries: Parameters<typeof MemoryRouter>[0]['initialEntries'] = ['/exercises']) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
-      <WithChrome>
-        <ExercisesPage />
-      </WithChrome>
+      <NoticeProvider>
+        <Routes>
+          <Route
+            path="/exercises"
+            element={
+              <WithChrome>
+                <ExercisesPage />
+              </WithChrome>
+            }
+          />
+          <Route path="/exercises/:exerciseId/diagram" element={<p>diagram-editor-stub</p>} />
+        </Routes>
+      </NoticeProvider>
     </MemoryRouter>
   );
 }
@@ -114,44 +126,156 @@ describe('ExercisesPage', () => {
     expect(heading.closest('[data-page-header]')?.querySelector('button')).toBeNull();
   });
 
-  it('stacks each exercise entry as a card on mobile, with the description un-clamped', async () => {
+  it('shows each exercise as a list row that becomes a gallery card from md, with a clamped description', async () => {
     renderPage();
     const entry = (await screen.findByText('Pepper')).closest('[role="button"]') as HTMLElement;
-    expect(entry.className).toMatch(/(^|\s)flex-col(\s|$)/);
-    expect(entry.className).toContain('sm:flex-row');
-    // each entry carries its own border + shadow on mobile, dropped at >=sm
-    expect(entry.className).toMatch(/(^|\s)border(\s|$)/);
-    expect(entry.className).toContain('shadow-card');
-    expect(entry.className).toContain('sm:border-0');
-    // description shows two lines on the phone card instead of a single clamped line
+    expect(entry.className).toContain('md:flex-col');
     expect(screen.getByText('Control drill').className).toContain('line-clamp-2');
   });
 
-  it('opens the edit dialog when the row is clicked, but not when Delete is clicked', async () => {
-    renderPage();
+  async function openMenu() {
     await screen.findByText('Pepper');
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Pepper' }));
+  }
 
-    fireEvent.click(screen.getByText('Delete'));
-    // Delete stops propagation — the row's open-dialog handler must not fire.
+  it('opens the edit dialog when the row is clicked, but not when the kebab is clicked', async () => {
+    renderPage();
+    await openMenu();
     expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
-
+    fireEvent.keyDown(document, { key: 'Escape' });
     fireEvent.click(screen.getByText('Pepper'));
     expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
   });
 
-  it('opens the edit dialog on keyboard Enter on the row, but not on Enter on the Delete button', async () => {
+  it('opens the edit dialog on keyboard Enter on the row, but not on Enter on the kebab', async () => {
     renderPage();
     await screen.findByText('Pepper');
-
     const row = screen.getByText('Pepper').closest('[role="button"]') as HTMLElement;
-
-    // Enter bubbling up from the nested Delete button must NOT open the edit dialog.
-    fireEvent.keyDown(screen.getByText('Delete'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Actions for Pepper' }), { key: 'Enter' });
     expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
-
-    // Enter on the row element itself DOES open it.
     fireEvent.keyDown(row, { key: 'Enter' });
     expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
+  });
+
+  it('the kebab and its items never open the edit sheet', async () => {
+    vi.mocked(exercisesApi.countTrainingsUsingExercise).mockResolvedValue(3);
+    renderPage();
+    await openMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await screen.findByRole('alertdialog');
+    expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
+  });
+
+  it('right-click offers Edit, Edit diagrams and Delete', async () => {
+    renderPage();
+    await screen.findByText('Pepper');
+    fireEvent.contextMenu(screen.getByText('Pepper').closest('[role="button"]') as HTMLElement, { clientX: 20, clientY: 20 });
+    const menu = screen.getByRole('menu', { name: 'Actions for Pepper' });
+    expect(within(menu).getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Edit diagrams' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it('Edit diagrams from the row menu opens the editor', async () => {
+    renderPage();
+    await openMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit diagrams' }));
+    expect(await screen.findByText('diagram-editor-stub')).toBeInTheDocument();
+  });
+
+  it('the category filter is a horizontally scrolling chip row', async () => {
+    renderPage();
+    await screen.findByText('Pepper');
+    expect(screen.getByRole('group', { name: 'Filter by category' })).toHaveClass('overflow-x-auto');
+  });
+
+  describe('delete', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.mocked(exercisesApi.countTrainingsUsingExercise).mockResolvedValue(0);
+      vi.mocked(exercisesApi.deleteExercise).mockResolvedValue(undefined);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function chooseDelete() {
+      await openMenu();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    }
+
+    it('an unused exercise delete is an undo: the card leaves at once and the delete runs when the notice expires', async () => {
+      renderPage();
+      await chooseDelete();
+      await waitFor(() => expect(screen.queryByText('Pepper')).not.toBeInTheDocument());
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(exercisesApi.deleteExercise).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNDO_MS + 50);
+      });
+      expect(exercisesApi.deleteExercise).toHaveBeenCalledWith('ex-1');
+      expect(exercisesApi.listExercises).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Pepper')).not.toBeInTheDocument();
+    });
+
+    it('Undo restores the card and never deletes', async () => {
+      renderPage();
+      await chooseDelete();
+      await waitFor(() => expect(screen.queryByText('Pepper')).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+      expect(await screen.findByText('Pepper')).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNDO_MS + 50);
+      });
+      expect(exercisesApi.deleteExercise).not.toHaveBeenCalled();
+    });
+
+    it('a second delete commits the first at once', async () => {
+      const other = { ...exercise, id: 'ex-2', name: 'Serve' };
+      vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exercise, other], lastDoc: null, hasMore: false });
+      renderPage();
+      await screen.findByText('Serve');
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Pepper' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+      await waitFor(() => expect(screen.queryByText('Pepper')).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Serve' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+      await waitFor(() => expect(exercisesApi.deleteExercise).toHaveBeenCalledWith('ex-1'));
+      expect(exercisesApi.deleteExercise).not.toHaveBeenCalledWith('ex-2');
+    });
+
+    it('a failed delete brings the card back with the error', async () => {
+      vi.mocked(exercisesApi.deleteExercise).mockRejectedValue(new Error('denied'));
+      renderPage();
+      await chooseDelete();
+      await waitFor(() => expect(screen.queryByText('Pepper')).not.toBeInTheDocument());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNDO_MS + 50);
+      });
+      expect(await screen.findByText('Pepper')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not delete the exercise. Please try again.');
+    });
+
+    it('a used exercise keeps the confirm naming the training count and offers no undo', async () => {
+      vi.mocked(exercisesApi.countTrainingsUsingExercise).mockResolvedValue(2);
+      renderPage();
+      await chooseDelete();
+      expect(await screen.findByText(/used in 2 training/i)).toBeInTheDocument();
+      expect(screen.getByText('Pepper')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Yes, delete exercise' }));
+      await waitFor(() => expect(exercisesApi.deleteExercise).toHaveBeenCalledWith('ex-1'));
+      await waitFor(() => expect(screen.queryByText('Pepper')).not.toBeInTheDocument());
+      expect(exercisesApi.listExercises).toHaveBeenCalledTimes(1);
+    });
+
+    it('still opens the delete confirmation when the usage count read fails', async () => {
+      vi.mocked(exercisesApi.countTrainingsUsingExercise).mockRejectedValue(new Error('offline'));
+      renderPage();
+      await chooseDelete();
+      expect(await screen.findByText(/could not be determined/i)).toBeInTheDocument();
+    });
   });
 
   it('reloads with a category filter when a category chip is clicked', async () => {
@@ -176,32 +300,12 @@ describe('ExercisesPage', () => {
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('shows the training usage count in the delete confirmation', async () => {
-    vi.mocked(exercisesApi.countTrainingsUsingExercise).mockResolvedValue(2);
-    renderPage();
-    await screen.findByText('Pepper');
-
-    fireEvent.click(screen.getByText('Delete'));
-
-    expect(await screen.findByText(/used in 2 training\(s\)/i)).toBeInTheDocument();
-  });
-
   it('surfaces an alert and hides the empty state when the first page fails to load', async () => {
     vi.mocked(exercisesApi.listExercises).mockRejectedValueOnce(new Error('permission-denied'));
     renderPage();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load exercises/i);
     expect(screen.queryByText('No exercises yet.')).not.toBeInTheDocument();
-  });
-
-  it('still opens the delete confirmation when the usage count read fails', async () => {
-    vi.mocked(exercisesApi.countTrainingsUsingExercise).mockRejectedValue(new Error('offline'));
-    renderPage();
-    await screen.findByText('Pepper');
-
-    fireEvent.click(screen.getByText('Delete'));
-
-    expect(await screen.findByText(/could not be determined/i)).toBeInTheDocument();
   });
 
   it('opens the new exercise form from a pending action', async () => {

@@ -40,7 +40,9 @@ export const exercises = {
         one: "Questo esercizio è usato in 1 allenamento. Eliminandolo, quell'allenamento resterà con un esercizio mancante.",
         other: `Questo esercizio è usato in ${n} allenamenti. Eliminandolo, quegli allenamenti resteranno con un esercizio mancante.`,
       })}`,
-    notUsed: 'Questo esercizio non è usato in nessun allenamento.',
+    deletedNotice: (n: string) => `Esercizio “${n}” eliminato`,
+    rowMenu: (n: string) => `Azioni per ${n}`,
+    edit: 'Modifica',
     confirmDelete: 'Sì, elimina esercizio',
   },
   form: {

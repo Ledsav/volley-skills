@@ -1,17 +1,21 @@
 import { useSearchParams } from 'react-router-dom';
 import { usePageMeta } from '../../layout/usePageMeta';
 import { PageHeader } from '../../layout/PageHeader';
-import { SectionTabs } from '../../components/SectionTabs';
+import { SegmentedControl } from '../../components/SegmentedControl';
 import { useAuth } from '../../auth/AuthContext';
 import { ProfileTab } from './ProfileTab';
 import { PeopleTab } from './PeopleTab';
 import { ContractTab } from './ContractTab';
 import { ExportTab } from './ExportTab';
 import { useT } from '../../i18n/I18nProvider';
+import { PageContainer } from '../../layout/PageContainer';
 
 type ClubTab = 'profile' | 'people' | 'export' | 'contract';
 
 const TAB_IDS: ClubTab[] = ['profile', 'people', 'export', 'contract'];
+
+/** Tabs whose body publishes the toolbar itself (a main action), so the header must not. */
+const OWN_CHROME = new Set<ClubTab>(['people', 'export']);
 
 /**
  * `restricted` (a paused club, or one whose contract has ended) keeps Profile read-only,
@@ -27,14 +31,16 @@ export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
   const active = tabs.find((x) => x.id === requested)?.id ?? (restricted ? 'contract' : 'profile');
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <PageHeader title={t.pageTitle} eyebrow={club?.name} />
-      <SectionTabs label={t.sectionsLabel} tabs={tabs} active={active} className="mb-6"
-        onChange={(id) => setParams({ tab: id }, { replace: true })} />
-      {active === 'profile' && <ProfileTab restricted={restricted} />}
-      {active === 'people' && <PeopleTab />}
-      {active === 'export' && <ExportTab />}
-      {active === 'contract' && <ContractTab />}
-    </div>
+    <PageContainer>
+      <PageHeader title={t.pageTitle} eyebrow={club?.name} publishChrome={!OWN_CHROME.has(active)} />
+      <SegmentedControl semantics="tabs" label={t.sectionsLabel} options={tabs} value={active}
+        onChange={(id) => setParams({ tab: id }, { replace: true })} className="mb-6 w-full sm:w-fit" />
+      <div role="tabpanel" aria-label={tabs.find((x) => x.id === active)?.label}>
+        {active === 'profile' && <ProfileTab restricted={restricted} />}
+        {active === 'people' && <PeopleTab />}
+        {active === 'export' && <ExportTab />}
+        {active === 'contract' && <ContractTab />}
+      </div>
+    </PageContainer>
   );
 }

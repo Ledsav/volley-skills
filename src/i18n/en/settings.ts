@@ -1,7 +1,10 @@
 export const settings = {
   title: 'Settings',
   appearanceTitle: 'Appearance',
-  appearanceDescription: 'Switch between light and dark mode.',
+  theme: 'Theme',
+  themeSystem: 'System',
+  themeLight: 'Light',
+  themeDark: 'Dark',
   ai: {
     title: 'AI provider',
     description: 'Used for text scouting and for drafting exercises and trainings.',

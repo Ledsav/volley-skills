@@ -5,9 +5,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { useClubFeatures } from '../../clubs/useClubFeatures';
 import { getT, useT } from '../../i18n/I18nProvider';
-import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { Tab } from '../../components/Tab';
+import { SegmentedControl } from '../../components/SegmentedControl';
+import { tapFlash } from '../../motion/tapFlash';
 import { useMediaQuery } from '../../components/useMediaQuery';
 import type { ActionEvent, EventSource, Grade, Match, MatchEvent, MatchEventPayload, PointReason, RoleMap, Side, Skill, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
@@ -21,6 +21,7 @@ import { nextRotation, prevRotation, replay, resultFromState, rosterRoles, sameR
 import { playerForm } from '../scoutStats';
 import { POINT_REASONS, rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
+import { ScoutRoot } from './ScoutRoot';
 import { ActionSheet } from './ActionSheet';
 import { BenchStrip } from './BenchStrip';
 import { CorrectionDialog } from './CorrectionDialog';
@@ -30,6 +31,12 @@ import { HotkeyCheatSheet } from './HotkeyCheatSheet';
 import { keyLabel } from './hotkeys';
 import { Kbd } from './Kbd';
 import { RallyBar, type ReasonPrompt } from './RallyBar';
+import { onlyImports, undoTarget } from './undoTarget';
+import { TakeoverSheet } from './TakeoverSheet';
+import { useDeviceTakeover } from './useDeviceTakeover';
+import { StatusStrip, type StatusStripProps } from './StatusStrip';
+import { pickStrip } from './pickStrip';
+import { useWriteError } from './useWriteError';
 import { ScoutHeader } from './ScoutHeader';
 import type { MenuItem } from '../../components/Menu';
 import { LiveStatsPanel } from './LiveStatsPanel';
@@ -40,7 +47,6 @@ import { TimelineDrawer } from './TimelineDrawer';
 import { readQuickScore, writeQuickScore } from './quickScore';
 import { useScoutHotkeys, type ScoutHotkeysOptions } from './useScoutHotkeys';
 
-const HEARTBEAT_MS = 60_000;
 const REASON_PROMPT_MS = 5_000;
 const AUTO_SELECT_KEY = 'vcb.scoutAutoSelect';
 
@@ -81,10 +87,10 @@ function nextSetRoles(match: Match, events: MatchEvent[]): RoleMap {
 }
 
 /** First serve alternates set to set: the other side of the previous set's first server. */
-function nextSetServing(events: MatchEvent[], fallbackServing: Side): Side {
+function nextSetServing(events: MatchEvent[]): Side | null {
   const prevStart = sortEvents(events).filter((e) => e.type === 'setStart').pop();
-  const prev = prevStart && prevStart.type === 'setStart' ? prevStart.serving : fallbackServing;
-  return prev === 'us' ? 'them' : 'us';
+  if (!prevStart || prevStart.type !== 'setStart') return null;
+  return prevStart.serving === 'us' ? 'them' : 'us';
 }
 
 /** Mounts the keyboard listener once the page is live and shows its jersey hint. */
@@ -94,7 +100,7 @@ function ScoutHotkeys(props: ScoutHotkeysOptions): ReactNode {
   return (
     <p
       role="status"
-      className="pointer-events-none fixed bottom-16 left-1/2 z-40 -translate-x-1/2 rounded-md bg-ink px-3 py-1.5 text-sm font-medium tabular-nums text-white shadow-pop"
+      className="pointer-events-none fixed bottom-40 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-3 py-1.5 text-callout font-medium tabular-nums text-on-ink shadow-pop"
     >
       {hint}
     </p>
@@ -110,13 +116,15 @@ export function ScoutPage() {
   const { firebaseUser } = useAuth();
   const { aiEnabled } = useClubFeatures();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Landscape phones: too short for a stacked panel, so the panel sits beside the court and the dock is one row.
+  const isShort = useMediaQuery('(max-height: 560px) and (orientation: landscape)', false) && !isDesktop;
   const deviceId = useMemo(() => getDeviceId(), []);
 
   const [match, setMatch] = useState<Match | null>(null);
   const [usage, setUsage] = useState<UsageProfile>({ players: {} });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [writeError, setWriteError] = useState<string | null>(null);
+  const writeError = useWriteError();
   const [locked, setLocked] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [autoSelect, setAutoSelect] = useState(readAutoSelect);
@@ -188,11 +196,7 @@ export function ScoutPage() {
   }, [teamId, matchId, deviceId, navigate]);
 
   const matchLoaded = match !== null;
-  useEffect(() => {
-    if (!matchLoaded || locked) return;
-    const t = window.setInterval(() => void claimDevice(teamId, matchId, deviceId).catch(() => undefined), HEARTBEAT_MS);
-    return () => window.clearInterval(t);
-  }, [matchLoaded, locked, teamId, matchId, deviceId]);
+  const { takenOver, takeBack } = useDeviceTakeover({ teamId, matchId, deviceId, active: matchLoaded && !locked });
 
   const state = useMemo(() => (match && events ? replay(match, events) : null), [match, events]);
   const roster = useMemo(() => rosterMap(match?.roster ?? []), [match]);
@@ -220,12 +224,12 @@ export function ScoutPage() {
 
   // Keep the list/calendar result current without replaying there.
   useEffect(() => {
-    if (!match || !state || locked) return;
+    if (!match || !state || locked || takenOver) return;
     const result = resultFromState(state);
     if (sameResult(result, match.result)) return;
     setMatch({ ...match, result });
     updateMatchResult(teamId, matchId, result).catch(() => undefined);
-  }, [state, match, locked, teamId, matchId]);
+  }, [state, match, locked, takenOver, teamId, matchId]);
 
   // Double-tap guards: one setEnd per set, one finish per click-through.
   const endedSetRef = useRef<number | null>(null);
@@ -244,11 +248,11 @@ export function ScoutPage() {
 
   const record = useCallback(
     (payload: MatchEventPayload, source: EventSource = 'tap'): string | null => {
-      if (!events || !firebaseUser) return null;
+      if (!events || !firebaseUser || takenOver) return null;
       setReasonPrompt(null);
       const order = nextOrder(events, anchorId, lastWriteRef.current, maxOrderRef.current);
       const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
-      written.catch(() => setWriteError(getT().scout.page.writeAction));
+      writeError.track(written, getT().scout.page.writeAction);
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order };
       maxOrderRef.current = Math.max(maxOrderRef.current, order);
@@ -262,15 +266,15 @@ export function ScoutPage() {
       }
       return id;
     },
-    [events, firebaseUser, anchorId, teamId, matchId],
+    [events, firebaseUser, takenOver, anchorId, teamId, matchId, writeError],
   );
 
   function mergeText(payloads: MatchEventPayload[], orders: number[]): boolean {
-    if (!firebaseUser || payloads.length === 0) return false;
+    if (!firebaseUser || takenOver || payloads.length === 0) return false;
     const chunkId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `chunk-${Date.now()}`;
     payloads.forEach((payload, i) => {
       const { id, written } = addEvent(teamId, matchId, { ...payload, order: orders[i], source: 'text', chunkId }, firebaseUser.uid);
-      written.catch(() => setWriteError(getT().scout.page.writeText));
+      writeError.track(written, getT().scout.page.writeText);
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order: orders[i] };
       maxOrderRef.current = Math.max(maxOrderRef.current, orders[i]);
@@ -302,22 +306,15 @@ export function ScoutPage() {
   }, [reasonPrompt]);
 
   function undo() {
-    if (!events || events.length === 0) return;
+    if (!events || events.length === 0 || takenOver) return;
+    const target = undoTarget(events, writtenRef.current);
+    writtenRef.current = target.stack;
+    if (target.kind === 'none' || target.kind === 'importOnly') return;
     setReasonPrompt(null);
-    let last: MatchEvent | undefined;
-    while (!last && writtenRef.current.length > 0) {
-      const id = writtenRef.current.pop();
-      last = events.find((e) => e.id === id);
-    }
-    if (!last) {
-      const sorted = sortEvents(events);
-      last = sorted[sorted.length - 1];
-    }
-    const chunkId = last.chunkId;
-    const ids = chunkId ? events.filter((e) => e.chunkId === chunkId).map((e) => e.id) : [last.id];
-    if (ids.length > 1) setPendingUndo(ids);
+    const ids = target.ids;
+    if (target.kind === 'batch') setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.undoError));
+    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => writeError.show(getT().scout.page.undoError));
   }
 
   function recordPoint(winner: Side) {
@@ -326,7 +323,7 @@ export function ScoutPage() {
   }
 
   function amendReason(eventId: string, reason: PointReason) {
-    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError(getT().scout.page.pointReasonError));
+    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => writeError.show(getT().scout.page.pointReasonError));
     setReasonPrompt(null);
   }
 
@@ -365,9 +362,10 @@ export function ScoutPage() {
   }
 
   function deleteFromTimeline(ids: string[]) {
+    if (takenOver) return;
     if (reasonPrompt && ids.includes(reasonPrompt.eventId)) setReasonPrompt(null);
     if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-    void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.deleteError));
+    void deleteEvents(teamId, matchId, ids).catch(() => writeError.show(getT().scout.page.deleteError));
   }
 
   async function finish() {
@@ -378,7 +376,7 @@ export function ScoutPage() {
       fresh = await getUsageProfile(teamId);
     } catch {
       finishingRef.current = false;
-      setWriteError(getT().matches.page.usageError);
+      writeError.show(getT().matches.page.usageError);
       return;
     }
     finishMatch(teamId, matchId, buildFinishPayload(match, state, fresh)).catch(() => undefined);
@@ -392,28 +390,78 @@ export function ScoutPage() {
   }
 
   if (notFound) {
-    return <NotFoundState title={tr.matches.page.notFoundTitle} message={tr.matches.page.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={tr.matches.page.backToTeam} />;
+    return (
+      <ScoutRoot>
+        <NotFoundState title={tr.matches.page.notFoundTitle} message={tr.matches.page.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={tr.matches.page.backToTeam} />
+      </ScoutRoot>
+    );
   }
-  if (loadError || eventsError) return <p role="alert" className="p-6 text-red">{loadError ?? eventsError}</p>;
-  if (!match || !state) return <p className="p-6 text-slate">{tr.matches.page.loading}</p>;
+  if (loadError || eventsError) {
+    return (
+      <ScoutRoot>
+        <p role="alert" className="p-6 text-red-strong">{loadError ?? eventsError}</p>
+      </ScoutRoot>
+    );
+  }
+  if (!match || !state) {
+    return (
+      <ScoutRoot>
+        <p className="p-6 text-ink-2">{tr.matches.page.loading}</p>
+      </ScoutRoot>
+    );
+  }
 
   if (locked) {
     return (
-      <ConfirmDialog
-        title={sp.lockedTitle}
-        message={sp.lockedMessage}
-        confirmLabel={sp.lockedConfirm}
-        onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
-        onConfirm={() => {
-          setLocked(false);
-          void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
-        }}
-      />
+      <ScoutRoot>
+        <ConfirmDialog
+          title={sp.lockedTitle}
+          message={sp.lockedMessage}
+          confirmLabel={sp.lockedConfirm}
+          onCancel={() => navigate(`/teams/${teamId}/matches/${matchId}`)}
+          onConfirm={() => {
+            setLocked(false);
+            void claimDevice(teamId, matchId, deviceId).catch(() => undefined);
+          }}
+        />
+      </ScoutRoot>
     );
   }
 
   const liberoIds = new Set(match.liberos.map((l) => l.playerId));
   const selected = selectedId ? roster.get(selectedId) : undefined;
+  const stripKind = pickStrip({
+    error: writeError.error !== null,
+    matchOver: state.matchOver,
+    betweenSets: !state.inSet && !state.matchOver,
+    inserting: anchorId !== null,
+  });
+  let stripProps: StatusStripProps | null = null;
+  if (stripKind === 'error') {
+    stripProps = { kind: 'error', message: writeError.error ?? '', dismissLabel: sp.dismiss, onDismiss: writeError.dismiss };
+  } else if (stripKind === 'matchOver') {
+    stripProps = {
+      kind: 'matchOver',
+      label: sp.matchOver(state.setsWon.us, state.setsWon.them),
+      finishLabel: tr.matches.page.finish,
+      onFinish: () => void finish(),
+    };
+  } else if (stripKind === 'betweenSets') {
+    stripProps = {
+      kind: 'betweenSets',
+      label:
+        state.set === 0
+          ? sp.setLineup
+          : sp.setOver(state.set, state.setScores[state.set - 1]?.us ?? 0, state.setScores[state.set - 1]?.them ?? 0),
+      undoLabel: state.set > 0 ? sp.undoSetEnd : null,
+      onUndo: undoSetEnd,
+      startLabel: sp.startSet(state.set + 1),
+      onStart: () => setSetDialogOpen(true),
+    };
+  } else if (stripKind === 'inserting') {
+    stripProps = { kind: 'inserting', label: sp.inserting, backLabel: sp.backToLive, onBack: () => setAnchorId(null) };
+  }
+
   const bench = match.roster.filter((r) => !state.court.includes(r.playerId));
   const skillsFor = (playerId: string) => {
     const entry = roster.get(playerId);
@@ -494,8 +542,27 @@ export function ScoutPage() {
     { kind: 'action', label: sp.exit, onSelect: () => navigate(`/teams/${teamId}/matches/${matchId}`) },
   ];
 
+  // Desktop: inline under the court. Phones: pinned above the dock, outside the scrolling main, so the
+  // grades never need a scroll while the court shrinks.
+  const actionPanel =
+    panelPlayer && panelSkill && selection ? (
+    <ActionSheet
+      key={`${panelPlayer.playerId}-${selection.seq}`}
+      player={panelPlayer}
+      isLibero={liberoIds.has(panelPlayer.playerId)}
+      skills={panelSkills}
+      skill={panelSkill}
+      onSkillChange={chooseSkill}
+      onClose={() => select(null)}
+      onSub={() => openSub(panelPlayer.playerId)}
+      onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
+    />
+    ) : null;
+
+  // Desktop: the column is exactly the height between header and dock, so the court never needs a page
+  // scroll. Phones keep their scrolling main.
   const courtColumn = (
-    <div className="flex flex-col gap-3">
+    <div className={`flex flex-col gap-3 ${isDesktop ? 'h-full min-h-0' : 'min-h-full'}`}>
       {!quickScore && (
         <>
           <CourtGrid
@@ -509,6 +576,8 @@ export function ScoutPage() {
             form={(id) => playerForm(state, id)}
             disabled={!state.inSet}
             servingUs={state.serving === 'us'}
+            // Stays compact while auto-select will reopen the panel, so the court does not jump after every grade.
+            compact={!isDesktop && (isShort || actionPanel !== null || (autoSelect && !quickScore && state.inSet))}
             onSelect={(id) => select(id)}
             onLongPress={(id) => {
               if (!liberoIds.has(id)) setSubOutId(id);
@@ -518,20 +587,8 @@ export function ScoutPage() {
           {!panelPlayer && <BenchStrip players={bench} names={names} onSelect={(id) => select(id)} disabled={!state.inSet} />}
         </>
       )}
-      {panelPlayer && panelSkill && selection && (
-        <ActionSheet
-          key={`${panelPlayer.playerId}-${selection.seq}`}
-          player={panelPlayer}
-          isLibero={liberoIds.has(panelPlayer.playerId)}
-          skills={panelSkills}
-          skill={panelSkill}
-          onSkillChange={chooseSkill}
-          onClose={() => select(null)}
-          onSub={() => openSub(panelPlayer.playerId)}
-          onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
-        />
-      )}
-      {!state.inSet && <p className="py-2 text-center text-sm text-slate">{sp.startToRecord}</p>}
+      {isDesktop && actionPanel}
+      {!state.inSet && <p className="py-2 text-center text-callout text-ink-2">{sp.startToRecord}</p>}
     </div>
   );
 
@@ -573,7 +630,7 @@ export function ScoutPage() {
 
   return (
     // A fixed full-height frame: header and events dock never scroll away; only the middle does.
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-bg">
+    <ScoutRoot>
       <ScoutHeader
         state={state}
         format={match.format}
@@ -581,6 +638,7 @@ export function ScoutPage() {
         pending={pending}
         disabled={!state.inSet}
         onUndo={undo}
+        undoHint={onlyImports(events ?? []) ? sp.undoImportHint : null}
         tools={tools}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>
@@ -590,65 +648,89 @@ export function ScoutPage() {
           )
         }
       />
-      {writeError && <p role="alert" className="bg-red/10 px-4 py-2 text-sm text-red-strong">{writeError}</p>}
-      {anchorId && (
-        <div className="flex items-center justify-between bg-blue/10 px-4 py-2 text-sm text-ink">
-          <span>{sp.inserting}</span>
-          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue">{sp.backToLive}</button>
-        </div>
-      )}
-      {!state.inSet && !state.matchOver && (
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-orange/10 px-4 py-2">
-          <span className="font-semibold text-ink">
-            {state.set === 0
-              ? sp.setLineup
-              : sp.setOver(state.set, state.setScores[state.set - 1]?.us ?? 0, state.setScores[state.set - 1]?.them ?? 0)}
-          </span>
-          <div className="flex gap-2">
-            {state.set > 0 && (
-              <Button variant="ghost" size="sm" onClick={undoSetEnd}>{sp.undoSetEnd}</Button>
-            )}
-            <Button variant="primary" size="sm" onClick={() => setSetDialogOpen(true)}>{sp.startSet(state.set + 1)}</Button>
-          </div>
-        </div>
-      )}
-      {state.matchOver && (
-        <div className="flex items-center justify-between gap-3 bg-green/15 px-4 py-3">
-          <span className="font-semibold text-ink">
-            {sp.matchOver(state.setsWon.us, state.setsWon.them)}
-          </span>
-          <Button variant="primary" size="sm" onClick={() => void finish()}>{tr.matches.page.finish}</Button>
-        </div>
-      )}
-      {isDesktop ? (
-        <main className="grid min-h-0 flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 overflow-y-auto p-4">
-          {courtColumn}
-          <div className="flex min-w-0 flex-col gap-4">
-            {textPanel}
-            {!textVisible && live}
-            <div className="max-h-[50vh] overflow-y-auto">{timeline}</div>
-          </div>
-        </main>
-      ) : (
-        <>
-          <div role="tablist" aria-label={sp.views} className="flex gap-4 border-b border-border bg-surface px-4">
-            <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>{sp.tabCourt}</Tab>
-            <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>{sp.tabLive}</Tab>
-            <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>{sp.tabTimeline}</Tab>
-            {aiEnabled && <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>{sp.tabText}</Tab>}
-          </div>
-          <main className="min-h-0 flex-1 overflow-y-auto p-3">
-            {phoneTab === 'court' && courtColumn}
-            {phoneTab === 'live' && live}
-            {phoneTab === 'timeline' && timeline}
-            {textPanel}
+      {stripProps && <StatusStrip {...stripProps} />}
+      {/* The content region: the set-point prompt floats at its top, below the header and any status strip. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {isDesktop ? (
+          // One row exactly as tall as the space between header and dock: the court fits, and the right
+          // column's panels scroll inside themselves instead of pushing the page.
+          <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.4fr)_360px] grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.4fr)_400px]">
+            {courtColumn}
+            <div className="flex min-h-0 min-w-0 flex-col gap-4">
+              {textPanel && <div className={textVisible ? 'scroll-quiet min-h-0 shrink overflow-y-auto rounded-lg' : undefined}>{textPanel}</div>}
+              {!textVisible && <div className="scroll-quiet min-h-0 shrink overflow-y-auto rounded-lg">{live}</div>}
+              <div className="scroll-quiet max-h-[40%] min-h-0 shrink-0 overflow-y-auto rounded-lg">{timeline}</div>
+            </div>
           </main>
-        </>
-      )}
+        ) : (
+          <>
+            <SegmentedControl
+              semantics="tabs"
+              label={sp.views}
+              options={[
+                { id: 'court', label: sp.tabCourt },
+                { id: 'live', label: sp.tabLive },
+                { id: 'timeline', label: sp.tabTimeline },
+                ...(aiEnabled ? [{ id: 'text' as const, label: sp.tabText }] : []),
+              ]}
+              value={phoneTab}
+              onChange={setPhoneTab}
+              className="mx-3 mt-2 shrink-0"
+            />
+            <main
+              className={`min-h-0 flex-1 overflow-y-auto ${actionPanel && !isShort ? 'p-2' : 'p-3'} ${
+                isShort && phoneTab === 'court' ? 'grid grid-cols-2 gap-3' : 'flex flex-col'
+              }`}
+            >
+              {phoneTab === 'court' && courtColumn}
+              {isShort && phoneTab === 'court' && <div className="min-w-0">{actionPanel}</div>}
+              {phoneTab === 'live' && live}
+              {phoneTab === 'timeline' && timeline}
+              {textPanel}
+            </main>
+            {/* Portrait phones: pinned above the dock but allowed to shrink and scroll, so the dock is never clipped. */}
+            {!isShort && phoneTab === 'court' && actionPanel && (
+              <div data-testid="pinned-panel" className="min-h-0 shrink overflow-y-auto px-2 pb-2">
+                {actionPanel}
+              </div>
+            )}
+          </>
+        )}
+        {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
+          <div
+            role="dialog"
+            aria-label={sp.setPoint}
+            className="absolute inset-x-3 top-2 z-40 rounded-xl bg-surface p-4 shadow-pop md:inset-x-auto md:left-1/2 md:w-[420px] md:-translate-x-1/2"
+          >
+            <p className="mb-3 text-headline text-ink">
+              {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onPointerDown={(e) => tapFlash(e.currentTarget)}
+                onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}
+                className="min-h-14 rounded-md bg-surface-2 px-4 text-headline text-ink"
+              >
+                {sp.notYet}
+              </button>
+              <button
+                type="button"
+                aria-label={sp.confirmSet}
+                onPointerDown={(e) => tapFlash(e.currentTarget)}
+                onClick={confirmSet}
+                className="min-h-14 rounded-md bg-ink px-4 text-headline text-on-ink"
+              >
+                {sp.confirmSet}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       {state.inSet && (
         <section
           aria-label={sp.events}
-          className="shrink-0 border-t border-border bg-surface px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-pop"
+          className="shrink-0 border-t border-separator bg-bg px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2"
         >
           <div className="mx-auto w-full max-w-3xl">
             <RallyBar
@@ -659,6 +741,7 @@ export function ScoutPage() {
               onPoint={recordPoint}
               onReason={amendReason}
               onTimeout={recordTimeout}
+              oneRow={isShort}
             />
           </div>
         </section>
@@ -671,7 +754,7 @@ export function ScoutPage() {
           liberos={match.liberos}
           roles={nextSetRoles(match, events ?? [])}
           initialLineup={state.setStartLineup.length === 6 ? state.setStartLineup : defaultLineup(match.roster, match.liberos)}
-          initialServing={nextSetServing(events ?? [], state.serving)}
+          initialServing={nextSetServing(events ?? [])}
           onCancel={() => setSetDialogOpen(false)}
           onStart={(lineup, serving, roles) => {
             record({ type: 'setStart', set: state.set + 1, lineup, serving, roles });
@@ -681,7 +764,7 @@ export function ScoutPage() {
               const nextRoster = match.roster.map((r) => ({ ...r, positionCategory: roles[r.playerId] ?? r.positionCategory }));
               setMatch({ ...match, roster: nextRoster });
               updateMatchRoster(teamId, matchId, nextRoster).catch(() =>
-                setWriteError(sp.rosterError),
+                writeError.show(sp.rosterError),
               );
             }
           }}
@@ -713,29 +796,13 @@ export function ScoutPage() {
         />
       )}
 
-      {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
-        <div role="dialog" aria-label={sp.setPoint} className="fixed inset-x-3 top-24 z-40 rounded-lg border border-border bg-surface p-4 shadow-pop">
-          <p className="mb-3 font-semibold text-ink">
-            {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}>
-              {sp.notYet}
-            </Button>
-            <Button variant="primary" aria-label={sp.confirmSet} onClick={confirmSet}>
-              {sp.confirmSet}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {editing && (
         <EditEventDialog
           event={editing}
           roster={match.roster}
           onCancel={() => setEditing(null)}
           onSave={(patch) => {
-            void updateEvent(teamId, matchId, editing.id, patch).catch(() => setWriteError(getT().scout.page.editError));
+            void updateEvent(teamId, matchId, editing.id, patch).catch(() => writeError.show(getT().scout.page.editError));
             setEditing(null);
           }}
         />
@@ -779,12 +846,20 @@ export function ScoutPage() {
           confirmLabel={sp.undoBatchConfirm}
           onCancel={() => setPendingUndo(null)}
           onConfirm={() => {
+            if (takenOver) {
+              setPendingUndo(null);
+              return;
+            }
             if (anchorId && pendingUndo.includes(anchorId)) setAnchorId(null);
-            void deleteEvents(teamId, matchId, pendingUndo).catch(() => setWriteError(sp.undoError));
+            void deleteEvents(teamId, matchId, pendingUndo).catch(() => writeError.show(sp.undoError));
             setPendingUndo(null);
           }}
         />
       )}
-    </div>
+      {/* Last, so it stacks above any confirm that was already open. */}
+      {takenOver && (
+        <TakeoverSheet onTakeBack={takeBack} onLeave={() => navigate(`/teams/${teamId}/matches/${matchId}`)} />
+      )}
+    </ScoutRoot>
   );
 }

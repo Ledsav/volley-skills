@@ -1,32 +1,30 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, GripVertical, Trash2, TriangleAlert } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { useMediaQuery } from '../components/useMediaQuery';
 import { OfflineError, useSave } from '../components/useSave';
-import { Dialog } from '../components/Dialog';
-import { Input, Textarea } from '../components/Input';
+import { FilterChips, ToggleChip } from '../components/Chip';
+import { Sheet } from '../components/Sheet';
+import { FIELD_LABEL_CLASS, Input, Textarea } from '../components/Input';
 import { parseOptionalInt } from '../components/parseOptionalInt';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
 import { getExercisesByIds, listExercises, listExercisesInCategories } from '../exercises/exercisesApi';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type Exercise, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput, Training, TrainingExercise } from '../types/training';
+import { moveRow, useRowReorder } from './reorder';
 import { PlayersNote } from './PlayersNote';
 import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
 import { trainingNameExample, trainingNameHint } from './naming';
 import { useT } from '../i18n/I18nProvider';
 
-const chipClass = (active: boolean) =>
-  `shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-    active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
-  }`;
-
 const FORM_ID = 'training-form';
 
 const rowIconBtn =
-  'inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink disabled:opacity-30 sm:h-9 sm:w-9';
+  'inline-flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-30';
 
 interface Row extends TrainingExercise {
   name: string | null; // null => the exercise no longer exists
@@ -69,6 +67,11 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   // Bumped whenever the targets change, so an answer to an older suggestions query is dropped.
   const suggestRequest = useRef(0);
   const [error, setError] = useState<string | null>(null);
+  // Plan edits made with buttons or drag don't bubble a change event, so they arm the discard guard here.
+  // A draft prefill is unsaved work from the start (its new exercises are already saved, the plan is not).
+  const [touched, setTouched] = useState(
+    !training && Boolean(initial && (initial.exercises.length > 0 || initial.name))
+  );
 
   useEffect(() => {
     const source = training?.exercises ?? initial?.exercises;
@@ -146,6 +149,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   }
 
   function addExercise(exercise: Exercise) {
+    setTouched(true);
     setRows((current) => [
       ...current,
       {
@@ -162,6 +166,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   }
 
   function toggleTarget(key: ExerciseCategory) {
+    setTouched(true);
     setTargets((current) =>
       current.includes(key)
         ? current.filter((target) => target !== key)
@@ -170,16 +175,24 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   }
 
   function move(index: number, delta: number) {
+    setTouched(true);
     setRows((current) => {
-      const next = current.slice();
       const target = index + delta;
-      if (target < 0 || target >= next.length) return current;
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
+      if (target < 0 || target >= current.length) return current;
+      return moveRow(current, index, target);
     });
   }
 
+  const { listRef, handleProps, rowStyle } = useRowReorder({
+    count: rows.length,
+    onMove: (from, to) => {
+      setTouched(true);
+      setRows((current) => moveRow(current, from, to));
+    },
+  });
+
   function removeRow(index: number) {
+    setTouched(true);
     setRows((current) => current.filter((_, i) => i !== index));
   }
 
@@ -198,6 +211,13 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   const showSuggested = targets.length > 0 && pickerCategory === '';
 
   const { saving, save } = useSave();
+  // A wide screen keeps the exercise library open beside the plan (mockup); a phone opens it below on demand.
+  const wide = useMediaQuery('(min-width: 1024px)', false);
+  const libraryOpen = pickerOpen || wide;
+  useEffect(() => {
+    if (wide && !pickerOpen) openPicker();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wide]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -223,11 +243,15 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
     try {
       const done = training
         ? await save(() =>
-            updateTraining(training.id, {
-              ...fields,
-              suggestedPlayers: suggestedPlayers.value,
-              targets: targets.length > 0 ? targets : null,
-            })
+            updateTraining(
+              training.id,
+              {
+                ...fields,
+                suggestedPlayers: suggestedPlayers.value,
+                targets: targets.length > 0 ? targets : null,
+              },
+              training.businessId
+            )
           )
         : await save(
             () =>
@@ -248,18 +272,21 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
     }
   }
 
+  const hairline =
+    'relative before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden';
+
   function renderPickerItem(ex: Exercise, section: 'suggested' | 'all') {
     const expandKey = `${section}:${ex.id}`;
     const expanded = expandedId === expandKey;
     return (
-      <li key={ex.id} className="py-2">
-        <div className="flex items-start gap-2">
+      <li key={ex.id} className={`${hairline} py-1 pr-3`}>
+        <div className="flex items-start gap-1">
           <button
             type="button"
             aria-expanded={expanded}
             aria-label={expanded ? m.collapse(ex.name) : m.expand(ex.name)}
             onClick={() => setExpandedId(expanded ? null : expandKey)}
-            className="mt-0.5 shrink-0 rounded-sm text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             {expanded ? (
               <ChevronDown className="h-4 w-4" aria-hidden="true" />
@@ -267,16 +294,16 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2">
-              <span className="text-sm font-medium text-ink">{ex.name}</span>
-              <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+          <div className="min-w-0 flex-1 py-2.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-callout font-medium text-ink">{ex.name}</span>
+              <span className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">
                 {lb.exerciseCategory[ex.category]}
               </span>
               <PlayersNote minPlayers={ex.minPlayers} suggested={suggestedPlayersValue} />
             </div>
             {ex.description && !expanded && (
-              <p className="mt-0.5 line-clamp-1 text-xs text-slate">{ex.description}</p>
+              <p className="mt-0.5 line-clamp-1 text-footnote text-ink-2">{ex.description}</p>
             )}
           </div>
           <Button
@@ -284,47 +311,39 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             size="sm"
             onClick={() => addExercise(ex)}
             aria-label={m.addNamed(ex.name)}
-            className="shrink-0"
+            className="mt-1 shrink-0"
           >
             {m.add}
           </Button>
         </div>
         {expanded && (
-          <div className="mt-2 flex gap-3 pl-6">
+          <div className="mb-2 flex gap-3 pl-12">
             <DiagramThumbnail
               exerciseId={ex.id}
-              className="aspect-square w-24 shrink-0 overflow-hidden rounded-sm border border-border"
+              className="aspect-square w-24 shrink-0 overflow-hidden rounded-sm bg-surface"
             />
-            <p className="text-xs text-slate">{ex.description || m.noDescription}</p>
+            <p className="text-footnote text-ink-2">{ex.description || m.noDescription}</p>
           </div>
         )}
       </li>
     );
   }
 
+  const fieldLabel = FIELD_LABEL_CLASS;
+  const hint = 'mt-1 text-footnote text-ink-2';
+
   return (
-    <Dialog
+    <Sheet
       guardUnsaved
+      dirty={touched}
       title={training ? `${training.businessId} · ${training.name}` : m.newTitle}
       size="lg"
-      mobileSheet
+      detent="large"
       onClose={onClose}
-      footer={
-        <>
-          <span className="mr-auto text-sm tabular-nums text-slate">
-            {m.summary(rows.length, totalMinutes)}
-          </span>
-          <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-            {m.cancel}
-          </Button>
-          <Button variant="primary" type="submit" form={FORM_ID} disabled={saving}>
-            {saving ? m.saving : m.save}
-          </Button>
-        </>
-      }
+      confirm={{ label: saving ? m.saving : m.save, form: FORM_ID, disabled: saving }}
     >
       <form id={FORM_ID} onSubmit={handleSubmit} aria-label={training ? m.editLabel : m.newTitle}>
-        <label htmlFor="training-name" className="mb-1 block text-sm font-medium text-ink">
+        <label htmlFor="training-name" className={fieldLabel}>
           {m.name}
         </label>
         <Input
@@ -334,57 +353,58 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           placeholder={trainingNameExample()}
           aria-describedby="training-name-hint"
         />
-        <p id="training-name-hint" className="mt-1 text-xs text-slate">
+        <p id="training-name-hint" className={hint}>
           {trainingNameHint()}
         </p>
 
-        <label htmlFor="training-age" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          {m.ageGroupTarget}
-        </label>
-        <Input id="training-age" value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="training-age" className={fieldLabel}>
+              {m.ageGroupTarget}
+            </label>
+            <Input id="training-age" value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="training-suggested-players" className={fieldLabel}>
+              {m.suggestedPlayers}
+            </label>
+            <Input
+              id="training-suggested-players"
+              // Text, not type="number": a number input reports "" for input it can't parse
+              // (e.g. "7,5"), which would read as "not set" instead of showing the error.
+              type="text"
+              inputMode="numeric"
+              value={suggestedPlayersText}
+              onChange={(e) => setSuggestedPlayersText(e.target.value)}
+              aria-describedby="training-suggested-players-hint"
+              className="w-24"
+            />
+            <p id="training-suggested-players-hint" className={hint}>
+              {m.suggestedPlayersHint}
+            </p>
+          </div>
+        </div>
 
-        <label htmlFor="training-suggested-players" className="mb-1 mt-4 block text-sm font-medium text-ink">
-          {m.suggestedPlayers}
-        </label>
-        <Input
-          id="training-suggested-players"
-          // Text, not type="number": a number input reports "" for input it can't parse
-          // (e.g. "7,5"), which would read as "not set" instead of showing the error.
-          type="text"
-          inputMode="numeric"
-          value={suggestedPlayersText}
-          onChange={(e) => setSuggestedPlayersText(e.target.value)}
-          aria-describedby="training-suggested-players-hint"
-          className="w-24"
-        />
-        <p id="training-suggested-players-hint" className="mt-1 text-xs text-slate">
-          {m.suggestedPlayersHint}
-        </p>
-
-        <span id="training-targets-label" className="mb-1 mt-4 block text-sm font-medium text-ink">
+        <span id="training-targets-label" className={`${fieldLabel} mt-4`}>
           {m.targets}
         </span>
-        <div role="group" aria-label={m.targetsGroup} className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label={m.targetsGroup} className="flex flex-wrap gap-2">
           {EXERCISE_CATEGORIES.map((c) => {
-            const active = targets.includes(c.key);
             const isCovered = covered.has(c.key);
             return (
-              <button
+              <ToggleChip
                 key={c.key}
-                type="button"
-                aria-pressed={active}
-                aria-label={isCovered ? m.covered(lb.exerciseCategory[c.key]) : lb.exerciseCategory[c.key]}
-                onClick={() => toggleTarget(c.key)}
-                className={`${chipClass(active)} inline-flex items-center gap-1`}
-              >
-                {isCovered && <Check aria-hidden="true" className="h-3.5 w-3.5" />}
-                {lb.exerciseCategory[c.key]}
-              </button>
+                pressed={targets.includes(c.key)}
+                ariaLabel={isCovered ? m.covered(lb.exerciseCategory[c.key]) : lb.exerciseCategory[c.key]}
+                onToggle={() => toggleTarget(c.key)}
+                label={lb.exerciseCategory[c.key]}
+                icon={isCovered ? <Check aria-hidden="true" className="h-3.5 w-3.5" /> : undefined}
+              />
             );
           })}
         </div>
 
-        <label htmlFor="training-description" className="mb-1 mt-4 block text-sm font-medium text-ink">
+        <label htmlFor="training-description" className={`${fieldLabel} mt-4`}>
           {m.description}
         </label>
         <Textarea
@@ -394,55 +414,71 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           rows={3}
         />
 
-        <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-ink">{m.exercises}</span>
+        <div className={`mt-6 ${wide ? 'grid grid-cols-[minmax(0,1fr)_17rem] items-start gap-4' : ''}`}>
+          <div className="min-w-0">
+          <div className="mb-2 flex items-baseline justify-between gap-3">
+            <span className="text-title-3 text-ink">{m.exercises}</span>
+            <span className="text-callout tabular-nums text-ink-2">{m.summary(rows.length, totalMinutes)}</span>
           </div>
 
-          <ul aria-label={m.exercisesList} className="divide-y divide-border rounded-md border border-border">
-            {rows.length === 0 && <li className="p-3 text-sm text-slate">{m.noExercises}</li>}
+          <ul aria-label={m.exercisesList} ref={listRef} className="rounded-lg bg-surface-2">
+            {rows.length === 0 && <li className="p-3 text-callout text-ink-2">{m.noExercises}</li>}
             {rows.map((row, i) => {
               const startMinute = rows.slice(0, i).reduce((sum, r) => sum + (r.durationMinutes || 0), 0);
+              const dragStyle = rowStyle(i);
               return (
-                <li key={`${row.exerciseId}-${i}`} className="p-2 sm:p-3">
+                <li
+                  key={`${row.exerciseId}-${i}`}
+                  style={dragStyle}
+                  className={`${hairline} px-2 py-1 ${dragStyle ? 'z-10 rounded-lg bg-surface shadow-pop' : ''}`}
+                >
                   {/* The whole summary is one tap target that opens the exercise
                       full-screen; editing controls sit on their own row below. */}
-                  <button
-                    type="button"
-                    onClick={() => setViewing(i)}
-                    aria-label={m.viewExercise(i + 1, row.name)}
-                    className="flex w-full items-center gap-3 rounded-md p-1 text-left hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-                  >
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold tabular-nums text-white">
-                      {i + 1}
-                    </span>
-                    <DiagramThumbnail
-                      exerciseId={row.exerciseId}
-                      interactive={false}
-                      className="aspect-square w-14 shrink-0 overflow-hidden rounded-sm border border-border bg-surface"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className={`block truncate text-sm font-medium ${row.name ? 'text-ink' : 'text-red'}`}>
-                        {row.name ?? (
-                          <span className="inline-flex items-center gap-1">
-                            <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                            {m.deletedExercise}
+                  <div className="flex items-center">
+                    <div
+                      aria-hidden="true"
+                      {...handleProps(i)}
+                      className="flex h-11 w-8 shrink-0 cursor-grab touch-none items-center justify-center text-ink-3"
+                    >
+                      <GripVertical className="h-5 w-5" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewing(i)}
+                      aria-label={m.viewExercise(i + 1, row.name)}
+                      className="flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 text-left hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    >
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3 text-caption font-semibold tabular-nums text-ink">
+                        {i + 1}
+                      </span>
+                      <DiagramThumbnail
+                        exerciseId={row.exerciseId}
+                        interactive={false}
+                        className="aspect-square w-14 shrink-0 overflow-hidden rounded-sm bg-surface"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className={`block truncate text-headline ${row.name ? 'text-ink' : 'text-red-strong'}`}>
+                          {row.name ?? (
+                            <span className="inline-flex items-center gap-1">
+                              <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                              {m.deletedExercise}
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-0.5 block truncate text-footnote tabular-nums text-ink-2">
+                          {row.category ? `${lb.exerciseCategory[row.category]} · ` : ''}{m.exerciseTiming(startMinute, startMinute + (row.durationMinutes || 0))}
+                        </span>
+                        {needsMorePlayers(row.minPlayers, suggestedPlayersValue) && (
+                          <span className="mt-0.5 block">
+                            <PlayersNote minPlayers={row.minPlayers} suggested={suggestedPlayersValue} />
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
-                        {row.category ? `${lb.exerciseCategory[row.category]} · ` : ''}{m.exerciseTiming(startMinute, startMinute + (row.durationMinutes || 0))}
-                      </span>
-                      {needsMorePlayers(row.minPlayers, suggestedPlayersValue) && (
-                        <span className="mt-0.5 block">
-                          <PlayersNote minPlayers={row.minPlayers} suggested={suggestedPlayersValue} />
-                        </span>
-                      )}
-                    </span>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-slate" aria-hidden="true" />
-                  </button>
-                  <div className="mt-1 flex items-center gap-1 pl-1">
-                    <label className="mr-auto flex items-center gap-1.5 text-xs text-slate">
+                      <ChevronRight className="h-5 w-5 shrink-0 text-ink-3" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1 pl-8">
+                    <label className="mr-auto flex items-center gap-1.5 text-footnote text-ink-2">
                       <input
                         type="number"
                         inputMode="numeric"
@@ -450,7 +486,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                         aria-label={m.durationLabel(i + 1)}
                         value={row.durationMinutes}
                         onChange={(e) => setDuration(i, Number(e.target.value))}
-                        className="min-h-11 w-16 rounded-md border border-border bg-surface px-2 py-1 text-right text-base tabular-nums text-ink sm:min-h-0 sm:text-sm"
+                        className="min-h-11 w-16 rounded-md border border-transparent bg-surface px-2 py-1 text-right text-base tabular-nums text-ink focus:border-focus focus:outline-none sm:text-body"
                       />
                       {m.min}
                     </label>
@@ -476,7 +512,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                       type="button"
                       aria-label={m.remove(i + 1)}
                       onClick={() => removeRow(i)}
-                      className={`${rowIconBtn} text-red hover:text-red-strong`}
+                      className={`${rowIconBtn} !text-red-strong`}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -485,49 +521,44 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               );
             })}
           </ul>
+          </div>
 
-          {pickerOpen ? (
-            <div className="mt-2 rounded-md border border-border p-2">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate">{m.pickExercise}</p>
-                <button
-                  type="button"
-                  onClick={() => setPickerOpen(false)}
-                  className="rounded-sm text-xs font-medium text-slate hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-                >
-                  {m.done}
-                </button>
+          {libraryOpen ? (
+            <div
+              className={
+                wide
+                  ? 'scroll-quiet sticky top-0 max-h-[60vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-2 p-3'
+                  : 'mt-3 rounded-lg bg-surface-2 p-3'
+              }
+            >
+              <div className="mb-2 flex min-h-11 items-center justify-between">
+                <p className="text-headline text-ink">{m.pickExercise}</p>
+                {!wide && (
+                  <Button variant="ghost" onClick={() => setPickerOpen(false)} className="min-h-11">
+                    {m.done}
+                  </Button>
+                )}
               </div>
 
-              <div
-                className="-mx-2 mb-2 flex gap-1.5 overflow-x-auto px-2 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
-                role="group"
-                aria-label={m.filterByCategory}
-              >
-                <button type="button" aria-pressed={pickerCategory === ''} onClick={() => selectCategory('')} className={chipClass(pickerCategory === '')}>
-                  {m.all}
-                </button>
-                {EXERCISE_CATEGORIES.map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    aria-pressed={pickerCategory === c.key}
-                    onClick={() => selectCategory(c.key)}
-                    className={chipClass(pickerCategory === c.key)}
-                  >
-                    {lb.exerciseCategory[c.key]}
-                  </button>
-                ))}
-              </div>
+              <FilterChips
+                label={m.filterByCategory}
+                value={pickerCategory}
+                onChange={selectCategory}
+                className="mb-2 pb-1 !-mx-3 !px-3"
+                options={[
+                  { id: '' as ExerciseCategory | '', label: m.all },
+                  ...EXERCISE_CATEGORIES.map((c) => ({ id: c.key as ExerciseCategory | '', label: lb.exerciseCategory[c.key] })),
+                ]}
+              />
 
               {showSuggested && (
                 <>
-                  <p id="picker-suggested" className="mb-1 text-xs font-medium text-ink">
+                  <p id="picker-suggested" className="mb-1 text-callout font-medium text-ink">
                     {m.suggestedForTargets}
                   </p>
-                  <ul aria-labelledby="picker-suggested" className="mb-2 divide-y divide-border">
+                  <ul aria-labelledby="picker-suggested" className="mb-2 rounded-lg bg-surface">
                     {suggested.length === 0 && (
-                      <li className="py-2 text-sm text-slate">{m.noneForTargets}</li>
+                      <li className="p-3 text-callout text-ink-2">{m.noneForTargets}</li>
                     )}
                     {sortByFit(suggested, suggestedPlayersValue).map((ex) => renderPickerItem(ex, 'suggested'))}
                   </ul>
@@ -541,12 +572,12 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                       {m.loadMoreSuggestions}
                     </Button>
                   )}
-                  <p className="mb-1 mt-2 text-xs font-medium text-ink">{m.allExercises}</p>
+                  <p className="mb-1 mt-2 text-callout font-medium text-ink">{m.allExercises}</p>
                 </>
               )}
-              <ul className="divide-y divide-border">
+              <ul className="rounded-lg bg-surface">
                 {picker.length === 0 && (
-                  <li className="py-2 text-sm text-slate">{m.noneInCategory}</li>
+                  <li className="p-3 text-callout text-ink-2">{m.noneInCategory}</li>
                 )}
                 {sortByFit(picker, suggestedPlayersValue).map((ex) => renderPickerItem(ex, 'all'))}
               </ul>
@@ -562,14 +593,14 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               )}
             </div>
           ) : (
-            <Button variant="secondary" size="sm" onClick={openPicker} className="mt-2">
+            <Button variant="secondary" size="sm" onClick={openPicker} className="mt-3">
               {m.addExercise}
             </Button>
           )}
         </div>
 
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red">
+          <p role="alert" className="mt-3 text-callout text-red-strong">
             {error}
           </p>
         )}
@@ -589,6 +620,6 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           onClose={() => setViewing(null)}
         />
       )}
-    </Dialog>
+    </Sheet>
   );
 }

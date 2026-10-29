@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { navGroups, phoneTabs } from './navModel';
+import { goToDestinations, navGroups, phoneTabs } from './navModel';
 import type { Access } from '../auth/access';
 
 const all: Access = { isClubAdmin: true, sections: { exercises: true, trainings: true, guides: true } };
@@ -11,7 +11,7 @@ const shape = (groups: ReturnType<typeof navGroups>) =>
 describe('navGroups', () => {
   it('puts every destination in exactly one group, by who it is for', () => {
     expect(shape(navGroups(all, true))).toEqual([
-      [null, ['Home /']],
+      [null, ['Today /']],
       ['Coaching', ['Teams /teams', 'Trainings /trainings', 'Exercises /exercises']],
       ['Club', ['Guides /admin/guides', 'Members & settings /club']],
       ['Platform', ['Clubs & sign-ups /platform']],
@@ -22,7 +22,7 @@ describe('navGroups', () => {
 
   it('shows a coach only the sections granted, and no empty groups', () => {
     expect(shape(navGroups(coach, false))).toEqual([
-      [null, ['Home /']],
+      [null, ['Today /']],
       ['Coaching', ['Teams /teams', 'Exercises /exercises']],
     ]);
   });
@@ -32,9 +32,23 @@ describe('navGroups', () => {
   });
 });
 
+describe('Today and Go to', () => {
+  it('labels the first item Today', () => {
+    const first = navGroups(all, false)[0].items[0];
+    expect(first.label).toBe('Today');
+    expect(first.to).toBe('/');
+  });
+
+  it('goToDestinations ends with Settings and repeats no path', () => {
+    const paths = goToDestinations(all, true).map((i) => i.to);
+    expect(paths).toEqual(['/', '/teams', '/trainings', '/exercises', '/admin/guides', '/club', '/platform', '/settings']);
+    expect(new Set(paths).size).toBe(paths.length);
+  });
+});
+
 describe('phoneTabs', () => {
   it('keeps Home and the coaching pages on the bar and sends the rest to More', () => {
-    expect(phoneTabs(all, true).map((i) => i.label)).toEqual(['Home', 'Teams', 'Trainings', 'Exercises']);
-    expect(phoneTabs(coach, false).map((i) => i.label)).toEqual(['Home', 'Teams', 'Exercises']);
+    expect(phoneTabs(all, true).map((i) => i.label)).toEqual(['Today', 'Teams', 'Trainings', 'Exercises']);
+    expect(phoneTabs(coach, false).map((i) => i.label)).toEqual(['Today', 'Teams', 'Exercises']);
   });
 });

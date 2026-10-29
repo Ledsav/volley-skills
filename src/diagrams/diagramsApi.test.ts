@@ -99,6 +99,20 @@ describe('diagramsApi', () => {
     expect(update.mock.calls[0][1]).toMatchObject({ updatedBy: 'coach-uid', updatedAt: 'ts' });
   });
 
+  it('saveDiagramSet reports the idMap through onQueued before the commit settles', async () => {
+    let resolveCommit!: () => void;
+    const commit = vi.fn().mockReturnValue(new Promise<void>((r) => { resolveCommit = r; }));
+    mockWriteBatch.mockReturnValue({ set: vi.fn(), update: vi.fn(), delete: vi.fn(), commit });
+    mockDoc.mockImplementation(() => ({ id: 'generated-id' }));
+    const onQueued = vi.fn();
+    const done = saveDiagramSet('ex-1', {
+      creates: [{ tempId: 'new:1', title: 'Setup', order: 0, scene }], updates: [], deletes: [],
+    }, 'coach-uid', onQueued);
+    expect(onQueued).toHaveBeenCalledWith({ 'new:1': 'generated-id' });
+    resolveCommit();
+    await done;
+  });
+
   it('throws before any write when a scene fails validation', async () => {
     const commit = vi.fn();
     mockWriteBatch.mockReturnValue({ set: vi.fn(), update: vi.fn(), delete: vi.fn(), commit });

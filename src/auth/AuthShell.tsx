@@ -1,122 +1,73 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Logo } from '../components/Logo';
+import { BrandMark } from '../components/Logo';
 import { LanguageToggle } from '../i18n/LanguageToggle';
 import { useT } from '../i18n/I18nProvider';
-import player from '../assets/player-spike.webp';
-import ball from '../assets/ball-mikasa.webp';
+import { LegalLinks } from '../legal/LegalLinks';
+import { AuthCourt } from './AuthCourt';
 
-// The light-theme navy, pinned as a hex so the court doesn't darken with the
-// dark theme's navy.
-const COURT = '#2356A8';
-
-function CourtLines() {
-  return (
-    <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
-      <line x1="4%" y1="0" x2="4%" y2="100%" stroke="white" strokeOpacity="0.08" strokeWidth="1" />
-      <line
-        x1="96%"
-        y1="0"
-        x2="96%"
-        y2="100%"
-        stroke="white"
-        strokeOpacity="0.08"
-        strokeWidth="1"
-      />
-      <line
-        x1="70%"
-        y1="0"
-        x2="100%"
-        y2="58%"
-        stroke="white"
-        strokeOpacity="0.85"
-        strokeWidth="6"
-      />
-      <line
-        x1="80%"
-        y1="100%"
-        x2="100%"
-        y2="84%"
-        stroke="white"
-        strokeOpacity="0.85"
-        strokeWidth="6"
-      />
-    </svg>
-  );
-}
-
-function SpikingPlayer() {
-  return (
-    // Anchored bottom-right of the left column so it can grow beside the
-    // subtitle instead of being squeezed underneath it.
-    <div
-      className="pointer-events-none absolute bottom-0 right-[-3%] hidden aspect-[89/100] h-[72%] max-h-[700px] lg:block"
-      aria-hidden="true"
-    >
-      <img src={player} alt="" className="h-full w-full" />
-      <img src={ball} alt="" className="absolute left-[72%] top-[-20%] w-[18%]" />
-    </div>
-  );
-}
-
+/**
+ * Sign-in frame (design spec §8.1): from 1100 px a stage (court, tagline)
+ * beside a form pane, below that one column with a cropped court strip.
+ */
 export function AuthShell({
   title,
   navAction,
+  legalLinks,
   children,
 }: {
   title?: string;
   navAction?: { to: string; label: string };
+  legalLinks?: boolean;
   children: ReactNode;
 }) {
   const t = useT().auth.shell;
   return (
-    <div
-      className="relative flex min-h-screen flex-col overflow-hidden text-white"
-      style={{ backgroundColor: COURT }}
-    >
-      <CourtLines />
-
-      <header className="relative border-b border-white/15 py-4">
-        <div className="mx-auto flex max-w-[82rem] items-center justify-between px-6 lg:px-12">
-          <Logo className="text-[30px]" />
-          <div className="flex items-center gap-3">
-          <LanguageToggle />
-          {navAction && (
-            <Link
-              to={navAction.to}
-              className="rounded-md border border-white/70 px-4 py-2 text-sm font-medium hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              {navAction.label}
-            </Link>
-          )}
-          </div>
-        </div>
-      </header>
-
-      <main className="relative mx-auto flex w-full max-w-[82rem] flex-1 flex-col lg:flex-row">
-        <section className="relative flex flex-1 flex-col px-6 pt-8 lg:px-12 lg:pt-12">
-          <p className="relative z-10 text-[2rem] font-extrabold uppercase leading-[1.05] tracking-[-0.02em] sm:text-5xl lg:text-6xl">
+    <div className="canvas min-h-dvh bg-bg text-ink min-[1100px]:grid min-[1100px]:grid-cols-[1.15fr_1fr]">
+      <section className="relative hidden overflow-hidden px-8 pb-8 pt-7 min-[1100px]:sticky min-[1100px]:top-0 min-[1100px]:flex min-[1100px]:h-dvh min-[1100px]:flex-col min-[1100px]:justify-between">
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 top-[40%] -ml-[260px] -mt-[260px] h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgb(var(--color-ink)/0.07),transparent)]"
+        />
+        <AuthCourt variant="stage" />
+        <BrandMark className="relative" />
+        <div className="relative flex max-w-[420px] flex-col gap-2.5">
+          <p className="text-display text-ink">
             {t.tagline1}
             <br />
-            {t.tagline2}
+            <span className="text-ink-3">{t.tagline2}</span>
           </p>
-          <p className="relative z-10 mt-4 max-w-sm text-lg leading-relaxed text-white/85">
-            {t.pitch}
-          </p>
-          <SpikingPlayer />
-        </section>
-
-        <div className="relative z-10 flex items-center justify-center px-6 py-10 lg:w-[38%] lg:px-12">
-          <div className="w-full max-w-sm rounded-lg bg-surface p-7 text-ink shadow-pop">
-            {title && (
-              <h1 className="mb-4 text-center text-title font-semibold text-ink">
-                {title}
-              </h1>
-            )}
-            {children}
-          </div>
+          <p className="text-body text-ink-2">{t.pitch}</p>
         </div>
-      </main>
+      </section>
+
+      <div className="canvas flex min-h-dvh flex-col bg-sidebar px-5 pb-6 pt-[max(1rem,env(safe-area-inset-top))] min-[1100px]:border-l min-[1100px]:border-separator min-[1100px]:px-7">
+        <header className="flex min-h-11 items-center gap-2">
+          <BrandMark className="min-w-0 min-[1100px]:hidden" />
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <LanguageToggle />
+            {navAction && (
+              <Link
+                to={navAction.to}
+                className="relative inline-flex min-h-9 items-center after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] whitespace-nowrap rounded-full bg-surface-2 px-4 text-callout font-semibold text-ink hover:bg-surface-3"
+              >
+                {navAction.label}
+              </Link>
+            )}
+          </div>
+        </header>
+        {title && (
+          <div className="min-[1100px]:hidden">
+            <AuthCourt variant="strip" />
+          </div>
+        )}
+        {/* Under the phone court strip the form starts right away; with no strip (status screens) it centres. */}
+        <main className={`mx-auto flex w-full max-w-[340px] flex-1 flex-col gap-[22px] min-[1100px]:justify-center min-[1100px]:py-8 ${title ? 'pb-8 pt-2' : 'justify-center py-8'}`}>
+          {title && <h1 className="text-large-title text-ink min-[1100px]:text-title-1">{title}</h1>}
+          {children}
+        </main>
+        {legalLinks && <LegalLinks />}
+      </div>
     </div>
   );
 }

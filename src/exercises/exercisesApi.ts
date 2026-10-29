@@ -21,6 +21,7 @@ import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { saveDiagramSet } from '../diagrams/diagramsApi';
 import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
+import { searchTokens } from '../search/searchTokens.js';
 import type { Exercise, ExerciseCategory, ExerciseUpdate, NewExerciseInput } from '../types/exercise';
 import type { ExerciseImportInput, ImportedDiagram } from './exercisesImport';
 
@@ -29,6 +30,7 @@ const EXERCISES_PAGE_SIZE = 25;
 export async function createExercise(input: NewExerciseInput, creatorUid: string): Promise<string> {
   const docRef = await addDoc(clubCol('exercises'), {
     ...optionalForCreate(input, ['minPlayers']),
+    searchTokens: searchTokens(input.name),
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
   });
@@ -48,7 +50,7 @@ export async function bulkCreateExercises(
   for (const input of inputs) {
     const { diagrams, ...exercise } = input;
     const ref = doc(clubCol('exercises'));
-    batch.set(ref, { ...optionalForCreate(exercise, ['minPlayers']), createdBy: creatorUid, createdAt: serverTimestamp() });
+    batch.set(ref, { ...optionalForCreate(exercise, ['minPlayers']), searchTokens: searchTokens(exercise.name), createdBy: creatorUid, createdAt: serverTimestamp() });
     created.push({ ref, diagrams });
   }
   await withBackoff(() => batch.commit());
@@ -79,7 +81,15 @@ export async function bulkCreateExercises(
 }
 
 export async function updateExercise(exerciseId: string, updates: ExerciseUpdate): Promise<void> {
-  await updateDoc(clubDoc('exercises', exerciseId), optionalForUpdate(updates, ['minPlayers']));
+  const payload = optionalForUpdate(updates, ['minPlayers']);
+  if (updates.name !== undefined) payload.searchTokens = searchTokens(updates.name);
+  await updateDoc(clubDoc('exercises', exerciseId), payload);
+}
+
+export async function getExercise(exerciseId: string): Promise<Exercise | null> {
+  const snapshot = await getDoc(clubDoc('exercises', exerciseId));
+  if (!snapshot.exists()) return null;
+  return { id: snapshot.id, ...snapshot.data() } as Exercise;
 }
 
 export async function deleteExercise(exerciseId: string): Promise<void> {
@@ -136,6 +146,27 @@ export async function listExercisesInCategories(
   const exercises = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
+}
+
+const SEARCH_PAGE_SIZE = 20;
+
+/** One page of exercises whose name has a word starting with `token` (see searchTokens). */
+export async function searchExercises(
+  token: string,
+  afterDoc: QueryDocumentSnapshot | null = null
+): Promise<{ items: Exercise[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
+  const snapshot = await getDocs(
+    query(
+      clubCol('exercises'),
+      where('searchTokens', 'array-contains', token),
+      orderBy('name'),
+      ...(afterDoc ? [startAfter(afterDoc)] : []),
+      limit(SEARCH_PAGE_SIZE)
+    )
+  );
+  const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { items, lastDoc, hasMore: snapshot.docs.length === SEARCH_PAGE_SIZE };
 }
 
 export async function getExercisesByIds(ids: string[]): Promise<Exercise[]> {

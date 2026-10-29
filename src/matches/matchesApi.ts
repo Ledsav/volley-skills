@@ -118,6 +118,20 @@ export function updateMatchRoster(teamId: string, matchId: string, roster: Roste
   return updateDoc(matchDoc(teamId, matchId), { roster, updatedAt: serverTimestamp() });
 }
 
+/** Live match doc (device lock, status). A missing doc arrives as null. */
+export function subscribeMatch(
+  teamId: string,
+  matchId: string,
+  onChange: (m: Match | null) => void,
+  onError: (e: Error) => void,
+): () => void {
+  return onSnapshot(
+    matchDoc(teamId, matchId),
+    (snapshot) => onChange(snapshot.exists() ? toMatch(snapshot.id, snapshot.data()) : null),
+    onError,
+  );
+}
+
 export function claimDevice(teamId: string, matchId: string, deviceId: string): Promise<void> {
   return updateDoc(matchDoc(teamId, matchId), { activeDevice: { id: deviceId, at: Date.now() } });
 }

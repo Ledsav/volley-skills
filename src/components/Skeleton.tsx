@@ -1,6 +1,6 @@
 /** A placeholder block shaped like the content it stands in for. */
-function SkeletonBlock({ className = '' }: { className?: string }) {
-  return <div data-skeleton-block aria-hidden="true" className={`rounded-md bg-border/60 motion-safe:animate-pulse ${className}`.trim()} />;
+export function SkeletonBlock({ className = '' }: { className?: string }) {
+  return <div data-skeleton-block aria-hidden="true" className={`rounded-md bg-surface-2 motion-safe:animate-[pulse_1.6s_ease-in-out_infinite] ${className}`.trim()} />;
 }
 
 /**
@@ -12,25 +12,41 @@ export function PageSkeleton({ layout, label }: { layout: 'player' | 'team' | 'm
     <div role="status" className="w-full p-4 lg:p-6">
       <span className="sr-only">{label}</span>
       {layout === 'player' && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          <SkeletonBlock className="h-64 rounded-lg lg:col-span-4" />
-          <div className="flex flex-col gap-4 lg:col-span-8">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[0, 1, 2, 3].map((i) => (
-                <SkeletonBlock key={i} className="h-20 rounded-lg" />
-              ))}
+        <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <SkeletonBlock className="h-16 w-16 shrink-0 rounded-full" />
+            <div className="flex flex-1 flex-col gap-2">
+              <SkeletonBlock className="h-7 w-56 max-w-full" />
+              <SkeletonBlock className="h-4 w-40 max-w-full" />
             </div>
-            <SkeletonBlock className="h-64 rounded-lg" />
           </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonBlock key={i} className="h-20 rounded-lg" />
+            ))}
+          </div>
+          <SkeletonBlock className="h-11 w-full max-w-md rounded-[10px]" />
+          <SkeletonBlock className="h-64 rounded-lg" />
         </div>
       )}
       {layout === 'team' && (
         <div className="flex flex-col gap-4">
           <SkeletonBlock className="h-8 w-56" />
-          <SkeletonBlock className="h-10 w-full max-w-xl" />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {[0, 1, 2, 3].map((i) => (
-              <SkeletonBlock key={i} className="h-32 rounded-lg" />
+          <SkeletonBlock className="h-16 w-full" />
+          <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
+            {[0, 1].map((i) => (
+              <SkeletonBlock key={i} className="h-20 rounded-lg" />
+            ))}
+          </div>
+          <div className="overflow-hidden rounded-lg bg-surface shadow-card">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex min-h-[52px] items-center gap-3 px-4 py-2">
+                <SkeletonBlock className="h-10 w-10 shrink-0 rounded-full" />
+                <div className="flex flex-1 flex-col gap-2">
+                  <SkeletonBlock className="h-4 w-40 max-w-full" />
+                  <SkeletonBlock className="h-3 w-24" />
+                </div>
+              </div>
             ))}
           </div>
         </div>

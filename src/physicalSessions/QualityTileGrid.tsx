@@ -14,6 +14,7 @@ interface QualityTileGridProps {
   playerName: string;
   entriesByPlayerAndType: Map<string, TestingSessionEntry>;
   recordedByUid: string;
+  playerNumber?: number;
 }
 
 function entryStatus(entry: TestingSessionEntry | undefined): 'notStarted' | 'inProgress' | 'done' {
@@ -29,6 +30,7 @@ export function QualityTileGrid({
   playerName,
   entriesByPlayerAndType,
   recordedByUid,
+  playerNumber,
 }: QualityTileGridProps) {
   const { growthTestsEnabled } = useClubFeatures();
   const t = useT();
@@ -36,8 +38,8 @@ export function QualityTileGrid({
   const [openType, setOpenType] = useState<PhysicalTestType | null>(null);
 
   return (
-    <div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="min-w-0 flex-1">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {visibleTestTypes(growthTestsEnabled).map((testType) => {
           const entry = entriesByPlayerAndType.get(buildEntryId(playerId, testType));
           const status = entryStatus(entry);
@@ -51,16 +53,16 @@ export function QualityTileGrid({
                 if (done) return;
                 setOpenType(testType);
               }}
-              className={`flex min-h-11 min-w-0 flex-col items-start rounded-md border border-border bg-surface p-3 text-left ${
-                done ? 'cursor-default opacity-70' : 'hover:bg-blue/5'
+              className={`flex min-h-[72px] min-w-0 flex-col items-start rounded-lg bg-surface p-3 text-left shadow-card focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                done ? 'cursor-default opacity-70' : 'active:bg-surface-3'
               }`}
             >
-              <span className="w-full break-words text-sm font-medium text-ink hyphens-auto">
+              <span className="w-full break-words text-headline text-ink hyphens-auto">
                 {/* Soft-hyphen break point for a word too long for a half-width phone tile; browsers don't all hyphenate. */}
                 {testType === 'cmj' ? s.cmjTile : t.labels.physicalTest[testType]}
               </span>
               <span
-                className={`text-xs ${done ? 'text-green-strong' : status === 'inProgress' ? 'text-orange-strong' : 'text-slate'}`}
+                className={`text-footnote ${done ? 'text-green-strong' : status === 'inProgress' ? 'text-orange-strong' : 'text-ink-2'}`}
               >
                 {s[status]}
               </span>
@@ -76,6 +78,7 @@ export function QualityTileGrid({
           sessionDate={sessionDate}
           playerId={playerId}
           playerName={playerName}
+          playerNumber={playerNumber}
           testType={openType}
           entry={entriesByPlayerAndType.get(buildEntryId(playerId, openType)) ?? null}
           recordedByUid={recordedByUid}

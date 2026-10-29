@@ -9,9 +9,11 @@ interface AttemptsInputProps {
   onChange: (values: number[]) => void;
   minCount: number;
   maxCount?: number;
+  /** 'stat' lays attempts out in a 3-column grid of large, centred inputs (the add-test sheet). */
+  size?: 'md' | 'stat';
 }
 
-export function AttemptsInput({ name, label, values, onChange, minCount, maxCount }: AttemptsInputProps) {
+export function AttemptsInput({ name, label, values, onChange, minCount, maxCount, size = 'md' }: AttemptsInputProps) {
   const t = useT().components.attempts;
   function updateAt(index: number, raw: string) {
     const next = [...values];
@@ -27,31 +29,35 @@ export function AttemptsInput({ name, label, values, onChange, minCount, maxCoun
     if (values.length > minCount) onChange(values.slice(0, -1));
   }
 
+  const stat = size === 'stat';
   return (
     <div>
-      {values.map((value, index) => (
-        <div key={index} className="mb-3">
-          <label htmlFor={`${name}-attempt-${index}`} className="mb-1 block text-sm font-medium text-ink">
-            {label} {index + 1}
-          </label>
-          <Input
-            id={`${name}-attempt-${index}`}
-            type="number"
-            step="any"
-            value={Number.isNaN(value) ? '' : value}
-            onChange={(e) => updateAt(index, e.target.value)}
-            required
-            className="w-full"
-          />
-        </div>
-      ))}
+      <div data-testid="attempts-grid" className={stat ? 'mb-3 grid grid-cols-2 gap-2 min-[400px]:grid-cols-3' : undefined}>
+        {values.map((value, index) => (
+          <div key={index} className={stat ? 'min-w-0' : 'mb-3'}>
+            <label htmlFor={`${name}-attempt-${index}`} className={stat ? 'mb-1 block text-footnote text-ink-2' : 'mb-1 block text-sm font-medium text-ink'}>
+              {label} {index + 1}
+            </label>
+            <Input
+              id={`${name}-attempt-${index}`}
+              type="number"
+              inputMode="decimal"
+              step="any"
+              value={Number.isNaN(value) ? '' : value}
+              onChange={(e) => updateAt(index, e.target.value)}
+              required
+              className={stat ? 'w-full text-center text-stat sm:text-stat tabular-nums' : 'w-full'}
+            />
+          </div>
+        ))}
+      </div>
       {maxCount !== undefined && values.length < maxCount && (
-        <Button variant="secondary" size="sm" onClick={addAttempt} className="mb-3">
+        <Button variant="secondary" size="sm" onClick={addAttempt} className="mb-3 min-h-11">
           {t.add}
         </Button>
       )}
       {maxCount !== undefined && values.length > minCount && (
-        <Button variant="ghost" size="sm" onClick={removeLast} className="mb-3 ml-2">
+        <Button variant="secondary" size="sm" onClick={removeLast} className="mb-3 ml-2 min-h-11">
           {t.removeLast}
         </Button>
       )}

@@ -90,6 +90,7 @@ describe('LegalReviewScreen', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Terms of Service/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Data Processing Agreement/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    for (const box of screen.getAllByRole('checkbox', { name: /specifically approve clause/ })) fireEvent.click(box);
     fireEvent.click(screen.getByRole('button', { name: 'Approve these clauses specifically' }));
     await vi.waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('admin@example.com', expect.any(String)));
     expect(vi.mocked(sendSigningLink).mock.calls[0][1]).toBe(readSignDraft(Date.now())?.nonce);

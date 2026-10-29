@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { AI_MAX_TOKENS, DRAFT_TEMPERATURE, chatJson } from '../ai/aiClient';
 import { readAiSettings } from '../ai/aiSettings';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { FIELD_CLASS, Input, Textarea } from '../components/Input';
 import { OfflineError, useSave } from '../components/useSave';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
@@ -148,18 +148,14 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
       <Button variant="secondary" className="mr-auto" onClick={() => void generate(true)} disabled={kept.size >= count}>
         {t.regenerate}
       </Button>
-      <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        {cancel}
-      </Button>
+      <SheetCancelButton className="hidden md:inline-flex" />
       <Button variant="primary" onClick={() => void handleSave()} disabled={!canSave}>
         {saving ? t.saving : t.exerciseDialog.saveKept(toSave.length)}
       </Button>
     </>
   ) : (
     <>
-      <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        {cancel}
-      </Button>
+      <SheetCancelButton className="hidden md:inline-flex" />
       <Button variant="primary" onClick={() => void generate(false)} disabled={!request.trim()}>
         {t.generate}
       </Button>
@@ -167,12 +163,12 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
   );
 
   return (
-    <Dialog title={t.exerciseDialog.title} size="lg" mobileSheet dirty={drafts !== null} onClose={onClose} footer={footer}>
+    <Sheet title={t.exerciseDialog.title} size="lg" detent="large" dirty={drafts !== null} onClose={onClose} footer={footer}>
       <div className="flex flex-col gap-4">
         {!drafts && (
           <>
             <div>
-              <label htmlFor="draft-request" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="draft-request" className="mb-1 block text-callout font-medium text-ink">
                 {t.exerciseDialog.request}
               </label>
               <Textarea
@@ -183,13 +179,13 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
                 value={request}
                 onChange={(e) => setRequest(e.target.value)}
               />
-              <p className="mt-1 text-xs text-slate">
+              <p className="mt-1 text-footnote text-ink-2">
                 {t.exerciseDialog.privacy}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="draft-category" className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor="draft-category" className="mb-1 block text-callout font-medium text-ink">
                   {t.exerciseDialog.category}
                 </label>
                 <select
@@ -207,7 +203,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
                 </select>
               </div>
               <div>
-                <label htmlFor="draft-count" className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor="draft-count" className="mb-1 block text-callout font-medium text-ink">
                   {t.exerciseDialog.howMany}
                 </label>
                 <Input
@@ -226,16 +222,16 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
         )}
 
         {generating && (
-          <p role="status" className="text-sm text-slate">
+          <p role="status" className="text-callout text-ink-2">
             {t.drafting}
           </p>
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-callout text-red-strong">
             {error.text}{' '}
             {error.settingsLink && (
-              <Link to="/settings" className="text-blue hover:underline">
+              <Link to="/settings" className="text-ink underline-offset-2 hover:underline">
                 {t.openSettings}
               </Link>
             )}
@@ -244,6 +240,6 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
 
         {drafts && <ExerciseProposalReview drafts={drafts} kept={kept} added={added} onToggleKeep={toggleKeep} onEdit={edit} />}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

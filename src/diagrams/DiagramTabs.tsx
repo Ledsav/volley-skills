@@ -12,18 +12,19 @@ interface Props {
   dispatch: Dispatch<EditorAction>;
 }
 
+const TAB_ICON =
+  'inline-flex h-11 w-10 items-center justify-center rounded-md text-ink-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus';
+
 export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: Props) {
   const t = useT().diagrams.tabs;
   return (
-    <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-surface px-3 py-2 lg:flex-wrap lg:overflow-visible">
+    <div className="flex items-center gap-1 overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-wrap lg:overflow-visible">
       {diagrams.map((d) => {
         const active = d.id === activeId;
         return (
           <div
             key={d.id}
-            className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-sm ${
-              active ? 'border-blue bg-blue/10' : 'border-border bg-bg'
-            }`}
+            className={`flex shrink-0 items-center rounded-md ${active ? 'bg-surface-3 pl-3' : ''}`}
           >
             {active ? (
               <input
@@ -31,43 +32,43 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 value={d.title}
                 onChange={(e) => dispatch({ type: 'renameDiagram', id: d.id, title: e.target.value })}
                 maxLength={SCENE_LIMITS.titleLength}
-                className="w-28 rounded-sm bg-transparent text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                className="min-h-11 w-28 rounded-sm bg-transparent text-base font-medium text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:text-callout"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'selectDiagram', id: d.id })}
-                className="text-slate"
+                className="pressable min-h-11 rounded-md px-3 text-callout text-ink-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 {d.title}
               </button>
             )}
-            {dirtyIds.has(d.id) && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-orange" />}
+            {dirtyIds.has(d.id) && <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full bg-ink-2 ${active ? 'ml-1' : '-ml-1 mr-2'}`} />}
             {active && (
               <>
                 <button
                   type="button"
                   aria-label={t.moveLeft}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
+                  className={TAB_ICON}
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'left' })}
                 >
-                  <ChevronLeft className="h-4 w-4 text-slate" />
+                  <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   aria-label={t.moveRight}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
+                  className={TAB_ICON}
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'right' })}
                 >
-                  <ChevronRight className="h-4 w-4 text-slate" />
+                  <ChevronRight className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   aria-label={t.delete}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
+                  className={`${TAB_ICON} hover:!text-red-strong`}
                   onClick={() => dispatch({ type: 'deleteDiagram', id: d.id })}
                 >
-                  <Trash2 className="h-4 w-4 text-red" />
+                  <Trash2 className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </>
             )}
@@ -79,9 +80,9 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
         aria-label={t.add}
         disabled={!canAdd}
         onClick={() => dispatch({ type: 'addDiagram' })}
-        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-border p-1 text-slate disabled:opacity-40"
+        className="pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40"
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
       </button>
     </div>
   );

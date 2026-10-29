@@ -54,7 +54,7 @@ export function SkillMeter({ score, suggested = null }: SkillMeterProps) {
                 ? GHOST_CLASS.up
                 : isFilled && color
                   ? `${FILLED_CLASS[color]} ${ghost === 'down' ? GHOST_CLASS.down : 'border-transparent'}`
-                  : 'bg-transparent border-border',
+                  : 'bg-surface-2 border-separator',
               isBandBoundary ? 'mr-1' : '',
             ]
               .filter(Boolean)

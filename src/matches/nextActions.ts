@@ -41,6 +41,8 @@ export function expectedSkill(state: { currentRally: ActionEvent[]; serving: Sid
     if (last.skill === 'R' || last.skill === 'D' || last.skill === 'F') return 'B';
     if (last.skill === 'S') return 'F';
   }
+  // A block "touch theirs" sends the ball back to their side: they attack again, so we block again.
+  if (last.skill === 'B' && last.grade === '-') return 'B';
   return NEXT_AFTER[last.skill];
 }
 

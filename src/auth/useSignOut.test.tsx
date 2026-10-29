@@ -2,8 +2,10 @@ import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACTIVE_CLUB_KEY, storeClub } from '../clubs/activeClub';
 import { signOutAndClearLocalData } from '../firebase/signOut';
+import { clearSearchData } from '../search/useSearchData';
 import { useSignOut } from './useSignOut';
 
+vi.mock('../search/useSearchData', async (orig) => ({ ...(await orig<typeof import('../search/useSearchData')>()), clearSearchData: vi.fn() }));
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: vi.fn(async () => 'signedOut') }));
 
 function Harness() {
@@ -39,6 +41,23 @@ describe('useSignOut', () => {
     await act(async () => screen.getByText('go').click());
     vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
     expect(localStorage.getItem('vcb.signDraft')).toBeNull();
+  });
+
+  it('sign-out clears recents', async () => {
+    sessionStorage.setItem('vcb.searchRecents', '[{"id":"t1"}]');
+    render(<Harness />);
+    await act(async () => screen.getByText('go').click());
+    vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
+    expect(sessionStorage.getItem('vcb.searchRecents')).toBeNull();
+  });
+
+  it('sign-out clears the search cache and recents', async () => {
+    sessionStorage.setItem('vcb.searchRecents', '[{"id":"t1"}]');
+    render(<Harness />);
+    await act(async () => screen.getByText('go').click());
+    vi.mocked(signOutAndClearLocalData).mock.calls[0][0]?.beforeSignOut?.();
+    expect(clearSearchData).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('vcb.searchRecents')).toBeNull();
   });
 
   it('shows the unsynced dialog when the helper reports unsynced writes', async () => {

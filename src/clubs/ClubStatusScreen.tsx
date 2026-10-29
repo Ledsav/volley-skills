@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { Archive, Hourglass, PauseCircle } from 'lucide-react';
+import { StatusLayout } from '../components/StatusLayout';
 import { AuthShell } from '../auth/AuthShell';
 import { parseVersionKey } from '../legal/versions';
 import { useAuth } from '../auth/AuthContext';
@@ -25,36 +27,45 @@ export function ClubStatusScreen({ kind }: { kind: ClubStatusKind }) {
   const { title, body } = copy[kind];
   const accepted = kind === 'pending' && club?.legal ? parseVersionKey(club.legal.versionKey) : null;
 
+  const icon = { pending: Hourglass, locked: PauseCircle, ended: Archive }[kind];
+
   return (
-    <AuthShell title={title}>
-      <p className="text-center text-slate">{body}</p>
-      {kind === 'pending' && (
-        <>
-          <p className="mt-3 text-center text-slate">{s.emailWhenActive}</p>
-          {accepted && (
-            <p className="mt-3 text-center text-sm text-slate">
-              {s.accepted}{' '}
-              <Link to={`/legal/terms?v=${accepted.terms}`} className="text-blue hover:underline">
-                {s.termsOfService(accepted.terms)}
-              </Link>
-              {s.and}
-              <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-blue hover:underline">
-                {s.dpa(accepted.dpa)}
-              </Link>
-            </p>
-          )}
-        </>
-      )}
-      <div className="mt-6 flex flex-col items-center gap-2">
-        {others.map((m) => (
-          <Button key={m.clubId} variant="primary" onClick={() => switchClub(m.clubId)}>
-            {s.switchTo(m.clubName)}
-          </Button>
-        ))}
-        <Button variant="secondary" onClick={signOut}>
-          {s.signOut}
-        </Button>
-      </div>
+    <AuthShell>
+      <StatusLayout
+        icon={icon}
+        title={title}
+        actions={
+          <>
+            {others.map((m) => (
+              <Button key={m.clubId} variant="primary" className="min-h-12 w-full" onClick={() => switchClub(m.clubId)}>
+                {s.switchTo(m.clubName)}
+              </Button>
+            ))}
+            <Button variant="secondary" className="min-h-12 w-full" onClick={signOut}>
+              {s.signOut}
+            </Button>
+          </>
+        }
+      >
+        <p>{body}</p>
+        {kind === 'pending' && (
+          <>
+            <p className="mt-3">{s.emailWhenActive}</p>
+            {accepted && (
+              <p className="mt-3 text-footnote">
+                {s.accepted}{' '}
+                <Link to={`/legal/terms?v=${accepted.terms}`} className="text-ink underline">
+                  {s.termsOfService(accepted.terms)}
+                </Link>
+                {s.and}
+                <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-ink underline">
+                  {s.dpa(accepted.dpa)}
+                </Link>
+              </p>
+            )}
+          </>
+        )}
+      </StatusLayout>
       {unsyncedDialog}
     </AuthShell>
   );

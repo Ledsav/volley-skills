@@ -23,19 +23,28 @@ describe('ProfileTab', () => {
     expect(screen.getByLabelText('Club name')).toHaveValue('Test Club');
     expect(screen.getByLabelText('Country')).toHaveValue('BE');
     expect(screen.getByLabelText('Language')).toHaveValue('it');
-    expect(screen.getByRole('checkbox', { name: /AI features/ })).not.toBeChecked();
-    expect(screen.getByRole('checkbox', { name: /Growth tests/ })).toBeChecked();
+    expect(screen.getByRole('switch', { name: /AI features/ })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: /Growth tests/ })).toBeChecked();
   });
 
   it("saves the profile and notifies 'Club details saved'", async () => {
     render(<ProfileTab />);
     fireEvent.change(screen.getByLabelText('Club name'), { target: { value: '  New Name ' } });
-    fireEvent.click(screen.getByRole('checkbox', { name: /AI features/ }));
+    fireEvent.click(screen.getByRole('switch', { name: /AI features/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(clubAdminApi.updateClubProfile).toHaveBeenCalledWith({
       name: 'New Name', country: 'BE', locale: 'it', aiEnabled: true, referenceOptOut: false, growthTestsEnabled: true,
     }));
     expect(notify).toHaveBeenCalledWith('Club details saved');
+  });
+
+  it('saves on Enter in the club name field', async () => {
+    render(<ProfileTab />);
+    fireEvent.submit(screen.getByLabelText('Club name').closest('form')!);
+    await waitFor(() => expect(clubAdminApi.updateClubProfile).toHaveBeenCalledTimes(1));
+    expect(clubAdminApi.updateClubProfile).toHaveBeenCalledWith({
+      name: 'Test Club', country: 'BE', locale: 'it', aiEnabled: false, referenceOptOut: false, growthTestsEnabled: true,
+    });
   });
 
   it('offers Italiano only to a club that already stores it while Italian is off', () => {
@@ -74,7 +83,7 @@ describe('ProfileTab', () => {
 
   it('saves referenceOptOut when the customer switch is toggled', async () => {
     render(<ProfileTab />);
-    fireEvent.click(screen.getByRole('checkbox', { name: "Don't name our club as a customer" }));
+    fireEvent.click(screen.getByRole('switch', { name: "Don't name our club as a customer" }));
     expect(screen.getByText("We won't list your club as a reference customer.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(clubAdminApi.updateClubProfile).toHaveBeenCalledWith(
@@ -86,7 +95,7 @@ describe('ProfileTab', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Club name')).toBeDisabled();
     expect(screen.getByLabelText('Country')).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: /AI features/ })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: /customer/ })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: /AI features/ })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: /customer/ })).toBeDisabled();
   });
 });

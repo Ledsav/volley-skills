@@ -1,5 +1,6 @@
+process.env.TZ = 'Europe/Rome';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import { StartSessionCard } from './StartSessionCard';
 import * as testingSessionsApi from './testingSessionsApi';
 
@@ -21,7 +22,7 @@ describe('StartSessionCard', () => {
 
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
 
-    await waitFor(() => expect(screen.getByText('2026-09-10')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('10 Sep 2026')).toBeInTheDocument());
   });
 
   it('starts a new session with the chosen date and notifies the parent', async () => {
@@ -29,7 +30,7 @@ describe('StartSessionCard', () => {
     const startSpy = vi.spyOn(testingSessionsApi, 'startSession').mockResolvedValue('session-new');
     const onStarted = vi.fn();
 
-    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={onStarted} />);
+    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={onStarted} starting />);
     await waitFor(() => expect(testingSessionsApi.listPastSessions).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-16' } });
@@ -44,7 +45,7 @@ describe('StartSessionCard', () => {
     vi.spyOn(testingSessionsApi, 'startSession').mockRejectedValue(new testingSessionsApi.SessionAlreadyOpenError());
     const onStarted = vi.fn();
 
-    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={onStarted} />);
+    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={onStarted} starting />);
     await waitFor(() => expect(testingSessionsApi.listPastSessions).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-16' } });
@@ -59,7 +60,7 @@ describe('StartSessionCard', () => {
       { id: 'session-old', date: '2026-09-10', status: 'closed', createdBy: 'coach-uid', createdAt: null, closedAt: null },
     ]);
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: /2026-09-10/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /10 Sep 2026/ }));
     expect(screen.getByRole('dialog')).toHaveTextContent('results for 2026-09-10');
   });
 
@@ -68,9 +69,33 @@ describe('StartSessionCard', () => {
       { id: 'session-old', date: '2026-09-10', status: 'closed', createdBy: 'coach-uid', createdAt: null, closedAt: null },
     ]);
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: /2026-09-10/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /10 Sep 2026/ }));
     fireEvent.click(screen.getByRole('button', { name: 'delete-stub' }));
-    expect(screen.queryByRole('button', { name: /2026-09-10/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /10 Sep 2026/ })).not.toBeInTheDocument();
     expect(screen.getByText('No sessions yet.')).toBeInTheDocument();
+  });
+});
+
+describe('StartSessionCard start sheet', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('defaults the start date to the local day just after midnight (B8)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-10-14T22:30:00Z'));
+    vi.spyOn(testingSessionsApi, 'listPastSessions').mockResolvedValue([]);
+    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} starting />);
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-10-15');
+    await waitFor(() => expect(testingSessionsApi.listPastSessions).toHaveBeenCalled());
+  });
+
+  it('starts from the sheet', async () => {
+    vi.spyOn(testingSessionsApi, 'listPastSessions').mockResolvedValue([]);
+    vi.spyOn(testingSessionsApi, 'startSession').mockResolvedValue('session-new');
+    const onStarted = vi.fn();
+    render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={onStarted} starting onCloseStart={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start new session' }));
+    await waitFor(() => expect(onStarted).toHaveBeenCalledWith('session-new'));
   });
 });

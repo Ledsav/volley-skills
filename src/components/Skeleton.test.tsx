@@ -8,6 +8,6 @@ describe('PageSkeleton', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading page…');
     const blocks = container.querySelectorAll('[data-skeleton-block]');
     expect(blocks.length).toBeGreaterThan(2);
-    blocks.forEach((b) => expect(b).toHaveClass('motion-safe:animate-pulse'));
+    blocks.forEach((b) => expect(b).toHaveClass('motion-safe:animate-[pulse_1.6s_ease-in-out_infinite]'));
   });
 });

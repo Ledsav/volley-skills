@@ -3,6 +3,7 @@ import type { PhysicalTestGuideEntry } from '../../types/physicalTestGuide';
 export const physicalTestGuide = {
   loadError: 'Could not load the physical test guide. Please refresh the page.',
   saveError: 'Could not save the physical test guide. Please try again.',
+  saved: 'Physical test guide saved',
   protocol: 'Protocol',
   /**
    * Fallback shown until an admin saves `config/physicalTestGuide` for the first time, so the editor is usable

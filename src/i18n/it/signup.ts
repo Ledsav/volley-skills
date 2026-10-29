@@ -44,7 +44,9 @@ export const signup = {
     intro:
       'Queste clausole limitano la responsabilità, stabiliscono come il servizio può cambiare o terminare, o decidono come vengono gestite le controversie. Ognuna richiede la tua approvazione specifica.',
     sent: (email: string) => `Abbiamo inviato un link di conferma a ${email}. Aprilo in questo browser per firmare.`,
+    approveClause: (id: string) => `Approvo specificamente la clausola ${id}`,
     approve: 'Approva specificamente queste clausole',
+    tickAll: 'Spunta ogni clausola per approvare.',
     sendFailed: 'Impossibile inviare il link di conferma. Riprova.',
   },
   complete: {

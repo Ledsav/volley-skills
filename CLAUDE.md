@@ -23,7 +23,8 @@ The authoritative specs live in `docs/superpowers/`:
 | Doc | Covers |
 |---|---|
 | `specs/2026-09-04-volley-skills-app-design.md` | Product scope, **Firestore data model**, authorization model, screen list, fetching rules, migration, compliance. Read this before touching data shapes or rules. |
-| `specs/2026-09-04-volley-skills-design-system.md` | **Design system** — color tokens, typography (Inter), spacing/radius/elevation, status vocabulary, component specs. The source of truth for any UI work. |
+| `docs/design/` | **Design system and brand (v2)** — `design-system/README.md` (rules: tokens, type roles, materials, motion, patterns), `design-system/mockups/`, `brand/README.md` (logo kit). The source of truth for any UI work. |
+| `specs/2026-10-28-ui-redesign-design.md`, `specs/ui-redesign-inventory/` | UI redesign: agreed behaviour changes, pattern behaviour, parity contract. |
 | `specs/2026-09-07-volley-skills-plan-2-design.md`, `plan-3-design.md` | Design detail for later plan increments. |
 | `specs/2026-10-13-volley-skills-scouting-design.md` | Match scouting: event-sourced live scouting, match/event data model, post-match report, offline behavior. |
 | `specs/2026-10-14-volley-skills-home-stats-awards-design.md` | Home dashboard (`/`), team stats tab, season/match awards cards, 404 + SEO (`noindex` everywhere except `/login`, `/privacy`, `/request-access`). |
@@ -267,14 +268,23 @@ real verification of the security boundary.
 
 ### Design system
 
-The 8 skills and the 1–10 scale are **hardcoded**; admins edit only the guide
-*text* per score range. Level bands: `avgScore < 4` Beginner, `< 6` Developing,
-`< 8` Advanced, else Elite — the same four colors (`red`/`orange`/`blue`/`green`)
-reused everywhere a level appears. Tailwind tokens (`navy`, `blue`, `orange`,
-`green`, `ink`, radius `sm/md/lg`, shadow `card/pop`) come from the design-system
-spec §8 and live in `tailwind.config.js`. Inter is self-hosted via
-`@fontsource/inter`; numeric columns/stats use `tabular-nums`. Icons: `lucide-react`.
-Dark mode ships: tokens are CSS variables per theme in `src/index.css`, so components never use `dark:` variants. Page titles come from `PageHeader` (`text-title`); success feedback goes through `useNotify()` (`src/components/Notice.tsx`), errors stay inline with `role="alert"`.
+The rules live in `docs/design/design-system/README.md` and the logo kit in `docs/design/brand/README.md`.
+
+The 9 skills (`SKILL_KEYS` in `src/types/player.ts`) and the 1–10 scale are **hardcoded**; admins edit only the guide
+*text* per score range. Level bands: `avgScore < 4` Beginner, `< 6` Developing, `< 8` Advanced, else Elite — the same
+four data colors (`red`/`orange`/`blue`/`green`) reused everywhere a level appears. Blue is only the Advanced band.
+
+- **Colour:** semantic CSS variables in `src/index.css` (`bg`, `surface`/`-2`/`-3`, `ink`/`-2`/`-3`, `on-ink`,
+  `separator`, `focus`, `sidebar`), per theme, so components never use `dark:` variants. The data colors have `-strong`
+  text forms. `--color-navy` and `--color-blue` stay because stored diagram colours resolve to them.
+- **Type:** Inter, self-hosted via `@fontsource/inter`. The roles `large-title` … `display` live in `tailwind.config.js`;
+  numeric columns and stats use `tabular-nums`. Icons: `lucide-react`.
+- **Motion:** `src/motion/`. The primitives are `Sheet`, `Button`, `Menu`/`ContextMenu`, `SegmentedControl`,
+  `GroupedList`, `SwipeRow` and `Toolbar`. Success feedback and undo go through `useNotify()`
+  (`src/components/Notice.tsx`); errors stay inline with `role="alert"`.
+- **Page titles** come from `PageHeader` (`text-large-title`, `md:text-title-1`).
+- **Logo:** the app mark renders only through `BrandMark` (`src/components/Logo.tsx`).
+- **Theme:** System · Light · Dark (storage key `theme`; absent means System).
 
 ## Conventions
 

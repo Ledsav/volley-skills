@@ -66,10 +66,12 @@ export const physicalSessions = {
     couldNotConfirmSaved: 'Non è stato possibile confermare il salvataggio: controlla la scheda del giocatore prima di registrare di nuovo il test.',
   },
   start: {
+    newSession: 'Nuova sessione di test',
     date: 'Data',
     startNew: 'Avvia nuova sessione',
     pastSessions: 'Sessioni passate',
     noSessions: 'Ancora nessuna sessione.',
+    noSessionsBody: 'Testa tutta la squadra in una sessione: i risultati vanno sulla scheda di ogni giocatore.',
     loadError: 'Impossibile caricare le sessioni passate.',
     couldNotStart: 'Impossibile avviare la sessione. Riprova.',
     alreadyOpen: 'Per questa squadra c’è già una sessione di test aperta.',

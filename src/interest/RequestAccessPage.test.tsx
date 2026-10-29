@@ -45,3 +45,17 @@ describe('RequestAccessPage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   });
 });
+
+describe('RequestAccessPage thanks state', () => {
+  it('thanks is a status screen with a way back to sign in', async () => {
+    vi.mocked(interestApi.submitInterestSignup).mockResolvedValue(undefined);
+    renderPage();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jamie Smith' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jamie@example.com' } });
+    fireEvent.click(screen.getByText('Request access'));
+    expect(await screen.findByRole('heading', { name: 'Thanks!' })).toBeInTheDocument();
+    const back = screen.getByRole('link', { name: 'Back to sign in' });
+    expect(back).toHaveAttribute('href', '/login');
+    expect(back).toHaveClass('bg-ink');
+  });
+});

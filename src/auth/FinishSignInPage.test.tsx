@@ -60,3 +60,13 @@ describe('FinishSignInPage', () => {
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/));
   });
 });
+
+describe('FinishSignInPage error state', () => {
+  it('an email-link error shows the alert with no action', async () => {
+    fb.isLink.mockReturnValueOnce(false);
+    renderAt('/finish-sign-in');
+    expect(await screen.findByRole('alert')).toHaveTextContent('This sign-in link is invalid or has expired.');
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+});

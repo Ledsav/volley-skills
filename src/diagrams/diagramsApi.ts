@@ -59,6 +59,8 @@ export async function saveDiagramSet(
   exerciseId: string,
   ops: DiagramSaveOps,
   uid: string,
+  /** Called synchronously once the batch is built and queued, before the commit is awaited. */
+  onQueued?: (idMap: Record<string, string>) => void,
 ): Promise<{ idMap: Record<string, string> }> {
   // Validate + repair every scene once, keyed by its entry, and write THAT —
   // otherwise clamp-corrected values (e.g. size: 100 → 2) never get persisted.
@@ -99,6 +101,8 @@ export async function saveDiagramSet(
     batch.delete(clubDoc('exercises', exerciseId, 'diagrams', id));
   }
 
-  await withBackoff(() => batch.commit());
+  const committed = withBackoff(() => batch.commit());
+  onQueued?.(idMap);
+  await committed;
   return { idMap };
 }

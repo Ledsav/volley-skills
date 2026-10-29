@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
-import { FIELD_CLASS, Input } from '../components/Input';
+import { Field, FIELD_LABEL_CLASS, Input } from '../components/Input';
+import { Select } from '../components/Select';
 import {
   DEFAULT_FORMAT,
   type Competition,
@@ -24,13 +25,21 @@ interface MatchSetupFormProps {
   onSubmit: (input: MatchSetupInput) => Promise<void> | void;
   onCancel: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  /** In a sheet: one roster column, so names keep room beside the role and number fields. */
+  narrow?: boolean;
 }
+
+// The fieldset itself stays unstyled: a background or border on it would draw the legend in the card's top edge
+// (the classic notch). The legend sits above the card as a section header, inset to the card's text.
+const FIELDSET = 'min-w-0';
+const LEGEND = 'mb-2 px-4 text-footnote font-medium text-ink-2';
+const GROUP = 'rounded-lg bg-surface p-4';
 
 /** `role` = this match's role for the player (snapshot only; the profile is untouched). */
 type Picks = Record<string, { checked: boolean; number: number; role: PositionCategory }>;
 interface LiberoPick { playerId: string; mode: LiberoMode }
 
-export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel, onDirtyChange }: MatchSetupFormProps) {
+export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel, onDirtyChange, narrow = false }: MatchSetupFormProps) {
   const t = useT();
   const m = t.matches.setup;
   const LIBERO_MODES: { value: LiberoMode; label: string }[] = [
@@ -127,7 +136,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
     }
   }
 
-  if (!players) return <p className="text-slate">{error ?? m.loadingRoster}</p>;
+  if (!players) return <p className="text-ink-2">{error ?? m.loadingRoster}</p>;
   const checkedPlayers = players.filter((p) => picks[p.id]?.checked);
   const liberoIds = new Set(liberoPicks.map((l) => l.playerId).filter(Boolean));
   const numberCounts = new Map<number, number>();
@@ -135,6 +144,8 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
   const isDuplicate = (id: string) => !!picks[id]?.checked && (numberCounts.get(picks[id].number) ?? 0) > 1;
   const hasDuplicates = checkedPlayers.some((p) => isDuplicate(p.id));
   const tooMany = checkedPlayers.length > MAX_ROSTER;
+  // Fields sit on a surface-2 row inside a surface group, so they lift to surface.
+  const ON_ROW = '!bg-surface';
 
   return (
     <form
@@ -143,66 +154,66 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         setSaved(false);
         onDirtyChange?.(true);
       }}
-      className="flex flex-col gap-5">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.date}
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.opponent}
-          <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.competition}
-          <select className={FIELD_CLASS} value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
-            <option value="league">{t.labels.competition.league}</option>
-            <option value="cup">{t.labels.competition.cup}</option>
-            <option value="friendly">{t.labels.competition.friendly}</option>
-            <option value="tournament">{t.labels.competition.tournament}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.venue}
-          <select className={FIELD_CLASS} value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
-            <option value="home">{t.matches.shared.home}</option>
-            <option value="away">{t.matches.shared.away}</option>
-          </select>
-        </label>
-      </div>
+      className="flex flex-col gap-4">
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>{m.details}</legend>
+        <div className={`${GROUP} grid gap-3 sm:grid-cols-2`}>
+          <Field label={m.date}>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </Field>
+          <Field label={m.opponent}>
+            <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
+          </Field>
+          <Field label={m.competition}>
+            <Select value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
+              <option value="league">{t.labels.competition.league}</option>
+              <option value="cup">{t.labels.competition.cup}</option>
+              <option value="friendly">{t.labels.competition.friendly}</option>
+              <option value="tournament">{t.labels.competition.tournament}</option>
+            </Select>
+          </Field>
+          <Field label={m.venue}>
+            <Select value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
+              <option value="home">{t.matches.shared.home}</option>
+              <option value="away">{t.matches.shared.away}</option>
+            </Select>
+          </Field>
+        </div>
+      </fieldset>
 
-      <fieldset className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <legend className="mb-2 text-sm font-semibold text-ink">{m.format}</legend>
-        <label className="flex flex-col gap-1 text-xs text-slate">
-          {m.bestOf}
-          <select className={FIELD_CLASS} value={format.bestOf} onChange={(e) => setNum('bestOf', Number(e.target.value) as 3 | 5)}>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>{m.format}</legend>
+        <div className={`${GROUP} grid grid-cols-2 gap-3 sm:grid-cols-5`}>
+        <Field label={m.bestOf}>
+          <Select value={format.bestOf} onChange={(e) => setNum('bestOf', Number(e.target.value) as 3 | 5)}>
             <option value={3}>3</option>
             <option value={5}>5</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
         {([
           ['setPoints', m.setPoints],
           ['decidingSetPoints', m.decidingSet],
           ['subsPerSet', m.subsPerSet],
           ['timeoutsPerSet', m.timeoutsPerSet],
         ] as const).map(([key, label]) => (
-          <label key={key} className="flex flex-col gap-1 text-xs text-slate">
-            {label}
+          <Field key={key} label={label}>
             <Input type="number" min={0} value={format[key]} onChange={(e) => setNum(key, Number(e.target.value))} />
-          </label>
+          </Field>
         ))}
+        </div>
       </fieldset>
 
-      <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-ink">{m.roster}</legend>
-        <p className={`mb-2 text-sm tabular-nums ${tooMany ? 'font-medium text-red' : 'text-slate'}`}>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>{m.roster}</legend>
+        <div className={GROUP}>
+        <p className={`mb-2 text-callout tabular-nums ${tooMany ? 'font-semibold text-red-strong' : 'text-ink-2'}`}>
           {m.selected(checkedPlayers.length, MAX_ROSTER)}
         </p>
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className={narrow ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2'}>
           {players.map((p) => (
             <li
               key={p.id}
-              className={`flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 ${isDuplicate(p.id) ? 'border-red' : 'border-border'}`}>
+              className={`flex flex-wrap items-center gap-3 rounded-lg bg-surface-2 px-3 py-2 ${isDuplicate(p.id) ? 'ring-1 ring-red' : ''}`}>
               <input
                 type="checkbox"
                 aria-label={m.include(p.fullName)}
@@ -210,10 +221,10 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 checked={picks[p.id]?.checked ?? false}
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], checked: e.target.checked } }))}
               />
-              <span className="min-w-0 flex-1 truncate text-sm text-ink">#{p.number} {p.fullName}</span>
-              <select
+              <span className="min-w-0 flex-1 truncate text-callout text-ink">#{p.number} {p.fullName}</span>
+              <Select
                 aria-label={m.roleFor(p.fullName)}
-                className={`${FIELD_CLASS} min-h-11 w-20 px-2 text-base sm:text-sm`}
+                className={`${ON_ROW} min-h-11 w-24 text-base sm:text-sm`}
                 value={picks[p.id]?.role ?? p.positionCategory}
                 onChange={(e) =>
                   setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], role: e.target.value as PositionCategory } }))
@@ -222,33 +233,34 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 {POSITION_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.value}</option>
                 ))}
-              </select>
+              </Select>
               <Input
                 type="number"
                 aria-label={m.numberFor(p.fullName)}
-                className="w-16 tabular-nums"
+                className={`w-16 tabular-nums ${ON_ROW}`}
                 min={1}
                 max={99}
                 value={picks[p.id]?.number ?? p.number}
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], number: Number(e.target.value) } }))}
               />
               {isDuplicate(p.id) && (
-                <span className="w-full text-xs font-medium text-red">{m.duplicate(picks[p.id].number)}</span>
+                <span className="w-full text-footnote font-semibold text-red-strong">{m.duplicate(picks[p.id].number)}</span>
               )}
             </li>
           ))}
         </ul>
+        </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-semibold text-ink">{m.liberos}</legend>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>{m.liberos}</legend>
+        <div className={`${GROUP} flex flex-col gap-3`}>
         {[0, 1].map((i) => (
           <div key={i} className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1 text-xs text-slate">
-              {m.libero(i + 1)}
-              <select
+            <Field label={m.libero(i + 1)}>
+              <Select
                 aria-label={m.libero(i + 1)}
-                className={FIELD_CLASS}
+                
                 value={liberoPicks[i].playerId}
                 onChange={(e) =>
                   setLiberoPicks((cur) => cur.map((l, j) => (j === i ? { ...l, playerId: e.target.value } : l)))
@@ -258,13 +270,12 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 {checkedPlayers.map((p) => (
                   <option key={p.id} value={p.id}>{p.fullName} (#{picks[p.id].number})</option>
                 ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-slate">
-              {m.onCourt}
-              <select
+              </Select>
+            </Field>
+            <Field label={m.onCourt}>
+              <Select
                 aria-label={m.liberoMode(i + 1)}
-                className={FIELD_CLASS}
+                
                 value={liberoPicks[i].mode}
                 onChange={(e) =>
                   setLiberoPicks((cur) => cur.map((l, j) => (j === i ? { ...l, mode: e.target.value as LiberoMode } : l)))
@@ -273,16 +284,16 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 {LIBERO_MODES.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Field>
           </div>
         ))}
         {liberoIds.size > 0 && (
           <div>
-            <p className="mb-1 text-xs text-slate">{m.replaces}</p>
+            <p className={FIELD_LABEL_CLASS}>{m.replaces}</p>
             <div className="flex flex-wrap gap-2">
               {checkedPlayers.filter((p) => !liberoIds.has(p.id)).map((p) => (
-                <label key={p.id} className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-sm">
+                <label key={p.id} className="flex min-h-11 items-center gap-2 rounded-md bg-surface-2 px-3 text-callout tabular-nums text-ink">
                   <input
                     type="checkbox"
                     checked={(replaces ?? []).includes(p.id)}
@@ -296,10 +307,11 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
             </div>
           </div>
         )}
+        </div>
       </fieldset>
 
-      {saved && !error && <p role="status" className="text-sm text-green-strong">{m.saved}</p>}
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {saved && !error && <p role="status" className="text-callout text-green-strong">{m.saved}</p>}
+      {error && <p role="alert" className="text-callout text-red-strong">{error}</p>}
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>{t.common.cancel}</Button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { getPhysicalTest } from '../players/physicalTestsApi';
 import { formatPhysicalTestSummary } from '../players/physicalTestFormat';
 import { getPlayer } from '../players/playersApi';
@@ -87,10 +87,10 @@ export function PastSessionDialog({
   }, [teamId, session.id, s.past.loadError, s.past.removedPlayer]);
 
   return (
-    <Dialog
+    <Sheet
       title={s.past.title(session.date)}
       size="lg"
-      mobileSheet
+      detent="large"
       onClose={onClose}
       footer={
         <Button variant="dangerGhost" onClick={() => { setDeleteError(null); setConfirmingDelete(true); }} disabled={!rows && !error}>
@@ -99,25 +99,25 @@ export function PastSessionDialog({
       }
     >
       {error && (
-        <p role="alert" className="text-sm text-red">
+        <p role="alert" className="text-footnote text-red-strong">
           {error}
         </p>
       )}
-      {!rows && !error && <p className="text-sm text-slate">{s.past.loading}</p>}
-      {rows && rows.length === 0 && <p className="text-sm text-slate">{s.past.empty}</p>}
+      {!rows && !error && <p className="text-footnote text-ink-2">{s.past.loading}</p>}
+      {rows && rows.length === 0 && <p className="text-footnote text-ink-2">{s.past.empty}</p>}
       {rows && rows.length > 0 && (
         <>
-          <p className="mb-3 text-sm tabular-nums text-slate">
+          <p className="mb-3 text-footnote tabular-nums text-ink-2">
             {s.past.playersTested(rows.length)}
           </p>
-          <ul aria-label={s.past.resultsAria} className="divide-y divide-border rounded-md border border-border">
+          <ul aria-label={s.past.resultsAria} className="overflow-hidden rounded-lg bg-surface shadow-card">
             {rows.map((r) => (
-              <li key={r.playerId} className="p-3">
-                <p className="text-sm font-medium text-ink">{r.name}</p>
-                <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
+              <li key={r.playerId} className="border-t border-separator p-4 first:border-t-0">
+                <p className="text-headline text-ink">{r.name}</p>
+                <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-body">
                   {r.results.map((x) => (
                     <div key={x.testType} className="contents">
-                      <dt className="text-slate">{t.labels.physicalTest[x.testType]}</dt>
+                      <dt className="text-ink-2">{t.labels.physicalTest[x.testType]}</dt>
                       <dd className={`tabular-nums ${x.kind === 'notFinished' ? 'text-orange-strong' : 'text-ink'}`}>
                         {x.kind === 'value' ? x.value : x.kind === 'notFinished' ? s.past.notFinished : s.past.resultDeleted}
                       </dd>
@@ -139,6 +139,6 @@ export function PastSessionDialog({
           error={deleteError}
         />
       )}
-    </Dialog>
+    </Sheet>
   );
 }

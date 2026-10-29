@@ -1,31 +1,82 @@
+import { useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { usePageMeta } from '../layout/usePageMeta';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { AiProviderSettings } from './AiProviderSettings';
 import { LanguageSettings } from './LanguageSettings';
-import { SettingsSection } from './SettingsSection';
-import { ThemeToggle } from '../theme/ThemeToggle';
+import { GroupedList, ListRow } from '../components/GroupedList';
+import { SegmentedControl } from '../components/SegmentedControl';
+import { useThemePreference } from '../theme/useTheme';
+import { providerName, readAiSettings } from '../ai/aiSettings';
 import { useT } from '../i18n/I18nProvider';
 import { PageHeader } from '../layout/PageHeader';
+import { focusPageHeading } from '../layout/focusPageHeading';
+import { PageContainer } from '../layout/PageContainer';
 
 /** Personal settings only. Pages live in the sidebar (phones: More); sign-out in the account menu. */
 export function SettingsPage() {
   const t = useT().settings;
   usePageMeta({ title: t.title });
   const { aiEnabled } = useClubFeatures();
+  const [pref, setPref] = useThemePreference();
+  const [params] = useSearchParams();
+  const view = params.get('view') === 'ai' && aiEnabled ? 'ai' : 'root';
+
+  // /settings and /settings?view=ai share a pathname, so the shell does not move focus: do it here.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    focusPageHeading(document.getElementById('main'));
+  }, [view]);
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto flex max-w-md flex-col gap-3 lg:max-w-3xl lg:gap-4">
-        <PageHeader title={t.title} className="mb-3" />
-
-        <SettingsSection title={t.appearanceTitle} description={t.appearanceDescription}>
-          <ThemeToggle className="flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-ink hover:bg-bg sm:w-auto sm:justify-start lg:self-start" />
-        </SettingsSection>
-
-        <LanguageSettings />
-
-        {aiEnabled && <AiProviderSettings />}
-      </div>
-    </div>
+    <PageContainer width="form" className="flex flex-col gap-8">
+      {view === 'ai' ? (
+        <div>
+          <PageHeader
+            title={t.ai.title}
+            description={t.ai.description}
+            eyebrow={
+              <Link to="/settings" className="inline-flex min-h-11 items-center gap-1 text-ink-2 hover:text-ink">
+                <ChevronLeft size={16} aria-hidden="true" />
+                {t.title}
+              </Link>
+            }
+          />
+          <AiProviderSettings />
+        </div>
+      ) : (
+        <>
+          <PageHeader title={t.title} className="" />
+          <GroupedList header={t.appearanceTitle}>
+            <li className="flex min-h-[52px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2">
+              <span className="text-headline text-ink">{t.theme}</span>
+              <SegmentedControl
+                label={t.theme}
+                semantics="radio"
+                value={pref}
+                onChange={setPref}
+                className="w-full sm:ml-auto sm:w-fit"
+                options={[
+                  { id: 'system', label: t.themeSystem },
+                  { id: 'light', label: t.themeLight },
+                  { id: 'dark', label: t.themeDark },
+                ]}
+              />
+            </li>
+          </GroupedList>
+          <LanguageSettings />
+          {aiEnabled && (
+            <GroupedList header={t.ai.title} footer={t.ai.description}>
+              <ListRow to="/settings?view=ai" title={t.ai.provider} trailing={providerName(readAiSettings().provider)} />
+            </GroupedList>
+          )}
+        </>
+      )}
+    </PageContainer>
   );
 }

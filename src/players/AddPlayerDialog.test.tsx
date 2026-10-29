@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AddPlayerDialog } from './AddPlayerDialog';
 import * as playersApi from './playersApi';
@@ -188,5 +188,18 @@ describe('AddPlayerDialog', () => {
     const options = Array.from((screen.getByLabelText('Position') as HTMLSelectElement).options);
     expect(options.map((o) => o.value)).toEqual(['S', 'OH', 'O', 'MB', 'L', 'U', 'TBD']);
     expect(options.map((o) => o.textContent)).toEqual(['Setter', 'Outside', 'Opposite', 'Middle', 'Libero', 'Universal', 'TBD']);
+  });
+
+  it('Cancel after typing asks to discard', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+    );
+    const onClose = vi.fn();
+    render(<AddPlayerDialog teamId="team-1" team={team} onClose={onClose} onCreated={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Player' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole('alertdialog', { name: 'Discard changes?' })).getByRole('button', { name: 'Discard' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

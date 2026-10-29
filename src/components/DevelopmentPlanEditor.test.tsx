@@ -117,6 +117,21 @@ describe('DevelopmentPlanEditor', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not save');
   });
 
+  it('a second Save while the plan is saving is ignored', async () => {
+    let finish: () => void = () => {};
+    const onSave = vi.fn().mockReturnValue(new Promise<void>((resolve) => (finish = resolve)));
+    render(<PlanHarness plan={emptyPlan} onSave={onSave} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    const save = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    finish();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   it('discards edits when Cancel is clicked, instead of leaving them for the next edit session', () => {
     const plan: DevelopmentPlan = {
       shortTermObjectives: [{ objective: 'Improve serve', targetDate: '2026-12-01', status: 'Not started', coachComment: '' }],
@@ -128,6 +143,7 @@ describe('DevelopmentPlanEditor', () => {
     fireEvent.click(screen.getByText('Edit'));
     fireEvent.change(screen.getByLabelText('Objective'), { target: { value: 'Abandoned edit' } });
     fireEvent.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
     fireEvent.click(screen.getByText('Edit'));
     expect(screen.getByLabelText('Objective')).toHaveValue('Improve serve');

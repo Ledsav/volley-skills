@@ -1,37 +1,42 @@
-import { Link } from 'react-router-dom';
 import type { FeedItem } from './homeFeed';
+import { Button } from '../components/Button';
+import { GroupedList, ListRow } from '../components/GroupedList';
 import { useT } from '../i18n/I18nProvider';
 import { formatDate } from '../i18n/format';
 
-const fmtDay = (iso: string) =>
-  formatDate(iso, 'weekday');
+const fmtDay = (iso: string) => formatDate(iso, 'weekday');
 
-export function NextUpBlock({ items, failed }: { items: FeedItem[]; failed: boolean }) {
+export function NextUpBlock({ items, failed, onPlan }: { items: FeedItem[]; failed: boolean; onPlan?: () => void }) {
   const t = useT().home;
   return (
-    <section aria-labelledby="next-up" className="rounded-lg border border-border bg-surface p-4 shadow-card">
-      <h2 id="next-up" className="mb-3 text-lg font-semibold text-ink">{t.nextUp.title}</h2>
-      {failed && <p role="alert" className="mb-2 text-sm text-red">{t.nextUp.error}</p>}
+    <section aria-labelledby="next-up">
+      <h2 id="next-up" className="mb-2 text-title-3 text-ink">{t.nextUp.title}</h2>
+      {failed && <p role="alert" className="mb-2 text-footnote text-red-strong">{t.nextUp.error}</p>}
       {items.length === 0 ? (
-        <p className="text-slate">{t.nextUp.empty}</p>
+        <div className="rounded-lg bg-surface p-4 shadow-card">
+          <p className="text-footnote text-ink-2">{t.nextUp.empty}</p>
+          {onPlan && (
+            <Button variant="secondary" onClick={onPlan} className="mt-3">
+              {t.planTraining}
+            </Button>
+          )}
+        </div>
       ) : (
-        <ul className="divide-y divide-border">
+        <GroupedList>
           {items.map((item) => (
-            <li key={item.kind === 'session' ? `s-${item.session.id}` : `m-${item.match.id}`}>
-              <Link
-                to={item.kind === 'session' ? `/teams/${item.team.id}` : `/teams/${item.team.id}/matches/${item.match.id}`}
-                className="flex min-h-11 items-center gap-3 py-2 hover:bg-bg"
-              >
-                <span className="w-24 shrink-0 text-sm tabular-nums text-slate">{fmtDay(item.date)}</span>
-                {/* Phones: title over the team chip, so the title keeps the row's width. */}
-                <span className="flex min-w-0 flex-1 flex-col items-start gap-1 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-3">
-                  <span className="w-full truncate text-ink sm:w-auto">{item.kind === 'session' ? item.session.trainingName : t.vs(item.match.opponent)}</span>
-                  <span className="max-w-full shrink-0 truncate rounded-sm bg-bg px-2 py-0.5 text-xs font-medium text-ink">{item.team.name}</span>
-                </span>
-              </Link>
-            </li>
+            <ListRow
+              key={item.kind === 'session' ? `s-${item.team.id}/${item.session.id}` : `m-${item.team.id}/${item.match.id}`}
+              // B1: a session opens the team calendar on that session.
+              to={
+                item.kind === 'session'
+                  ? `/teams/${item.team.id}?tab=calendar&session=${item.session.id}`
+                  : `/teams/${item.team.id}/matches/${item.match.id}`
+              }
+              title={item.kind === 'session' ? item.session.trainingName : t.vs(item.match.opponent)}
+              subtitle={<span className="tabular-nums">{fmtDay(item.date)} · {item.team.name}</span>}
+            />
           ))}
-        </ul>
+        </GroupedList>
       )}
     </section>
   );

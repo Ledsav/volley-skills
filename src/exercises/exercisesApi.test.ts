@@ -8,6 +8,8 @@ import {
   getExercisesByIds,
   countTrainingsUsingExercise,
   bulkCreateExercises,
+  getExercise,
+  searchExercises,
 } from './exercisesApi';
 
 const {
@@ -205,7 +207,49 @@ describe('exercisesApi', () => {
     mockDoc.mockReturnValue('doc-ref');
     mockUpdateDoc.mockResolvedValue(undefined);
     await updateExercise('ex-1', { name: 'Pepper (advanced)' });
-    expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', { name: 'Pepper (advanced)' });
+    expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({ name: 'Pepper (advanced)' }));
+  });
+
+  it('create writes searchTokens from the name', async () => {
+    mockAddDoc.mockResolvedValue({ id: 'ex-1' });
+    await createExercise({ name: 'Muro a tre', description: '', category: 'warmup' }, 'u');
+    expect(mockAddDoc.mock.calls[0][1].searchTokens).toEqual(['mu', 'mur', 'muro', 'tr', 'tre']);
+  });
+
+  it('bulk create writes tokens for every row', async () => {
+    const batchSet = vi.fn();
+    mockWriteBatch.mockReturnValue({ set: batchSet, commit: vi.fn().mockResolvedValue(undefined) });
+    await bulkCreateExercises(
+      [
+        { name: 'Muro', description: '', category: 'warmup', diagrams: [] },
+        { name: 'Servizio', description: '', category: 'attack', diagrams: [] },
+      ],
+      'u'
+    );
+    expect(batchSet.mock.calls[0][1].searchTokens).toContain('mur');
+    expect(batchSet.mock.calls[1][1].searchTokens).toContain('serv');
+  });
+
+  it('update with a new name rewrites the tokens', async () => {
+    mockDoc.mockReturnValue('doc-ref');
+    await updateExercise('ex-1', { name: 'Ricezione' });
+    const payload = mockUpdateDoc.mock.calls[0][1];
+    expect(payload.searchTokens).toContain('ricez');
+    expect(payload.searchTokens).not.toContain('mu');
+  });
+
+  it('update without a name leaves searchTokens alone', async () => {
+    mockDoc.mockReturnValue('doc-ref');
+    await updateExercise('ex-1', { description: 'x' });
+    expect(mockUpdateDoc.mock.calls[0][1]).not.toHaveProperty('searchTokens');
+  });
+
+  it('getExercise returns the exercise or null', async () => {
+    mockDoc.mockReturnValue('doc-ref');
+    mockGetDoc.mockResolvedValueOnce({ exists: () => true, id: 'ex-1', data: () => ({ name: 'A' }) });
+    expect(await getExercise('ex-1')).toEqual({ id: 'ex-1', name: 'A' });
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false });
+    expect(await getExercise('nope')).toBeNull();
   });
 
   it('deletes an exercise', async () => {
@@ -283,5 +327,30 @@ describe('exercisesApi', () => {
 
     expect(count).toBe(3);
     expect(mockWhere).toHaveBeenCalledWith('exerciseIds', 'array-contains', 'ex-1');
+  });
+});
+
+describe('searchExercises', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('queries searchTokens ordered by name, 20 per page', async () => {
+    mockGetDocs.mockResolvedValue({ docs: Array.from({ length: 20 }, (_, i) => ({ id: `d${i}`, data: () => ({ name: `N${i}` }) })) });
+    const page = await searchExercises('pass');
+    expect(mockWhere).toHaveBeenCalledWith('searchTokens', 'array-contains', 'pass');
+    const args = (vi.mocked(mockGetDocs).mock.calls[0][0] as unknown[]);
+    expect(args).toContainEqual({ type: 'orderBy', args: ['name'] });
+    expect(args).toContainEqual({ type: 'limit', args: [20] });
+    expect(page.items).toHaveLength(20);
+    expect(page.hasMore).toBe(true);
+  });
+
+  it('continues after the cursor and reports the last page', async () => {
+    const cursor = { id: 'c' } as never;
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'x', data: () => ({ name: 'X' }) }] });
+    const page = await searchExercises('pass', cursor);
+    const args = (vi.mocked(mockGetDocs).mock.calls[0][0] as unknown[]);
+    expect(args).toContainEqual({ type: 'startAfter', args: [cursor] });
+    expect(page.hasMore).toBe(false);
+    expect(page.lastDoc?.id).toBe('x');
   });
 });

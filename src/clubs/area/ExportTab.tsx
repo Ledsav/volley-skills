@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download } from 'lucide-react';
-import { Button } from '../../components/Button';
+import { usePublishPageChrome } from '../../layout/PageChrome';
 import { useNotify } from '../../components/Notice';
 import { downloadBlob } from '../../export/exportJson';
 import { buildClubExportFiles, clubExportFileName, zipClubExport } from '../export/clubExport';
@@ -10,7 +10,8 @@ import { useT } from '../../i18n/I18nProvider';
 /** The club's self-service data export (spec §7.2): one ZIP, built in the browser. */
 export function ExportTab() {
   const notify = useNotify();
-  const e = useT().clubs.export;
+  const t = useT();
+  const e = t.clubs.export;
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const running = progress !== null;
@@ -32,22 +33,21 @@ export function ExportTab() {
     }
   }
 
+  usePublishPageChrome({
+    title: t.clubs.area.pageTitle,
+    mainAction: { label: e.download, icon: Download, onSelect: () => void run(), disabled: running },
+  });
+
   return (
-    <section className="flex max-w-xl flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-card">
+    <section className="flex max-w-xl flex-col gap-4 rounded-lg bg-surface p-4 shadow-card">
       <div>
-        <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">{e.title}</h2>
-        <p className="mt-1 text-sm text-slate">
+        <h2 className="text-title-3 text-ink">{e.title}</h2>
+        <p className="mt-1 text-callout text-ink-2">
           {e.description}
         </p>
       </div>
-      <div>
-        <Button variant="primary" onClick={() => void run()} disabled={running}>
-          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-          {e.download}
-        </Button>
-      </div>
-      {running && <p role="status" className="text-sm text-slate">{progress}</p>}
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {running && <p role="status" className="text-footnote text-ink-2">{progress}</p>}
+      {error && <p role="alert" className="text-footnote text-red-strong">{error}</p>}
     </section>
   );
 }

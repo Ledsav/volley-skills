@@ -22,7 +22,9 @@ export const auth = {
     sendLink: 'Send sign-in link',
     or: 'or',
     continueWithGoogle: 'Continue with Google',
-    noAccessYet: "Don't have access yet? Request early access",
+    noAccessYet: "Don't have access yet?",
+    requestEarlyAccess: 'Request early access',
+    openOnThisDevice: 'Open it on this device.',
     createClub: 'Create your club',
   },
   finishSignIn: {

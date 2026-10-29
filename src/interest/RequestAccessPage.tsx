@@ -1,10 +1,11 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Input } from '../components/Input';
-import { LegalLinks } from '../legal/LegalLinks';
+import { FieldLabel, Input } from '../components/Input';
+import { Select } from '../components/Select';
+import { StatusLayout } from '../components/StatusLayout';
 import { AuthShell } from '../auth/AuthShell';
 import { submitInterestSignup } from './interestApi';
 import type { InterestSignupRole } from '../types/interestSignup';
@@ -39,28 +40,29 @@ export function RequestAccessPage() {
 
   if (sent) {
     return (
-      <AuthShell title={tr.thanks}>
-        <p className="text-center text-slate">
+      <AuthShell>
+        <StatusLayout
+          icon={CheckCircle2}
+          title={tr.thanks}
+          actions={
+            <Link to="/login" className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-ink text-on-ink font-semibold">
+              {tr.backToSignIn}
+            </Link>
+          }
+        >
           {tr.gotRequest}
-        </p>
-        <p className="mt-6 text-center text-sm">
-          <Link to="/login" className="text-blue hover:underline">
-            {tr.backToSignIn}
-          </Link>
-        </p>
+        </StatusLayout>
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell title={tr.heading} navAction={{ to: '/login', label: tr.signIn }}>
-      <p className="mb-4 text-center text-sm text-slate">
-        {tr.intro}
-      </p>
+    <AuthShell title={tr.heading} navAction={{ to: '/login', label: tr.signIn }} legalLinks>
+      <p className="text-body text-ink-2">{tr.intro}</p>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="name" className="mb-1 block text-sm font-medium text-ink">
+        <FieldLabel htmlFor="name">
           {tr.name}
-        </label>
+        </FieldLabel>
         <Input
           id="name"
           value={name}
@@ -70,9 +72,9 @@ export function RequestAccessPage() {
           className="mb-4 w-full"
         />
 
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-ink">
+        <FieldLabel htmlFor="email">
           {tr.email}
-        </label>
+        </FieldLabel>
         <Input
           id="email"
           type="email"
@@ -83,48 +85,47 @@ export function RequestAccessPage() {
           className="mb-4 w-full"
         />
 
-        <label htmlFor="role" className="mb-1 block text-sm font-medium text-ink">
+        <FieldLabel htmlFor="role">
           {tr.iAm}
-        </label>
-        <select
+        </FieldLabel>
+        <Select
           id="role"
           value={role}
           onChange={(e) => setRole(e.target.value as InterestSignupRole)}
-          className="mb-4 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-blue"
+          className="mb-4 w-full"
         >
           {ROLE_KEYS.map((key) => (
             <option key={key} value={key}>
               {t.roles[key]}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <p className="mb-4 text-xs text-slate">
+        <p className="mb-4 text-footnote text-ink-2">
           {tr.privacyBefore}
-          <Link to="/privacy" className="text-blue hover:underline">
+          <Link to="/privacy" className="text-ink underline">
             {tr.privacyLink}
           </Link>
           .
         </p>
 
-        <Button type="submit" variant="primary" className="w-full gap-2" disabled={submitting}>
+        <Button type="submit" variant="primary" className="min-h-12 w-full gap-2" disabled={submitting}>
           {tr.submit}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red">
+        <p role="alert" className="text-footnote text-red-strong">
           {error}
         </p>
       )}
 
-      <p className="mt-6 text-center text-sm">
-        <Link to="/login" className="text-slate hover:underline">
+      <p className="text-center text-callout text-ink-2">
+        <Link to="/login" className="font-semibold text-ink hover:underline">
           {tr.alreadyHaveAccess}
         </Link>
       </p>
-      <LegalLinks />
     </AuthShell>
   );
 }

@@ -3,7 +3,10 @@ import type { Catalog } from '../catalog';
 export const settings = {
   title: 'Impostazioni',
   appearanceTitle: 'Aspetto',
-  appearanceDescription: 'Passa dalla modalità chiara a quella scura.',
+  theme: 'Tema',
+  themeSystem: 'Sistema',
+  themeLight: 'Chiaro',
+  themeDark: 'Scuro',
   ai: {
     title: 'Provider IA',
     description: 'Usato per lo scouting da testo e per preparare esercizi e allenamenti.',

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Scene } from '../types/diagram';
 import { createItem, emptyScene } from './sceneFactory';
-import { buildSaveOps, diagramReducer, initialEditorState, type EditorState } from './useDiagramEditor';
+import { buildSaveOps, diagramReducer, initialEditorState, isEditorDirty, type EditorState } from './useDiagramEditor';
 
 function loaded(scene: Scene = emptyScene('full')): EditorState {
   return diagramReducer(initialEditorState, {
@@ -453,5 +453,155 @@ describe('buildSaveOps', () => {
     s3 = diagramReducer(s3, { type: 'addDiagram' });
     s3 = diagramReducer(s3, { type: 'deleteDiagram', id: 'd1' });
     expect(buildSaveOps(s3).deletes).toEqual(['d1']);
+  });
+});
+
+describe('history (B3)', () => {
+  const cone = (id: string) => ({ ...createItem('cone', { x: 1, y: 1 }), id });
+  const ball = (id: string) => ({ ...createItem('ball', { x: 2, y: 2 }), id });
+
+  it('undo history survives a save and undo marks the diagram dirty again', () => {
+    let s = loaded();
+    s = diagramReducer(s, { type: 'addItem', item: cone('a') });
+    s = diagramReducer(s, { type: 'addItem', item: cone('b') });
+    s = diagramReducer(s, { type: 'saved', idMap: {}, committedIds: ['d1'] });
+    expect(s.undo).toHaveLength(2);
+    expect(s.dirtyIds.size).toBe(0);
+    expect(isEditorDirty(s)).toBe(false);
+    s = diagramReducer(s, { type: 'undo' });
+    expect(s.diagrams[0].scene.items).toHaveLength(1);
+    expect(s.dirtyIds.has('d1')).toBe(true);
+  });
+
+  it('each diagram keeps its own undo history across tab switches', () => {
+    let s = loaded();
+    s = diagramReducer(s, { type: 'addItem', item: cone('a') });
+    s = diagramReducer(s, { type: 'addDiagram' });
+    const d2 = s.activeDiagramId as string;
+    s = diagramReducer(s, { type: 'addItem', item: ball('b') });
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'd1' });
+    expect(s.undo).toHaveLength(1);
+    s = diagramReducer(s, { type: 'undo' });
+    expect(s.diagrams[0].scene.items).toHaveLength(0);
+    s = diagramReducer(s, { type: 'selectDiagram', id: d2 });
+    expect(s.undo).toHaveLength(1);
+    expect(s.undo[0].items).toHaveLength(0);
+    expect(s.diagrams[1].scene.items).toHaveLength(1);
+  });
+
+  it('a saved new diagram keeps its history under its real id', () => {
+    let s = loaded();
+    s = diagramReducer(s, { type: 'addDiagram' });
+    const t = s.activeDiagramId as string;
+    s = diagramReducer(s, { type: 'addItem', item: cone('a') });
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'd1' });
+    s = diagramReducer(s, { type: 'saved', idMap: { [t]: 'real-2' }, committedIds: ['d1'] });
+    expect(Object.keys(s.history)).toEqual(['real-2']);
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'real-2' });
+    expect(s.undo).toHaveLength(1);
+  });
+
+  it('deleting a diagram drops its history', () => {
+    let s = loaded();
+    s = diagramReducer(s, { type: 'addDiagram' });
+    const t = s.activeDiagramId as string;
+    s = diagramReducer(s, { type: 'addItem', item: cone('a') });
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'd1' });
+    expect(s.history[t]).toBeDefined();
+    s = diagramReducer(s, { type: 'deleteDiagram', id: t });
+    expect(t in s.history).toBe(false);
+  });
+
+  it('deleting the active diagram loads the new active diagram history', () => {
+    let s = loaded();
+    s = diagramReducer(s, { type: 'addItem', item: cone('a') });
+    s = diagramReducer(s, { type: 'addDiagram' });
+    const t = s.activeDiagramId as string;
+    s = diagramReducer(s, { type: 'deleteDiagram', id: t });
+    expect(s.activeDiagramId).toBe('d1');
+    expect(s.undo).toHaveLength(1);
+    expect('d1' in s.history).toBe(false);
+  });
+
+  it('stacks stay capped at 30 per diagram', () => {
+    let s = loaded();
+    for (let i = 0; i < 35; i++) s = diagramReducer(s, { type: 'addItem', item: cone(`c${i}`) });
+    s = diagramReducer(s, { type: 'addDiagram' });
+    const d2 = s.activeDiagramId as string;
+    expect(s.history['d1'].undo).toHaveLength(30);
+    s = diagramReducer(s, { type: 'selectDiagram', id: 'd1' });
+    expect(s.undo).toHaveLength(30);
+    s = diagramReducer(s, { type: 'addItem', item: ball('z') });
+    expect(s.undo).toHaveLength(30);
+    expect(d2).toBeTruthy();
+  });
+});
+
+describe('saved with sent snapshots (fix round 1)', () => {
+  const cone = (id: string) => ({ ...createItem('cone', { x: 1, y: 1 }), id });
+  const snap = (s: EditorState) => ({
+    diagrams: s.diagrams.map((d) => ({ id: d.id, title: d.title, order: d.order, scene: d.scene })),
+    deletes: [] as string[],
+  });
+
+  it('an id edited after it was sent stays dirty when the ack lands (I-1)', () => {
+    let s = diagramReducer(loaded(), { type: 'addItem', item: cone('a') });
+    const sent = snap(s);
+    s = diagramReducer(s, { type: 'addItem', item: cone('b') });
+    s = diagramReducer(s, { type: 'saved', idMap: {}, committedIds: ['d1'], sent });
+    expect(s.dirtyIds.has('d1')).toBe(true);
+    expect(s.undo).toHaveLength(2);
+  });
+
+  it('an unchanged sent id becomes clean', () => {
+    let s = diagramReducer(loaded(), { type: 'addItem', item: cone('a') });
+    s = diagramReducer(s, { type: 'saved', idMap: {}, committedIds: ['d1'], sent: snap(s) });
+    expect(s.dirtyIds.size).toBe(0);
+  });
+
+  it('a persisted diagram updated in flight then deleted stays queued for deletion (I-2a)', () => {
+    let s = diagramReducer(loaded(), { type: 'addItem', item: cone('a') });
+    const sent = snap(s);
+    s = diagramReducer(s, { type: 'addDiagram' });
+    s = diagramReducer(s, { type: 'deleteDiagram', id: 'd1' });
+    s = diagramReducer(s, { type: 'saved', idMap: {}, committedIds: ['d1'], sent });
+    expect(s.deletedIds).toEqual(['d1']);
+    expect(buildSaveOps(s).deletes).toEqual(['d1']);
+  });
+
+  it('a new diagram created in flight then deleted queues its real id for deletion (I-2b)', () => {
+    let s = diagramReducer(loaded(), { type: 'addDiagram' });
+    const t = s.activeDiagramId as string;
+    const sent = snap(s);
+    s = diagramReducer(s, { type: 'deleteDiagram', id: t });
+    s = diagramReducer(s, { type: 'saved', idMap: { [t]: 'real-2' }, committedIds: [t], sent });
+    expect(s.deletedIds).toEqual(['real-2']);
+  });
+
+  it('only the deletes actually sent leave the queue', () => {
+    let s = diagramReducer(loaded(), { type: 'addDiagram' });
+    s = diagramReducer(s, { type: 'deleteDiagram', id: 'd1' });
+    const sent = { ...snap(s), deletes: ['d1'] };
+    s = diagramReducer(s, { type: 'addDiagram' });
+    s = diagramReducer(s, { type: 'deleteDiagram', id: s.activeDiagramId as string });
+    expect(s.deletedIds).toEqual(['d1']);
+    s = diagramReducer(s, { type: 'saved', idMap: {}, committedIds: ['d1'], sent });
+    expect(s.deletedIds).toEqual([]);
+  });
+
+  it('saveFailed puts a failed create back under its temp id, dirty, and restores sent deletes', () => {
+    let s = diagramReducer(loaded(), { type: 'addDiagram' });
+    const t = s.activeDiagramId as string;
+    s = diagramReducer(s, { type: 'addItem', item: cone('a') });
+    const sent = snap(s);
+    s = diagramReducer(s, { type: 'saved', idMap: { [t]: 'real-2' }, committedIds: [t], sent });
+    expect(s.diagrams[1].id).toBe('real-2');
+    s = diagramReducer(s, { type: 'saveFailed', idMap: { [t]: 'real-2' }, sent: { ...sent, deletes: ['gone'] } });
+    expect(s.diagrams[1]).toMatchObject({ id: t, persisted: false });
+    expect(s.activeDiagramId).toBe(t);
+    expect(s.dirtyIds.has(t)).toBe(true);
+    expect(s.dirtyIds.has('d1')).toBe(true);
+    expect(s.deletedIds).toEqual(['gone']);
+    expect(s.undo).toHaveLength(1);
   });
 });

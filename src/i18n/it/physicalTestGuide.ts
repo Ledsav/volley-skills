@@ -4,6 +4,7 @@ import type { PhysicalTestGuideEntry } from '../../types/physicalTestGuide';
 export const physicalTestGuide = {
   loadError: 'Impossibile caricare la guida ai test atletici. Aggiorna la pagina.',
   saveError: 'Impossibile salvare la guida ai test atletici. Riprova.',
+  saved: 'Guida ai test atletici salvata',
   protocol: 'Protocollo',
   /** Italian fallback until an admin saves the guide; a saved guide shows its stored text in both languages. */
   defaults: [

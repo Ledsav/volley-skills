@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volley Skills v2 screens</title><style>body{margin:0;padding:32px 20px;background:#F5F5F7;font-family:Inter,-apple-system,system-ui,sans-serif;color:#1D1D1F}h2{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}.subtitle{color:#6E6E73;margin:0 0 24px;max-width:760px}</style>
+<style>
+  .vs * { box-sizing:border-box; margin:0; }
+  .vs { font-family: Inter, -apple-system, system-ui, sans-serif; display:flex; flex-direction:column; gap:40px; }
+  .vs .num { font-variant-numeric:tabular-nums; }
+  .vs .row { display:flex; gap:12px; }
+  .vs .col { display:flex; flex-direction:column; gap:12px; }
+  .vs .L { --bg:#F5F5F7; --side:#ECECEF; --surf:#FFFFFF; --glass:rgba(250,250,252,.72); --gline:rgba(0,0,0,.06); --line:rgba(0,0,0,.07); --fill:rgba(118,118,128,.12);
+       --ink:#1D1D1F; --ink2:#424245; --mute:#86868B; --prim:#1D1D1F; --onprim:#FFFFFF; --sel:rgba(0,0,0,.06); --scrim:rgba(0,0,0,.25);
+       --red:#E5484D; --orange:#F2850D; --blue:#0A7CFF; --green:#1FA45A; --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05); }
+  .vs .D { --bg:#000000; --side:#0E0E10; --surf:#161618; --glass:rgba(28,28,30,.72); --gline:rgba(255,255,255,.08); --line:rgba(255,255,255,.08); --fill:rgba(118,118,128,.24);
+       --ink:#F5F5F7; --ink2:#D1D1D6; --mute:#8E8E93; --prim:#F5F5F7; --onprim:#000000; --sel:rgba(255,255,255,.08); --scrim:rgba(0,0,0,.55);
+       --red:#FF6369; --orange:#FFA53D; --blue:#4DA3FF; --green:#3DD68C; --shadow:0 0 0 1px rgba(255,255,255,.06); }
+
+  .vs .shot h3 { font-size:15px; margin-bottom:4px; }
+  .vs .shot .why { font-size:13px; color:var(--text-secondary, #888); margin-bottom:12px; line-height:1.5; max-width:900px; }
+  .vs .app { border-radius:18px; overflow:hidden; height:520px; display:flex; background:var(--bg); color:var(--ink); position:relative; font-size:13px; }
+  .vs .side { width:196px; flex:none; background:var(--side); padding:14px 10px; display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--line); }
+  .vs .club { display:flex; gap:10px; align-items:center; padding:4px 8px 14px; }
+  .vs .logo { width:28px; height:28px; border-radius:8px; background:var(--prim); color:var(--onprim); display:grid; place-items:center; font-size:11px; font-weight:700; }
+  .vs .nav { font-size:13px; padding:7px 10px; border-radius:8px; color:var(--ink2); }
+  .vs .nav.on { background:var(--sel); color:var(--ink); font-weight:600; }
+  .vs .lbl { font-size:11px; color:var(--mute); font-weight:600; margin:14px 10px 4px; }
+  .vs .mn { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
+  .vs .toolbar { height:50px; flex:none; display:flex; align-items:center; gap:8px; padding:0 20px; background:var(--glass); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border-bottom:1px solid var(--gline); }
+  .vs .crumb { font-size:13px; color:var(--mute); }
+  .vs .crumb b { color:var(--ink); font-weight:600; }
+  .vs .tb { margin-left:auto; display:flex; gap:6px; align-items:center; }
+  .vs .ib { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:var(--fill); color:var(--ink); font-size:14px; }
+  .vs .pbtn { height:30px; padding:0 14px; border-radius:99px; background:var(--prim); color:var(--onprim); font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .vs .sbtn { height:30px; padding:0 14px; border-radius:99px; background:var(--fill); color:var(--ink); font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .vs .body { padding:18px 24px; display:flex; flex-direction:column; gap:14px; overflow:hidden; flex:1; }
+  .vs .eyebrow { font-size:12px; color:var(--mute); font-weight:500; }
+  .vs .lt { font-size:30px; line-height:1.05; letter-spacing:-.035em; font-weight:700; }
+  .vs .card { background:var(--surf); border-radius:16px; padding:16px; box-shadow:var(--shadow); }
+  .vs .k { font-size:12px; color:var(--mute); }
+  .vs .big { font-size:28px; font-weight:650; letter-spacing:-.035em; line-height:1.1; }
+  .vs .sec { display:flex; align-items:baseline; justify-content:space-between; }
+  .vs .sec b { font-size:16px; letter-spacing:-.015em; }
+  .vs .sec a { font-size:12.5px; color:var(--mute); }
+  .vs .group { background:var(--surf); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; }
+  .vs .gi { display:flex; align-items:center; gap:12px; padding:9px 14px; font-size:13px; }
+  .vs .gi + .gi { border-top:1px solid var(--line); }
+  .vs .av { width:30px; height:30px; border-radius:50%; background:var(--fill); display:grid; place-items:center; font-size:11px; font-weight:600; color:var(--ink2); flex:none; }
+  .vs .jn { width:30px; height:30px; border-radius:9px; background:var(--fill); display:grid; place-items:center; font-size:12px; font-weight:700; flex:none; }
+  .vs .seg { display:inline-flex; border-radius:10px; padding:2px; font-size:12px; background:var(--fill); }
+  .vs .seg span { padding:5px 12px; border-radius:8px; color:var(--ink2); }
+  .vs .seg .on { background:var(--surf); box-shadow:0 1px 3px rgba(0,0,0,.15); font-weight:600; color:var(--ink); }
+  .vs .chip { font-size:12px; padding:5px 12px; border-radius:99px; background:var(--fill); color:var(--ink2); white-space:nowrap; }
+  .vs .chip.on { background:var(--prim); color:var(--onprim); font-weight:600; }
+  .vs .tag { font-size:11px; font-weight:600; padding:2px 8px; border-radius:99px; white-space:nowrap; }
+  .vs .meter { display:flex; gap:2px; width:56px; }
+  .vs .meter i { flex:1; height:6px; border-radius:2px; background:var(--fill); }
+  .vs .bar { height:6px; border-radius:3px; background:var(--fill); flex:1; overflow:hidden; }
+  .vs .bar i { display:block; height:100%; border-radius:3px; }
+  .vs .search { height:32px; border-radius:10px; background:var(--fill); display:flex; align-items:center; padding:0 10px; color:var(--mute); font-size:12.5px; gap:6px; }
+  .vs .sheet { position:absolute; background:var(--surf); box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  .vs .grab { width:36px; height:5px; border-radius:3px; background:var(--fill); margin:8px auto 4px; }
+  .vs .phone { width:290px; height:600px; border-radius:46px; padding:9px; background:#1a1a1a; flex:none; }
+  .vs .screen { width:100%; height:100%; border-radius:38px; overflow:hidden; background:var(--bg); color:var(--ink); position:relative; font-size:13px; }
+  .vs .tabbar { position:absolute; left:12px; right:12px; bottom:12px; height:56px; border-radius:30px; display:flex; justify-content:space-around; align-items:center; background:var(--glass); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border:1px solid var(--gline); box-shadow:0 8px 30px rgba(0,0,0,.12); font-size:9.5px; color:var(--mute); }
+  .vs .tabbar span { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .vs .tabbar span::before { content:""; width:18px; height:18px; border-radius:5px; border:1.8px solid currentColor; }
+  .vs .tabbar .on { color:var(--ink); font-weight:650; }
+  .vs .court { position:relative; border-radius:14px; background:linear-gradient(#E9EEF5,#DFE6EF); border:2px solid rgba(0,0,0,.08); }
+  .vs .D .court { background:linear-gradient(#141A22,#10151C); border-color:rgba(255,255,255,.08); }
+  .vs .g { font-size:11px; font-weight:700; border-radius:7px; padding:3px 0; width:26px; text-align:center; }
+</style>
+
+<h2>The full set of screens in the v2 direction</h2>
+<p class="subtitle">Nine screens covering every area of the app, all with the same functions as today. Each one has a note on the UX change. Scroll down, and tell me in the terminal which ones you like and which feel wrong.</p>
+
+<div class="vs">
+
+<!-- ============ 1. TEAM / ROSTER ============ -->
+<div class="shot">
+  <h3>1 · Team: Roster</h3>
+  <p class="why">The seven tabs (Roster, Calendar, Matches, Stats, Plan, Physical, Settings) become one segmented control under a large title. The roster is a grouped list sorted by position, with jersey number, level meter and age group. Right-click (or long-press on the phone) gives quick actions. "Add player" moves to the toolbar.</p>
+  <div class="L"><div class="app">
+    <div class="side">
+      <div class="club"><div class="logo">VS</div><div><div style="font-weight:600">Volley Club</div><div class="k" style="font-size:11px">Switch club ⌄</div></div></div>
+      <div class="nav">Today</div>
+      <div class="lbl">Coaching</div><div class="nav on">Teams</div><div class="nav">Trainings</div><div class="nav">Exercises</div>
+      <div class="lbl">Club</div><div class="nav">Skill guides</div><div class="nav">Members &amp; settings</div>
+    </div>
+    <div class="mn">
+      <div class="toolbar"><span class="crumb">Teams ›&nbsp;<b>U17 Women</b></span><div class="tb"><div class="ib">⌕</div><div class="ib">⋯</div><div class="pbtn">＋ Add player</div></div></div>
+      <div class="body">
+        <div class="row" style="align-items:flex-end;justify-content:space-between">
+          <div><div class="eyebrow">2026–27 · U17 · 14 players</div><div class="lt">U17 Women</div></div>
+          <div class="row" style="gap:20px">
+            <div><div class="k">Average</div><div style="font-size:20px;font-weight:650;color:var(--blue)" class="num">6.4</div></div>
+            <div><div class="k">Record</div><div style="font-size:20px;font-weight:650" class="num">7–3</div></div>
+          </div>
+        </div>
+        <div class="seg"><span class="on">Roster</span><span>Calendar</span><span>Matches</span><span>Stats</span><span>Plan</span><span>Physical</span><span>Settings</span></div>
+        <div class="k" style="font-weight:600;margin:2px 4px -6px">Setters</div>
+        <div class="group">
+          <div class="gi"><div class="jn num">4</div><div style="flex:1"><div style="font-weight:600">Lucía Romero</div><div class="k">Setter · 16 y</div></div><div class="meter"><i style="background:var(--blue)"></i><i style="background:var(--blue)"></i><i style="background:var(--blue)"></i><i></i></div><span class="num" style="width:90px;text-align:right;font-weight:600;color:var(--blue)">7.8 Advanced</span><span class="k">›</span></div>
+        </div>
+        <div class="k" style="font-weight:600;margin:2px 4px -6px">Outside hitters</div>
+        <div class="group">
+          <div class="gi"><div class="jn num">9</div><div style="flex:1"><div style="font-weight:600">Giulia Bianchi</div><div class="k">Outside · 17 y</div></div><div class="meter"><i style="background:var(--blue)"></i><i style="background:var(--blue)"></i><i style="background:var(--blue)"></i><i></i></div><span class="num" style="width:90px;text-align:right;font-weight:600;color:var(--blue)">6.9 Advanced</span><span class="k">›</span></div>
+          <div class="gi"><div class="jn num">12</div><div style="flex:1"><div style="font-weight:600">Marta Ruiz</div><div class="k">Outside · 16 y</div></div><div class="meter"><i style="background:var(--orange)"></i><i style="background:var(--orange)"></i><i></i><i></i></div><span class="num" style="width:90px;text-align:right;font-weight:600;color:var(--orange)">5.7 Developing</span><span class="k">›</span></div>
+          <div class="gi"><div class="jn num">15</div><div style="flex:1"><div style="font-weight:600">Chiara Greco</div><div class="k">Outside · 15 y</div></div><div class="meter"><i style="background:var(--red)"></i><i></i><i></i><i></i></div><span class="num" style="width:90px;text-align:right;font-weight:600;color:var(--red)">3.8 Beginner</span><span class="k">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ 2. PLAYER CARD ============ -->
+<div class="shot">
+  <h3>2 · Player card</h3>
+  <p class="why">A profile header like Apple's Contacts and Health: avatar, name, number, position, level. Under it, four tiles for overall level, last match rating, jump and growth. The 8 skills are one list where each bar shows the score in its level colour, and you tap a skill to edit it in place, with no separate form. Development plan, Matches, Physical and Contact are a segmented control. Guardians sit under Contact, behind a lock icon.</p>
+  <div class="row" style="gap:22px;align-items:flex-start">
+    <div class="L" style="flex:1"><div class="app" style="height:600px">
+      <div class="side">
+        <div class="club"><div class="logo">VS</div><div><div style="font-weight:600">Volley Club</div><div class="k" style="font-size:11px">Switch club ⌄</div></div></div>
+        <div class="nav">Today</div>
+        <div class="lbl">Coaching</div><div class="nav on">Teams</div><div class="nav">Trainings</div><div class="nav">Exercises</div>
+      </div>
+      <div class="mn">
+        <div class="toolbar"><span class="crumb">U17 Women ›&nbsp;<b>Lucía Romero</b></span><div class="tb"><div class="sbtn">Export</div><div class="ib">⋯</div></div></div>
+        <div class="body">
+          <div class="row" style="align-items:center;gap:16px">
+            <div class="av" style="width:64px;height:64px;font-size:20px">LR</div>
+            <div style="flex:1"><div class="lt" style="font-size:26px">Lucía Romero</div><div class="k" style="font-size:13px">#4 · Setter · 16 years · U17 Women</div></div>
+            <span class="tag" style="background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue);font-size:12px;padding:4px 12px">Advanced</span>
+          </div>
+          <div class="row">
+            <div class="card" style="flex:1;padding:12px 14px"><div class="k">Overall</div><div class="big num" style="color:var(--blue)">7.8</div><div class="k">+0.4 since Sep</div></div>
+            <div class="card" style="flex:1;padding:12px 14px"><div class="k">Last match</div><div class="big num">7.2</div><div class="k">vs Rivals VC</div></div>
+            <div class="card" style="flex:1;padding:12px 14px"><div class="k">CMJ</div><div class="big num">38<span style="font-size:15px;color:var(--mute)"> cm</span></div><div class="k">12 Oct</div></div>
+            <div class="card" style="flex:1;padding:12px 14px"><div class="k">Height</div><div class="big num">174<span style="font-size:15px;color:var(--mute)"> cm</span></div><div class="k">+2 cm this year</div></div>
+          </div>
+          <div class="seg"><span class="on">Skills</span><span>Development plan</span><span>Matches</span><span>Physical</span><span>Contact</span></div>
+          <div class="group">
+            <div class="gi"><span style="width:84px">Serve</span><div class="bar"><i style="width:80%;background:var(--green)"></i></div><span class="num" style="width:22px;text-align:right;font-weight:650">8</span></div>
+            <div class="gi"><span style="width:84px">Attack</span><div class="bar"><i style="width:60%;background:var(--blue)"></i></div><span class="num" style="width:22px;text-align:right;font-weight:650">6</span></div>
+            <div class="gi" style="background:var(--sel)"><span style="width:84px;font-weight:600">Set</span><div class="row" style="flex:1;gap:4px"><span class="chip">6</span><span class="chip">7</span><span class="chip">8</span><span class="chip on">9</span><span class="chip">10</span></div><span class="k" style="font-size:11px">Tap to score · guide ⓘ</span></div>
+            <div class="gi"><span style="width:84px">Reception</span><div class="bar"><i style="width:70%;background:var(--blue)"></i></div><span class="num" style="width:22px;text-align:right;font-weight:650">7</span></div>
+            <div class="gi"><span style="width:84px">Defence</span><div class="bar"><i style="width:80%;background:var(--green)"></i></div><span class="num" style="width:22px;text-align:right;font-weight:650">8</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="D"><div class="phone"><div class="screen">
+      <div style="padding:44px 16px 0;display:flex;justify-content:space-between;color:var(--ink)"><span style="font-size:14px">‹ Roster</span><span style="font-size:14px">⋯</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:10px 16px 12px;gap:4px">
+        <div class="av" style="width:72px;height:72px;font-size:22px">LR</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.03em">Lucía Romero</div>
+        <div class="k">#4 · Setter · 16 y</div>
+      </div>
+      <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+        <div class="row" style="gap:8px">
+          <div class="card" style="flex:1;padding:10px"><div class="k" style="font-size:10.5px">Overall</div><div class="big num" style="font-size:22px;color:var(--blue)">7.8</div></div>
+          <div class="card" style="flex:1;padding:10px"><div class="k" style="font-size:10.5px">Last match</div><div class="big num" style="font-size:22px">7.2</div></div>
+          <div class="card" style="flex:1;padding:10px"><div class="k" style="font-size:10.5px">CMJ</div><div class="big num" style="font-size:22px">38</div></div>
+        </div>
+        <div class="seg" style="display:flex;font-size:11px"><span class="on" style="flex:1;text-align:center">Skills</span><span style="flex:1;text-align:center">Plan</span><span style="flex:1;text-align:center">Matches</span><span style="flex:1;text-align:center">More</span></div>
+        <div class="group">
+          <div class="gi"><span style="width:62px">Serve</span><div class="bar"><i style="width:80%;background:var(--green)"></i></div><b class="num">8</b></div>
+          <div class="gi"><span style="width:62px">Attack</span><div class="bar"><i style="width:60%;background:var(--blue)"></i></div><b class="num">6</b></div>
+          <div class="gi"><span style="width:62px">Set</span><div class="bar"><i style="width:90%;background:var(--green)"></i></div><b class="num">9</b></div>
+          <div class="gi"><span style="width:62px">Reception</span><div class="bar"><i style="width:70%;background:var(--blue)"></i></div><b class="num">7</b></div>
+        </div>
+      </div>
+      <div class="tabbar"><span>Today</span><span class="on">Teams</span><span>Trainings</span><span>Exercises</span><span>More</span></div>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ============ 3. CALENDAR ============ -->
+<div class="shot">
+  <h3>3 · Team: Calendar</h3>
+  <p class="why">A month grid like Apple Calendar. Sessions are small solid pills and matches are outlined pills. Tapping a day opens a side panel (a bottom sheet on the phone) with that day's session, its parts and "Share PDF". Assigning a training becomes a sheet with search, not a dialog.</p>
+  <div class="L"><div class="app" style="height:470px">
+    <div class="mn">
+      <div class="toolbar"><span class="crumb">U17 Women ›&nbsp;<b>Calendar</b></span><div class="tb"><div class="seg"><span>‹</span><span class="on">Today</span><span>›</span></div><div class="pbtn">＋ Assign training</div></div></div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div class="body" style="flex:1">
+          <div class="lt" style="font-size:26px">October <span style="color:var(--mute);font-weight:500">2026</span></div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border-radius:14px;overflow:hidden;flex:1">
+            <div style="background:var(--surf);padding:6px 8px" class="k">Mon</div><div style="background:var(--surf);padding:6px 8px" class="k">Tue</div><div style="background:var(--surf);padding:6px 8px" class="k">Wed</div><div style="background:var(--surf);padding:6px 8px" class="k">Thu</div><div style="background:var(--surf);padding:6px 8px" class="k">Fri</div><div style="background:var(--surf);padding:6px 8px" class="k">Sat</div><div style="background:var(--surf);padding:6px 8px" class="k">Sun</div>
+            <div style="background:var(--surf);padding:6px 8px;min-height:60px" class="num">19</div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">20<div class="tag" style="display:block;margin-top:4px;background:var(--prim);color:var(--onprim)">18:30 Block &amp; dig</div></div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">21</div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">22<div class="tag" style="display:block;margin-top:4px;background:var(--prim);color:var(--onprim)">18:30 Serve focus</div></div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">23</div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">24<div class="tag" style="display:block;margin-top:4px;border:1.5px solid var(--ink)">W 3–1 Rivals</div></div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">25</div>
+            <div style="background:var(--surf);padding:6px 8px;min-height:60px" class="num">26</div>
+            <div style="background:var(--surf);padding:6px 8px" class="num"><span style="background:var(--red);color:#fff;border-radius:99px;padding:1px 6px">28</span></div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">29</div>
+            <div style="background:var(--sel);padding:6px 8px;box-shadow:inset 0 0 0 2px var(--ink)" class="num">30<div class="tag" style="display:block;margin-top:4px;background:var(--prim);color:var(--onprim)">18:30 Serve receive</div></div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">31</div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">1<div class="tag" style="display:block;margin-top:4px;border:1.5px solid var(--ink)">16:00 vs Lions</div></div>
+            <div style="background:var(--surf);padding:6px 8px" class="num">2</div>
+          </div>
+        </div>
+        <div style="width:270px;border-left:1px solid var(--line);background:var(--surf);padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div class="k">Thursday 30 October · 18:30</div>
+          <div style="font-size:17px;font-weight:650;letter-spacing:-.02em">Serve receive &amp; transition</div>
+          <div class="k">#T-0142 · 90 min · 14 expected</div>
+          <div class="group" style="box-shadow:none;background:var(--bg)">
+            <div class="gi"><span class="num k">#1</span>Warm-up: dynamic<span class="k" style="margin-left:auto">10′</span></div>
+            <div class="gi"><span class="num k">#2</span>Butterfly passing<span class="k" style="margin-left:auto">15′</span></div>
+            <div class="gi"><span class="num k">#3</span>Serve vs 3 passers<span class="k" style="margin-left:auto">20′</span></div>
+            <div class="gi"><span class="num k">#4</span>Free ball transition<span class="k" style="margin-left:auto">20′</span></div>
+          </div>
+          <div class="row" style="gap:6px;margin-top:auto"><div class="pbtn" style="flex:1;justify-content:center">Share PDF</div><div class="sbtn">Open</div><div class="ib">⋯</div></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ 4. LIVE SCOUTING ============ -->
+<div class="shot">
+  <h3>4 · Live scouting (full screen, tablet / landscape phone)</h3>
+  <p class="why">Always dark, so it's easier on the eyes and battery during a match and the court stands out. A huge glanceable score at the top, and the court as the main surface. Tapping a player opens a skill-then-grade picker right next to the finger: S R A B D E F, then = / - ! + #. Grades use red for errors, orange for poor, neutral for OK and green for good. The rally bar and timeline sit at the bottom, and Undo is on its own, away from timeouts and subs (as you asked before).</p>
+  <div class="D"><div class="app" style="height:500px;flex-direction:column">
+    <div style="display:flex;align-items:center;padding:12px 18px;gap:16px;border-bottom:1px solid var(--line)">
+      <span style="font-size:13px;color:var(--mute)">‹ Exit</span>
+      <div style="margin:0 auto;display:flex;align-items:center;gap:18px">
+        <div style="text-align:right"><div class="k">U17 Women</div><div class="k" style="font-size:11px">Sets 1</div></div>
+        <div class="num" style="font-size:44px;font-weight:700;letter-spacing:-.04em">18<span style="color:var(--mute);margin:0 8px">:</span>15</div>
+        <div><div class="k">Rivals VC</div><div class="k" style="font-size:11px">Sets 1</div></div>
+      </div>
+      <span class="tag" style="background:color-mix(in srgb,var(--red) 20%,transparent);color:var(--red)">● LIVE · Set 3</span>
+    </div>
+    <div style="display:flex;flex:1;gap:14px;padding:14px">
+      <div class="court" style="flex:1.4;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:10px;padding:14px">
+        <div class="card" style="padding:10px"><div class="k">P4</div><div style="font-weight:650">Bianchi</div><div class="k">#9 OH</div></div>
+        <div class="card" style="padding:10px"><div class="k">P3</div><div style="font-weight:650">Conti</div><div class="k">#7 MB</div></div>
+        <div class="card" style="padding:10px;box-shadow:0 0 0 2px var(--ink)"><div class="k">P2</div><div style="font-weight:650">Romero</div><div class="k">#4 S</div>
+          <div class="row" style="gap:4px;margin-top:8px;flex-wrap:wrap"><span class="chip">S</span><span class="chip">R</span><span class="chip on">A</span><span class="chip">B</span><span class="chip">D</span><span class="chip">E</span><span class="chip">F</span></div>
+          <div class="row" style="gap:4px;margin-top:6px"><span class="g" style="background:var(--red);color:#fff">=</span><span class="g" style="background:color-mix(in srgb,var(--orange) 40%,transparent)">/</span><span class="g" style="background:color-mix(in srgb,var(--orange) 20%,transparent)">-</span><span class="g" style="background:var(--fill)">!</span><span class="g" style="background:color-mix(in srgb,var(--green) 25%,transparent)">+</span><span class="g" style="background:var(--green);color:#fff">#</span></div>
+        </div>
+        <div class="card" style="padding:10px"><div class="k">P5</div><div style="font-weight:650">Ruiz</div><div class="k">#12 OH</div></div>
+        <div class="card" style="padding:10px"><div class="k">P6</div><div style="font-weight:650">Martín</div><div class="k">#1 L</div></div>
+        <div class="card" style="padding:10px"><div class="k">P1 · serving</div><div style="font-weight:650">Greco</div><div class="k">#15 OP</div></div>
+      </div>
+      <div class="col" style="width:240px">
+        <div class="card" style="padding:12px"><div class="k">This set</div>
+          <div class="gi" style="padding:6px 0"><span style="flex:1">Reception</span><b class="num">68%</b></div>
+          <div class="gi" style="padding:6px 0"><span style="flex:1">Attack kill</span><b class="num">41%</b></div>
+          <div class="gi" style="padding:6px 0"><span style="flex:1">Serve errors</span><b class="num" style="color:var(--red)">4</b></div>
+        </div>
+        <div class="card" style="padding:12px;flex:1"><div class="k">Rally</div>
+          <div class="row" style="gap:4px;margin-top:8px;flex-wrap:wrap"><span class="tag" style="background:var(--fill)">#15 S !</span><span class="tag" style="background:var(--fill)">#1 R +</span><span class="tag" style="background:var(--fill)">#4 E #</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);align-items:center">
+      <div class="sbtn">Point us</div><div class="sbtn">Point them</div>
+      <div style="width:1px;height:22px;background:var(--line);margin:0 6px"></div>
+      <div class="sbtn">Timeout</div><div class="sbtn">Sub</div>
+      <div style="margin-left:auto" class="row"><div class="sbtn">Timeline</div><div class="sbtn">↶ Undo</div></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ 5. MATCH REPORT ============ -->
+<div class="shot">
+  <h3>5 · Match report</h3>
+  <p class="why">Set scores across the top like a sports app, then a skills table. Each skill shows a stacked grade bar (the same six grade colours as scouting), the efficiency figure and the count. Per-player rows open on tap. Awards and Export (PDF/CSV) live in the toolbar.</p>
+  <div class="L"><div class="app" style="height:440px">
+    <div class="mn">
+      <div class="toolbar"><span class="crumb">Matches ›&nbsp;<b>vs Rivals VC</b></span><div class="tb"><div class="sbtn">Export</div><div class="pbtn">✦ Awards</div></div></div>
+      <div class="body">
+        <div class="row" style="align-items:center;gap:22px">
+          <div><div class="eyebrow">Sat 24 Oct · Home · League</div><div class="lt">Won 3–1</div></div>
+          <div class="row" style="margin-left:auto;gap:8px">
+            <div class="card num" style="padding:8px 14px;text-align:center"><div class="k">Set 1</div><b>25–21</b></div>
+            <div class="card num" style="padding:8px 14px;text-align:center"><div class="k">Set 2</div><b style="color:var(--mute)">22–25</b></div>
+            <div class="card num" style="padding:8px 14px;text-align:center"><div class="k">Set 3</div><b>25–18</b></div>
+            <div class="card num" style="padding:8px 14px;text-align:center"><div class="k">Set 4</div><b>25–23</b></div>
+          </div>
+        </div>
+        <div class="seg"><span class="on">Team</span><span>Players</span><span>Rotations</span><span>Timeline</span></div>
+        <div class="group">
+          <div class="gi k" style="font-size:11px"><span style="width:90px">Skill</span><span style="flex:1">Grade distribution</span><span style="width:60px;text-align:right">Eff.</span><span style="width:40px;text-align:right">Tot</span></div>
+          <div class="gi"><span style="width:90px">Serve</span><div style="flex:1;display:flex;height:10px;border-radius:5px;overflow:hidden"><i style="width:9%;background:var(--red)"></i><i style="width:8%;background:color-mix(in srgb,var(--orange) 60%,transparent)"></i><i style="width:40%;background:var(--fill)"></i><i style="width:33%;background:color-mix(in srgb,var(--green) 40%,transparent)"></i><i style="width:10%;background:var(--green)"></i></div><b class="num" style="width:60px;text-align:right">+12%</b><span class="num k" style="width:40px;text-align:right">88</span></div>
+          <div class="gi"><span style="width:90px">Reception</span><div style="flex:1;display:flex;height:10px;border-radius:5px;overflow:hidden"><i style="width:6%;background:var(--red)"></i><i style="width:14%;background:color-mix(in srgb,var(--orange) 60%,transparent)"></i><i style="width:20%;background:var(--fill)"></i><i style="width:30%;background:color-mix(in srgb,var(--green) 40%,transparent)"></i><i style="width:30%;background:var(--green)"></i></div><b class="num" style="width:60px;text-align:right">+38%</b><span class="num k" style="width:40px;text-align:right">71</span></div>
+          <div class="gi"><span style="width:90px">Attack</span><div style="flex:1;display:flex;height:10px;border-radius:5px;overflow:hidden"><i style="width:12%;background:var(--red)"></i><i style="width:10%;background:color-mix(in srgb,var(--orange) 60%,transparent)"></i><i style="width:37%;background:var(--fill)"></i><i style="width:41%;background:var(--green)"></i></div><b class="num" style="width:60px;text-align:right">+29%</b><span class="num k" style="width:40px;text-align:right">94</span></div>
+          <div class="gi"><span style="width:90px">Block</span><div style="flex:1;display:flex;height:10px;border-radius:5px;overflow:hidden"><i style="width:20%;background:var(--red)"></i><i style="width:55%;background:var(--fill)"></i><i style="width:25%;background:var(--green)"></i></div><b class="num" style="width:60px;text-align:right">+5%</b><span class="num k" style="width:40px;text-align:right">40</span></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ 6. TRAININGS + BUILDER ============ -->
+<div class="shot">
+  <h3>6 · Trainings library + builder (sheet)</h3>
+  <p class="why">The library is a searchable list with filter chips. "New training" opens a large sheet over the library: you add parts from the exercise library on the right by tapping or dragging, reorder them by dragging, and see the total time as you go. Suggestions and AI draft are one button, not a separate flow. Dimming the page behind it shows this is a focused task.</p>
+  <div class="L"><div class="app" style="height:520px">
+    <div class="side">
+      <div class="club"><div class="logo">VS</div><div><div style="font-weight:600">Volley Club</div></div></div>
+      <div class="nav">Today</div><div class="lbl">Coaching</div><div class="nav">Teams</div><div class="nav on">Trainings</div><div class="nav">Exercises</div>
+    </div>
+    <div class="mn">
+      <div class="toolbar"><b>Trainings</b><div class="tb"><div class="pbtn">＋ New training</div></div></div>
+      <div class="body">
+        <div class="search">⌕ Search trainings</div>
+        <div class="group"><div class="gi">#T-0142 Serve receive &amp; transition</div><div class="gi">#T-0141 Block &amp; dig</div><div class="gi">#T-0140 Serve focus</div></div>
+      </div>
+      <div style="position:absolute;inset:0;background:var(--scrim)"></div>
+      <div class="sheet" style="left:30px;right:30px;top:24px;bottom:0;border-radius:18px 18px 0 0;display:flex;flex-direction:column">
+        <div class="grab"></div>
+        <div style="display:flex;align-items:center;padding:4px 18px 10px"><span class="k" style="font-size:13px">Cancel</span><b style="margin:0 auto;font-size:14px">New training</b><span style="font-weight:650">Save</span></div>
+        <div style="display:flex;flex:1;overflow:hidden;border-top:1px solid var(--line)">
+          <div style="flex:1;padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:20px;font-weight:650;letter-spacing:-.02em">Serve receive &amp; transition</div>
+            <div class="row" style="gap:6px"><span class="chip">U17</span><span class="chip">Reception</span><span class="chip">＋ Tag</span><span class="k" style="margin-left:auto" >Total <b class="num" style="color:var(--ink)">90′</b> / 90′</span></div>
+            <div class="group" style="box-shadow:none;border:1px solid var(--line)">
+              <div class="gi"><span class="k">⋮⋮</span><span class="num k">#1</span>Warm-up: dynamic<span class="k" style="margin-left:auto">10′</span></div>
+              <div class="gi"><span class="k">⋮⋮</span><span class="num k">#2</span>Butterfly passing<span class="k" style="margin-left:auto">15′</span></div>
+              <div class="gi" style="box-shadow:0 8px 24px rgba(0,0,0,.15);transform:scale(1.02);background:var(--surf);border-radius:10px"><span class="k">⋮⋮</span><span class="num k">#3</span>Serve vs 3 passers<span class="k" style="margin-left:auto">20′</span></div>
+              <div class="gi"><span class="k">⋮⋮</span><span class="num k">#4</span>Free ball transition<span class="k" style="margin-left:auto">20′</span></div>
+            </div>
+          </div>
+          <div style="width:250px;background:var(--bg);padding:14px;display:flex;flex-direction:column;gap:8px;border-left:1px solid var(--line)">
+            <div class="search">⌕ Exercises</div>
+            <div class="row" style="gap:6px"><span class="chip on">Reception</span><span class="chip">Serve</span></div>
+            <div class="card" style="padding:10px"><b>Pepper 3v3</b><div class="k">12′ · 6–12 players</div></div>
+            <div class="card" style="padding:10px"><b>Wash drill</b><div class="k">20′ · 12 players</div></div>
+            <div class="sbtn" style="justify-content:center">✦ Suggest parts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ 7. EXERCISES + DIAGRAM ============ -->
+<div class="shot">
+  <h3>7 · Exercise library</h3>
+  <p class="why">A gallery where every exercise card leads with its court diagram, like Apple Photos or Freeform, so coaches recognise a drill by its shape. Filters are chips. Opening one shows a detail sheet with steps and diagrams. The diagram editor stays full screen, with a floating glass tool palette.</p>
+  <div class="D"><div class="app" style="height:440px">
+    <div class="mn">
+      <div class="toolbar"><b>Exercises</b><span class="k" style="margin-left:8px">214</span><div class="tb"><div class="search" style="width:220px">⌕ Search</div><div class="pbtn">＋ New</div></div></div>
+      <div class="body">
+        <div class="row" style="gap:6px"><span class="chip on">All</span><span class="chip">Serve</span><span class="chip">Reception</span><span class="chip">Attack</span><span class="chip">Block</span><span class="chip">Defence</span><span class="chip">Warm-up</span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div class="card" style="padding:0;overflow:hidden"><div class="court" style="height:110px;border-radius:0;border:0;position:relative"><svg viewBox="0 0 100 60" style="width:100%;height:100%"><rect x="10" y="5" width="80" height="50" fill="none" stroke="currentColor" stroke-opacity=".3"/><line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-opacity=".6" stroke-width="1.5"/><circle cx="25" cy="20" r="3" fill="var(--blue)"/><circle cx="25" cy="40" r="3" fill="var(--blue)"/><circle cx="75" cy="30" r="3" fill="var(--orange)"/><path d="M75 30 Q50 5 27 20" fill="none" stroke="var(--ink)" stroke-dasharray="2 2"/></svg></div><div style="padding:10px 12px"><b>Serve vs 3 passers</b><div class="k">20′ · Reception</div></div></div>
+          <div class="card" style="padding:0;overflow:hidden"><div class="court" style="height:110px;border-radius:0;border:0"><svg viewBox="0 0 100 60" style="width:100%;height:100%"><rect x="10" y="5" width="80" height="50" fill="none" stroke="currentColor" stroke-opacity=".3"/><line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-opacity=".6" stroke-width="1.5"/><circle cx="40" cy="30" r="3" fill="var(--blue)"/><circle cx="60" cy="18" r="3" fill="var(--orange)"/><circle cx="60" cy="42" r="3" fill="var(--orange)"/><path d="M40 30 L58 18 M40 30 L58 42" stroke="var(--ink)" stroke-dasharray="2 2"/></svg></div><div style="padding:10px 12px"><b>Pepper 3v3</b><div class="k">12′ · Warm-up</div></div></div>
+          <div class="card" style="padding:0;overflow:hidden"><div class="court" style="height:110px;border-radius:0;border:0"><svg viewBox="0 0 100 60" style="width:100%;height:100%"><rect x="10" y="5" width="80" height="50" fill="none" stroke="currentColor" stroke-opacity=".3"/><line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-opacity=".6" stroke-width="1.5"/><circle cx="45" cy="12" r="3" fill="var(--blue)"/><circle cx="45" cy="48" r="3" fill="var(--blue)"/><circle cx="30" cy="30" r="3" fill="var(--blue)"/><path d="M30 30 L45 12" stroke="var(--ink)"/></svg></div><div style="padding:10px 12px"><b>Quick set to 4</b><div class="k">15′ · Attack</div></div></div>
+          <div class="card" style="padding:0;overflow:hidden"><div class="court" style="height:110px;border-radius:0;border:0"><svg viewBox="0 0 100 60" style="width:100%;height:100%"><rect x="10" y="5" width="80" height="50" fill="none" stroke="currentColor" stroke-opacity=".3"/><line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-opacity=".6" stroke-width="1.5"/><circle cx="48" cy="20" r="3" fill="var(--blue)"/><circle cx="48" cy="40" r="3" fill="var(--blue)"/><circle cx="70" cy="30" r="3" fill="var(--orange)"/></svg></div><div style="padding:10px 12px"><b>Double block read</b><div class="k">20′ · Block</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ 8. PHYSICAL SESSION (phone) + 9. LOGIN ============ -->
+<div class="shot">
+  <h3>8 · Physical testing session (phone) · 9 · Sign in</h3>
+  <p class="why">The live testing session becomes a focused full-screen flow like Apple's Stopwatch: one player and one quality at a time, a huge timer or number pad, then the next player. Sign in is a single calm screen with an email field and "Send sign-in link", then a "Check your inbox" state with motion.</p>
+  <div class="row" style="gap:22px">
+    <div class="D"><div class="phone"><div class="screen">
+      <div style="padding:44px 16px 0;display:flex;justify-content:space-between"><span style="color:var(--mute)">Done</span><b>Sprint 10 m</b><span style="color:var(--mute)">3 / 14</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 16px">
+        <div class="av" style="width:56px;height:56px">GB</div><b style="font-size:17px">Giulia Bianchi</b><span class="k">#9 · Best 1.92 s</span>
+        <div class="num" style="font-size:64px;font-weight:300;letter-spacing:-.04em;margin-top:18px">1.87<span style="font-size:24px;color:var(--mute)"> s</span></div>
+        <span class="tag" style="background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green)">New personal best</span>
+      </div>
+      <div style="display:flex;justify-content:space-around;padding:10px 30px">
+        <div style="width:78px;height:78px;border-radius:50%;background:var(--fill);display:grid;place-items:center">Reset</div>
+        <div style="width:78px;height:78px;border-radius:50%;background:color-mix(in srgb,var(--green) 25%,transparent);color:var(--green);display:grid;place-items:center;font-weight:650">Save</div>
+      </div>
+      <div style="position:absolute;bottom:26px;left:16px;right:16px" class="row"><div class="sbtn" style="flex:1;justify-content:center">‹ Previous</div><div class="pbtn" style="flex:1;justify-content:center">Next player ›</div></div>
+    </div></div></div>
+
+    <div class="L"><div class="phone"><div class="screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;gap:14px;text-align:center">
+      <div class="logo" style="width:64px;height:64px;border-radius:18px;font-size:22px">VS</div>
+      <div style="font-size:26px;font-weight:700;letter-spacing:-.03em">Volley Skills</div>
+      <div class="k" style="font-size:13px">Sign in with your email. We'll send you a link, so there's no password.</div>
+      <div class="search" style="width:100%;height:44px;font-size:14px;margin-top:10px">you@club.com</div>
+      <div class="pbtn" style="width:100%;height:44px;justify-content:center;font-size:14px">Send sign-in link</div>
+      <div class="k" style="font-size:11px;margin-top:20px">New club? <b style="color:var(--ink)">Create one</b> · Privacy</div>
+    </div></div></div>
+  </div>
+</div>
+
+</div>
+
+</html>

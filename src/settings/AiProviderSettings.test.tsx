@@ -126,4 +126,10 @@ describe('AiProviderSettings', () => {
     renderAi();
     expect(screen.getByLabelText('Remember on this device')).not.toBeChecked();
   });
+
+  it('renders without a settings card heading, inside one grouped block', () => {
+    renderAi();
+    expect(screen.queryByRole('heading', { name: 'AI provider' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('AI provider').closest('.bg-surface')).not.toBeNull();
+  });
 });

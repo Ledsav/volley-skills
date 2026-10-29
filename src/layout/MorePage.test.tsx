@@ -72,4 +72,11 @@ describe('MorePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
   });
+
+  it('rows are at least 52px and show a chevron', () => {
+    renderMore();
+    const row = screen.getByRole('link', { name: 'Settings' });
+    expect(row).toHaveClass('min-h-[52px]');
+    expect(row.querySelector('svg[aria-hidden="true"]:last-child')).not.toBeNull();
+  });
 });

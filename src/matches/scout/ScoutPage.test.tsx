@@ -63,6 +63,7 @@ const setStart: MatchEvent = {
 };
 
 let pushEvents: (e: MatchEvent[]) => void = () => undefined;
+let pushMatch: (m: Match | null) => void = () => undefined;
 
 function renderPage(events: MatchEvent[]) {
   vi.mocked(api.subscribeEvents).mockImplementation((_t, _m, onChange) => {
@@ -105,10 +106,98 @@ describe('ScoutPage', () => {
     vi.mocked(api.getMatch).mockResolvedValue(match);
     vi.mocked(api.getUsageProfile).mockResolvedValue({ players: {} });
     vi.mocked(api.claimDevice).mockResolvedValue();
+    vi.mocked(api.subscribeMatch).mockImplementation((_t, _m, cb) => {
+      pushMatch = cb;
+      return () => undefined;
+    });
     vi.mocked(api.updateMatchResult).mockResolvedValue();
     vi.mocked(api.addEvent).mockReturnValue({ id: 'new', written: Promise.resolve() });
     vi.mocked(api.deleteEvents).mockResolvedValue();
     vi.mocked(api.updateEvent).mockResolvedValue();
+  });
+
+  it('forces dark on its own root', async () => {
+    const { container } = renderPage([setStart]);
+    const root = container.querySelector('[data-scout-root]') as HTMLElement;
+    expect(root).toHaveClass('dark');
+    expect(root.style.colorScheme).toBe('dark');
+    await screen.findByRole('region', { name: 'Match events' });
+    const loaded = container.querySelector('[data-scout-root]') as HTMLElement;
+    expect(loaded).toHaveClass('dark');
+    expect(loaded.style.colorScheme).toBe('dark');
+  });
+
+  it("never touches the html element's theme", async () => {
+    const before = document.documentElement.classList.contains('dark');
+    const { unmount } = renderPage([setStart]);
+    await screen.findByRole('region', { name: 'Match events' });
+    expect(document.documentElement.classList.contains('dark')).toBe(before);
+    unmount();
+    expect(document.documentElement.classList.contains('dark')).toBe(before);
+  });
+
+  it('menus and sheets render inside the dark root', async () => {
+    const e2: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    const { container } = renderPage([setStart, e2]);
+    const root = () => container.querySelector('[data-scout-root]') as HTMLElement;
+    await openTools();
+    expect(root().contains(screen.getByRole('menu'))).toBe(true);
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    const deletes = await screen.findAllByRole('button', { name: 'Delete' });
+    fireEvent.click(deletes[deletes.length - 1]);
+    expect(root().contains(await screen.findByRole('alertdialog', { name: 'Delete set start?' }))).toBe(true);
+  });
+
+  it('the set start dialog renders inside the dark root', async () => {
+    const { container } = renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    expect((container.querySelector('[data-scout-root]') as HTMLElement).contains(dialog)).toBe(true);
+  });
+
+  it('the locked alert renders inside the dark root', async () => {
+    vi.mocked(api.getMatch).mockResolvedValue({ ...match, activeDevice: { id: 'other-device', at: Date.now() } });
+    const { container } = renderPage([setStart]);
+    const alert = await screen.findByRole('alertdialog', { name: /another device/i });
+    expect((container.querySelector('[data-scout-root]') as HTMLElement).contains(alert)).toBe(true);
+  });
+
+  it('header holds score, rotation and Undo; tools stay in the menu', async () => {
+    renderPage([setStart]);
+    const header = await screen.findByRole('banner');
+    for (const name of ['Correct score', 'Previous rotation', 'Next rotation', 'Undo', 'Match tools']) {
+      expect(within(header).getByRole('button', { name })).toBeInTheDocument();
+    }
+    const dock = screen.getByRole('region', { name: 'Match events' });
+    for (const name of ['Correct score', 'Previous rotation', 'Next rotation', 'Undo', 'Match tools']) {
+      expect(within(dock).queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+  });
+
+  it('the set-point prompt sits below the two-row header', async () => {
+    const corr: MatchEvent = { id: 'e2', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
+    renderPage([setStart, corr]);
+    const prompt = await screen.findByRole('dialog', { name: 'Set point' });
+    expect(prompt).toHaveClass('absolute', 'top-2');
+    // Inside the content region, which sits below the header and any status strip.
+    expect(prompt.parentElement).toHaveClass('relative');
+    expect(screen.getByRole('banner').contains(prompt)).toBe(false);
+  });
+
+  it('shows the Live tag from md and gives the court the main desktop column', async () => {
+    renderPage([setStart]);
+    const tag = await screen.findByTestId('live-tag');
+    expect(tag).toHaveTextContent('Live · Set 1');
+    expect(tag).toHaveClass('hidden', 'md:inline-flex');
+    expect(screen.getByRole('main')).toHaveClass('grid-cols-[minmax(0,1.4fr)_360px]');
+  });
+
+  it('desktop fits between header and dock: the main never scrolls, the Live panel scrolls inside itself', async () => {
+    renderPage([setStart]);
+    const live = await screen.findByRole('region', { name: 'Live stats' });
+    const main = screen.getByRole('main');
+    expect(main).toHaveClass('grid-rows-[minmax(0,1fr)]', 'overflow-hidden');
+    expect(main).not.toHaveClass('overflow-y-auto');
+    expect(live.parentElement).toHaveClass('min-h-0', 'overflow-y-auto', 'scroll-quiet');
   });
 
   it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
@@ -254,6 +343,7 @@ describe('ScoutPage', () => {
     renderPage([]);
     const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
     fireEvent.change(within(dialog).getByLabelText('Opposite'), { target: { value: 'bench' } });
+    fireEvent.click(within(dialog).getByLabelText('They serve'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Start set' }));
     const event = vi.mocked(api.addEvent).mock.calls[0][2];
     expect(event).toMatchObject({ type: 'setStart', set: 1 });
@@ -269,6 +359,7 @@ describe('ScoutPage', () => {
   it('Start set leaves the roster alone when no role changed', async () => {
     renderPage([]);
     const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    fireEvent.click(within(dialog).getByLabelText('They serve'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Start set' }));
     expect(api.addEvent).toHaveBeenCalledTimes(1);
     expect(api.updateMatchRoster).not.toHaveBeenCalled();
@@ -330,6 +421,66 @@ describe('ScoutPage', () => {
     await waitFor(() => expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']));
   });
 
+  it('undo on a reopened import removes taps, then stops at the import', async () => {
+    const imp = { source: 'import' as const, chunkId: 'imp' };
+    const events: MatchEvent[] = [
+      { ...setStart, id: 'i1', order: 1, ...imp },
+      { id: 'i2', order: 2, ...imp, type: 'action', playerId: 'oh1', skill: 'R', grade: '+' },
+      { id: 'i3', order: 3, ...imp, type: 'point', winner: 'us', reason: null },
+      { id: 't1', order: 4, source: 'tap', chunkId: null, type: 'timeout', team: 'us' },
+    ];
+    renderPage(events);
+    fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['t1']);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    act(() => pushEvents(events.slice(0, 3)));
+    const undoButton = screen.getByRole('button', { name: /undo/i });
+    expect(undoButton).toBeDisabled();
+    expect(undoButton).toHaveAccessibleDescription("Imported events can't be undone");
+    vi.mocked(api.deleteEvents).mockClear();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+    });
+    expect(api.deleteEvents).not.toHaveBeenCalled();
+  });
+
+  it('a text batch confirms with wording that names the source', async () => {
+    const text = { source: 'text' as const, chunkId: 'c' };
+    renderPage([
+      setStart,
+      { id: 'x1', order: 2, ...text, type: 'action', playerId: 's', skill: 'S', grade: '#' },
+      { id: 'x2', order: 3, ...text, type: 'point', winner: 'them', reason: null },
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
+    expect(await screen.findByRole('alertdialog', { name: 'Undo text batch (2 events)?' })).toBeInTheDocument();
+  });
+
+  it('a takeover over an open undo confirm sits on top, and confirming deletes nothing', async () => {
+    const text = { source: 'text' as const, chunkId: 'c' };
+    renderPage([
+      setStart,
+      { id: 'x1', order: 2, ...text, type: 'action', playerId: 's', skill: 'S', grade: '#' },
+      { id: 'x2', order: 3, ...text, type: 'point', winner: 'them', reason: null },
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
+    const confirm = await screen.findByRole('alertdialog', { name: 'Undo text batch (2 events)?' });
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    await screen.findByRole('alertdialog', { name: 'Scouting moved to another device' });
+    const dialogs = screen.getAllByRole('alertdialog');
+    expect(dialogs[dialogs.length - 1]).toHaveAccessibleName('Scouting moved to another device');
+    const buttons = within(confirm).getAllByRole('button');
+    fireEvent.click(buttons[buttons.length - 1]);
+    expect(api.deleteEvents).not.toHaveBeenCalled();
+  });
+
+  it('set 1 has no serve default', async () => {
+    renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    expect(within(dialog).getByLabelText('We serve')).not.toBeChecked();
+    expect(within(dialog).getByLabelText('They serve')).not.toBeChecked();
+    expect(within(dialog).getByRole('button', { name: 'Start set' })).toBeDisabled();
+  });
+
   it('sends a match that is not live back to the match page', async () => {
     for (const status of ['setup', 'finished'] as const) {
       vi.mocked(api.getMatch).mockResolvedValue({ ...match, status });
@@ -345,6 +496,34 @@ describe('ScoutPage', () => {
     renderPage([setStart]);
     expect(await screen.findByRole('alertdialog', { name: /another device/i })).toBeInTheDocument();
     expect(api.claimDevice).not.toHaveBeenCalled();
+  });
+
+  it('a takeover blocks taps and keys even with the action panel open', async () => {
+    renderPage([setStart]);
+    fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+    expect(screen.getByRole('region', { name: /^Actions for/ })).toBeInTheDocument();
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Scouting moved to another device' });
+    expect(within(dialog).getByRole('button', { name: 'Leave' })).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('alertdialog', { name: 'Scouting moved to another device' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '+ Good' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Point us/ }));
+    fireEvent.keyDown(window, { key: 'p' });
+    expect(api.addEvent).not.toHaveBeenCalled();
+  });
+
+  it('Take back claims the device and closes the sheet; Leave opens the match page', async () => {
+    renderPage([setStart]);
+    await screen.findByRole('button', { name: '#7 Ana' });
+    vi.mocked(api.claimDevice).mockClear();
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Take back' }));
+    expect(api.claimDevice).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave' }));
+    expect(await screen.findByText('match page')).toBeInTheDocument();
   });
 
   it('keeps the device heartbeat firing while points change the result', async () => {
@@ -448,6 +627,47 @@ describe('ScoutPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load usage history — try finishing again.');
     expect(api.finishMatch).not.toHaveBeenCalled();
+  });
+
+  it('the write-error strip clears when a later write is acknowledged', async () => {
+    renderPage([setStart]);
+    vi.mocked(api.addEvent).mockImplementationOnce(() => ({ id: 'bad', written: Promise.reject(new Error('offline')) }));
+    fireEvent.click(await screen.findByRole('button', { name: /T\/O us/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('An action could not be saved');
+    fireEvent.click(screen.getByRole('button', { name: /T\/O them/ }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
+  it('after a usage error, Dismiss brings back Finish match', async () => {
+    vi.mocked(api.getUsageProfile).mockResolvedValueOnce({ players: {} }).mockRejectedValueOnce(new Error('offline'));
+    const events: MatchEvent[] = [];
+    let order = 0;
+    for (let set = 1; set <= 3; set++) {
+      events.push(
+        { ...setStart, id: `s${set}`, order: ++order, set } as MatchEvent,
+        { id: `c${set}`, order: ++order, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 10 }, rotation: null, serving: null },
+        { id: `x${set}`, order: ++order, source: 'tap', chunkId: null, type: 'setEnd', set },
+      );
+    }
+    renderPage(events);
+    fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load usage history');
+    expect(screen.queryByRole('button', { name: 'Finish match' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.getByRole('button', { name: 'Finish match' })).toBeInTheDocument();
+  });
+
+  it('shows one strip at a time', async () => {
+    const last: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    renderPage([setStart, last]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Insert after' }))[0]);
+    expect(screen.getByText('Inserting into the timeline')).toBeInTheDocument();
+    vi.mocked(api.addEvent).mockImplementationOnce(() => ({ id: 'bad', written: Promise.reject(new Error('offline')) }));
+    fireEvent.click(screen.getByRole('button', { name: /T\/O them/ }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText('Inserting into the timeline')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.getByText('Inserting into the timeline')).toBeInTheDocument();
   });
 
   it('undo clears the insert anchor when the anchor event is deleted', async () => {
@@ -578,6 +798,96 @@ describe('ScoutPage', () => {
       expect(within(screen.getByRole('region', { name: 'Match events' })).getByRole('button', { name: /^Point us/ })).toBeInTheDocument();
     });
 
+    it('phone views are a segmented control at the top of the content', async () => {
+      renderPage([setStart]);
+      const list = await screen.findByRole('tablist', { name: 'Scouting views' });
+      const tabs = within(list).getAllByRole('tab');
+      expect(tabs.map((t) => t.textContent)).toEqual(['Court', 'Live', 'Timeline', 'Text']);
+      expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+      expect(list.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('pins the action panel above the dock, outside the scrolling main, so grades never need a scroll', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      const panel = screen.getByRole('region', { name: /^Actions for/ });
+      const main = screen.getByRole('main');
+      const dock = screen.getByRole('region', { name: 'Match events' });
+      expect(main.contains(panel)).toBe(false);
+      expect(panel.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(main.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // The pinned block shrinks and scrolls, so the dock is never the thing that clips.
+      expect(panel.parentElement).toHaveClass('min-h-0', 'shrink', 'overflow-y-auto');
+      expect(panel.parentElement).not.toHaveClass('shrink-0');
+      expect(dock).toHaveClass('shrink-0');
+      // Six grades in one row, and the tiles go compact (56 px) while the panel is open.
+      expect(within(panel).getByRole('button', { name: '+ Good' }).parentElement).toHaveClass('grid-cols-6');
+      expect(screen.getByRole('button', { name: '#9 Lucía' })).toHaveClass('min-h-14');
+    });
+
+    it('reason chips stay in one scrolling row so the dock never grows', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: /^Point them/ }));
+      expect(screen.getByRole('group', { name: /reason/i })).toHaveClass('flex-nowrap', 'overflow-x-auto');
+    });
+
+    it('a short portrait viewport keeps the portrait layout', async () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-height') && !query.includes('orientation: landscape'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      expect(screen.getByTestId('pinned-panel')).toBeInTheDocument();
+      const dock = screen.getByRole('region', { name: 'Match events' });
+      expect(dock.querySelector('.grid')).not.toHaveClass("[grid-template-areas:'tu_pu_pt_tt']");
+    });
+
+    it('keeps tiles compact while auto-select will reopen the panel', async () => {
+      renderPage([setStart]);
+      const tile = await screen.findByRole('button', { name: '#7 Ana' });
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+      expect(tile).toHaveClass('min-h-14');
+    });
+
+    it('fundamentals sit in a faded scrolling row with the name and Substitute label from lg', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      const panel = screen.getByRole('region', { name: /^Actions for/ });
+      const chip = within(panel).getAllByRole('button', { pressed: true })[0];
+      // The strip fades whichever edge hides more fundamentals (ScrollStrip), clear of Substitute and Close.
+      expect(chip.parentElement).toHaveClass('scroll-strip');
+      expect(within(panel).getByText('Substitute')).toHaveClass('hidden', 'lg:inline');
+      expect(within(panel).getByText('#7').closest('p')).toHaveClass('hidden', 'md:flex');
+    });
+
+    it('on a landscape phone the panel sits beside the court and the dock is one row', async () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-height'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      const panel = screen.getByRole('region', { name: /^Actions for/ });
+      expect(screen.getByRole('main').contains(panel)).toBe(true);
+      expect(screen.queryByTestId('pinned-panel')).not.toBeInTheDocument();
+      const dock = screen.getByRole('region', { name: 'Match events' });
+      expect(dock.querySelector('.grid')).toHaveClass("[grid-template-areas:'tu_pu_pt_tt']");
+      expect(within(dock).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)[0]).toMatch(/T\/O us/);
+    });
+
+    it('header budget: split-score row is 56 px and the Undo pill is at least 44 px wide', async () => {
+      renderPage([setStart]);
+      const header = await screen.findByRole('banner');
+      const score = within(header).getByRole('button', { name: 'Correct score' });
+      expect(score.parentElement).toHaveClass('h-14');
+      expect(within(header).getByRole('button', { name: 'Undo' })).toHaveClass('min-w-11');
+    });
+
     it('hides the Text tab when the club has AI off', async () => {
       mockClub.aiEnabled = false;
       renderPage([setStart]);
@@ -706,6 +1016,7 @@ describe('ScoutPage', () => {
       const start: MatchEvent = { ...setStart, id: 'new', serving: 'us' } as MatchEvent;
       // Simulate this device having written the setStart (the dialog's own flow is covered elsewhere).
       vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'new', written: Promise.resolve() });
+      fireEvent.click(within(dialog).getByLabelText('We serve'));
       fireEvent.click(within(dialog).getByRole('button', { name: /start set/i }));
       act(() => pushEvents([start]));
       expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('aria-pressed', 'true');
@@ -726,6 +1037,7 @@ describe('ScoutPage', () => {
       renderPage([]);
       const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
       vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'start', written: Promise.resolve() });
+      fireEvent.click(within(dialog).getByLabelText('They serve'));
       fireEvent.click(within(dialog).getByRole('button', { name: /start set/i }));
       const start: MatchEvent = { ...setStart, id: 'start' };
       act(() => pushEvents([start]));

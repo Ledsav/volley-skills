@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import { useNotify } from '../../components/Notice';
 import { useT } from '../../i18n/I18nProvider';
 import type { Gender } from '../../i18n/catalog';
@@ -144,16 +144,16 @@ export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported 
   }
 
   return (
-    <Dialog title={d.title} onClose={handleClose} size="lg" mobileSheet dirty={!!running}>
+    <Sheet title={d.title} onClose={handleClose} size="lg" detent="large" dirty={!!running}>
       {running ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-ink tabular-nums" role="status">
+          <p className="text-callout text-ink tabular-nums" role="status">
             {d.importing(progress?.done ?? 0, progress?.total ?? 0)}
           </p>
           {failed && (
             <>
-              <p role="alert" className="text-sm text-red">{d.notFinished}</p>
-              {discardError && <p role="alert" className="text-sm text-red">{discardError}</p>}
+              <p role="alert" className="text-callout text-red-strong">{d.notFinished}</p>
+              {discardError && <p role="alert" className="text-callout text-red-strong">{discardError}</p>}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => void discard()}>{d.discard}</Button>
                 <Button variant="primary" onClick={() => void run(running)}>{d.retry}</Button>
@@ -175,16 +175,16 @@ export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported 
         />
       ) : (
         <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
             {d.fileLabel}
-            <input key={pickerKey} type="file" accept=".dvw" onChange={(e) => void handleFile(e)} disabled={busy} className="text-sm" />
+            <input key={pickerKey} type="file" accept=".dvw" onChange={(e) => void handleFile(e)} disabled={busy} className="rounded-md bg-surface-2 p-2 text-callout text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-3 file:px-3 file:py-2 file:text-callout file:font-semibold file:text-ink" />
           </label>
-          <p className="text-sm text-slate">{d.help}</p>
-          {busy && <p className="text-sm text-slate">{d.reading}</p>}
-          {error && <p role="alert" className="text-sm text-red">{error}</p>}
-          <p className="text-xs text-slate">{d.disclaimer}</p>
+          <p className="text-callout text-ink-2">{d.help}</p>
+          {busy && <p className="text-callout text-ink-2">{d.reading}</p>}
+          {error && <p role="alert" className="text-callout text-red-strong">{error}</p>}
+          <p className="text-footnote text-ink-2">{d.disclaimer}</p>
         </div>
       )}
-    </Dialog>
+    </Sheet>
   );
 }

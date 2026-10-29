@@ -52,4 +52,12 @@ describe('AttemptsInput', () => {
     fireEvent.click(screen.getByText('Remove last attempt'));
     expect(onChange).toHaveBeenCalledWith([1.85, 1.9]);
   });
+
+  it('stat size lays attempts out in a grid of large inputs', () => {
+    render(<AttemptsInput name="cmj" label="Attempt" values={[30, 34, 32]} onChange={vi.fn()} minCount={3} size="stat" />);
+    expect(screen.getByTestId('attempts-grid')).toHaveClass('grid', 'grid-cols-2', 'min-[400px]:grid-cols-3');
+    const input = screen.getByLabelText('Attempt 1');
+    expect(input).toHaveClass('text-stat', 'sm:text-stat', 'text-center', 'tabular-nums');
+    expect(input).toHaveAttribute('inputmode', 'decimal');
+  });
 });

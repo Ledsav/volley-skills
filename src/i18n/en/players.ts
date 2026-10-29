@@ -36,6 +36,7 @@ export const players = {
   },
   identity: {
     avgSkillScore: 'Avg skill score',
+    avgShort: 'avg',
     team: 'Team',
     ageGroup: 'Age group',
     season: 'Season',
@@ -77,7 +78,8 @@ export const players = {
     useAria: (skill: string, score: number) => `Use ${score} for ${skill}`,
     adapted: (skill: string, score: number) => `${skill} set to ${score}`,
     editTitle: 'Edit skills',
-    saveSkills: 'Save skills',
+    suggestionLegend: 'Arrows show the score the match data suggests. Tap one to apply it.',
+    use: (score: number) => `Use ${score}`,
     saveFailedRange: 'Could not save skills. Check that every score is between 1 and 10, then try again.',
     saveFailed: 'Could not save skills. Please try again.',
   },
@@ -114,6 +116,11 @@ export const players = {
     loadError: 'Could not load this player.',
     loading: 'Loading player...',
     sectionsLabel: 'Player sections',
+    sync: {
+      savedOffline: 'Saved on this device · will sync',
+      waiting: 'Waiting to sync',
+      failed: 'Some changes made offline could not be saved. Reload the page to see the stored card.',
+    },
     sections: {
       skills: 'Skills',
       matches: 'Matches',
@@ -159,7 +166,7 @@ export const players = {
     leftError: 'Could not update membership. Please try again.',
     exportButton: 'Export data (JSON)',
     exportError: sameForAll("Could not export this player's data. Please try again."),
-    deleteButton: sameForAll('Delete player'),
+    deleteMenu: sameForAll('Delete player…'),
     deleteTitle: (name: string) => `Delete ${name}?`,
     deleteMessage: sameForAll(
       "This will permanently delete this player's card (contact info, skills, development plan), their physical tests and testing-session entries, and remove their name and number from past match reports. This cannot be undone."
@@ -170,8 +177,8 @@ export const players = {
   physical: {
     loadError: 'Could not load physical testing data. Please refresh the page.',
     noData: 'No data yet',
-    viewHistory: 'View history',
-    addNew: 'Add new',
+    historyAria: (test: string) => `${test}: view history`,
+    addAria: (test: string) => `Add a ${test} entry`,
     // One-line summaries and detail rows; units (cm, kg, s, ms) are the same in every language.
     summary: {
       approachJump: (jump: string, touch: string) => `${jump} cm (touch ${touch} cm)`,
@@ -203,8 +210,8 @@ export const players = {
       none: 'No entries yet.',
       notes: 'Notes',
       deleteEntry: 'Delete entry',
-      deleteTitle: 'Delete this entry?',
-      deleteMessage: "This can't be undone.",
+      deletedNotice: (d: string) => `Entry from ${d} deleted`,
+      rowMenu: (d: string) => `Actions for the entry from ${d}`,
       deleteError: 'Could not delete this entry. Please try again.',
     },
     chart: {

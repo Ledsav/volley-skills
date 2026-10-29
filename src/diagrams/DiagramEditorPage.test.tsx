@@ -54,19 +54,23 @@ describe('DiagramEditorPage', () => {
     });
   });
 
-  it('keeps Save disabled until a change, then calls saveDiagramSet once', async () => {
-    renderPage();
-    await screen.findByDisplayValue('Setup');
-    const save = screen.getByRole('button', { name: /save/i });
-    expect(save).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
-    await waitFor(() => expect(save).toBeEnabled());
-    fireEvent.click(save);
-    await waitFor(() => expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1));
-    // Let the save settle (dispatch `saved` → dirty clears → button re-disables)
-    // so the now-live save-on-unmount safety net doesn't flush a second call.
-    await waitFor(() => expect(save).toBeDisabled());
-    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+  it('shows Saved, then Saving… after a change, and autosaves once', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderPage();
+      await screen.findByDisplayValue('Setup');
+      expect(screen.getByText('Saved')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+      expect(await screen.findByText('Saving…')).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3100);
+      });
+      expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument());
+      expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('undo removes the last added item and redo restores it', async () => {
@@ -91,7 +95,7 @@ describe('DiagramEditorPage', () => {
     const { unmount } = renderPage();
     await screen.findByDisplayValue('Setup');
     fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeEnabled());
+    await screen.findByText('Saving…');
     await act(async () => {
       unmount();
     });
@@ -260,52 +264,78 @@ describe('DiagramEditorPage', () => {
     expect(stage().querySelectorAll('[data-item-type="cone"]')).toHaveLength(1);
   });
 
-  it('confirms in-app before leaving via "‹ Exercises" when the editor is dirty', async () => {
+  it('leaving a dirty editor never asks and saves the change (B2)', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
-    const confirmSpy = vi.spyOn(window, 'confirm');
-
-    // Make the editor dirty by adding an element.
     fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeEnabled());
-
-    fireEvent.click(screen.getByRole('button', { name: '‹ Exercises' }));
-    const dialog = screen.getByRole('alertdialog', { name: 'Leave without saving?' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    expect(screen.queryByText('Exercises list')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: '‹ Exercises' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    await screen.findByText('Saving…');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to exercises' }));
     expect(await screen.findByText('Exercises list')).toBeInTheDocument();
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(diagramsApi.saveDiagramSet).toHaveBeenCalled());
   });
 
-  it('shows the active diagram\'s current court in the Court select', async () => {
-    renderPage();
-    await screen.findByDisplayValue('Setup');
-    expect(screen.getByLabelText('Court preset')).toHaveValue('full');
+  it('while a save is failing, the toolbar offers Retry and leaving asks first (B2)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(diagramsApi.saveDiagramSet).mockRejectedValue(new Error('offline'));
+      renderPage();
+      await screen.findByDisplayValue('Setup');
+      fireEvent.click(screen.getByRole('button', { name: 'Ball' }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3100);
+      });
+      const retry = await screen.findByRole('button', { name: 'Not saved — Retry' });
+      const calls = vi.mocked(diagramsApi.saveDiagramSet).mock.calls.length;
+      await act(async () => {
+        fireEvent.click(retry);
+      });
+      await waitFor(() => expect(vi.mocked(diagramsApi.saveDiagramSet).mock.calls.length).toBeGreaterThan(calls));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back to exercises' }));
+      const dialog = screen.getByRole('alertdialog', { name: 'Leave and lose the last changes?' });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(screen.queryByText('Exercises list')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back to exercises' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+      expect(await screen.findByText('Exercises list')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it('changes the court to half via the select, re-rendering the backdrop and enabling Save', async () => {
+  it('the editor owns Ctrl+Z, not the undo notice', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
-    const save = screen.getByRole('button', { name: /save/i });
-    expect(save).toBeDisabled();
+    expect(document.querySelector('[data-canvas-stage]')!.closest('[data-own-undo]')).not.toBeNull();
+  });
 
-    fireEvent.change(screen.getByLabelText('Court preset'), { target: { value: 'half' } });
+  it('shows the active diagram\'s current court in the Court preset control', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    const preset = screen.getByRole('radiogroup', { name: 'Court preset' });
+    expect(within(preset).getByRole('radio', { name: 'Full' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('changes the court to half via the preset control, re-rendering the backdrop and asserting Saving…', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Court preset' })).getByRole('radio', { name: 'Half' }));
 
     await waitFor(() => {
       const stage = document.querySelector('[data-canvas-stage]')!;
       expect(stage.querySelector('[data-court="half"]')).not.toBeNull();
     });
-    expect(save).toBeEnabled();
+    expect(screen.getByText('Saving…')).toBeInTheDocument();
   });
 
-  it('toggles zone labels on via the Zones checkbox and enables Save', async () => {
+  it('toggles zone labels on via the Zones checkbox and shows Saving…', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
-    const save = screen.getByRole('button', { name: /save/i });
     const zones = screen.getByRole('checkbox', { name: 'Zones' });
     expect(zones).not.toBeChecked();
 
@@ -316,7 +346,7 @@ describe('DiagramEditorPage', () => {
       expect(stage.querySelectorAll('[data-zone-label]').length).toBeGreaterThan(0);
     });
     expect(zones).toBeChecked();
-    expect(save).toBeEnabled();
+    expect(screen.getByText('Saving…')).toBeInTheDocument();
   });
 
   it('does not render the Court select when the exercise has no diagrams', async () => {

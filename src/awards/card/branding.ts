@@ -1,5 +1,6 @@
 import type { SlideColors } from '../palette';
 import { CARD_H, CARD_W, MARGIN } from './geometry';
+import { ROLE } from './type';
 import { fitBlock, textAt } from './wrapText';
 
 type Img = ImageBitmap | HTMLCanvasElement;
@@ -150,7 +151,7 @@ function drawLogo(ctx: CanvasRenderingContext2D, img: Img, box: Box, tint: strin
 
 export interface HeaderInfo { clubLogo: Img | null; clubName: string; teamName: string; right: string }
 
-/** One header row: [club logo] TEAM on the left, season / match on the right. */
+/** One header row: [club logo] team on the left, season / match on the right. */
 export function drawHeaderRow(ctx: CanvasRenderingContext2D, h: HeaderInfo, colors: SlideColors, alpha: number) {
   if (alpha <= 0) return;
   let leftX = MARGIN;
@@ -159,15 +160,15 @@ export function drawHeaderRow(ctx: CanvasRenderingContext2D, h: HeaderInfo, colo
     leftX += HEADER_ROW.h + 24;
   }
   const rightW = 380;
-  const right = h.right.trim() ? fitBlock(ctx, h.right.trim().toUpperCase(), 600, 30, rightW, 1) : null;
+  const right = h.right.trim() ? fitBlock(ctx, h.right.trim(), ROLE.caption.weight, 30, rightW, 1) : null;
   const club = h.clubLogo ? '' : h.clubName.trim();
   const team = h.teamName.trim();
-  const leftText = [club, team].filter(Boolean).join(' · ').toUpperCase();
+  const leftText = [club, team].filter(Boolean).join(' · ');
   if (leftText) {
-    const left = fitBlock(ctx, leftText, 800, 36, CARD_W - MARGIN - (right ? rightW + 40 : 0) - leftX, 1);
-    textAt(ctx, left.lines[0], leftX, HEADER_ROW.baseline, `800 ${left.size}px ${FONT}`, colors.text, alpha);
+    const left = fitBlock(ctx, leftText, ROLE.caption.weight, 32, CARD_W - MARGIN - (right ? rightW + 40 : 0) - leftX, 1);
+    textAt(ctx, left.lines[0], leftX, HEADER_ROW.baseline, `${ROLE.caption.weight} ${left.size}px ${FONT}`, colors.text, alpha);
   }
-  if (right) textAt(ctx, right.lines[0], CARD_W - MARGIN, HEADER_ROW.baseline, `600 ${right.size}px ${FONT}`, colors.muted, alpha, 'right');
+  if (right) textAt(ctx, right.lines[0], CARD_W - MARGIN, HEADER_ROW.baseline, `${ROLE.caption.weight} ${right.size}px ${FONT}`, colors.muted, alpha, 'right');
 }
 
 /** Divider plus one row of sponsor logos (single-colour in the slide's text colour unless `mono` is off). */

@@ -110,6 +110,28 @@ is added to `statusLog`.
 Firebase Auth accounts are not touched, because a person may belong to other clubs.
 Keep the printed summary for your records.
 
+## Search tokens backfill
+
+```bash
+node scripts/migrate/2026-10-search-tokens.mjs --club <id> --prod --dry-run   # counts only
+node scripts/migrate/2026-10-search-tokens.mjs --club <id> --prod             # asks you to type "backfill search"
+node scripts/migrate/2026-10-search-tokens.mjs --all-clubs --emulator         # every club that is not deleted
+```
+
+The palette's Exercises and Trainings groups query `searchTokens` (prefixes of each name
+word, plus the `businessId` for trainings). New and edited docs get them from the app;
+this fills in the existing ones. It writes `searchTokens` only, and only on docs where it
+is missing or differs, so a second run writes 0. A doc deleted mid-run can stop that club's
+run; run it again, it resumes because the backfill is idempotent.
+
+Cost: one read per exercise and training, one write per changed doc (Spark allows 50,000
+reads and 20,000 writes a day). It prints counts per club, never content. Run the dry run first.
+
+When: after the two new composite indexes (`searchTokens` + `name`) are deployed
+(`firebase deploy --only firestore:indexes`), before or together with the app deploy.
+Docs that are not backfilled simply do not appear in search until they are saved or the
+script runs.
+
 ## Older scripts
 
 `2026-09-11-section-access.mjs` is superseded by the club platform migration, which

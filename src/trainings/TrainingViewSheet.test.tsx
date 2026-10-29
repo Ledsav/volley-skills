@@ -125,6 +125,22 @@ describe('TrainingViewSheet', () => {
       expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
     });
 
+    it('autoBuildPdf starts building once and still needs the Share PDF ready tap', async () => {
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockResolvedValue(pdf);
+      vi.mocked(shareFile.shareOrDownload).mockResolvedValue('shared');
+      render(
+        <NoticeProvider>
+          <TrainingViewSheet training={training} autoBuildPdf onClose={vi.fn()} onEdit={vi.fn()} />
+        </NoticeProvider>,
+      );
+      const ready = await screen.findByRole('button', { name: 'Share PDF ready' });
+      expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
+      expect(shareFile.shareOrDownload).not.toHaveBeenCalled();
+      fireEvent.click(ready);
+      await waitFor(() => expect(shareFile.shareOrDownload).toHaveBeenCalledWith([pdf], 'Passing circuit'));
+      expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
+    });
+
     it('announces when the PDF is being prepared and when it is ready', async () => {
       let resolve: (f: File) => void = () => {};
       vi.mocked(exportTrainingPdf.generateTrainingPdf).mockReturnValue(new Promise((r) => (resolve = r)));
@@ -185,5 +201,26 @@ describe('TrainingViewSheet', () => {
       });
       expect(screen.getByRole('button', { name: 'Edit team notes' })).toBeInTheDocument();
     });
+  });
+
+  it('reads as a view on phones: Done, no Cancel', () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('max-width: 767px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      render(<TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    } finally {
+      // @ts-expect-error restore jsdom's absence of matchMedia
+      delete window.matchMedia;
+    }
   });
 });

@@ -32,13 +32,32 @@ beforeEach(() => {
 const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 
 describe('ClubsTable', () => {
+  it('shows the status as a pill coloured by meaning', async () => {
+    render(<ClubsTable />);
+    await screen.findByRole('row', { name: /Alpha VC/ });
+    expect(screen.getByText('Active', { selector: 'span' })).toHaveClass('bg-green-tint');
+    expect(screen.getByText('Ending', { selector: 'span' })).toHaveClass('bg-orange-tint');
+    expect(screen.getByText('Pending', { selector: 'span' })).toHaveClass('bg-surface-3');
+  });
+
+  it('shows skeleton rows until the first page arrives, then "No clubs yet."', async () => {
+    let resolve: (v: ReturnType<typeof page>) => void = () => {};
+    vi.mocked(platformApi.listClubs).mockReturnValue(new Promise((r) => { resolve = r as typeof resolve; }));
+    const { container } = render(<ClubsTable />);
+    expect(container.querySelectorAll('tbody tr [data-skeleton-block]').length).toBeGreaterThan(0);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading clubs…');
+    resolve(page([]));
+    expect(await screen.findByText('No clubs yet.')).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-skeleton-block]')).toHaveLength(0);
+  });
+
   it('shows name, country, owner, status, created date, accepted legal version and contract dates', async () => {
     render(<ClubsTable />);
     const created = formatDateValue(new Date(2026, 0, 5, 12), 'numeric', 'en');
     const a = await screen.findByRole('row', { name: /Alpha VC/ });
     expect(a).toHaveTextContent(`BE · created ${created}`);
     expect(within(a).getByText('owner@alpha.be')).toBeInTheDocument();
-    expect(within(a).getByText('Active')).toBeInTheDocument();
+    expect(within(a).getByText('Active', { selector: 'span' })).toBeInTheDocument();
     expect(a).toHaveTextContent('Accepted 2026-09');
     const b = row('Beta VC');
     expect(within(b).getByText('Ending')).toBeInTheDocument();
@@ -107,7 +126,7 @@ describe('ClubsTable', () => {
     await screen.findByText('Gamma VC');
     fireEvent.click(within(row('Gamma VC')).getByRole('button', { name: 'Activate' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Activate' }));
-    await waitFor(() => expect(within(row('Gamma VC')).getByText('Active')).toBeInTheDocument());
+    await waitFor(() => expect(within(row('Gamma VC')).getByText('Active', { selector: 'span' })).toBeInTheDocument());
     expect(platformApi.changeClubStatus).toHaveBeenCalledWith(
       expect.objectContaining({ clubId: 'c3', from: 'pending', to: 'active' }), 'op@example.com');
   });

@@ -49,7 +49,7 @@ describe('SkillMeter', () => {
     expect(unfilled).toHaveLength(7);
     unfilled.forEach((el) => {
       expect(el.className).not.toMatch(/bg-(red|orange|blue|green)\b/);
-      expect(el.className).toMatch(/border-border\b/);
+      expect(el.className).toMatch(/border-separator\b/);
     });
   });
 

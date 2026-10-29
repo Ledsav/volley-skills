@@ -36,6 +36,7 @@ export const players = {
   },
   identity: {
     avgSkillScore: 'Punteggio medio',
+    avgShort: 'media',
     team: 'Squadra',
     ageGroup: 'Categoria',
     season: 'Stagione',
@@ -77,7 +78,8 @@ export const players = {
     useAria: (skill: string, score: number) => `Usa ${score} per ${skill}`,
     adapted: (skill: string, score: number) => `${skill} impostata a ${score}`,
     editTitle: 'Modifica abilità',
-    saveSkills: 'Salva abilità',
+    suggestionLegend: 'Le frecce indicano il voto suggerito dai dati delle partite. Tocca per applicarlo.',
+    use: (score: number) => `Usa ${score}`,
     saveFailedRange: 'Impossibile salvare le abilità. Controlla che ogni punteggio sia tra 1 e 10, poi riprova.',
     saveFailed: 'Impossibile salvare le abilità. Riprova.',
   },
@@ -117,6 +119,11 @@ export const players = {
     loadError: 'Impossibile caricare questa scheda.',
     loading: 'Caricamento scheda...',
     sectionsLabel: 'Sezioni della scheda',
+    sync: {
+      savedOffline: 'Salvato su questo dispositivo · si sincronizzerà',
+      waiting: 'In attesa di sincronizzazione',
+      failed: 'Alcune modifiche fatte offline non sono state salvate. Ricarica la pagina per vedere la scheda salvata.',
+    },
     sections: {
       skills: 'Abilità',
       matches: 'Partite',
@@ -162,7 +169,7 @@ export const players = {
     exportButton: 'Esporta dati (JSON)',
     exportError: (g: Gender) =>
       `Impossibile esportare i dati di ${agree(g, 'questo giocatore', 'questa giocatrice', 'questo/a giocatore/trice')}. Riprova.`,
-    deleteButton: (g: Gender) => agree(g, 'Elimina giocatore', 'Elimina giocatrice', 'Elimina giocatore/trice'),
+    deleteMenu: (g: Gender) => agree(g, 'Elimina giocatore…', 'Elimina giocatrice…', 'Elimina giocatore/trice…'),
     deleteTitle: (name: string) => `Eliminare ${name}?`,
     deleteMessage: (g: Gender) =>
       `Elimina definitivamente la scheda ${agree(g, 'del giocatore', 'della giocatrice', 'del/della giocatore/trice')} (contatti, abilità, piano di sviluppo), i test atletici e le voci delle sessioni di test, e rimuove nome e numero dai referti delle partite passate. Non si può annullare.`,
@@ -174,8 +181,8 @@ export const players = {
   physical: {
     loadError: 'Impossibile caricare i test atletici. Aggiorna la pagina.',
     noData: 'Ancora nessun dato',
-    viewHistory: 'Vedi storico',
-    addNew: 'Aggiungi',
+    historyAria: (test: string) => `${test}: vedi lo storico`,
+    addAria: (test: string) => `Aggiungi una misura: ${test}`,
     summary: {
       approachJump: (jump: string, touch: string) => `${jump} cm (tocco ${touch} cm)`,
       shuttle: (right: string, left: string) => `D ${right}s / S ${left}s`,
@@ -206,8 +213,8 @@ export const players = {
       none: 'Ancora nessun dato.',
       notes: 'Note',
       deleteEntry: 'Elimina voce',
-      deleteTitle: 'Eliminare questa voce?',
-      deleteMessage: 'Non si può annullare.',
+      deletedNotice: (d: string) => `Voce del ${d} eliminata`,
+      rowMenu: (d: string) => `Azioni per la voce del ${d}`,
       deleteError: 'Impossibile eliminare questa voce. Riprova.',
     },
     chart: {

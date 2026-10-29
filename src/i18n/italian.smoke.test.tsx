@@ -7,6 +7,7 @@ import { PlayerCardPage } from '../players/PlayerCardPage';
 import { MatchPage } from '../matches/MatchPage';
 import { TrainingBuilderDialog } from '../trainings/TrainingBuilderDialog';
 import { NoticeProvider } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
 import { I18nProvider } from './I18nProvider';
 import { en as enCat } from './en';
 import { it as itCat } from './it';
@@ -80,6 +81,8 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
       }),
     );
     vi.mocked(teamsApi.listMyTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    vi.mocked(teamsApi.listClubTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    vi.mocked(teamsApi.getTeamSummary).mockResolvedValue({ players: 0, avgScore: null });
     vi.mocked(teamsApi.getTeam).mockResolvedValue(team);
     vi.mocked(playersApi.listPlayers).mockResolvedValue({ players: [player], lastDoc: null, hasMore: false });
     vi.mocked(playersApi.getPlayer).mockResolvedValue(player);
@@ -101,9 +104,8 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
   it('Home', async () => {
     render(<MemoryRouter><I18nProvider><HomePage /></I18nProvider></MemoryRouter>);
     await screen.findByRole('link', { name: new RegExp(itCat.home.resumeScouting) });
-    expectItalianAndClean([itCat.home.resumeScouting]);
+    expectItalianAndClean([itCat.home.title, itCat.home.resumeScouting]);
     expectNoEnglish([enCat.home.resumeScouting]);
-    expect(document.body.textContent).toMatch(/Buongiorno|Buon pomeriggio|Buonasera/);
   });
 
   it('a team page', async () => {
@@ -142,13 +144,15 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     render(
       <MemoryRouter initialEntries={['/teams/t1/matches/m1']}>
         <I18nProvider>
-          <Routes><Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} /></Routes>
+          <WithChrome>
+            <Routes><Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} /></Routes>
+          </WithChrome>
         </I18nProvider>
       </MemoryRouter>,
     );
     await screen.findByRole('button', { name: itCat.matches.page.reopen });
-    expectItalianAndClean([itCat.matches.page.reopen, itCat.matches.page.export, '3–1']);
-    expectNoEnglish([enCat.matches.page.reopen, enCat.matches.page.export]);
+    expectItalianAndClean([itCat.matches.page.reopen, itCat.matches.page.print, '3–1']);
+    expectNoEnglish([enCat.matches.page.reopen, enCat.matches.page.print]);
   });
 
   it('the training builder', async () => {

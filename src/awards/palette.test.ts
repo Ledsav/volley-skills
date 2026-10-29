@@ -56,6 +56,34 @@ describe('palette', () => {
     expect(selectedPalette(prefs)).toBe(PRESET_PALETTES[0]);
   });
 
+  it('an unknown selectedId draws Night', () => {
+    expect(selectedPalette({ selectedId: 'gone', custom: [] }).id).toBe('night');
+  });
+
+  it('a coach who never chose a palette gets Night', () => {
+    expect(readPalettePrefs().selectedId).toBe('night');
+  });
+
+  it('Night is true black with white ink and a white accent', () => {
+    const night = PRESET_PALETTES.find((x) => x.id === 'night')!;
+    for (let i = 0; i < 4; i++) expect(slideColors(night, i)).toMatchObject({ bg: '#000000', text: '#FFFFFF', accent: '#FFFFFF' });
+  });
+
+  it('a stored preset choice is kept', () => {
+    localStorage.setItem('vcb.awards.palette', 'navy');
+    localStorage.setItem('vcb.awards.palettes', '[]');
+    expect(readPalettePrefs().selectedId).toBe('navy');
+  });
+
+  it('a legacy theme with an unknown preset still migrates onto Navy', () => {
+    const navy = PRESET_PALETTES.find((x) => x.id === 'navy')!;
+    localStorage.setItem('vcb.awards.theme', JSON.stringify({ presetId: 'ghost', custom: null }));
+    expect(readPalettePrefs().selectedId).toBe('navy');
+    localStorage.clear();
+    localStorage.setItem('vcb.awards.theme', JSON.stringify({ presetId: 'ghost', custom: { from: '#123456', to: '#654321' } }));
+    expect(readPalettePrefs().custom[0].colors.slice(2)).toEqual(navy.colors.slice(2));
+  });
+
   it('round-trips custom palettes and the selection', () => {
     const custom = { id: 'custom-1', name: 'Mine', colors: ['#000000', '#111111', '#222222', '#333333'] };
     writePalettePrefs({ selectedId: 'custom-1', custom: [custom] });

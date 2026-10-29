@@ -165,4 +165,13 @@ describe('AssignTrainingDialog', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
   });
+
+  it('Cancel after picking a training asks to discard', async () => {
+    const onClose = vi.fn();
+    render(<AssignTrainingDialog teamId="team-1" date="2026-09-12" onClose={onClose} onSaved={vi.fn()} />);
+    fireEvent.click(await screen.findByLabelText(/Passing circuit/));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
 });

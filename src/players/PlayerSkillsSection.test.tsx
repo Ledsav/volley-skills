@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import * as playersApi from './playersApi';
 import * as skillGuideApi from '../skillGuide/skillGuideApi';
+import { NoticeProvider } from '../components/Notice';
+import { PlayerSyncProvider } from './playerSync';
 import type { Player } from '../types/player';
 import type { MatchRatings } from './matchRating';
 
@@ -117,7 +119,7 @@ describe('PlayerSkillsSection', () => {
     fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
     fireEvent.change(screen.getByLabelText('Attack'), { target: { value: '8' } });
-    fireEvent.click(screen.getByText('Save skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
       expect(playersApi.updatePlayerSkills).toHaveBeenCalledWith(
@@ -134,6 +136,37 @@ describe('PlayerSkillsSection', () => {
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ avgScore: 7, level: 'Advanced' }));
   });
 
+  it('Cancel on an edited skills sheet asks to discard; a clean Cancel closes at once', () => {
+    render(<SkillsHarness player={basePlayer} />);
+
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText('Discard changes?')).toBeInTheDocument();
+    expect(screen.getByLabelText('Serve')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
+  });
+
+  it('a second Save while saving writes once', async () => {
+    let finish: () => void = () => {};
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(new Promise<void>((resolve) => (finish = resolve)));
+    render(<SkillsHarness player={basePlayer} />);
+
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
+    const save = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    expect(playersApi.updatePlayerSkills).toHaveBeenCalledTimes(1);
+    finish();
+    await waitFor(() => expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument());
+  });
+
   it('shows an error message when the save is rejected', async () => {
     vi.spyOn(playersApi, 'updatePlayerSkills').mockRejectedValue({ code: 'permission-denied' });
     const onPlayerUpdated = vi.fn();
@@ -142,7 +175,7 @@ describe('PlayerSkillsSection', () => {
 
     fireEvent.click(screen.getByText('Edit skills'));
     fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '99' } });
-    fireEvent.click(screen.getByText('Save skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(onPlayerUpdated).not.toHaveBeenCalled();
@@ -207,7 +240,7 @@ describe('PlayerSkillsSection', () => {
     expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
     expect(screen.queryByText('Edit skills')).not.toBeInTheDocument();
     expect(screen.queryAllByLabelText('Focus area')).toHaveLength(0);
-    expect(screen.queryByText('Save skills')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.getByText('6')).toBeInTheDocument();
   });
 });
@@ -238,6 +271,15 @@ describe('match suggestions', () => {
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ avgScore: 8, level: 'Elite' }));
   });
 
+  it("Adapt is a 44 px pill in the suggestion's colour", () => {
+    render(<SkillsHarness player={withServe(5)} ratings={serveRating} />);
+    const up = screen.getByRole('button', { name: 'Adapt Serve to 8' });
+    expect(up).toHaveClass('min-h-11', 'rounded-full', 'text-green-strong');
+    cleanup();
+    render(<SkillsHarness player={withServe(10)} ratings={serveRating} />);
+    expect(screen.getByRole('button', { name: 'Adapt Serve to 8' })).toHaveClass('text-orange-strong');
+  });
+
   it('hides a suggestion that already matches the score', () => {
     render(<SkillsHarness player={withServe(8)} ratings={serveRating} />);
     expect(screen.queryByRole('button', { name: /Adapt Serve/ })).not.toBeInTheDocument();
@@ -260,5 +302,38 @@ describe('match suggestions', () => {
     expect(screen.getByLabelText('Serve')).toHaveValue(8);
     expect(screen.queryByRole('button', { name: 'Use 8 for Serve' })).not.toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe('offline saves', () => {
+  const offline = () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  const renderOffline = (props: Parameters<typeof SkillsHarness>[0]) =>
+    render(
+      <NoticeProvider>
+        <PlayerSyncProvider>
+          <SkillsHarness {...props} />
+        </PlayerSyncProvider>
+      </NoticeProvider>,
+    );
+
+  it('offline, the skills sheet closes as soon as the write is queued', async () => {
+    offline();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(new Promise(() => undefined));
+    renderOffline({ player: basePlayer });
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument());
+    expect(screen.getByText('Saved on this device · will sync')).toBeInTheDocument();
+  });
+
+  it('offline, Adapt shows the offline notice, not the adapted toast', async () => {
+    offline();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(new Promise(() => undefined));
+    const player = { ...basePlayer, skills: { ...basePlayer.skills, serve: { score: 5, notes: '', priority: false } } };
+    renderOffline({ player, ratings: { serve: { rating: 7.75, attempts: 20 } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Adapt Serve to 8' }));
+    expect(await screen.findByText('Saved on this device · will sync')).toBeInTheDocument();
+    expect(screen.queryByText(/set to 8/)).not.toBeInTheDocument();
   });
 });

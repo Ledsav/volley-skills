@@ -17,6 +17,7 @@
 import { createRequire } from 'node:module';
 import { clubRoot, writeClub } from './clubArg.mjs';
 import { SKILL_KEYS } from './parseWorkbook.mjs';
+import { searchTokens } from '../../src/search/searchTokens.js';
 
 const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
@@ -87,6 +88,7 @@ batch.set(teamRef, {
 });
 batch.set(rival.collection('exercises').doc('rival-pepper'), {
   name: 'Rival pepper',
+  searchTokens: searchTokens('Rival pepper'),
   description: 'Pairs 4–5 m apart. Dig, set, attack in a continuous rally.',
   category: 'warmup',
   createdBy: 'seed-script',

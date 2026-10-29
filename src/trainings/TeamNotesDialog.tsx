@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { Textarea } from '../components/Input';
 import { LevelPill } from '../components/LevelPill';
 import { listPlayers } from '../players/playersApi';
@@ -102,16 +102,14 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
   const expectedCount = players ? players.length - players.filter((p) => absent.has(p.id)).length : 0;
 
   return (
-    <Dialog
+    <Sheet
       title={m.title(teamName)}
       size="lg"
-      mobileSheet
+      detent="large"
       onClose={onCancel}
       footer={
         <>
-          <Button variant="ghost" onClick={onCancel} className="hidden sm:inline-flex">
-            {m.cancel}
-          </Button>
+          <SheetCancelButton className="hidden md:inline-flex" />
           <Button variant="primary" onClick={confirm} disabled={!players} className="flex-1 sm:flex-none">
             {m.createPdf}
           </Button>
@@ -119,12 +117,12 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
       }
     >
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-slate">
+        <p className="text-callout text-ink-2">
           {m.intro(gender)}
         </p>
 
         <div>
-          <label htmlFor="team-notes-general" className="mb-1 block text-sm font-medium text-ink">
+          <label htmlFor="team-notes-general" className="mb-1 block text-callout font-medium text-ink">
             {m.generalNotes}
           </label>
           <Textarea id="team-notes-general" aria-describedby="team-notes-general-hint" value={general} onChange={(e) => setGeneral(e.target.value)} rows={2} />
@@ -132,32 +130,35 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-callout text-red-strong">
             {error}
           </p>
         )}
-        {!players && !error && <p className="text-sm text-slate">{m.loadingTeam}</p>}
+        {!players && !error && <p className="text-callout text-ink-2">{m.loadingTeam}</p>}
 
         {players && (
           <div>
-            <p className="mb-2 text-sm font-medium text-ink">
-              {m.expectedPlayers(gender)} <span className="tabular-nums text-slate">({m.expectedCount(expectedCount, players.length)})</span>
+            <p className="mb-2 text-callout font-medium text-ink">
+              {m.expectedPlayers(gender)} <span className="tabular-nums text-ink-2">({m.expectedCount(expectedCount, players.length)})</span>
             </p>
-            <ul aria-label={m.expectedPlayers(gender)} className="divide-y divide-border rounded-md border border-border">
+            <ul aria-label={m.expectedPlayers(gender)} className="rounded-lg bg-surface-2">
               {players.map((p) => {
                 const expected = !absent.has(p.id);
                 return (
-                  <li key={p.id} className="p-3">
+                  <li
+                    key={p.id}
+                    className="relative p-3 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden"
+                  >
                     <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={expected}
                         onChange={() => toggle(p.id)}
-                        className="h-5 w-5 shrink-0 accent-[rgb(var(--color-blue))]"
+                        className="h-5 w-5 shrink-0 accent-[rgb(var(--color-ink))]"
                       />
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{p.fullName}</span>
+                      <span className="min-w-0 flex-1 truncate text-headline text-ink">{p.fullName}</span>
                       {p.positionCategory !== 'TBD' && (
-                        <span className="text-xs text-slate">{lb.position[p.positionCategory](gender)}</span>
+                        <span className="text-footnote text-ink-2">{lb.position[p.positionCategory](gender)}</span>
                       )}
                       <LevelPill level={p.level} gender={gender} />
                     </label>
@@ -180,6 +181,6 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
           </div>
         )}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

@@ -16,8 +16,13 @@ import { PLAYER_IMPORT_EXAMPLE, validatePlayerRows } from '../players/playersImp
 import { playerImportIssueText } from '../players/playersImportMessages';
 import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
-import { SectionTabs } from '../components/SectionTabs';
+import type { MenuItem } from '../components/Menu';
+import { SegmentedControl } from '../components/SegmentedControl';
+import { usePublishPageChrome } from '../layout/PageChrome';
+import { useWindowScrolled } from '../layout/useWindowScrolled';
+import { Pencil, Upload, UserPlus } from 'lucide-react';
 import { PageHeader } from '../layout/PageHeader';
+import { useTakePendingAction } from '../search/pendingAction';
 import { PageSkeleton } from '../components/Skeleton';
 import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
@@ -29,10 +34,21 @@ import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
 import { useT } from '../i18n/I18nProvider';
 import { teamGender } from './teamGender';
+import { STRIP_GLASS, stickyTop, TEAM_TABS_H } from '../layout/chromeMetrics';
+import { PageContainer } from '../layout/PageContainer';
 
 const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
 type TeamTab = 'roster' | 'calendar' | 'matches' | 'stats' | 'plan' | 'physical' | 'settings';
+// Tabs that publish their own toolbar chrome while active; the page header stays quiet then.
+/** Stats publishes its own chrome; until its chunk loads this keeps the toolbar title from going blank. */
+function StatsFallback({ title }: { title: string }) {
+  const t = useT();
+  usePublishPageChrome({ title });
+  return <p className="text-ink-2">{t.teams.shared.loadingStats}</p>;
+}
+
+const OWN_CHROME = new Set<TeamTab>(['matches', 'calendar', 'physical', 'stats']);
 const TEAM_TABS: TeamTab[] = ['roster', 'calendar', 'matches', 'stats', 'plan', 'physical', 'settings'];
 // Earlier tab ids, so old links and bookmarks still land on the right tab.
 const LEGACY_TAB: Record<string, TeamTab> = { overview: 'roster', physicalSession: 'physical' };
@@ -52,6 +68,9 @@ export function TeamPage() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showImportPlayers, setShowImportPlayers] = useState(false);
+  const [planEditing, setPlanEditing] = useState(false);
+  const scrolled = useWindowScrolled();
+  useTakePendingAction('add-player', () => setShowAddPlayer(true));
   const notify = useNotify();
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
@@ -74,7 +93,7 @@ export function TeamPage() {
   if (loadError && !team) {
     return (
       <div role="alert" className="p-6">
-        <p className="text-red">{t.teams.page.loadError}</p>
+        <p className="text-red-strong">{t.teams.page.loadError}</p>
         <Button variant="secondary" size="sm" className="mt-3" onClick={() => setLoadAttempt((n) => n + 1)}>
           {t.teams.page.tryAgain}
         </Button>
@@ -87,7 +106,8 @@ export function TeamPage() {
   const changeTab = (next: TeamTab) => {
     const p = new URLSearchParams(params);
     // stats filter params belong to the Stats tab only
-    for (const k of ['comp', 'ha', 'range', 'from', 'to']) p.delete(k);
+    // `session` belongs to the Calendar tab
+    for (const k of ['comp', 'ha', 'range', 'from', 'to', 'session']) p.delete(k);
     p.set('tab', next);
     setParams(p, { replace: true });
   };
@@ -105,18 +125,46 @@ export function TeamPage() {
     { id: 'settings', label: t.teams.page.tabs.settings },
   ];
 
+  const mainAction =
+    activeTab === 'roster'
+      ? { label: t.teams.page.addPlayer(gender), icon: UserPlus, onSelect: () => setShowAddPlayer(true) }
+      : activeTab === 'plan'
+        ? { label: t.teams.page.editPlan, icon: Pencil, onSelect: () => setPlanEditing(true) }
+        : undefined;
+  const more: MenuItem[] | undefined =
+    activeTab === 'roster'
+      ? [{ kind: 'action', label: t.teams.page.importPlayers, icon: <Upload size={16} />, onSelect: () => setShowImportPlayers(true) }]
+      : undefined;
+
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       {/* Title and tabs sit on the canvas; each tab brings its own cards (no card-in-card). */}
       <PageHeader
         title={team.name}
+        eyebrow={`${team.season} · ${team.ageGroup}`}
         description={team.description ? <span className="print:hidden">{team.description}</span> : undefined}
-        className="mb-4"
+        publishChrome={!OWN_CHROME.has(activeTab)}
+        mainAction={mainAction}
+        more={more}
+        className="mb-2"
       />
 
-      <SectionTabs label={t.teams.page.sectionLabel} tabs={tabs} active={activeTab} onChange={changeTab} className="print:hidden" />
+      {/* Pinned under the 52px toolbar; turns glass once the page scrolls, like the toolbar. */}
+      <div
+        style={{ top: stickyTop('toolbar'), height: TEAM_TABS_H }}
+        className={`sticky z-20 -mx-[var(--page-gutter)] flex items-center px-[var(--page-gutter)] print:hidden ${scrolled ? STRIP_GLASS : 'bg-bg'}`}
+      >
+        <SegmentedControl
+          semantics="tabs"
+          label={t.teams.page.sectionLabel}
+          options={tabs}
+          value={activeTab}
+          onChange={changeTab}
+          className="w-full md:w-fit"
+        />
+      </div>
 
-      <div className="mt-6">
+      <div role="tabpanel" aria-label={tabs.find((x) => x.id === activeTab)?.label} className="mt-4">
         {activeTab === 'roster' && (
           <>
             {ITALIAN_ENABLED && admin && !team.gender && (
@@ -124,24 +172,6 @@ export function TeamPage() {
             )}
             <RetentionNotice teamId={teamId} gender={gender} onDeleted={() => setRosterRefreshKey((k) => k + 1)} />
             <TeamStatsRow players={rosterPlayers} />
-            <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full sm:w-auto"
-                onClick={() => setShowImportPlayers(true)}
-              >
-                {t.teams.page.importPlayers}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                className="w-full sm:w-auto"
-                onClick={() => setShowAddPlayer(true)}
-              >
-                {t.teams.page.addPlayer}
-              </Button>
-            </div>
             <TeamRosterTable
               key={rosterRefreshKey}
               teamId={teamId}
@@ -156,6 +186,7 @@ export function TeamPage() {
         {activeTab === 'calendar' && canCalendar && (
           <TeamCalendarTab
             teamId={teamId}
+            teamName={team.name}
             onNewMatch={(date) => {
               setNewMatchDate(date);
               changeTab('matches');
@@ -163,10 +194,10 @@ export function TeamPage() {
           />
         )}
         {activeTab === 'matches' && (
-          <TeamMatchesTab teamId={teamId} teamName={team.name} gender={gender} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+          <TeamMatchesTab teamId={teamId} teamName={team.name} gender={gender} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} admin={admin} />
         )}
         {activeTab === 'stats' && admin && (
-          <Suspense fallback={<p className="text-slate">{t.teams.shared.loadingStats}</p>}>
+          <Suspense fallback={<StatsFallback title={team.name} />}>
             <TeamStatsTab team={team} />
           </Suspense>
         )}
@@ -178,13 +209,15 @@ export function TeamPage() {
           />
         )}
         {activeTab === 'plan' && (
-          <div className="rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
+          <section className="rounded-lg bg-surface p-4 shadow-card sm:p-6">
             <DevelopmentPlanEditor
               plan={team.developmentPlan}
               onSave={(plan) => updateTeamDevelopmentPlan(teamId, plan).then(() => setTeam({ ...team, developmentPlan: plan }))}
               isAdmin={true}
+              editing={planEditing}
+              onEditingChange={setPlanEditing}
             />
-          </div>
+          </section>
         )}
         {activeTab === 'settings' && <TeamSettingsTab team={team} onTeamUpdated={setTeam} />}
       </div>
@@ -215,6 +248,6 @@ export function TeamPage() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

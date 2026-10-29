@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { RequireClubAdmin } from './RequireClubAdmin';
@@ -39,5 +39,15 @@ describe('RequireSection', () => {
     vi.mocked(useAuth).mockReturnValue(authValue());
     renderWith(<RequireSection section="trainings"><p>lib</p></RequireSection>);
     expect(screen.queryByText('lib')).not.toBeInTheDocument();
+  });
+});
+
+describe('no-access status', () => {
+  it('a denied section page shows the no-access status with a heading', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    renderWith(<RequireSection section="trainings"><p>lib</p></RequireSection>);
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByRole('heading', { name: "You don't have access to this page." })).toBeInTheDocument();
+    expect(screen.queryByText(/Players\. Progress\./)).toBeNull();
   });
 });

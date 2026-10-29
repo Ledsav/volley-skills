@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LiberoConfig } from '../../types/match';
 import { rosterMap } from '../format';
 import { ROSTER } from '../testFixtures';
@@ -70,12 +70,12 @@ describe('CourtGrid', () => {
     const { rerender } = render(<CourtGrid {...props} autoSelected />);
     const tile = screen.getByRole('button', { name: '#7 Ana' });
     expect(tile).toHaveAttribute('aria-pressed', 'true');
-    expect(tile).toHaveClass('bg-blue', 'text-white');
+    expect(tile).toHaveClass('bg-surface-3');
     expect(within(tile).getByText('auto')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveClass('bg-blue');
+    expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveClass('bg-surface-3');
 
     rerender(<CourtGrid {...props} autoSelected={false} />);
-    expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveClass('bg-blue');
+    expect(screen.getByRole('button', { name: '#7 Ana' })).toHaveClass('bg-surface-3');
     expect(screen.queryByText('auto')).not.toBeInTheDocument();
   });
 
@@ -103,8 +103,57 @@ describe('CourtGrid', () => {
     expect(screen.getByRole('button', { name: '#2 Sofía' })).not.toHaveAttribute('title');
   });
 
+  it('leads every tile with the role badge and number, then the name as the largest text, zone quiet in a corner', () => {
+    render(
+      <CourtGrid court={court} roster={rosterMap(ROSTER)} liberos={[]} activeLiberoId={null} selectedId="oh1" form={() => null} onSelect={vi.fn()} onLongPress={vi.fn()} />,
+    );
+    const ana = screen.getByRole('button', { name: '#7 Ana' });
+    const badge = within(ana).getByText('OH');
+    const number = within(ana).getByText('#7');
+    const name = within(ana).getByText('Ana');
+    // Badge and number share the first line; the name sits on its own line under them, truncated.
+    expect(badge.parentElement).toBe(number.parentElement);
+    expect(badge.parentElement?.nextElementSibling).toBe(name);
+    expect(badge).toHaveClass('h-6', 'font-bold');
+    expect(number).toHaveClass('font-bold', 'tabular-nums');
+    expect(name).toHaveClass('truncate', 'text-title-3', 'md:text-title-2');
+    expect(within(ana).getByText('P2')).toHaveClass('absolute', 'bottom-1', 'right-1.5', 'text-ink-2');
+    // On the selected tile the badge inverts so it never melts into the surface-3 fill.
+    expect(badge).toHaveClass('bg-ink', 'text-on-ink');
+    expect(within(screen.getByRole('button', { name: '#2 Sofía' })).getByText('S')).toHaveClass('bg-surface-3', 'text-ink');
+  });
+
   it('keeps the libero name on the tile next to the libero chip', () => {
     const tile = renderGrid([{ playerId: 'lib', mode: 'receiving', replaces: ['mb2'] }]);
     expect(within(tile).getByText('Lara')).toBeInTheDocument();
+  });
+
+  describe('press feedback', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      delete (navigator as { vibrate?: unknown }).vibrate;
+    });
+
+    it('tiles flash on press and never scale', () => {
+      const tile = renderGrid([]);
+      fireEvent.pointerDown(tile);
+      expect(tile).toHaveAttribute('data-flash');
+      expect(tile.className).not.toMatch(/pressable|scale/);
+    });
+
+    it('a long-press vibrates once for 10 ms; a tap does not', () => {
+      vi.useFakeTimers();
+      const vibrate = vi.fn();
+      Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
+      const tile = renderGrid([]);
+      fireEvent.pointerDown(tile);
+      fireEvent.pointerUp(tile);
+      vi.advanceTimersByTime(600);
+      expect(vibrate).not.toHaveBeenCalled();
+      fireEvent.pointerDown(tile);
+      vi.advanceTimersByTime(500);
+      expect(vibrate).toHaveBeenCalledTimes(1);
+      expect(vibrate).toHaveBeenCalledWith(10);
+    });
   });
 });

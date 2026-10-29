@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { X } from 'lucide-react';
+import { Button } from '../components/Button';
 import { useAuth } from '../auth/AuthContext';
 import { OPERATOR } from './operator';
 import { upcoming, type VersionedDoc } from './versions';
@@ -37,7 +39,7 @@ export function LegalNoticeBanner() {
       node: (
         <>
           {doc === 'terms' ? t.termsUpdated(fmt(v.effectiveFrom)) : t.dpaUpdated(fmt(v.effectiveFrom))}
-          <Link className="text-blue underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>
+          <Link className="font-semibold text-ink underline" to={`/legal/${doc}?v=${encodeURIComponent(v.version)}`}>
             {t.review}<span className="sr-only">{doc === 'terms' ? t.reviewTerms : t.reviewDpa}</span>
           </Link>
         </>
@@ -51,9 +53,9 @@ export function LegalNoticeBanner() {
       node: (
         <>
           {t.subprocessorsChange(fmt(sub.effectiveFrom))}{' '}
-          <Link className="text-blue underline" to={`/legal/subprocessors?v=${encodeURIComponent(sub.version)}`}>{t.seeList}</Link>
+          <Link className="font-semibold text-ink underline" to={`/legal/subprocessors?v=${encodeURIComponent(sub.version)}`}>{t.seeList}</Link>
           {' · '}
-          <a className="text-blue underline" href={`mailto:${OPERATOR.contactEmail}`}>{t.contactOperator}</a>
+          <a className="font-semibold text-ink underline" href={`mailto:${OPERATOR.contactEmail}`}>{t.contactOperator}</a>
         </>
       ),
     });
@@ -75,9 +77,11 @@ export function LegalNoticeBanner() {
     <>
       {visible.map((i) => (
         <div key={i.key} role="status"
-          className="flex items-start justify-between gap-3 border-b border-blue bg-blue/10 px-4 py-2 text-sm text-ink print:hidden">
+          className="flex items-start justify-between gap-3 border-b border-separator bg-surface-2 px-4 py-2.5 text-footnote text-ink print:hidden">
           <span>{i.node}</span>
-          <button type="button" onClick={() => dismiss(i.key)} aria-label={tAll.components.dismiss} className="shrink-0 text-slate hover:text-ink">×</button>
+          <Button variant="ghost" size="icon" onClick={() => dismiss(i.key)} aria-label={tAll.components.dismiss} className="min-h-11 min-w-11 shrink-0">
+            <X size={16} aria-hidden="true" />
+          </Button>
         </div>
       ))}
     </>

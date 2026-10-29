@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPage } from './TeamPage';
@@ -8,6 +8,8 @@ import { useAuth } from '../auth/AuthContext';
 import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 import { NoticeProvider } from '../components/Notice';
+import { PageChromeProvider, usePageChromeState } from '../layout/PageChrome';
+import { WithChrome } from '../test/chromeProbe';
 
 const flag = vi.hoisted(() => ({ italian: false }));
 vi.mock('../i18n/locales', async (orig) => {
@@ -20,6 +22,7 @@ vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../calendar/calendarApi', () => ({
   listCalendarSessions: vi.fn().mockResolvedValue([]),
+  getCalendarSession: vi.fn().mockResolvedValue(null),
   createCalendarSession: vi.fn(),
   deleteCalendarSession: vi.fn(),
 }));
@@ -42,18 +45,25 @@ const team: Team = {
   createdAt: null,
 };
 
+function ChromeSummary() {
+  const c = usePageChromeState();
+  return <div data-testid="chrome">{JSON.stringify({ title: c.title, action: c.mainAction?.label ?? null, more: c.more.map((m) => (m.kind === 'divider' ? '-' : m.label)) })}</div>;
+}
+
 function LocationProbe() {
   const l = useLocation();
   return <div data-testid="loc">{l.pathname + l.search}</div>;
 }
 
-function renderTeamPage(url = '/teams/team-1') {
+function renderTeamPage(url: string | { pathname: string; search?: string; state?: unknown } = '/teams/team-1') {
   return render(
     <MemoryRouter initialEntries={[url]}>
       <NoticeProvider>
-        <Routes>
-          <Route path="/teams/:teamId" element={<><TeamPage /><LocationProbe /></>} />
-        </Routes>
+        <WithChrome>
+          <Routes>
+            <Route path="/teams/:teamId" element={<><TeamPage /><LocationProbe /></>} />
+          </Routes>
+        </WithChrome>
       </NoticeProvider>
     </MemoryRouter>
   );
@@ -70,6 +80,14 @@ describe('TeamPage', () => {
         access: clubAdminAccess,
       })
     );
+  });
+
+  it('add-player pending action opens the add player dialog', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage({ pathname: '/teams/team-1', search: '?tab=roster', state: { pendingAction: 'add-player' } });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=roster'));
   });
 
   it('uses the lowercased appUser email, not the raw sign-in email, for team admin', async () => {
@@ -187,40 +205,89 @@ describe('TeamPage', () => {
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
   });
 
-  it('switches sections from the mobile section picker', async () => {
+  it('switches sections from the section tabs', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
 
     renderTeamPage();
 
-    const picker = await screen.findByRole('combobox', { name: 'Team section' });
-    expect(picker).toHaveValue('roster');
-    expect(picker.parentElement?.className).toContain('sm:hidden');
+    expect(await screen.findByRole('tab', { name: 'Roster' })).toHaveAttribute('aria-selected', 'true');
 
-    fireEvent.change(picker, { target: { value: 'calendar' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
 
     expect(await screen.findByLabelText('Next month')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Calendar' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('tightens the page chrome and stacks the roster action buttons on mobile', async () => {
+  it('tightens the page chrome on mobile', async () => {
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
 
-    const { container } = renderTeamPage();
-    const addBtn = await screen.findByRole('button', { name: '+ Add player' });
+    renderTeamPage();
+    const heading = await screen.findByRole('heading', { name: 'U17 Boys' });
 
-    const page = container.firstChild as HTMLElement;
-    expect(page.className).toContain('p-4');
-    expect(page.className).toContain('sm:p-6');
+    const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
+    expect(page).toHaveAttribute('data-page-container', 'content');
+    expect(page.className).toContain('px-[var(--page-gutter)]');
 
     // The title sits on the canvas, not inside a card that would nest the tabs' own cards.
-    const heading = screen.getByRole('heading', { name: 'U17 Boys' });
     expect(heading.closest('.shadow-card')).toBeNull();
+  });
 
-    const actions = addBtn.parentElement as HTMLElement;
-    expect(actions.className).toMatch(/(^|\s)grid-cols-2(\s|$)/);
-    expect(actions.className).toContain('sm:flex');
+  it('the roster publishes Add player, with Import players in More', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    const probe = within(screen.getByTestId('chrome-probe'));
+    expect(await probe.findByRole('button', { name: 'Add player' })).toBeInTheDocument();
+    expect(probe.getByRole('button', { name: 'Import players' })).toBeInTheDocument();
+    // no inline action row any more
+    expect(screen.queryByRole('button', { name: '+ Add player' })).not.toBeInTheDocument();
+    fireEvent.click(probe.getByRole('button', { name: 'Add player' }));
+    expect(await screen.findByRole('dialog', { name: 'Add player' })).toBeInTheDocument();
+  });
+
+  it('Import players from More opens the player import', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    fireEvent.click(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Import players' }));
+    expect(screen.getByRole('dialog', { name: 'Import players' })).toBeInTheDocument();
+  });
+
+  it('Edit plan in the toolbar opens the plan editor', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({
+      ...team,
+      developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
+    });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=plan');
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Edit plan' }));
+    expect(await screen.findByRole('dialog', { name: 'Edit development plan' })).toBeInTheDocument();
+  });
+
+  it('the team tabs are a segmented control pinned under the toolbar', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage();
+    expect(await screen.findByRole('heading', { name: 'U17 Boys' })).toBeInTheDocument();
+    expect(screen.getByText('2026 · U17')).toBeInTheDocument();
+    const list = screen.getByRole('tablist', { name: 'Team section' });
+    expect(list.parentElement?.className).toContain('sticky');
+    expect(list.parentElement?.style.top).toContain('52px');
+    expect(screen.getByRole('tabpanel', { name: 'Roster' })).toBeInTheDocument();
+  });
+
+  it('a tab change drops the calendar session param', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(team);
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    renderTeamPage('/teams/team-1?tab=calendar&session=s1');
+    fireEvent.click(await screen.findByRole('tab', { name: 'Matches' }));
+    expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=matches');
   });
 
   it('hides the Calendar tab when the user has no trainings access', async () => {
@@ -230,7 +297,6 @@ describe('TeamPage', () => {
     renderTeamPage();
     await screen.findByRole('heading', { name: 'U17 Boys' });
     expect(screen.queryByRole('tab', { name: 'Calendar' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Calendar' })).not.toBeInTheDocument();
   });
 
   it('shows the Calendar tab with trainings access', async () => {
@@ -241,7 +307,6 @@ describe('TeamPage', () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
     renderTeamPage();
     expect(await screen.findByRole('tab', { name: 'Calendar' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Calendar' })).toBeInTheDocument();
   });
 
   it('opens the player bulk-import dialog from the roster tab', async () => {
@@ -250,7 +315,8 @@ describe('TeamPage', () => {
 
     renderTeamPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Import players' }));
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    fireEvent.click(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Import players' }));
 
     expect(screen.getByRole('dialog', { name: 'Import players' })).toBeInTheDocument();
     expect(screen.getByText(/consent not given/i)).toBeInTheDocument();
@@ -263,7 +329,8 @@ describe('TeamPage', () => {
 
     renderTeamPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Import players' }));
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    fireEvent.click(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Import players' }));
     fireEvent.change(screen.getByLabelText('Paste JSON'), {
       target: {
         value: JSON.stringify([
@@ -296,5 +363,36 @@ describe('TeamPage', () => {
     renderTeamPage();
     await screen.findByRole('tab', { name: 'Roster' });
     expect(screen.queryByRole('tab', { name: 'Stats' })).toBeNull();
+  });
+
+  it('the Matches tab owns the toolbar; Roster adds players and Settings has no action', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    const read = () => JSON.parse(screen.getByTestId('chrome').textContent ?? '{}');
+    render(
+      <MemoryRouter initialEntries={['/teams/team-1']}>
+        <NoticeProvider>
+          <PageChromeProvider>
+            <ChromeSummary />
+            <Routes>
+              <Route path="/teams/:teamId" element={<TeamPage />} />
+            </Routes>
+          </PageChromeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
+    );
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: 'Add player', more: ['Import players'] }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Matches' }));
+    await waitFor(() => expect(read().action).toBe('New match'));
+    expect(read().title).toBe('U17 Boys');
+    expect(read().more).toEqual(['Import from DataVolley (.dvw)', 'Season awards']);
+    await screen.findByText('No matches yet.');
+    fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: 'New session', more: [] }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Physical testing' }));
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: 'New testing session', more: [] }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: null, more: [] }));
   });
 });

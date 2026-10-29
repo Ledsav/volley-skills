@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
-import { Input, FIELD_CLASS } from '../components/Input';
+import { Sheet } from '../components/Sheet';
+import { Input, FIELD_CLASS, FIELD_LABEL_CLASS } from '../components/Input';
 import { useSave } from '../components/useSave';
 import { createPlayer } from './playersApi';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory, type ShirtSize } from '../types/player';
@@ -17,7 +17,7 @@ interface AddPlayerDialogProps {
   onCreated: () => void;
 }
 
-const labelClass = 'mb-1 block text-sm font-medium text-ink';
+const labelClass = FIELD_LABEL_CLASS;
 const fieldClass = 'mb-4';
 
 function emptyGuardian(): Guardian {
@@ -89,15 +89,14 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   }
 
   return (
-    <Dialog title={p.addPlayer.title(g)} onClose={onClose} guardUnsaved size="lg" mobileSheet>
-      <form onSubmit={handleSubmit} aria-label={p.addPlayer.title(g)}>
-
-        <div className={fieldClass}>
-          <label htmlFor="player-number" className={labelClass}>
-            {p.shared.number}
-          </label>
-          <Input id="player-number" type="number" value={number} onChange={(e) => setNumber(e.target.value)} required />
-        </div>
+    <Sheet
+      title={p.addPlayer.title(g)}
+      onClose={onClose}
+      detent="large"
+      guardUnsaved
+      confirm={{ label: saving ? p.shared.saving : p.addPlayer.create, form: 'add-player-form', disabled: saving }}
+    >
+      <form id="add-player-form" onSubmit={handleSubmit} aria-label={p.addPlayer.title(g)}>
 
         <div className={fieldClass}>
           <label htmlFor="player-full-name" className={labelClass}>
@@ -105,63 +104,71 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           </label>
           <Input id="player-full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         </div>
-
-        <div className={fieldClass}>
-          <label htmlFor="player-dob" className={labelClass}>
-            {p.addPlayer.dob}
-          </label>
-          <Input id="player-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
+        {/* Short fields share a row: the number needs two digits, not a full-width field. */}
+        <div className="mb-4 grid grid-cols-[6.5rem_1fr] gap-3">
+          <div className="min-w-0">
+            <label htmlFor="player-number" className={labelClass}>
+              {p.shared.number}
+            </label>
+            <Input id="player-number" type="number" value={number} onChange={(e) => setNumber(e.target.value)} required />
+          </div>
+          <div className="min-w-0">
+            <label htmlFor="player-position-category" className={labelClass}>
+              {p.shared.position}
+            </label>
+            <select
+              id="player-position-category"
+              className={`${FIELD_CLASS} w-full`}
+              value={positionCategory}
+              onChange={(e) => setPositionCategory(e.target.value as PositionCategory)}
+            >
+              {POSITION_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {lb.position[c.value](g)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        <div className={fieldClass}>
-          <label htmlFor="player-nationality" className={labelClass}>
-            {p.shared.nationality}
-          </label>
-          <Input id="player-nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0">
+            <label htmlFor="player-dob" className={labelClass}>
+              {p.addPlayer.dob}
+            </label>
+            <Input id="player-dob" type="date" className="w-full tabular-nums" value={dob} onChange={(e) => setDob(e.target.value)} required />
+          </div>
+          <div className="min-w-0">
+            <label htmlFor="player-shirt-size" className={labelClass}>
+              {p.shared.shirtSize}
+            </label>
+            <select
+              id="player-shirt-size"
+              className={`${FIELD_CLASS} w-full`}
+              value={shirtSize}
+              onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
+            >
+              <option value="">{p.shared.notSet}</option>
+              {SHIRT_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        <div className={fieldClass}>
-          <label htmlFor="player-license" className={labelClass}>
-            {p.addPlayer.licenseNumber}
-          </label>
-          <Input id="player-license" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
-        </div>
-
-        <div className={fieldClass}>
-          <label htmlFor="player-position-category" className={labelClass}>
-            {p.shared.position}
-          </label>
-          <select
-            id="player-position-category"
-            className={FIELD_CLASS}
-            value={positionCategory}
-            onChange={(e) => setPositionCategory(e.target.value as PositionCategory)}
-          >
-            {POSITION_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {lb.position[c.value](g)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={fieldClass}>
-          <label htmlFor="player-shirt-size" className={labelClass}>
-            {p.shared.shirtSize}
-          </label>
-          <select
-            id="player-shirt-size"
-            className={FIELD_CLASS}
-            value={shirtSize}
-            onChange={(e) => setShirtSize(e.target.value as ShirtSize | '')}
-          >
-            <option value="">{p.shared.notSet}</option>
-            {SHIRT_SIZES.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0">
+            <label htmlFor="player-nationality" className={labelClass}>
+              {p.shared.nationality}
+            </label>
+            <Input id="player-nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+          </div>
+          <div className="min-w-0">
+            <label htmlFor="player-license" className={labelClass}>
+              {p.addPlayer.licenseNumber}
+            </label>
+            <Input id="player-license" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
+          </div>
         </div>
 
         <div className={fieldClass}>
@@ -171,16 +178,16 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           <Input id="player-phone" value={playerPhone} onChange={(e) => setPlayerPhone(e.target.value)} />
         </div>
 
-        <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{p.addPlayer.guardians}</h3>
+        <h3 className="mb-2 mt-6 text-headline text-ink">{p.addPlayer.guardians}</h3>
         {guardians.map((guardian, index) => (
-          <div key={index} className="mb-4 rounded-md border border-border p-3">
+          <div key={index} className="mb-4 rounded-lg border border-separator p-3">
             <div className={fieldClass}>
               <label htmlFor={`guardian-relation-${index}`} className={labelClass}>
                 {p.shared.relation}
               </label>
               <select
                 id={`guardian-relation-${index}`}
-                className={FIELD_CLASS}
+                className={`${FIELD_CLASS} w-full`}
                 value={guardian.relation}
                 onChange={(e) => updateGuardian(index, { relation: e.target.value as Guardian['relation'] })}
               >
@@ -232,7 +239,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           {p.shared.addGuardian}
         </Button>
 
-        <label className="mb-4 flex items-start gap-2 text-sm text-ink">
+        <label className="mb-4 flex items-start gap-2 text-callout text-ink">
           <input
             type="checkbox"
             checked={consentGiven}
@@ -243,20 +250,12 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           {p.shared.consent(g)}
         </label>
 
-        <div className="mt-2 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            {t.common.cancel}
-          </Button>
-          <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? p.shared.saving : p.addPlayer.create}
-          </Button>
-        </div>
         {error && (
-          <p role="alert" className="mt-3 text-right text-sm text-red">
+          <p role="alert" className="mt-3 text-callout text-red-strong">
             {error}
           </p>
         )}
       </form>
-    </Dialog>
+    </Sheet>
   );
 }

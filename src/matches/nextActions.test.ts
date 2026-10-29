@@ -28,6 +28,11 @@ describe('expectedSkill', () => {
     expect(expectedSkill({ currentRally: [a('F', '/')], serving: 'us' })).toBe('B');
   });
 
+  it('expects another block after a block touch that goes back to their side', () => {
+    expect(expectedSkill({ currentRally: [a('B', '-')], serving: 'us' })).toBe('B');
+    expect(expectedSkill({ currentRally: [a('B', '+')], serving: 'us' })).toBe('D');
+  });
+
   it('expects a free ball after their free ball back on our serve', () => {
     expect(expectedSkill({ currentRally: [a('S', '/')], serving: 'us' })).toBe('F');
   });

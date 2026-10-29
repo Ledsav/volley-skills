@@ -4,6 +4,12 @@ import { useEffect, useRef, type RefObject } from 'react';
 // a viewer stacked over a dialog closes alone instead of taking the dialog with it.
 const stack: symbol[] = [];
 
+// Where the most recently closed layer returned focus. A layer that replaces another in one render
+// (a picker handing over to an edit sheet) records the outgoing layer's row as its opener, which is
+// gone by the time it closes, so it falls back to where that layer sent focus. The fallback is
+// consumed when a layer opens, so it serves only the layer that opens right after another closed.
+let lastReturnedTo: HTMLElement | null = null;
+
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -26,7 +32,9 @@ export function useModalLayer(onEscape: () => void, panelRef?: RefObject<HTMLEle
 
   useEffect(() => {
     const id = Symbol('modal-layer');
-    const opener = openerRef.current;
+    const recorded = openerRef.current;
+    const opener = recorded instanceof HTMLElement && recorded.isConnected ? recorded : lastReturnedTo;
+    lastReturnedTo = null;
     if (stack.length === 0) document.body.style.overflow = 'hidden';
     stack.push(id);
 
@@ -63,7 +71,10 @@ export function useModalLayer(onEscape: () => void, panelRef?: RefObject<HTMLEle
       const at = stack.indexOf(id);
       if (at !== -1) stack.splice(at, 1);
       if (stack.length === 0) document.body.style.overflow = '';
-      if (panelRef && opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      if (panelRef && opener instanceof HTMLElement && opener.isConnected) {
+        opener.focus();
+        lastReturnedTo = opener;
+      }
     };
     // panelRef is a stable ref object; the layer registers once per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps

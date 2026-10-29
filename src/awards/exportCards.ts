@@ -14,7 +14,7 @@ export function cardFileName(
 export async function ensureCardFonts(): Promise<void> {
   if (!('fonts' in document)) return;
   await Promise.all(
-    ['900 120px Inter', '800 120px Inter', '700 34px Inter', '600 52px Inter', '500 36px Inter', '900 320px Inter', '800 64px Inter', '700 60px Inter'].map((f) => document.fonts.load(f).catch(() => [])),
+    ['700 120px Inter', '600 52px Inter', '500 36px Inter'].map((f) => document.fonts.load(f).catch(() => [])),
   );
 }
 

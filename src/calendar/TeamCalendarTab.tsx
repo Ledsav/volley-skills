@@ -1,23 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Trophy, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Trophy } from 'lucide-react';
 import { Button } from '../components/Button';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useContextMenu } from '../components/ContextMenu';
+import { useUndoable } from '../components/Notice';
+import { SwipeRow } from '../components/SwipeRow';
 import { useMediaQuery } from '../components/useMediaQuery';
+import { usePublishPageChrome } from '../layout/PageChrome';
+import { useTakePendingAction } from '../search/pendingAction';
 import { listMatchesInRange } from '../matches/matchesApi';
 import type { Match } from '../types/match';
 import type { CalendarSession } from '../types/calendarSession';
 import { AssignTrainingDialog } from './AssignTrainingDialog';
-import { deleteCalendarSession, listCalendarSessions } from './calendarApi';
+import { CalendarSessionSheet } from './CalendarSessionSheet';
+import { TabEmptyState } from '../teams/TabEmptyState';
+import { deleteCalendarSession, getCalendarSession, listCalendarSessions } from './calendarApi';
+import { sessionLabel } from './sessionLabels';
 import {
   addMonths,
   buildMonthGrid,
   formatDayLabel,
-  formatMonthLabel,
+  formatWeekRange,
   monthRange,
+  shiftDate,
   todayIso,
 } from './monthGrid';
-import { weekdayNames } from '../i18n/format';
+import { monthNames, weekdayNames } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
 import type { Catalog } from '../i18n/catalog';
 
@@ -31,6 +39,7 @@ interface ViewProps {
   todayStr: string;
   sessionsByDate: SessionsByDate;
   onAdd: (date: string) => void;
+  onOpen: (session: CalendarSession) => void;
   onRemove: (session: CalendarSession) => void;
   teamId: string;
   matchesByDate: Record<string, Match[]>;
@@ -44,67 +53,161 @@ function defaultSelection(year: number, month: number): string {
   return today >= start && today <= end ? today : start;
 }
 
-function sessionLabel(session: CalendarSession): string {
-  return `${session.trainingBusinessId} · ${session.trainingName}`;
-}
-
 function matchLabel(m: Match, t: Catalog): string {
   return m.status === 'setup' ? t.calendar.tab.matchVs(m.opponent) : t.calendar.tab.matchResult(m.opponent, m.result.setsUs, m.result.setsThem);
 }
 
-/** Opens the session's training with its team context, so the PDF export can add team notes. */
-function sessionLink(teamId: string, session: CalendarSession): string {
-  const params = new URLSearchParams({ businessId: session.trainingBusinessId, team: teamId, session: session.id });
-  return `/trainings?${params}`;
-}
-
-function MatchChip({ teamId, match, touch = false }: { teamId: string; match: Match; touch?: boolean }) {
+/** A match in a desktop day cell: an outlined pill (sessions are filled), with room around the text. */
+function MatchChip({ teamId, match }: { teamId: string; match: Match }) {
   const t = useT();
   return (
     <Link
       to={`/teams/${teamId}/matches/${match.id}`}
-      className={`flex items-center gap-1 truncate rounded-sm bg-orange/15 font-medium text-orange-strong hover:underline ${
-        touch ? 'min-h-11 px-3 text-sm' : 'px-1.5 py-0.5 text-xs'
-      }`}
+      className="block truncate rounded-full px-2 py-0.5 text-caption text-ink ring-1 ring-inset ring-ink/60 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       title={matchLabel(match, t)}
     >
-      <Trophy size={11} aria-hidden="true" />
-      <span className="truncate">{matchLabel(match, t)}</span>
+      {matchLabel(match, t)}
     </Link>
   );
 }
 
-export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewMatch?: (date: string) => void }) {
+/** A match in the phone agenda: a grouped-list row (title, state and result, chevron). */
+function MatchRow({ teamId, match }: { teamId: string; match: Match }) {
   const t = useT();
+  const c = t.calendar.tab;
+  return (
+    <li className="relative before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden">
+      <Link
+        to={`/teams/${teamId}/matches/${match.id}`}
+        className="flex min-h-[52px] items-center gap-3 px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus active:bg-surface-3"
+      >
+        <Trophy size={18} aria-hidden="true" className="shrink-0 text-ink-2" />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-headline text-ink">{c.matchVs(match.opponent)}</span>
+          <span className="truncate text-footnote text-ink-2">{t.labels.matchStatus[match.status]}</span>
+        </span>
+        {match.status !== 'setup' && (
+          <span className="shrink-0 whitespace-nowrap text-headline tabular-nums text-ink">
+            {match.result.setsUs}–{match.result.setsThem}
+          </span>
+        )}
+        <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-ink-3" />
+      </Link>
+    </li>
+  );
+}
+
+export function TeamCalendarTab({
+  teamId,
+  teamName,
+  onNewMatch,
+}: {
+  teamId: string;
+  teamName?: string;
+  onNewMatch?: (date: string) => void;
+}) {
+  const t = useT();
+  const c = t.calendar.tab;
+  const undoable = useUndoable();
+  const [params, setParams] = useSearchParams();
+  const sessionParam = params.get('session');
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selectedDate, setSelectedDate] = useState(() => defaultSelection(view.year, view.month));
   const [sessions, setSessions] = useState<CalendarSession[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [assignDate, setAssignDate] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<CalendarSession | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [linked, setLinked] = useState<CalendarSession | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const isDesktop = useMediaQuery('(min-width: 768px)');
+  // The month grid's per-day add buttons appear on hover, so touch screens (tablets too) get the week strip and agenda.
+  const isDesktop = useMediaQuery('(min-width: 768px) and (hover: hover)');
+  const mounted = useRef(true);
 
+  // Only the newest load may write: a slow answer for an older month (or for the month a `?session=` link
+  // replaced) must not overwrite the month now showing.
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const { start, end } = monthRange(view.year, view.month);
-    const [sessionList, matchList] = await Promise.all([
-      listCalendarSessions(teamId, start, end),
-      listMatchesInRange(teamId, start, end).catch(() => [] as Match[]),
-    ]);
-    setSessions(sessionList);
-    setMatches(matchList);
+    try {
+      const [sessionList, matchList] = await Promise.all([
+        listCalendarSessions(teamId, start, end),
+        listMatchesInRange(teamId, start, end).catch(() => [] as Match[]),
+      ]);
+      if (seq !== loadSeq.current) return;
+      setSessions(sessionList);
+      setMatches(matchList);
+    } catch (e) {
+      if (seq === loadSeq.current) throw e;
+    }
   }, [teamId, view]);
+  // A pending remove commits seconds later, maybe after the month changed: it must reload the month then showing.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     setError(null);
-    load().catch(() => setError(t.calendar.tab.loadError));
-  }, [load, t]);
+    load().catch(() => setError(c.loadError));
+  }, [load, c]);
+
+  const dropSessionParam = useCallback(() => {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('session');
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setParams]);
+
+  // A `?session=` link: use the loaded month if it has the session, otherwise read that one document.
+  useEffect(() => {
+    if (!sessionParam) {
+      setLinked(null);
+      return;
+    }
+    if (sessionsRef.current.some((s) => s.id === sessionParam)) return;
+    let cancelled = false;
+    getCalendarSession(teamId, sessionParam)
+      .then((found) => {
+        if (cancelled) return;
+        if (!found) {
+          dropSessionParam();
+          return;
+        }
+        const [y, m] = found.date.split('-').map(Number);
+        setLinked(found);
+        setView({ year: y, month: m - 1 });
+        setSelectedDate(found.date);
+      })
+      .catch(() => {
+        if (!cancelled) dropSessionParam();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionParam, teamId, dropSessionParam]);
+
+  const visibleSessions = sessions.filter((s) => !hidden.has(s.id));
+  const openSession =
+    (sessionParam &&
+      (visibleSessions.find((s) => s.id === sessionParam) ?? (linked?.id === sessionParam && !hidden.has(linked.id) ? linked : null))) ||
+    null;
 
   const grid = buildMonthGrid(view.year, view.month);
   const todayStr = todayIso();
-  const sessionsByDate = sessions.reduce<SessionsByDate>((acc, session) => {
+  const sessionsByDate = visibleSessions.reduce<SessionsByDate>((acc, session) => {
     (acc[session.date] ??= []).push(session);
     return acc;
   }, {});
@@ -120,17 +223,67 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
     setSelectedDate(defaultSelection(next.year, next.month));
   }
 
-  async function confirmDelete() {
-    if (!pendingDelete) return;
-    try {
-      await deleteCalendarSession(teamId, pendingDelete.id);
-    } catch {
-      setDeleteError(t.calendar.tab.removeError);
-      return;
-    }
-    setPendingDelete(null);
-    void load();
+  function goToToday() {
+    const now = new Date();
+    setView({ year: now.getFullYear(), month: now.getMonth() });
+    setSelectedDate(todayIso());
   }
+
+  function shiftWeek(direction: -1 | 1) {
+    const next = shiftDate(selectedDate, 7 * direction);
+    const year = Number(next.slice(0, 4));
+    const month = Number(next.slice(5, 7)) - 1;
+    if (year !== view.year || month !== view.month) setView({ year, month });
+    setSelectedDate(next);
+  }
+
+  function setHiddenId(id: string, on: boolean) {
+    setHidden((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function openSessionSheet(s: CalendarSession) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set('session', s.id);
+        return next;
+      },
+      { replace: true }
+    );
+  }
+
+  function requestRemove(s: CalendarSession) {
+    setHiddenId(s.id, true);
+    setError(null);
+    if (sessionParam === s.id) dropSessionParam();
+    undoable({
+      message: c.removed(sessionLabel(s), s.date),
+      commit: async () => {
+        await deleteCalendarSession(teamId, s.id);
+        // The delete worked: a failed reload is a load problem, never "could not remove" (that would unhide a deleted row).
+        if (mounted.current) void loadRef.current().catch(() => mounted.current && setError(c.loadError));
+      },
+      onUndo: () => {
+        if (mounted.current) setHiddenId(s.id, false);
+      },
+      onCommitError: () => {
+        if (!mounted.current) return;
+        setHiddenId(s.id, false);
+        setError(c.removeError);
+      },
+    });
+  }
+
+  usePublishPageChrome({
+    title: teamName,
+    mainAction: { label: c.newSession, icon: Plus, onSelect: () => setAssignDate(selectedDate) },
+  });
+  useTakePendingAction('new-session', () => setAssignDate(selectedDate));
 
   const viewProps: ViewProps = {
     grid,
@@ -140,36 +293,49 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
     matchesByDate,
     onNewMatch,
     onAdd: setAssignDate,
-    onRemove: (session) => {
-      setDeleteError(null);
-      setPendingDelete(session);
-    },
+    onOpen: openSessionSheet,
+    onRemove: requestRemove,
   };
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <button
-          type="button"
-          aria-label={t.calendar.tab.previousMonth}
-          onClick={() => goToMonth(-1)}
-          className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <span className="text-base font-semibold text-ink">{formatMonthLabel(view.year, view.month)}</span>
-        <button
-          type="button"
-          aria-label={t.calendar.tab.nextMonth}
-          onClick={() => goToMonth(1)}
-          className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-blue/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        >
-          <ChevronRight size={20} aria-hidden="true" />
-        </button>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="text-title-2 text-ink">
+          {monthNames()[view.month]} <span className="font-medium text-ink-2">{view.year}</span>
+        </h2>
+        <div className="flex items-center">
+          {isDesktop && (
+          <button
+            type="button"
+            aria-label={c.previousMonth}
+            onClick={() => goToMonth(-1)}
+            className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            <ChevronLeft size={20} aria-hidden="true" />
+          </button>
+          )}
+          <button
+            type="button"
+            onClick={goToToday}
+            className="flex h-11 items-center rounded-md px-3 text-callout font-medium text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            {c.today}
+          </button>
+          {isDesktop && (
+          <button
+            type="button"
+            aria-label={c.nextMonth}
+            onClick={() => goToMonth(1)}
+            className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            <ChevronRight size={20} aria-hidden="true" />
+          </button>
+          )}
+        </div>
       </div>
 
       {error && (
-        <p role="alert" className="mb-3 text-sm text-red">
+        <p role="alert" className="mb-3 text-callout text-red-strong">
           {error}
         </p>
       )}
@@ -177,7 +343,7 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
       {isDesktop ? (
         <DesktopMonthGrid {...viewProps} />
       ) : (
-        <MobileMonthView {...viewProps} selectedDate={selectedDate} onSelect={setSelectedDate} />
+        <MobileMonthView {...viewProps} selectedDate={selectedDate} onSelect={setSelectedDate} onShiftWeek={shiftWeek} />
       )}
 
       {assignDate && (
@@ -192,103 +358,137 @@ export function TeamCalendarTab({ teamId, onNewMatch }: { teamId: string; onNewM
         />
       )}
 
-      {pendingDelete && (
-        <ConfirmDialog
-          title={t.calendar.tab.removeTitle}
-          message={t.calendar.tab.removeMessage(sessionLabel(pendingDelete), pendingDelete.date)}
-          confirmLabel={t.calendar.tab.removeConfirm}
-          onConfirm={() => void confirmDelete()}
-          onCancel={() => setPendingDelete(null)}
-          error={deleteError}
-        />
+      {openSession && (
+        <CalendarSessionSheet teamId={teamId} session={openSession} onClose={dropSessionParam} onRemove={requestRemove} />
       )}
     </div>
   );
 }
 
-function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, teamId, matchesByDate, onNewMatch }: ViewProps) {
+function useSessionMenu(session: CalendarSession, onOpen: (s: CalendarSession) => void, onRemove: (s: CalendarSession) => void) {
+  const c = useT().calendar.tab;
+  return useContextMenu({
+    label: c.sessionMenu(sessionLabel(session)),
+    items: [
+      { kind: 'action', label: c.open, onSelect: () => onOpen(session) },
+      { kind: 'divider' },
+      { kind: 'action', label: c.remove, danger: true, onSelect: () => onRemove(session) },
+    ],
+  });
+}
+
+/** A session pill (desktop): opens the sheet; right-click offers Open and Remove. */
+function SessionPill({ session, onOpen, onRemove }: { session: CalendarSession; onOpen: (s: CalendarSession) => void; onRemove: (s: CalendarSession) => void }) {
+  const label = sessionLabel(session);
+  const { targetProps, menu } = useSessionMenu(session, onOpen, onRemove);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(session)}
+        title={label}
+        aria-label={label}
+        {...targetProps}
+        className="block w-full truncate rounded-full bg-ink px-2 text-left text-caption text-on-ink hover:bg-ink/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      >
+        {session.trainingName}
+      </button>
+      {menu}
+    </li>
+  );
+}
+
+/** A session in the phone agenda: tap opens the sheet; swipe left or long-press removes. */
+function SessionRow({ session, onOpen, onRemove }: { session: CalendarSession; onOpen: (s: CalendarSession) => void; onRemove: (s: CalendarSession) => void }) {
+  const c = useT().calendar.tab;
+  const label = sessionLabel(session);
+  const { targetProps, menu } = useSessionMenu(session, onOpen, onRemove);
+  return (
+    <li className="relative before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden">
+      <SwipeRow trailing={[{ label: c.remove, tone: 'destructive', undoable: true, onAction: () => onRemove(session) }]}>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={() => onOpen(session)}
+          {...targetProps}
+          className="flex min-h-[52px] w-full cursor-pointer flex-col justify-center bg-surface px-4 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus active:bg-surface-3"
+        >
+          <span className="truncate text-headline text-ink">{session.trainingName}</span>
+          <span className="truncate text-footnote tabular-nums text-ink-2">
+            {[session.trainingBusinessId, session.notes].filter(Boolean).join(' · ')}
+          </span>
+        </button>
+      </SwipeRow>
+      {menu}
+    </li>
+  );
+}
+
+const ADD_BUTTON_CLASS =
+  'relative flex h-7 w-7 items-center justify-center rounded-md text-ink-2 before:absolute before:-inset-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus opacity-0 group-hover:opacity-100 group-focus-within:opacity-100';
+
+function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onOpen, onRemove, teamId, matchesByDate, onNewMatch }: ViewProps) {
   const t = useT();
   return (
-    <div className="grid grid-cols-7 gap-px border border-border bg-border text-sm">
+    <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg bg-separator">
       {weekdayNames('short').map((d) => (
-        <div key={d} className="bg-surface px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate">
+        <div key={d} className="bg-surface px-2 py-1.5 text-caption text-ink-2">
           {d}
         </div>
       ))}
       {grid.flat().map((cell) => {
         const isToday = cell.inMonth && cell.date === todayStr;
+        const day = Number(cell.date.slice(-2));
         return (
-          <div
-            key={cell.date}
-            className={`flex min-h-24 flex-col bg-surface p-1 ${
-              cell.inMonth
-                ? 'group transition-colors hover:bg-blue/5 focus-within:bg-blue/5'
-                : 'opacity-40'
-            } ${isToday ? 'ring-1 ring-inset ring-blue' : ''}`}
-          >
+          <div key={cell.date} className={`flex min-h-24 flex-col bg-surface p-1.5 ${cell.inMonth ? 'group' : ''}`}>
             {cell.inMonth ? (
               <>
-                <span
-                  aria-label={isToday ? t.calendar.tab.todayDate(cell.date) : undefined}
-                  className={`block w-full text-right text-xs tabular-nums ${
-                    isToday ? 'font-semibold text-blue' : 'text-slate'
-                  }`}
-                >
-                  {isToday ? (
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue text-white">
-                      {Number(cell.date.slice(-2))}
-                    </span>
-                  ) : (
-                    Number(cell.date.slice(-2))
-                  )}
-                </span>
-                {(matchesByDate[cell.date] ?? []).map((m) => (
-                  <MatchChip key={m.id} teamId={teamId} match={m} />
-                ))}
-                <ul className="mt-1 space-y-1">
-                  {(sessionsByDate[cell.date] ?? []).map((session) => (
-                    <li key={session.id} className="flex items-center gap-1.5 rounded-sm bg-blue/10 py-0.5 pl-1.5 pr-1 text-xs">
-                      <Link
-                        to={sessionLink(teamId, session)}
-                        className="min-w-0 flex-1 truncate text-blue hover:underline"
-                        title={sessionLabel(session)}
-                      >
-                        {sessionLabel(session)}
-                      </Link>
+                <div className="flex items-center justify-between gap-1">
+                  <span
+                    aria-label={isToday ? t.calendar.tab.todayDate(cell.date) : undefined}
+                    className={
+                      isToday
+                        ? 'inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink text-caption font-semibold tabular-nums text-on-ink'
+                        : 'inline-flex h-6 items-center px-1 text-caption tabular-nums text-ink-2'
+                    }
+                  >
+                    {day}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {onNewMatch && (
                       <button
                         type="button"
-                        aria-label={t.calendar.tab.removeSession(session.trainingBusinessId, session.date)}
-                        onClick={() => onRemove(session)}
-                        className="shrink-0 rounded-sm p-0.5 text-red hover:bg-red/10 hover:text-red-strong"
+                        onClick={() => onNewMatch(cell.date)}
+                        aria-label={t.calendar.tab.addMatchOn(cell.date)}
+                        className={ADD_BUTTON_CLASS}
                       >
-                        <X size={11} strokeWidth={2} />
+                        <Trophy size={14} aria-hidden="true" />
                       </button>
-                    </li>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onAdd(cell.date)}
+                      aria-label={t.calendar.tab.addTrainingOn(cell.date)}
+                      className={ADD_BUTTON_CLASS}
+                    >
+                      <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
+                    </button>
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-col gap-1">
+                  {(matchesByDate[cell.date] ?? []).map((m) => (
+                    <MatchChip key={m.id} teamId={teamId} match={m} />
+                  ))}
+                </div>
+                <ul className="mt-1 space-y-1">
+                  {(sessionsByDate[cell.date] ?? []).map((session) => (
+                    <SessionPill key={session.id} session={session} onOpen={onOpen} onRemove={onRemove} />
                   ))}
                 </ul>
-                <button
-                  type="button"
-                  onClick={() => onAdd(cell.date)}
-                  aria-label={t.calendar.tab.addTrainingOn(cell.date)}
-                  className="mt-1 flex flex-1 items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate transition-colors hover:bg-blue/10 hover:text-blue focus:outline-none focus-visible:bg-blue/10 focus-visible:text-blue group-hover:text-blue"
-                >
-                  <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
-                  <span>{t.calendar.tab.add}</span>
-                </button>
-                {onNewMatch && (
-                  <button
-                    type="button"
-                    onClick={() => onNewMatch(cell.date)}
-                    aria-label={t.calendar.tab.addMatchOn(cell.date)}
-                    className="flex items-center justify-center gap-1 rounded-sm py-1 text-xs font-medium text-slate hover:bg-orange/10 hover:text-orange-strong group-hover:text-orange-strong"
-                  >
-                    <Trophy size={12} aria-hidden="true" /> {t.calendar.tab.match}
-                  </button>
-                )}
               </>
             ) : (
-              <span aria-hidden="true" className="block w-full text-right text-xs tabular-nums text-slate">
-                {Number(cell.date.slice(-2))}
+              <span aria-hidden="true" className="inline-flex h-6 items-center px-1 text-caption tabular-nums text-ink-3">
+                {day}
               </span>
             )}
           </div>
@@ -299,43 +499,57 @@ function DesktopMonthGrid({ grid, todayStr, sessionsByDate, onAdd, onRemove, tea
 }
 
 /**
- * Phone layout: a 7-column grid is far too narrow for session labels, so the
- * month shows only day numbers with a dot per session, and the tapped day's
- * sessions are listed full-width underneath.
+ * Phone layout: a 7-column month is far too narrow for session labels, so the screen shows the selected week as a
+ * strip of day numbers with a dot per session or match, and the selected day's agenda full-width underneath.
  */
 function MobileMonthView({
   grid,
   todayStr,
   sessionsByDate,
-  onAdd,
+  onOpen,
   onRemove,
+  onAdd,
   teamId,
   matchesByDate,
   onNewMatch,
   selectedDate,
   onSelect,
-}: ViewProps & { selectedDate: string; onSelect: (date: string) => void }) {
+  onShiftWeek,
+}: ViewProps & { selectedDate: string; onSelect: (date: string) => void; onShiftWeek: (direction: -1 | 1) => void }) {
   const t = useT();
+  const c = t.calendar.tab;
   const weekdayInitials = weekdayNames('narrow');
+  const week = grid.find((w) => w.some((cell) => cell.date === selectedDate)) ?? grid[0];
   const selectedSessions = sessionsByDate[selectedDate] ?? [];
   const selectedMatches = matchesByDate[selectedDate] ?? [];
+  const arrowClass =
+    'flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
 
   return (
     <div>
-      <div className="rounded-lg border border-border bg-surface p-2 shadow-card">
+      <div className="rounded-lg bg-surface p-2 shadow-card">
+        <div className="mb-1 flex items-center justify-between">
+          <button type="button" aria-label={c.previousWeek} onClick={() => onShiftWeek(-1)} className={arrowClass}>
+            <ChevronLeft size={20} aria-hidden="true" />
+          </button>
+          <span className="text-footnote tabular-nums text-ink-2">{formatWeekRange(week[0].date, week[6].date)}</span>
+          <button type="button" aria-label={c.nextWeek} onClick={() => onShiftWeek(1)} className={arrowClass}>
+            <ChevronRight size={20} aria-hidden="true" />
+          </button>
+        </div>
         <div className="grid grid-cols-7" aria-hidden="true">
           {weekdayInitials.map((d, i) => (
-            <div key={i} className="py-1 text-center text-xs font-medium text-slate">
+            <div key={i} className="py-1 text-center text-caption text-ink-2">
               {d}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-y-1">
-          {grid.flat().map((cell) => {
+        <div className="grid grid-cols-7">
+          {week.map((cell) => {
             const day = Number(cell.date.slice(-2));
             if (!cell.inMonth) {
               return (
-                <span key={cell.date} aria-hidden="true" className="flex h-12 items-start justify-center pt-1.5 text-sm tabular-nums text-slate/40">
+                <span key={cell.date} aria-hidden="true" className="flex h-12 items-start justify-center pt-1.5 text-callout tabular-nums text-ink-3">
                   {day}
                 </span>
               );
@@ -346,7 +560,7 @@ function MobileMonthView({
             const matchDots = Math.min(matchCount, MAX_DOTS - sessionDots);
             const isToday = cell.date === todayStr;
             const isSelected = cell.date === selectedDate;
-            const label = t.calendar.tab.dayLabel(isToday, formatDayLabel(cell.date), count);
+            const label = c.dayLabel(isToday, formatDayLabel(cell.date), count);
             return (
               <button
                 key={cell.date}
@@ -354,14 +568,14 @@ function MobileMonthView({
                 aria-label={label}
                 aria-pressed={isSelected}
                 onClick={() => onSelect(cell.date)}
-                className="flex h-12 flex-col items-center gap-1 rounded-md pt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                className="flex h-12 flex-col items-center gap-1 rounded-md pt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 <span
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-callout tabular-nums transition-colors ${
                     isSelected
-                      ? 'bg-navy font-semibold text-white'
+                      ? 'bg-ink font-semibold text-on-ink'
                       : isToday
-                        ? 'font-semibold text-blue ring-1 ring-inset ring-blue'
+                        ? 'font-semibold text-ink ring-1 ring-inset ring-ink'
                         : 'text-ink'
                   }`}
                 >
@@ -369,10 +583,10 @@ function MobileMonthView({
                 </span>
                 <span className="flex h-1.5 items-center gap-0.5" aria-hidden="true">
                   {Array.from({ length: sessionDots }, (_, i) => (
-                    <span key={i} className="h-1.5 w-1.5 rounded-full bg-blue" />
+                    <span key={i} className="h-1.5 w-1.5 rounded-full bg-ink" />
                   ))}
                   {Array.from({ length: matchDots }, (_, i) => (
-                    <span key={`m${i}`} className="h-1.5 w-1.5 rounded-full bg-orange" />
+                    <span key={`m${i}`} className="h-1.5 w-1.5 rounded-full ring-1 ring-inset ring-ink" />
                   ))}
                 </span>
               </button>
@@ -381,53 +595,34 @@ function MobileMonthView({
         </div>
       </div>
 
-      <section aria-label={t.calendar.tab.trainingsOn(formatDayLabel(selectedDate))} className="mt-4">
+      <section aria-label={c.trainingsOn(formatDayLabel(selectedDate))} className="mt-4">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-ink">{formatDayLabel(selectedDate)}</h3>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => onAdd(selectedDate)} aria-label={t.calendar.tab.addTrainingOn(selectedDate)}>
-              <Plus size={16} strokeWidth={2.5} aria-hidden="true" className="mr-1" />
-              {t.calendar.tab.addTraining}
+          <h3 className="text-title-3 text-ink">{formatDayLabel(selectedDate)}</h3>
+          {onNewMatch && (
+            <Button variant="secondary" size="sm" onClick={() => onNewMatch(selectedDate)} aria-label={c.addMatchOn(selectedDate)}>
+              <Trophy size={16} aria-hidden="true" className="mr-1" /> {c.match}
             </Button>
-            {onNewMatch && (
-              <Button variant="secondary" size="sm" onClick={() => onNewMatch(selectedDate)} aria-label={t.calendar.tab.addMatchOn(selectedDate)}>
-                <Trophy size={16} aria-hidden="true" className="mr-1" /> {t.calendar.tab.match}
-              </Button>
-            )}
-          </div>
+          )}
         </div>
-        {selectedMatches.length > 0 && (
-          <div className="mb-2 space-y-1">
-            {selectedMatches.map((m) => (
-              <MatchChip key={m.id} teamId={teamId} match={m} touch />
-            ))}
+        {selectedMatches.length === 0 && selectedSessions.length === 0 ? (
+          <div className="rounded-lg bg-surface shadow-card">
+            <TabEmptyState
+              icon={CalendarDays}
+              title={c.nothingPlanned}
+              action={
+                <Button variant="secondary" onClick={() => onAdd(selectedDate)}>
+                  {c.newSession}
+                </Button>
+              }
+            />
           </div>
-        )}
-        {selectedSessions.length === 0 ? (
-          <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-slate">
-            {t.calendar.tab.noTrainings}
-          </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="overflow-hidden rounded-lg bg-surface shadow-card">
+            {selectedMatches.map((m) => (
+              <MatchRow key={m.id} teamId={teamId} match={m} />
+            ))}
             {selectedSessions.map((session) => (
-              <li
-                key={session.id}
-                className="flex items-center gap-2 rounded-md border border-l-4 border-border border-l-blue bg-surface pl-3 shadow-card"
-              >
-                <Link to={sessionLink(teamId, session)} className="min-w-0 flex-1 py-2.5">
-                  <span className="block text-xs font-medium tabular-nums text-blue">{session.trainingBusinessId}</span>
-                  <span className="block truncate text-sm font-medium text-ink">{session.trainingName}</span>
-                  {session.notes && <span className="mt-0.5 block truncate text-xs text-slate">{session.notes}</span>}
-                </Link>
-                <button
-                  type="button"
-                  aria-label={t.calendar.tab.removeSession(session.trainingBusinessId, session.date)}
-                  onClick={() => onRemove(session)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-red hover:bg-red/10"
-                >
-                  <X size={18} aria-hidden="true" />
-                </button>
-              </li>
+              <SessionRow key={session.id} session={session} onOpen={onOpen} onRemove={onRemove} />
             ))}
           </ul>
         )}

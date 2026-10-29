@@ -24,7 +24,3 @@ export function deletionDueDate(leftClubAt: string): string {
 export function deletionCutoff(today: string): string {
   return shiftMonths(today, -RETENTION_MONTHS);
 }
-
-export function todayIso(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10);
-}

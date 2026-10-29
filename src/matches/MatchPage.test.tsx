@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchSetupInput } from '../types/match';
@@ -7,6 +7,7 @@ import * as matchesApi from './matchesApi';
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
 import { downloadText } from '../export/exportJson';
+import { WithChrome } from '../test/chromeProbe';
 
 vi.mock('./matchesApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
@@ -44,10 +45,14 @@ const never = () => new Promise<void>(() => undefined);
 function renderPage() {
   render(
     <MemoryRouter initialEntries={['/teams/t1/matches/m1']}>
-      <Routes>
-        <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
-        <Route path="/teams/:teamId/matches/:matchId/scout" element={<p>scout page</p>} />
-      </Routes>
+      <WithChrome>
+        <Routes>
+          <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
+          <Route path="/teams/:teamId/matches/:matchId/scout" element={<p>scout page</p>} />
+          <Route path="/teams/:teamId/matches/:matchId/awards" element={<p>awards page</p>} />
+          <Route path="/teams/:teamId" element={<p>team page</p>} />
+        </Routes>
+      </WithChrome>
     </MemoryRouter>,
   );
 }
@@ -117,23 +122,19 @@ describe('MatchPage', () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
     renderPage();
 
-    const exportMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
+    const pick = async (name: string) => fireEvent.click(await screen.findByRole('button', { name }));
 
-    await exportMenu();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Print / PDF' }));
+    await pick('Print / PDF');
     expect(print).toHaveBeenCalled();
 
-    await exportMenu();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV · Excel (Belgium/EU)' }));
+    await pick('CSV · Excel (Belgium/EU)');
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number;Name'), 'text/csv;charset=utf-8');
 
-    await exportMenu();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV · Excel (English) / Sheets' }));
+    await pick('CSV · Excel (English) / Sheets');
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number,Name'), 'text/csv;charset=utf-8');
 
-    fireEvent.change(screen.getByLabelText('Set'), { target: { value: '1' } });
-    await exportMenu();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV · Excel (Belgium/EU)' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Set 1' }));
+    await pick('CSV · Excel (Belgium/EU)');
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-set1.csv', expect.any(String), 'text/csv;charset=utf-8');
     expect(screen.getByRole('button', { name: 'Reopen for editing' })).toBeInTheDocument();
   });
@@ -174,9 +175,47 @@ describe('MatchPage', () => {
     expect(await screen.findByRole('heading', { name: 'Match not found' })).toBeInTheDocument();
   });
 
-  it('finished match links to match awards', async () => {
+  it('finished match opens match awards from the toolbar', async () => {
     vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status: 'finished' });
     renderPage();
-    expect(await screen.findByRole('link', { name: /Match awards/ })).toHaveAttribute('href', '/teams/t1/matches/m1/awards');
+    fireEvent.click(await screen.findByRole('button', { name: 'Match awards' }));
+    expect(await screen.findByText('awards page')).toBeInTheDocument();
+  });
+
+  it('Delete match… is in More in every state and confirms with focus on Cancel', async () => {
+    for (const status of ['setup', 'live', 'finished'] as const) {
+      vi.mocked(matchesApi.getMatch).mockResolvedValue({ ...match, status });
+      vi.mocked(matchesApi.deleteMatch).mockResolvedValue(undefined);
+      const { unmount } = render(
+        <MemoryRouter initialEntries={['/teams/t1/matches/m1']}>
+          <WithChrome>
+            <Routes>
+              <Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} />
+              <Route path="/teams/:teamId" element={<p>team page</p>} />
+            </Routes>
+          </WithChrome>
+        </MemoryRouter>,
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete match…' }));
+      const dialog = screen.getByRole('alertdialog', { name: 'Delete this match?' });
+      expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+      expect(matchesApi.deleteMatch).not.toHaveBeenCalled();
+      if (status === 'finished') {
+        const yes = within(dialog).getByRole('button', { name: 'Yes, delete' });
+        fireEvent.click(yes);
+        fireEvent.click(yes);
+        expect(await screen.findByText('team page')).toBeInTheDocument();
+        expect(matchesApi.deleteMatch).toHaveBeenCalledTimes(1);
+        expect(matchesApi.deleteMatch).toHaveBeenCalledWith('t1', 'm1');
+      }
+      unmount();
+    }
+  });
+
+  it('a load error offers Retry, which loads the match', async () => {
+    vi.mocked(matchesApi.getMatch).mockRejectedValueOnce(new Error('boom')).mockResolvedValue(match);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /vs Rivals/ })).toBeInTheDocument();
   });
 });

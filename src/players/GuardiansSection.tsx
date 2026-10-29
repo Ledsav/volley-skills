@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
-import { Input, FIELD_CLASS } from '../components/Input';
+import { Input, FIELD_CLASS, FIELD_LABEL_CLASS } from '../components/Input';
+import { Sheet } from '../components/Sheet';
+import { useSave } from '../components/useSave';
 import { updatePlayerGuardians } from './playersApi';
+import { usePlayerSync } from './playerSync';
 import type { Guardian, Player } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
 
@@ -25,10 +27,14 @@ export function GuardiansSection({
   editing,
   onEditingChange,
 }: GuardiansSectionProps) {
+  const sync = usePlayerSync();
+  const { save } = useSave();
   const t = useT();
   const p = t.players;
   const [guardians, setGuardians] = useState<Guardian[]>(player.guardians);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (editing) {
@@ -51,9 +57,24 @@ export function GuardiansSection({
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await doSave();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function doSave() {
     setError(null);
     try {
-      await updatePlayerGuardians(teamId, playerId, guardians);
+      const done = await save(() => updatePlayerGuardians(teamId, playerId, guardians), {
+        onQueued: (w) => sync.queued('guardians', w),
+      });
+      if (!done) return;
     } catch {
       setError(p.guardians.error);
       return;
@@ -70,28 +91,36 @@ export function GuardiansSection({
   return (
     <div className="flex h-full flex-col">
       {player.guardians.length === 0 ? (
-        <p className="text-sm text-slate">{p.guardians.none}</p>
+        <p className="text-callout text-ink-2">{p.guardians.none}</p>
       ) : (
-        <ul className="space-y-3 text-sm">
+        <ul className="divide-y divide-separator">
           {player.guardians.map((guardian, index) => (
-            <li key={index} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
-              <p className="font-medium text-ink">
-                {guardian.name}
-                <span className="ml-2 font-normal text-slate">{p.shared.relations[guardian.relation]}</span>
+            <li key={index} className="flex min-h-11 flex-col justify-center gap-0.5 py-3">
+              {/* With no name the relation is the title, so nothing starts with an empty indent. */}
+              <p className="text-headline text-ink">
+                {guardian.name.trim() || p.shared.relations[guardian.relation]}
+                {guardian.name.trim() && (
+                  <span className="ml-2 text-callout font-normal text-ink-2">{p.shared.relations[guardian.relation]}</span>
+                )}
               </p>
-              <p className="text-slate">{guardian.phone || '—'}</p>
-              <p className="break-all text-slate">{guardian.email || '—'}</p>
+              <p className="text-callout tabular-nums text-ink-2">{guardian.phone || '—'}</p>
+              <p className="break-all text-callout text-ink-2">{guardian.email || '—'}</p>
             </li>
           ))}
         </ul>
       )}
 
       {editing && isAdmin && (
-        <Dialog title={p.guardians.dialogTitle} onClose={handleCancel} guardUnsaved>
-          <form onSubmit={handleSave} aria-label={p.guardians.dialogTitle}>
+        <Sheet
+          title={p.guardians.dialogTitle}
+          onClose={handleCancel}
+          guardUnsaved
+          confirm={{ label: t.common.save, form: 'player-guardians-form', disabled: saving }}
+        >
+          <form id="player-guardians-form" onSubmit={handleSave} aria-label={p.guardians.dialogTitle}>
             {guardians.map((guardian, index) => (
-              <div key={index} className="mb-4 rounded-md border border-border p-3">
-                <label htmlFor={`edit-guardian-relation-${index}`} className="mb-1 block text-sm font-medium text-ink">
+              <div key={index} className="mb-4 rounded-lg border border-separator p-3">
+                <label htmlFor={`edit-guardian-relation-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.relation}
                 </label>
                 <select
@@ -105,7 +134,7 @@ export function GuardiansSection({
                   <option value="other">{p.shared.relations.other}</option>
                 </select>
 
-                <label htmlFor={`edit-guardian-name-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-name-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.guardianName}
                 </label>
                 <Input
@@ -116,7 +145,7 @@ export function GuardiansSection({
                   className="mb-3 w-full"
                 />
 
-                <label htmlFor={`edit-guardian-phone-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-phone-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.guardianPhone}
                 </label>
                 <Input
@@ -126,7 +155,7 @@ export function GuardiansSection({
                   className="mb-3 w-full"
                 />
 
-                <label htmlFor={`edit-guardian-email-${index}`} className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor={`edit-guardian-email-${index}`} className={FIELD_LABEL_CLASS}>
                   {p.shared.guardianEmail}
                 </label>
                 <Input
@@ -148,21 +177,13 @@ export function GuardiansSection({
               {p.shared.addGuardian}
             </Button>
 
-            <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={handleCancel}>
-                {t.common.cancel}
-              </Button>
-              <Button variant="primary" type="submit">
-                {t.common.save}
-              </Button>
-            </div>
             {error && (
-              <p role="alert" className="mt-3 text-sm text-red">
+              <p role="alert" className="mt-3 text-sm text-red-strong">
                 {error}
               </p>
             )}
           </form>
-        </Dialog>
+        </Sheet>
       )}
     </div>
   );

@@ -254,4 +254,18 @@ describe('ExerciseFormDialog naming hint', () => {
     expect(name).toHaveAttribute('placeholder', 'Reception: mixed serves to target');
     expect(name).toHaveAccessibleDescription(/Focus: what it trains/);
   });
+
+  it('Cancel on an edited exercise asks to discard', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    const onClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <ExerciseFormDialog onClose={onClose} onSaved={vi.fn()} />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pepper' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

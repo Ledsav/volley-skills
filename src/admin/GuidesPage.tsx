@@ -1,31 +1,42 @@
+import { useSearchParams } from 'react-router-dom';
 import { usePageMeta } from '../layout/usePageMeta';
-import { useState } from 'react';
-import { Tab } from '../components/Tab';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { SkillGuideEditor } from '../skillGuide/SkillGuideEditor';
 import { PhysicalTestGuideEditor } from '../physicalTestGuide/PhysicalTestGuideEditor';
 import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
+import { PageContainer } from '../layout/PageContainer';
 
-type GuideTab = 'skills' | 'physicalTests';
+type GuideTab = 'skills' | 'physical';
 
 export function GuidesPage() {
   const t = useT().admin.guidesPage;
   usePageMeta({ title: t.title });
-  const [tab, setTab] = useState<GuideTab>('skills');
+  const [params, setParams] = useSearchParams();
+  const tab: GuideTab = params.get('tab') === 'physical' ? 'physical' : 'skills';
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
-      <PageHeader title={t.title} />
-      <div role="tablist" aria-label={t.title} className="mb-6 flex gap-6 border-b border-border">
-        <Tab active={tab === 'skills'} onClick={() => setTab('skills')}>
-          {t.skillGuide}
-        </Tab>
-        <Tab active={tab === 'physicalTests'} onClick={() => setTab('physicalTests')}>
-          {t.physicalTestGuide}
-        </Tab>
+    <PageContainer width="form">
+      {/* The active editor publishes the toolbar (title and Save), not the header. */}
+      <PageHeader title={t.title} publishChrome={false} />
+      <SegmentedControl
+        semantics="tabs"
+        label={t.title}
+        options={[
+          { id: 'skills', label: t.skillGuide },
+          { id: 'physical', label: t.physicalTestGuide },
+        ]}
+        value={tab}
+        onChange={(id) => setParams({ tab: id }, { replace: true })}
+        className="mb-6"
+      />
+      {/* Both stay mounted so an unsaved edit survives a tab switch. */}
+      <div role="tabpanel" aria-label={t.skillGuide} hidden={tab !== 'skills'}>
+        <SkillGuideEditor active={tab === 'skills'} />
       </div>
-      {tab === 'skills' && <SkillGuideEditor />}
-      {tab === 'physicalTests' && <PhysicalTestGuideEditor />}
-    </div>
+      <div role="tabpanel" aria-label={t.physicalTestGuide} hidden={tab !== 'physical'}>
+        <PhysicalTestGuideEditor active={tab === 'physical'} />
+      </div>
+    </PageContainer>
   );
 }

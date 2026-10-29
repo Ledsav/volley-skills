@@ -1,7 +1,8 @@
-import type { PointerEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import type { DiagramItem, Scene } from '../types/diagram';
 import { renderItem } from './primitives';
 import { CourtBackdrop } from './primitives/CourtBackdrop';
+import { courtBox } from './courtGeometry';
 
 interface DiagramSvgProps {
   scene: Scene;
@@ -13,6 +14,54 @@ interface DiagramSvgProps {
   onTransformHandlePointerDown?: (id: string, e: PointerEvent) => void;
   onEndpointPointerDown?: (id: string, index: number, e: PointerEvent) => void;
   className?: string;
+  /**
+   * Previews only: frame the drawing (the court plus every item, labels included) instead of the fixed 0-100 grid,
+   * so nothing overflows the box and a half court is centred. Never on the editor canvas, whose pointer maths
+   * assumes the 0-100 grid.
+   */
+  fit?: boolean;
+}
+
+type Box = { x: number; y: number; w: number; h: number };
+/** Space around a fitted drawing, in grid units. */
+const FIT_PAD = 3;
+
+
+function union(a: Box, b: Box): Box {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+}
+
+function pad(b: Box): Box {
+  return { x: b.x - FIT_PAD, y: b.y - FIT_PAD, w: b.w + 2 * FIT_PAD, h: b.h + 2 * FIT_PAD };
+}
+
+const viewBoxOf = (b: Box) => `${b.x} ${b.y} ${b.w} ${b.h}`;
+
+/** The fitted frame: the court, grown to every drawn item (measured, so text labels count at their real width). */
+function useFitBox(scene: Scene, enabled: boolean) {
+  const contentRef = useRef<SVGGElement>(null);
+  const [box, setBox] = useState<Box>(() => pad(courtBox(scene.court)));
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const base = courtBox(scene.court);
+    let next = base;
+    const g = contentRef.current;
+    // getBBox needs layout (absent in jsdom); without it the court frame stands.
+    if (g && typeof g.getBBox === 'function') {
+      try {
+        const r = g.getBBox();
+        const b = { x: r.x, y: r.y, w: r.width, h: r.height };
+        if (b.w > 0 && b.h > 0) next = scene.court === 'blank' ? b : union(base, b);
+      } catch {
+        /* not rendered yet */
+      }
+    }
+    const padded = pad(next);
+    setBox((cur) => (viewBoxOf(cur) === viewBoxOf(padded) ? cur : padded));
+  }, [scene, enabled]);
+  return { contentRef, viewBox: enabled ? viewBoxOf(box) : '0 0 100 100' };
 }
 
 function endpoints(item: DiagramItem): { x: number; y: number }[] {
@@ -44,33 +93,17 @@ export function DiagramSvg({
   onTransformHandlePointerDown,
   onEndpointPointerDown,
   className,
+  fit = false,
 }: DiagramSvgProps) {
+  const { contentRef, viewBox } = useFitBox(scene, fit && !interactive);
   const selectedItems = interactive
     ? scene.items.filter((i) => selectedIds.includes(i.id))
     : [];
   // Transform / endpoint handles are single-select affordances only.
   const single = selectedItems.length === 1 ? selectedItems[0] : null;
 
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="xMidYMid meet"
-      className={className}
-      style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-      onPointerDown={interactive ? onBackgroundPointerDown : undefined}
-    >
-      <defs>
-        <marker id="arrowhead-single" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" fill="rgb(var(--color-ink))" />
-        </marker>
-        <marker id="arrowhead-double" markerWidth="10" markerHeight="6" refX="9" refY="3" orient="auto">
-          <path d="M0,0 L5,3 L0,6 Z M4,0 L10,3 L4,6 Z" fill="rgb(var(--color-ink))" />
-        </marker>
-        <pattern id="netHatch" width="2" height="4" patternUnits="userSpaceOnUse">
-          <path d="M0,0 L0,4" stroke="rgb(var(--color-ink) / 0.5)" strokeWidth="0.3" />
-        </pattern>
-      </defs>
-
+  const drawing = (
+    <>
       <CourtBackdrop court={scene.court} showZones={scene.showZones} />
 
       {scene.items.map((item) =>
@@ -89,6 +122,30 @@ export function DiagramSvg({
           renderItem(item)
         ),
       )}
+    </>
+  );
+
+  return (
+    <svg
+      viewBox={viewBox}
+      preserveAspectRatio="xMidYMid meet"
+      className={className}
+      style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
+      onPointerDown={interactive ? onBackgroundPointerDown : undefined}
+    >
+      <defs>
+        <marker id="arrowhead-single" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="rgb(var(--color-ink))" />
+        </marker>
+        <marker id="arrowhead-double" markerWidth="10" markerHeight="6" refX="9" refY="3" orient="auto">
+          <path d="M0,0 L5,3 L0,6 Z M4,0 L10,3 L4,6 Z" fill="rgb(var(--color-ink))" />
+        </marker>
+        <pattern id="netHatch" width="2" height="4" patternUnits="userSpaceOnUse">
+          <path d="M0,0 L0,4" stroke="rgb(var(--color-ink) / 0.5)" strokeWidth="0.3" />
+        </pattern>
+      </defs>
+
+      {fit && !interactive ? <g ref={contentRef}>{drawing}</g> : drawing}
 
       {selectedItems.length > 0 && (
         <g style={{ pointerEvents: 'none' }}>
@@ -103,7 +160,7 @@ export function DiagramSvg({
                 width={ob.w}
                 height={ob.h}
                 fill="none"
-                stroke="rgb(var(--color-blue))"
+                stroke="rgb(var(--color-focus))"
                 strokeWidth={0.6}
                 strokeDasharray="2 1.5"
               />
@@ -129,7 +186,7 @@ export function DiagramSvg({
                         cx={p.x}
                         cy={p.y}
                         r={1.8}
-                        fill="rgb(var(--color-blue))"
+                        fill="rgb(var(--color-focus))"
                       />
                     );
                   }
@@ -156,7 +213,7 @@ export function DiagramSvg({
                         cx={p.x}
                         cy={p.y}
                         r={1.8}
-                        fill="rgb(var(--color-blue))"
+                        fill="rgb(var(--color-focus))"
                         onPointerDown={onDown}
                       />
                     </g>
@@ -179,7 +236,7 @@ export function DiagramSvg({
                     cx={b.x + b.w}
                     cy={b.y}
                     r={1.8}
-                    fill="rgb(var(--color-blue))"
+                    fill="rgb(var(--color-focus))"
                     onPointerDown={onHandleDown}
                   />
                 </g>
@@ -195,8 +252,8 @@ export function DiagramSvg({
           y={marqueeRect.y}
           width={marqueeRect.w}
           height={marqueeRect.h}
-          fill="rgb(var(--color-blue) / 0.1)"
-          stroke="rgb(var(--color-blue))"
+          fill="rgb(var(--color-focus) / 0.1)"
+          stroke="rgb(var(--color-focus))"
           strokeWidth={0.4}
           strokeDasharray="1.5 1"
           style={{ pointerEvents: 'none' }}

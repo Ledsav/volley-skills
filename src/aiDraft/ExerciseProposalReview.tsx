@@ -32,15 +32,15 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
 
   return (
     <>
-      <ul className="flex flex-col divide-y divide-border">
+      <ul className="flex flex-col rounded-lg bg-surface-2">
         {drafts.map((d) => (
-          <li key={d.key} className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row">
+          <li key={d.key} className="relative flex flex-col gap-3 p-4 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden sm:flex-row">
             <DraftDiagramPreview scene={d.scene} label={r.diagramFor(d.name)} onOpen={() => setZoomed(d)} />
             <div className="min-w-0 flex-1">
-              <p className="mb-1"><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">{t.badge}</span></p>
+              <p className="mb-1"><span className="inline-block rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">{t.badge}</span></p>
               {editing === d.key ? (
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-ink" htmlFor={`draft-name-${d.key}`}>
+                  <label className="text-callout font-medium text-ink" htmlFor={`draft-name-${d.key}`}>
                     {r.name}
                   </label>
                   <Input
@@ -49,7 +49,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                     value={d.name}
                     onChange={(e) => onEdit(d.key, { name: e.target.value })}
                   />
-                  <label className="text-sm font-medium text-ink" htmlFor={`draft-cat-${d.key}`}>
+                  <label className="text-callout font-medium text-ink" htmlFor={`draft-cat-${d.key}`}>
                     {r.category}
                   </label>
                   <select
@@ -65,7 +65,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                       </option>
                     ))}
                   </select>
-                  <label className="text-sm font-medium text-ink" htmlFor={`draft-desc-${d.key}`}>
+                  <label className="text-callout font-medium text-ink" htmlFor={`draft-desc-${d.key}`}>
                     {r.description}
                   </label>
                   <Textarea
@@ -79,34 +79,34 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-ink">{d.name}</span>
+                    <span className="text-headline text-ink">{d.name}</span>
                     {d.category && (
-                      <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue">
+                      <span className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">
                         {lb.exerciseCategory[d.category]}
                       </span>
                     )}
                     <PlayersNote minPlayers={d.minPlayers} suggested={null} />
                     {added.has(d.key) && (
-                      <span className="rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
+                      <span className="text-caption font-medium text-green-strong">
                         {r.addedToLibrary}
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 whitespace-pre-line text-sm text-slate">{d.description}</p>
+                  <p className="mt-1 whitespace-pre-line text-callout text-ink-2">{d.description}</p>
                 </>
               )}
               {d.issues.length > 0 && (
-                <ul className="mt-2 text-xs text-slate">
+                <ul className="mt-2 text-footnote text-ink-2">
                   {d.issues.map((issue) => (
                     <li key={draftIssueKey(issue)}>{draftIssueText(issue, t)}</li>
                   ))}
                 </ul>
               )}
               <div className="mt-2 flex items-center gap-2">
-                <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
+                <label className="flex min-h-11 items-center gap-2 text-callout text-ink">
                   <input
                     type="checkbox"
-                    className="h-4 w-4"
+                    className="h-4 w-4 accent-[rgb(var(--color-ink))]"
                     aria-label={r.keepAria(d.name)}
                     checked={kept.has(d.key)}
                     disabled={added.has(d.key)}
@@ -116,7 +116,7 @@ export function ExerciseProposalReview({ drafts, kept, added, onToggleKeep, onEd
                 </label>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  className="min-h-11"
                   aria-label={editing === d.key ? r.doneAria(d.name) : r.editAria(d.name)}
                   disabled={added.has(d.key)}
                   onClick={() => setEditing(editing === d.key ? null : d.key)}

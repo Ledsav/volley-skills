@@ -3,11 +3,13 @@ import { contentBottom, drawHeaderRow, drawSponsorRow, type Branding, type Heade
 import { cardBeats, easeOutBack, easeOutCubic } from './cardTimeline';
 import { confettiAt, seedFrom } from './confetti';
 import { CARD_H, CARD_W, MARGIN } from './geometry';
+import { drawGlow, glowAlphaFor } from './glow';
+import { initialsOf } from './initials';
+import { fontFor, trackPx } from './type';
 import { fitBlock, textAt } from './wrapText';
 
 export { CARD_H, CARD_W } from './geometry';
 const CX = CARD_W / 2;
-const FONT = 'Inter, system-ui, sans-serif';
 
 /*
  * Card layout (horizontal bands, little vertical stacking):
@@ -16,7 +18,7 @@ const FONT = 'Inter, system-ui, sans-serif';
  *   lower third  NAME (left) ······················· stat (right), one row
  *   sponsor row  logos (only when there are sponsors)
  */
-const TITLE_TOP = 250;
+const TITLE_TOP = 280;
 const TITLE_W = 600;
 const NAME_W = 580;
 const STAT_W = 380;
@@ -38,17 +40,13 @@ export function cardHeader(card: Pick<CardModel, 'teamName' | 'clubName' | 'foot
   return { clubLogo: art.branding?.clubLogo ?? null, clubName: card.clubName, teamName: card.teamName, right: card.footer };
 }
 
-/** Flat slide colour, one soft accent disc, and the optional photo texture on top. */
+/** Flat slide colour, one soft accent glow, and the optional photo texture on top. */
 export function drawBackground(ctx: CanvasRenderingContext2D, colors: SlideColors, art: Pick<CardArt, 'background'>, alpha: number, seed = 0) {
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
-  ctx.globalAlpha = 0.18;
-  ctx.fillStyle = colors.accent;
-  ctx.beginPath();
-  ctx.arc(seed % 2 ? CARD_W * 0.85 : CARD_W * 0.15, CARD_H * (0.2 + (seed % 3) * 0.25), 520, 0, Math.PI * 2);
-  ctx.fill();
+  drawGlow(ctx, seed % 2 ? CARD_W * 0.85 : CARD_W * 0.15, CARD_H * (0.2 + (seed % 3) * 0.25), 620, colors.accent, 0.22);
   if (art.background) {
     ctx.globalAlpha = 0.35 * alpha;
     const s = Math.max(CARD_W / art.background.width, CARD_H / art.background.height);
@@ -59,8 +57,8 @@ export function drawBackground(ctx: CanvasRenderingContext2D, colors: SlideColor
 }
 
 /** Centred line of text (story slides). */
-export function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string, color: string, alpha: number) {
-  textAt(ctx, s, CX, y, font, color, alpha, 'center');
+export function text(ctx: CanvasRenderingContext2D, s: string, y: number, font: string, color: string, alpha: number, letterSpacing = 0) {
+  textAt(ctx, s, CX, y, font, color, alpha, 'center', letterSpacing);
 }
 
 export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, colors: SlideColors, art: CardArt, t: number, reducedMotion = false): void {
@@ -72,25 +70,25 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
   // Measure the lower third first: the player fills the space between the title and it.
   const bottom = contentBottom(art.branding);
   const rowBase = bottom - 30;
-  const name = fitBlock(ctx, card.name, 800, 110, NAME_W, 2);
+  const name = fitBlock(ctx, card.name, 700, 100, NAME_W, 2);
   const nameTop = rowBase - (name.lines.length - 1) * name.size * 1.05 - name.size * 0.8;
   const sub = card.statLine ?? (card.note || null);
   // Prefer one slightly smaller line; wrap to two only when one line would get small.
-  const oneLine = sub ? fitBlock(ctx, sub, 700, 50, STAT_W, 1) : null;
+  const oneLine = sub ? fitBlock(ctx, sub, 500, 46, STAT_W, 1) : null;
   const stat = !sub || !oneLine ? null
-    : oneLine.size >= 36 && !oneLine.lines[0].endsWith('…') ? oneLine : fitBlock(ctx, sub, 700, 50, STAT_W, 2);
+    : oneLine.size >= 36 && !oneLine.lines[0].endsWith('…') ? oneLine : fitBlock(ctx, sub, 500, 46, STAT_W, 2);
   const statTop = stat ? rowBase - (stat.lines.length - 1) * stat.size * 1.15 - stat.size * 0.8 : rowBase;
   const playerBottom = Math.min(nameTop, statTop) - 40;
 
   // Award title: big, left-aligned, slides up while fading in
-  const title = fitBlock(ctx, card.awardTitle, 900, 120, TITLE_W, 3);
-  const titleLineH = title.size * 1.02;
+  const title = fitBlock(ctx, card.awardTitle, 700, 112, TITLE_W, 3);
+  const titleLineH = title.size * 1.04;
   const titleBottom = TITLE_TOP + title.lines.length * titleLineH;
   const tt = easeOutCubic(b.title);
   if (tt > 0) {
     ctx.save();
     ctx.translate(0, (1 - tt) * 60);
-    title.lines.forEach((l, i) => textAt(ctx, l, MARGIN, TITLE_TOP + title.size * 0.85 + i * titleLineH, `900 ${title.size}px ${FONT}`, colors.accent, tt));
+    title.lines.forEach((l, i) => textAt(ctx, l, MARGIN, TITLE_TOP + title.size * 0.85 + i * titleLineH, fontFor('display', title.size), colors.accent, tt, 'left', trackPx('display', title.size)));
     ctx.restore();
   }
 
@@ -105,6 +103,7 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
     // melts into whatever is behind it (a band painted over it showed on textured slides).
     const cw = art.cutout.width, ch = art.cutout.height;
     const top = y + (1 - e) * 200;
+    drawGlow(ctx, x + w / 2, top + h * 0.45, h * 0.62, colors.accent, 0.42 * e);
     const solid = 1 - CUTOUT_FADE;
     ctx.save();
     ctx.globalAlpha = e;
@@ -124,31 +123,32 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
     const cx = CARD_W - MARGIN - r;
     const cy = (top + playerBottom) / 2;
     const s = Math.max(0, easeOutBack(b.photo));
+    // initials / number sit on the glow: fade it to the strongest level that keeps them at 3:1 on a light custom palette
+    const glowAlpha = art.photo ? 0.42 : glowAlphaFor(colors.bg, colors.accent, colors.text, 0.42);
+    drawGlow(ctx, cx, cy, r * 1.7, colors.accent, glowAlpha * Math.min(1, s));
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(s, s);
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fillStyle = colors.accent;
-    ctx.fill();
-    ctx.lineWidth = 14;
-    ctx.strokeStyle = colors.text;
-    ctx.stroke();
-    ctx.clip();
     if (art.photo) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
       const ps = Math.max((r * 2) / art.photo.width, (r * 2) / art.photo.height);
       const w = art.photo.width * ps, h = art.photo.height * ps;
       ctx.drawImage(art.photo, -w / 2, -h / 2, w, h);
-    } else if (card.number !== null) {
-      ctx.font = `900 ${Math.round(r)}px ${FONT}`;
-      ctx.fillStyle = colors.bg;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(String(card.number), 0, r * 0.03);
+    } else {
+      const label = card.number !== null ? String(card.number) : initialsOf(card.name);
+      if (label) {
+        ctx.font = fontFor('display', Math.round(r));
+        ctx.fillStyle = colors.text;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, 0, r * 0.03);
+      }
     }
-    // light sweep while the circle settles
-    if (!reducedMotion && b.photo < 1) {
+    // light sweep while the circle settles (photo only)
+    if (art.photo && !reducedMotion && b.photo < 1) {
       const sweepX = -r + b.photo * r * 2;
       const g = ctx.createLinearGradient(sweepX - 80, 0, sweepX + 80, 0);
       g.addColorStop(0, 'rgba(255,255,255,0)');
@@ -167,14 +167,14 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
       const visible = line.slice(0, Math.max(0, shown));
       shown -= line.length;
       const y = rowBase - (name.lines.length - 1 - i) * name.size * 1.05;
-      if (visible) textAt(ctx, visible, MARGIN, y, `800 ${name.size}px ${FONT}`, colors.text, 1);
+      if (visible) textAt(ctx, visible, MARGIN, y, fontFor('title', name.size), colors.text, 1, 'left', trackPx('title', name.size));
     });
   }
   const st = easeOutCubic(b.stat);
   if (stat) {
     stat.lines.forEach((l, i) => {
       const y = rowBase - (stat.lines.length - 1 - i) * stat.size * 1.15;
-      textAt(ctx, l, CARD_W - MARGIN, y, `700 ${stat.size}px ${FONT}`, colors.muted, st, 'right');
+      textAt(ctx, l, CARD_W - MARGIN, y, fontFor('body', stat.size), colors.muted, st, 'right', trackPx('body', stat.size));
     });
   }
 
@@ -206,8 +206,8 @@ export function drawTitleCard(ctx: CanvasRenderingContext2D, title: string, colo
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
   ctx.restore();
-  const { size, lines } = fitBlock(ctx, title, 900, 120, CARD_W - 2 * MARGIN - 40, 3);
+  const { size, lines } = fitBlock(ctx, title, 700, 112, CARD_W - 2 * MARGIN - 40, 3);
   const lineH = size * 1.08;
-  lines.forEach((l, i) => text(ctx, l, CARD_H / 2 + 40 + (i - (lines.length - 1) / 2) * lineH, `900 ${size}px ${FONT}`, colors.text, 1));
+  lines.forEach((l, i) => text(ctx, l, CARD_H / 2 + 40 + (i - (lines.length - 1) / 2) * lineH, fontFor('display', size), colors.text, 1, trackPx('display', size)));
   drawSponsorRow(ctx, art.branding, colors, 1);
 }

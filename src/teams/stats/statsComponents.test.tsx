@@ -43,6 +43,36 @@ describe('stats components', () => {
     expect(within(screen.getByRole('region', { name: 'Best setter' })).getByText('No data yet')).toBeInTheDocument();
   });
 
+  const row = (over: Partial<TeamPlayerRow>): TeamPlayerRow => ({
+    playerId: 'a', number: 7, name: 'Ana', current: true, matchesPlayed: 2, points: 5, errors: 1, mvpAvg: 2,
+    attackEff: 0.1, serveEff: null, receptionPos: null, ratings: {}, ...over,
+  });
+
+  it("leaderboard bars take the band of the player's season rating", () => {
+    const rankings: AwardRanking[] = [{ id: 'attacker', ranked: [{ playerId: 'a', value: 0.4, display: '+40% att. eff.', attempts: 40, rank: 1 }], notEnoughData: [] }];
+    const players = [row({ ratings: { attack: { rating: 8.5, attempts: 40 } } })];
+    render(<MemoryRouter><Leaderboards teamId="t1" rankings={rankings} people={people} players={players} /></MemoryRouter>);
+    const fill = within(screen.getByRole('region', { name: 'Best attacker' })).getByRole('listitem').querySelector('[data-band]')!;
+    expect(fill).toHaveAttribute('data-band', 'Elite');
+    expect(fill.className).toMatch(/(^|\s)bg-green(\s|$)/);
+  });
+
+  it('a card whose leader is negative draws empty bars', () => {
+    const ranked = [
+      { playerId: 'a', value: -0.05, display: '-5% att. eff.', attempts: 40, rank: 1 },
+      { playerId: 'b', value: -0.1, display: '-10% att. eff.', attempts: 35, rank: 2 },
+    ];
+    render(<MemoryRouter><Leaderboards teamId="t1" rankings={[{ id: 'attacker', ranked, notEnoughData: [] }]} people={people} /></MemoryRouter>);
+    const fills = within(screen.getByRole('region', { name: 'Best attacker' })).getAllByRole('listitem').map((li) => li.querySelector('[data-band]') as HTMLElement);
+    expect(fills).toHaveLength(2);
+    fills.forEach((f) => expect(f.style.width).toBe('0%'));
+  });
+
+  it('rotation bars say how best and weakest are judged', () => {
+    render(<RotationBars rotations={{ 1: { won: 4, lost: 2 }, 2: { won: 1, lost: 5 }, 3: { won: 0, lost: 0 }, 4: { won: 0, lost: 0 }, 5: { won: 0, lost: 0 }, 6: { won: 0, lost: 0 } }} best={1} weakest={2} />);
+    expect(screen.getByText('In rotation order 1 to 6. Best and weakest by share of rallies won.')).toBeInTheDocument();
+  });
+
   it('player table sorts by a column', () => {
     const rows: TeamPlayerRow[] = [
       { playerId: 'a', number: 7, name: 'Ana', current: true, matchesPlayed: 2, points: 5, errors: 1, mvpAvg: 2, attackEff: 0.1, serveEff: null, receptionPos: null, ratings: {} },

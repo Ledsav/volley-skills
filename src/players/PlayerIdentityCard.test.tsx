@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PlayerIdentityCard } from './PlayerIdentityCard';
 import type { Player } from '../types/player';
@@ -47,7 +47,11 @@ describe('PlayerIdentityCard', () => {
     expect(screen.getByText('AR')).toBeInTheDocument();
     expect(screen.getByText(/#7/)).toBeInTheDocument();
     expect(screen.getByText(/Outside/)).toBeInTheDocument();
-    expect(screen.getByText('U17 A')).toBeInTheDocument();
+    // The team is the header footnote only; the facts don't repeat it (or the age group).
+    expect(screen.getAllByText('U17 A')).toHaveLength(1);
+    expect(screen.queryByText('Team')).not.toBeInTheDocument();
+    expect(screen.queryByText('Age group')).not.toBeInTheDocument();
+    expect(within(screen.getByText('Date of birth').closest('div')!).getByText(/4 Mar 2011/)).toBeInTheDocument();
     expect(screen.getByText('2026-27')).toBeInTheDocument();
     expect(screen.getByText('J-000123')).toBeInTheDocument();
   });

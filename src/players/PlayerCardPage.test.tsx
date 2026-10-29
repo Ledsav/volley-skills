@@ -1,12 +1,17 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+process.env.TZ = 'Europe/Rome';
+
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerCardPage } from './PlayerCardPage';
+import { NoticeProvider } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
 import * as playersApi from './playersApi';
 import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
 import * as footprintApi from './playerFootprintApi';
 import { useAuth } from '../auth/AuthContext';
+import { todayLocalIso } from '../dates/today';
 import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
@@ -79,12 +84,22 @@ const basePlayer: Player = {
 
 function renderPlayerCard() {
   return render(
-    <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
-      <Routes>
-        <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
-      </Routes>
-    </MemoryRouter>
+    <NoticeProvider>
+      <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
+        <WithChrome>
+          <Routes>
+            <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
+          </Routes>
+        </WithChrome>
+      </MemoryRouter>
+    </NoticeProvider>
   );
+}
+
+/** The toolbar's Edit opens the picker; this picks one row. */
+async function pickEdit(row: string) {
+  fireEvent.click(await within(await screen.findByTestId('chrome-probe')).findByRole('button', { name: 'Edit' }));
+  fireEvent.click(await screen.findByRole('button', { name: row }));
 }
 
 /** Sections other than Skills are hidden until their tab is chosen. */
@@ -191,7 +206,7 @@ describe('PlayerCardPage', () => {
     renderPlayerCard();
     await screen.findByText('Test Player');
 
-    fireEvent.click(screen.getByText('Delete player'));
+    fireEvent.click(await screen.findByText('Delete player…'));
     fireEvent.click(screen.getByText('Yes, delete player'));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1', 'player-1'));
@@ -287,7 +302,7 @@ describe('PlayerCardPage', () => {
     fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
     fireEvent.click(record);
 
-    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com'));
+    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com', todayLocalIso()));
     expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
   });
 
@@ -354,6 +369,30 @@ describe('PlayerCardPage', () => {
     expect(await screen.findByRole('button', { name: 'Mark as left the club' })).toBeInTheDocument();
   });
 
+  it('marks left with the local date just after midnight', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    const leftSpy = vi.spyOn(playersApi, 'setPlayerLeftClub').mockResolvedValue(undefined);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-10-14T22:30:00Z'));
+    try {
+      renderPlayerCard();
+      await openSection('Privacy');
+      fireEvent.click(await screen.findByRole('button', { name: 'Mark as left the club' }));
+      await waitFor(() => expect(leftSpy).toHaveBeenCalledWith('team-1', 'player-1', '2026-10-15'));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('splits the profile into sections, with Matches and Privacy for admins only', async () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
@@ -371,8 +410,9 @@ describe('PlayerCardPage', () => {
     expect(within(tabs).getByRole('tab', { name: 'Skills' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: 'Skills' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete player' })).not.toBeInTheDocument();
+    expect(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Delete player…' })).toBeInTheDocument();
     fireEvent.click(within(tabs).getByRole('tab', { name: 'Privacy' }));
-    expect(screen.getByRole('button', { name: 'Delete player' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete player' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Skills' })).not.toBeInTheDocument();
   });
 
@@ -383,5 +423,187 @@ describe('PlayerCardPage', () => {
     renderPlayerCard();
     const tabs = await screen.findByRole('tablist', { name: 'Player sections' });
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Skills', 'Physical', 'Plan', 'Contact']);
+  });
+
+  function asAdmin() {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+  }
+
+  it('Edit opens the section picker, and picking Guardians opens that sheet on the Contact panel', async () => {
+    asAdmin();
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    renderPlayerCard();
+
+    await pickEdit('Guardians');
+
+    expect(await screen.findByRole('dialog', { name: 'Edit guardians' })).toBeInTheDocument();
+    const tabs = screen.getByRole('tablist', { name: 'Player sections' });
+    expect(within(tabs).getByRole('tab', { name: 'Contact' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('closing an edit sheet opened from the Edit picker returns focus to the toolbar Edit', async () => {
+    asAdmin();
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    renderPlayerCard();
+
+    const edit = await within(await screen.findByTestId('chrome-probe')).findByRole('button', { name: 'Edit' });
+    edit.focus();
+    await pickEdit('Skills');
+    const dialog = await screen.findByRole('dialog', { name: 'Edit skills' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit skills' })).not.toBeInTheDocument());
+    expect(edit).toHaveFocus();
+  });
+
+  it('Delete player… is in More and still confirms with focus on Cancel', async () => {
+    asAdmin();
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    const deleteSpy = vi.spyOn(playersApi, 'deletePlayer').mockResolvedValue(undefined);
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    fireEvent.click(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Delete player…' }));
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('a viewer gets no toolbar actions', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    await act(async () => undefined);
+    expect(within(screen.getByTestId('chrome-probe')).queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it('the level pill takes its band colour', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, avgScore: 6.4, level: 'Advanced' });
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+
+    expect(await screen.findByText('Advanced')).toHaveClass('bg-blue-tint');
+  });
+
+  it('links back to the team', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+
+    expect(await screen.findByRole('link', { name: 'Back to team' })).toHaveAttribute('href', '/teams/team-1');
+  });
+});
+
+describe('PlayerCardPage offline saves', () => {
+  function deferred() {
+    let resolve: (v?: never) => void = () => undefined;
+    let reject: (e: Error) => void = () => undefined;
+    const promise = new Promise<undefined>((res, rej) => {
+      resolve = res as never;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function setup(player: Player = basePlayer) {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([]);
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(player);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    return render(
+      <NoticeProvider>
+        <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
+          <WithChrome>
+          <Routes>
+            <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
+          </Routes>
+          </WithChrome>
+        </MemoryRouter>
+      </NoticeProvider>
+    );
+  }
+
+  const panel = (name: string) => screen.getByRole('tabpanel', { name, hidden: true });
+  const dots = (el: HTMLElement) => within(el).queryAllByRole('img', { name: 'Waiting to sync', hidden: true });
+
+  async function saveSkill() {
+    await pickEdit('Skills');
+    fireEvent.change(await screen.findByLabelText('Serve'), { target: { value: '6' } });
+    // The queued write is registered after the click's microtasks, so keep them inside act.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    });
+  }
+
+  it('offline, a skills save shows a pending dot on Skills until it syncs', async () => {
+    const d = deferred();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(d.promise);
+    setup();
+    await saveSkill();
+    await waitFor(() => expect(dots(panel('Skills'))).toHaveLength(1));
+    await act(async () => {
+      d.resolve();
+    });
+    expect(dots(panel('Skills'))).toHaveLength(0);
+  });
+
+  it('offline, the plan, consent, photo and left-club saves apply at once with pending dots', async () => {
+    const never = new Promise<never>(() => undefined);
+    vi.spyOn(playersApi, 'updatePlayerDevelopmentPlan').mockReturnValue(never as never);
+    vi.spyOn(playersApi, 'recordPlayerConsent').mockReturnValue(never as never);
+    vi.spyOn(playersApi, 'setPhotoConsent').mockReturnValue(never as never);
+    vi.spyOn(playersApi, 'setPlayerLeftClub').mockReturnValue(never as never);
+    setup({ ...basePlayer, consent: { given: false, date: null, confirmedBy: null } });
+
+    await openSection('Plan');
+    await pickEdit('Development plan');
+    fireEvent.click(await screen.findByText('Save'));
+    await waitFor(() => expect(dots(panel('Plan'))).toHaveLength(1));
+
+    await openSection('Privacy');
+    fireEvent.click(await screen.findByLabelText(/guardian has consented to storing this player/i));
+    fireEvent.click(screen.getByRole('button', { name: 'Record consent' }));
+    expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/Guardian consent to use photos/));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as left the club' }));
+    expect(await screen.findByText(/due for/)).toBeInTheDocument();
+    expect(dots(panel('Privacy')).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('a queued save rejected on sync shows the sync-failed alert', async () => {
+    const d = deferred();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(d.promise);
+    setup();
+    await saveSkill();
+    await waitFor(() => expect(dots(panel('Skills'))).toHaveLength(1));
+    await act(async () => {
+      d.reject(new Error('permission-denied'));
+    });
+    expect(dots(panel('Skills'))).toHaveLength(0);
+    expect(
+      await screen.findByText('Some changes made offline could not be saved. Reload the page to see the stored card.')
+    ).toBeInTheDocument();
   });
 });

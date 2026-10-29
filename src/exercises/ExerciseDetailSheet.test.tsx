@@ -92,4 +92,10 @@ describe('ExerciseDetailSheet', () => {
     render(<ExerciseDetailSheet entries={[entries[0]]} startIndex={0} onClose={vi.fn()} />);
     expect(screen.queryByText(/Min \d+ players/)).not.toBeInTheDocument();
   });
+
+  it('labels the description section in sentence case', () => {
+    render(<ExerciseDetailSheet entries={[entries[0]]} startIndex={0} onClose={vi.fn()} />);
+    const heading = screen.getByRole('heading', { name: 'Description' });
+    expect(heading.className).not.toMatch(/uppercase/);
+  });
 });

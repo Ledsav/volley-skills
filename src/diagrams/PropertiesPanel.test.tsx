@@ -105,6 +105,26 @@ describe('PropertiesPanel', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'setItemProp', id: 'b2', patch: { style: 'mikasa' } });
   });
 
+  it('shows slider values and changes the layer order from labelled buttons', () => {
+    const dispatch = vi.fn();
+    const item = { ...createItem('cone', { x: 10, y: 10 }), id: 'c2', size: 1.5, rotation: 45 };
+    render(<PropertiesPanel item={item} dispatch={dispatch} selectedCount={1} />);
+    expect(screen.getByLabelText(/^size/i)).toHaveAccessibleName('Size 1.5×');
+    expect(screen.getByLabelText(/^rotation/i)).toHaveAccessibleName('Rotation 45°');
+    expect(screen.getByRole('group', { name: 'Nudge' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send backward' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'reorderItem', id: 'c2', to: 'backward' });
+    fireEvent.click(screen.getByRole('button', { name: 'Bring forward' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'reorderItem', id: 'c2', to: 'forward' });
+  });
+
+  it('gives the role field a placeholder', () => {
+    const item = { ...createItem('player', { x: 10, y: 10 }), id: 'p3' };
+    render(<PropertiesPanel item={item} dispatch={vi.fn()} selectedCount={1} />);
+    expect(screen.getByLabelText(/role/i)).toHaveAttribute('placeholder', 'e.g. OH, S, L');
+  });
+
   it('renders the single-item editor when exactly one element is selected', () => {
     const item = { ...createItem('player', { x: 10, y: 10 }), id: 'p9' };
     render(<PropertiesPanel item={item} dispatch={vi.fn()} selectedCount={1} />);

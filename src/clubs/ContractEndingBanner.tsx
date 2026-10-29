@@ -16,7 +16,7 @@ export function ContractEndingBanner() {
       ? t.adminWithExport(fmt(effective), fmt(retrieval))
       : t.member(fmt(effective));
   return (
-    <div role="status" className="border-b border-orange bg-orange/10 px-4 py-2 text-sm text-ink print:hidden">
+    <div role="status" className="border-b border-separator bg-orange-tint px-4 py-2.5 text-footnote text-ink print:hidden">
       {text}
     </div>
   );

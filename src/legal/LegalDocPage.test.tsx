@@ -32,6 +32,12 @@ describe('LegalDocPage', () => {
     expect(screen.getByRole('link', { name: 'Back to the app' })).toHaveAttribute('href', '/');
   });
 
+  it('reads in a 720 px column at 16/26', () => {
+    const { container } = at('/legal/terms?lang=en');
+    expect(container.querySelector('main')).toHaveClass('max-w-[720px]');
+    expect(container.querySelector('main div[lang="en"]')).toHaveClass('leading-[1.625rem]');
+  });
+
   it('shows the English terms with their banner and clause anchors', () => {
     const { container } = at('/legal/terms?lang=en');
     expect(screen.getByText(DRAFT_BANNER.en + '.')).toBeInTheDocument();

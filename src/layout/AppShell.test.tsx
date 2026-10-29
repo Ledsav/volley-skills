@@ -1,6 +1,7 @@
 import { cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act } from 'react';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShell } from './AppShell';
 import { useAuth } from '../auth/AuthContext';
 import { Timestamp } from 'firebase/firestore';
@@ -12,9 +13,12 @@ const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../auth/AuthContext');
 vi.mock('../components/Notice');
-const unreviewed = vi.hoisted(() => ({ count: 0 }));
+const unreviewed = vi.hoisted(() => ({ count: 0, calls: 0 }));
 vi.mock('../interest/interestApi', () => ({
-  countUnreviewedInterestSignups: () => Promise.resolve(unreviewed.count),
+  countUnreviewedInterestSignups: () => {
+    unreviewed.calls += 1;
+    return Promise.resolve(unreviewed.count);
+  },
 }));
 
 function renderShell() {
@@ -27,8 +31,49 @@ function renderShell() {
 
 const openAccountMenu = () => fireEvent.click(screen.getByRole('button', { name: /^Account/ }));
 
+function renderRoutedShell(start: string) {
+  return render(
+    <MemoryRouter initialEntries={[start]}>
+      <AppShell>
+        <Routes>
+          <Route path="/" element={<h1>Today page</h1>} />
+          <Route path="/teams" element={<h1>Teams page</h1>} />
+        </Routes>
+      </AppShell>
+    </MemoryRouter>
+  );
+}
+
+/** A matchMedia whose width can change; fires the listeners like a resize would. */
+function stubViewport(initialWidth: number) {
+  let width = initialWidth;
+  const listeners = new Set<(e: { matches: boolean }) => void>();
+  const matches = (q: string) => {
+    const min = /min-width:\s*(\d+)px/.exec(q);
+    const max = /max-width:\s*(\d+)px/.exec(q);
+    return (min ? width >= +min[1] : true) && (max ? width <= +max[1] : true);
+  };
+  window.matchMedia = ((q: string) => ({
+    get matches() {
+      return matches(q);
+    },
+    media: q,
+    addEventListener: (_: string, l: (e: { matches: boolean }) => void) => listeners.add(l),
+    removeEventListener: (_: string, l: (e: { matches: boolean }) => void) => listeners.delete(l),
+  })) as unknown as typeof window.matchMedia;
+  return (w: number) => {
+    width = w;
+    act(() => listeners.forEach((l) => l({ matches: false } as never)));
+  };
+}
+
+afterEach(() => {
+  delete (window as { matchMedia?: unknown }).matchMedia;
+});
+
 describe('AppShell', () => {
   beforeEach(() => {
+    unreviewed.calls = 0;
     vi.mocked(useAuth).mockReturnValue(
       authValue({ access: clubAdminAccess, firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never })
     );
@@ -42,7 +87,7 @@ describe('AppShell', () => {
     const { container } = renderShell();
     const nav = within(aside(container)).getByRole('navigation', { name: 'Main' });
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent?.replace(/\d+$/, '').trim());
-    expect(labels).toEqual(['Home', 'Teams', 'Trainings', 'Exercises', 'Guides', 'Members & settings', 'Clubs & sign-ups']);
+    expect(labels).toEqual(['Today', 'Teams', 'Trainings', 'Exercises', 'Guides', 'Members & settings', 'Clubs & sign-ups']);
     expect(within(group(container, 'Coaching')).getAllByRole('link').map((l) => l.textContent)).toEqual(['Teams', 'Trainings', 'Exercises']);
     expect(within(group(container, 'Club')).getByRole('link', { name: 'Members & settings' })).toHaveAttribute('href', '/club');
     expect(within(group(container, 'Platform')).getByRole('link', { name: /Clubs & sign-ups/ })).toHaveAttribute('href', '/platform');
@@ -114,18 +159,20 @@ describe('AppShell', () => {
   it('shows text labels in the phone bottom bar, with More for everything else', () => {
     const { container } = renderShell();
     const bottomBar = container.querySelector('nav.fixed') as HTMLElement;
-    for (const label of ['Home', 'Teams', 'Trainings', 'Exercises', 'More']) {
+    for (const label of ['Today', 'Teams', 'Trainings', 'Exercises', 'More']) {
       expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
     }
     expect(within(bottomBar).getByRole('link', { name: 'More' })).toHaveAttribute('href', '/more');
   });
 
-  it('caps page content at one shared width so wide screens keep readable lines', () => {
-    renderShell();
-    expect(screen.getByText('Page content').parentElement).toHaveClass('mx-auto', 'max-w-screen-xl');
+  it('keeps the sticky toolbar a sibling of main, so it stays pinned while the page scrolls', () => {
+    const { container } = renderShell();
+    const toolbar = container.querySelector('header[data-scrolled]') as HTMLElement;
+    expect(toolbar).toHaveClass('sticky');
+    expect(toolbar.parentElement).toBe(container.querySelector('main')?.parentElement);
   });
 
-  it('has a skip link to main and Home first in the sidebar', () => {
+  it('has a skip link to main and Today first in the sidebar', () => {
     vi.mocked(useAuth).mockReturnValue(authValue());
     renderShell();
     const skip = screen.getByRole('link', { name: 'Skip to content' });
@@ -133,8 +180,8 @@ describe('AppShell', () => {
     expect(document.getElementById('main')?.tagName).toBe('MAIN');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent?.trim());
-    expect(labels.indexOf('Home')).toBeGreaterThanOrEqual(0);
-    expect(labels.indexOf('Home')).toBeLessThan(labels.indexOf('Teams'));
+    expect(labels.indexOf('Today')).toBeGreaterThanOrEqual(0);
+    expect(labels.indexOf('Today')).toBeLessThan(labels.indexOf('Teams'));
   });
 
   it('caps the phone bottom bar at 5 items for a club admin, with no club pages on it', () => {
@@ -146,6 +193,65 @@ describe('AppShell', () => {
     expect(within(bottom).getAllByRole('link')).toHaveLength(5);
     expect(within(bottom).queryByText('Guides')).toBeNull();
     expect(within(bottom).queryByText('Members & settings')).toBeNull();
+  });
+
+  it('tab bar has at most 5 tabs with visible labels', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
+    renderShell();
+    const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
+    const tabs = within(bottom).getAllByRole('link');
+    expect(tabs.length).toBeLessThanOrEqual(5);
+    for (const tab of tabs) {
+      expect(tab.querySelector('svg')).not.toBeNull();
+      expect(tab.textContent?.trim()).not.toBe('');
+      expect(tab.querySelector('.sr-only')).toBeNull();
+    }
+  });
+
+  it('shows the unsynced sign-out dialog outside the tablet overlay panel', async () => {
+    mockSignOut.mockResolvedValueOnce('unsynced');
+    renderShell();
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const overlay = screen.getByRole('dialog', { name: 'Main' });
+    fireEvent.click(within(overlay).getByRole('button', { name: /^Account/ }));
+    fireEvent.click(within(overlay).getByRole('menuitem', { name: 'Sign out' }));
+    const confirm = await screen.findByRole('alertdialog');
+    expect(overlay.contains(confirm)).toBe(false);
+  });
+
+  it('focuses the new page heading after choosing a destination in the overlay', async () => {
+    renderRoutedShell('/');
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Main' })).getByRole('link', { name: 'Teams' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Main' })).not.toBeInTheDocument());
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Teams page' }));
+  });
+
+  it('keeps focus on the page heading when the overlay link is the current route', async () => {
+    renderRoutedShell('/teams');
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Main' })).getByRole('link', { name: 'Teams' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Main' })).not.toBeInTheDocument());
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Teams page' }));
+  });
+
+  it('closes the overlay when the viewport shrinks below 768 px', () => {
+    const resize = stubViewport(900);
+    renderShell();
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    expect(screen.getByRole('dialog', { name: 'Main' })).toBeInTheDocument();
+    resize(600);
+    expect(screen.queryByRole('dialog', { name: 'Main' })).not.toBeInTheDocument();
+  });
+
+  it('counts pending sign-ups once, however many sidebars and the tab bar show it', async () => {
+    unreviewed.count = 3;
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
+    renderShell();
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    await waitFor(() => expect(within(screen.getByRole('dialog', { name: 'Main' })).getByRole('link', { name: /Clubs & sign-ups/ })).toHaveTextContent('3'));
+    expect(unreviewed.calls).toBe(1);
+    unreviewed.count = 0;
   });
 
   describe('club state', () => {

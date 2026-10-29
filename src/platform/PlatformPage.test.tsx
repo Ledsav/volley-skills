@@ -9,16 +9,16 @@ vi.mock('./platformApi');
 vi.mock('../interest/interestApi');
 vi.mock('../firebase/config', () => ({ db: {} }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ appUser: { email: 'op@example.com' } }) }));
-vi.mock('../components/Notice', () => ({ useNotify: () => vi.fn() }));
+vi.mock('../components/Notice', () => ({ useNotify: () => vi.fn(), useUndoable: () => vi.fn() }));
 
-function setup() {
+function setup(url = '/') {
   vi.mocked(platformApi.listClubs).mockResolvedValue({ clubs: [], lastDoc: null, hasMore: false });
   vi.mocked(interestApi.listInterestSignups).mockResolvedValue({
     signups: [{ id: 'a', name: 'Ana', email: 'ana@example.com', role: 'coach', reviewed: false, createdAt: null }],
     lastDoc: null, hasMore: false,
   });
   vi.mocked(interestApi.countUnreviewedInterestSignups).mockResolvedValue(1);
-  render(<MemoryRouter><PlatformPage /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[url]}><PlatformPage /></MemoryRouter>);
 }
 
 describe('PlatformPage', () => {
@@ -34,5 +34,11 @@ describe('PlatformPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Leads' }));
     expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Grant access' })).not.toBeInTheDocument();
+  });
+
+  it('opens Leads from ?tab=leads', async () => {
+    setup('/platform?tab=leads');
+    expect(screen.getByRole('tab', { name: 'Leads' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
   });
 });

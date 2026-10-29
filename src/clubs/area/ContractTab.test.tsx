@@ -130,4 +130,14 @@ describe('ContractTab', () => {
     expect(screen.getByRole('link', { name: 'DPA' })).toHaveAttribute('href', '/legal/dpa?v=2026-10-22');
     expect(screen.getByRole('link', { name: 'Sub-processors' })).toHaveAttribute('href', '/legal/subprocessors');
   });
+
+  it('names the accepted versions as dates, not as the raw version key', () => {
+    signIn({ legal: { versionKey: 'terms-2026-10-22_dpa-2026-10-22', acceptedAt: null, acceptedBy: 'owner@example.com' } });
+    const { unmount } = render(<ContractTab />);
+    expect(screen.getByText('Terms and DPA of 22 October 2026, accepted by owner@example.com')).toBeInTheDocument();
+    unmount();
+    signIn({ legal: { versionKey: 'terms-2026-10-22_dpa-2026-11-05', acceptedAt: null, acceptedBy: 'owner@example.com' } });
+    render(<ContractTab />);
+    expect(screen.getByText('Terms of 22 October 2026 and DPA of 5 November 2026, accepted by owner@example.com')).toBeInTheDocument();
+  });
 });

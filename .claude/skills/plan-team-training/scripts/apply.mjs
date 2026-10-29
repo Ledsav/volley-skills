@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { dataRoot, norm, openDb, parseArgs } from './lib.mjs';
+import { searchTokens } from '../../../../src/search/searchTokens.js';
 
 const args = parseArgs();
 const APPLY = Boolean(args.apply);
@@ -75,7 +76,7 @@ const save = () => writeFileSync(logPath, JSON.stringify(log, null, 2));
 for (const n of newExercises) {
   const ref = root.collection('exercises').doc();
   const batch = db.batch();
-  batch.set(ref, { name: n.name, description: n.description, category: n.category, minPlayers: n.minPlayers, createdBy: uid, createdAt: FieldValue.serverTimestamp() });
+  batch.set(ref, { name: n.name, description: n.description, category: n.category, minPlayers: n.minPlayers, searchTokens: searchTokens(n.name), createdBy: uid, createdAt: FieldValue.serverTimestamp() });
   const diagrams = (n.diagrams ?? []).map((d, i) => {
     const dref = ref.collection('diagrams').doc();
     batch.set(dref, { title: d.title, order: i, scene: d.scene, updatedBy: uid, updatedAt: FieldValue.serverTimestamp() });
@@ -99,6 +100,7 @@ const businessId = await db.runTransaction(async (tx) => {
   tx.set(trainingRef, {
     businessId: biz,
     name: training.name,
+    searchTokens: searchTokens(training.name, biz),
     description: training.description,
     ageGroupTarget: training.ageGroupTarget,
     suggestedPlayers: training.suggestedPlayers,

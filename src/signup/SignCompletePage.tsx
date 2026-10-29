@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { AlertTriangle, Clock, Info, Loader2, Mail, UserX } from 'lucide-react';
 import { AuthShell } from '../auth/AuthShell';
 import { sendSigningLink } from '../auth/reauth';
 import { useSignOut } from '../auth/useSignOut';
 import { Button } from '../components/Button';
+import { StatusLayout } from '../components/StatusLayout';
 import { useT } from '../i18n/I18nProvider';
 import { usePageMeta } from '../layout/usePageMeta';
 import { readSignDraft } from '../legal/signDraft';
@@ -62,58 +64,37 @@ export function SignCompletePage() {
     }
   }
 
+  const icon =
+    view === 'working' ? Loader2
+    : view === 'linkExpired' ? Clock
+    : view === 'linkSent' ? Mail
+    : view === 'wrongAccount' ? UserX
+    : view === 'error' ? AlertTriangle
+    : Info;
+
+  const actions =
+    view === 'linkExpired' ? (
+      <Button variant="primary" className="min-h-12 w-full" disabled={busy} onClick={sendNewLink}>{t.sendNewLink}</Button>
+    ) : view === 'wrongAccount' ? (
+      <Button variant="secondary" className="min-h-12 w-full" onClick={signOut}>{t.signOut}</Button>
+    ) : view === 'error' ? (
+      <Button variant="primary" className="min-h-12 w-full" onClick={() => void run()}>{t.tryAgain}</Button>
+    ) : undefined;
+
   return (
-    <AuthShell title={t.title}>
-      {view === 'working' && <p role="status" className="text-center text-slate">{t.working}</p>}
-
-      {view === 'linkExpired' && (
-        <>
-          <p className="text-center text-slate">{t.linkExpired}</p>
-          <div className="mt-4 flex justify-center">
-            <Button variant="primary" disabled={busy} onClick={sendNewLink}>{t.sendNewLink}</Button>
-          </div>
-        </>
-      )}
-
-      {view === 'linkSent' && (
-        <p role="status" className="text-center text-slate">{t.linkSent}</p>
-      )}
-
-      {view === 'noDraft' && (
-        <p className="text-center text-slate">
-          {t.noDraft}
-        </p>
-      )}
-
-      {view === 'wrongLink' && (
-        <p className="text-center text-slate">
-          {t.wrongLink}
-        </p>
-      )}
-
-      {view === 'wrongAccount' && (
-        <>
-          <p className="text-center text-slate">
-            {t.wrongAccount}
-          </p>
-          <div className="mt-4 flex justify-center">
-            <Button variant="secondary" onClick={signOut}>{t.signOut}</Button>
-          </div>
-        </>
-      )}
-
-      {view === 'error' && (
-        <>
-          <p role="alert" className="text-center text-red">{t.error}</p>
-          <div className="mt-4 flex justify-center">
-            <Button variant="primary" onClick={() => void run()}>{t.tryAgain}</Button>
-          </div>
-        </>
-      )}
-
-      {resendError && (
-        <p role="alert" className="mt-3 text-center text-sm text-red">{t.resendError}</p>
-      )}
+    <AuthShell>
+      <StatusLayout icon={icon} tone={view === 'error' ? 'error' : 'neutral'} title={t.title} actions={actions}>
+        {view === 'working' && <p role="status">{t.working}</p>}
+        {view === 'linkExpired' && t.linkExpired}
+        {view === 'linkSent' && <p role="status">{t.linkSent}</p>}
+        {view === 'noDraft' && t.noDraft}
+        {view === 'wrongLink' && t.wrongLink}
+        {view === 'wrongAccount' && t.wrongAccount}
+        {view === 'error' && <p role="alert">{t.error}</p>}
+        {resendError && (
+          <p role="alert" className="mt-3 text-footnote text-red-strong">{t.resendError}</p>
+        )}
+      </StatusLayout>
       {unsyncedDialog}
     </AuthShell>
   );

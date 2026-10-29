@@ -6,6 +6,14 @@ import { LegalMarkdown } from './LegalMarkdown';
 const show = (text: string) => render(<MemoryRouter><LegalMarkdown text={text} /></MemoryRouter>);
 
 describe('LegalMarkdown', () => {
+  it('links are ink and underlined, never blue', () => {
+    show('[a](/legal/dpa) [b](https://x.org) [c](mailto:a@b.org)');
+    for (const l of screen.getAllByRole('link')) {
+      expect(l).toHaveClass('text-ink', 'underline');
+      expect(l.className).not.toMatch(/blue/);
+    }
+  });
+
   it('gives a clause heading an id', () => {
     show('## T12. Liability');
     const h = screen.getByRole('heading', { level: 2, name: 'T12. Liability' });

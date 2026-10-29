@@ -2,49 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light theme (default) — matches docs/superpowers/specs/2026-09-04-volley-skills-design-system.md §2 */
+/* Light theme (default) - docs/design/design-system/README.md section 2 (v2). Colours are R G B triplets so
+   Tailwind alpha modifiers work. Fills (DEFAULT) are for dots, bars and tints; -strong is the AA text form. */
 :root {
-  /* Tells the browser which palette to paint native controls with — the
-     <input type="date"> picker glyph, number spinners, native scrollbars.
-     These live in browser shadow DOM and ignore `color`/text-ink, so without
-     this they'd render light-mode dark on the dark surface. */
+  /* Tells the browser which palette to paint native controls with (date picker glyph, spinners, scrollbars).
+     These live in browser shadow DOM and ignore `color`, so without this they render light on the dark surface. */
   color-scheme: light;
 
-  --color-navy: 35 86 168; /* #2356A8 */
-  --color-blue: 40 101 246; /* #2865F6 */
-  --color-blue-strong: 30 79 220; /* #1E4FDC */
-  --color-orange: 249 115 22; /* #F97316 */
-  --color-orange-strong: 194 65 12; /* #C2410C — AA as text on white and on orange/10 */
-  --color-green: 16 152 97; /* #109861 */
-  --color-green-strong: 12 124 79; /* #0C7C4F */
-  --color-red: 220 38 38; /* #DC2626 */
-  --color-red-strong: 185 28 28; /* #B91C1C */
-  --color-ink: 15 23 42; /* #0F172A */
-  --color-slate: 100 116 139; /* #64748B */
-  --color-border: 226 232 240; /* #E2E8F0 */
-  --color-bg: 248 250 252; /* #F8FAFC */
+  --color-navy: 35 86 168; /* kept: stored diagram item colours resolve to it (tokenColor) */
+  --brand-tile-edge: transparent; /* the black app tile gets an edge only on dark surfaces (brand section 6) */
+  --color-bg: 245 245 247; /* #F5F5F7 */
   --color-surface: 255 255 255; /* #FFFFFF */
+  --color-surface-2: 242 242 247; /* #F2F2F7 */
+  --color-surface-3: 229 229 234; /* #E5E5EA */
+  --color-ink: 29 29 31; /* #1D1D1F */
+  --color-ink-2: 110 110 115; /* #6E6E73 */
+  --color-ink-3: 142 142 147; /* #8E8E93 */
+  --color-on-ink: 255 255 255;
+  --color-separator: 222 222 224; /* opaque hairline */
+  --color-focus: 0 113 227; /* #0071E3 */
+  --color-segment-thumb: 255 255 255;
+  --color-sidebar: 255 255 255;
+
+  --color-red: 255 59 48; /* #FF3B30 */
+  --color-red-strong: 205 0 20; /* #CD0014 - spec #D70015 darkened one step for AA on the 14% tint */
+  /* Solid destructive fill with white content (swipe actions), the same in both themes: white on it is 5:1. */
+  --color-destructive-fill: 215 0 21; /* #D70015 */
+  --color-orange: 255 149 0; /* #FF9500 */
+  --color-orange-strong: 201 52 0; /* #C93400 */
+  --color-blue: 0 122 255; /* #007AFF */
+  --color-blue-strong: 0 64 221; /* #0040DD */
+  --color-green: 52 199 89; /* #34C759 */
+  --color-green-strong: 30 125 55; /* #1E7D37 - spec #248A3D darkened one step for AA */
+
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06);
+  --scrim: rgb(0 0 0 / 0.28);
+  --tint-alpha: 0.14;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --fs-large-title: 2.125rem;
+  --lh-large-title: 2.5rem;
+  --fs-score: 4.5rem;
+  --lh-score: 4.5rem;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Page gutter (design system section 4): 20 px on phones, 32 px from tablet up. */
+  --page-gutter: 2rem;
+  /* Secondary fills (surface-2/-3) on the bg canvas step one shade darker, so fields, segmented tracks and
+     secondary buttons stay visible there (#F2F2F7 on #F5F5F7 is ~1.02:1). On a surface (cards, sheets, the
+     sidebar) they keep the token values above. See "Fill context" below. */
+  --fill-bg-2: 232 232 237; /* #E8E8ED */
+  --fill-bg-3: 220 220 225; /* #DCDCE1 */
+  --fill-surface-2: 242 242 247;
+  --fill-surface-3: 229 229 234;
+  /* Glyphs for native controls (a background image cannot use currentColor): ink-2 per theme. */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --date-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+  --time-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
 }
 
-/* Dark theme — spec §2.3: brand hues lightened to hold contrast, navy stays
-   the darkest structural color (it's still darker than the page canvas). */
 .dark {
   color-scheme: dark;
 
-  --color-navy: 28 69 134; /* #1C4586 — same hue as light navy, darkened */
-  --color-blue: 112 149 255; /* #7095FF */
-  --color-blue-strong: 147 176 255; /* #93B0FF */
-  --color-orange: 251 146 60; /* #FB923C */
-  --color-orange-strong: 253 186 116; /* #FDBA74 */
-  --color-green: 52 201 138; /* #34C98A */
-  --color-green-strong: 110 220 174; /* #6EDCAE */
-  --color-red: 248 113 113; /* #F87171 */
-  --color-red-strong: 252 165 165; /* #FCA5A5 */
-  --color-ink: 234 240 251; /* #EAF0FB — flips to the light text color */
-  --color-slate: 147 163 190; /* #93A3BE */
-  --color-border: 36 50 82; /* #243252 */
-  --color-bg: 11 18 32; /* #0B1220 */
-  --color-surface: 18 27 46; /* #121B2E */
+  --color-navy: 28 69 134;
+  --brand-tile-edge: rgb(255 255 255 / 0.16);
+  --color-bg: 0 0 0;
+  --color-surface: 28 28 30; /* #1C1C1E */
+  --color-surface-2: 44 44 46; /* #2C2C2E */
+  --color-surface-3: 58 58 60; /* #3A3A3C */
+  --color-ink: 245 245 247; /* #F5F5F7 */
+  --color-ink-2: 161 161 166; /* #A1A1A6 */
+  --color-ink-3: 110 110 115; /* #6E6E73 */
+  --color-on-ink: 0 0 0;
+  --color-separator: 55 55 58;
+  --color-focus: 64 156 255; /* #409CFF */
+  --color-segment-thumb: 99 99 102;
+  --color-sidebar: 13 13 15; /* #0D0D0F */
+
+  --color-red: 255 69 58; /* #FF453A */
+  --color-red-strong: 255 105 97; /* #FF6961 */
+  --color-orange: 255 159 10; /* #FF9F0A */
+  --color-orange-strong: 255 179 64; /* #FFB340 */
+  --color-blue: 10 132 255; /* #0A84FF */
+  --color-blue-strong: 64 156 255; /* #409CFF */
+  --color-green: 48 209 88; /* #30D158 */
+  --color-green-strong: 48 219 91; /* #30DB5B */
+
+  --glass: rgb(28 28 30 / 0.7);
+  --glass-edge: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  --scrim: rgb(0 0 0 / 0.56);
+  --tint-alpha: 0.22;
+  --shadow-card: none;
+  --fill-bg-2: 44 44 46;
+  --fill-bg-3: 58 58 60;
+  --fill-surface-2: 44 44 46;
+  --fill-surface-3: 58 58 60;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --date-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+  --time-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
+}
+
+/* Phone type sizes (design system section 3): large-title 30/36, score 56. */
+@media (max-width: 767px) {
+  :root {
+    --fs-large-title: 1.875rem;
+    --lh-large-title: 2.25rem;
+    --fs-score: 3.5rem;
+    --lh-score: 3.5rem;
+    --page-gutter: 1.25rem;
+  }
 }
 
 @layer base {
@@ -54,15 +120,259 @@
   body {
     @apply bg-bg font-sans text-ink;
   }
+  /* The theme switch eases the canvas colour (§6.7); reduced motion makes it instant. */
+  html,
+  body {
+    transition: background-color 200ms ease;
+  }
   /* One keyboard-focus look everywhere, matching Button's ring, for the custom
      controls (calendar cells, chips, toolbar icons) that don't set their own. */
   :focus-visible {
-    outline: 2px solid rgb(var(--color-blue));
+    outline: 2px solid rgb(var(--color-focus));
     outline-offset: 2px;
+  }
+  /* A route change moves focus to the page heading for screen readers. The heading isn't a control, so it gets no
+     ring (Chrome otherwise draws one after a typed URL or a script navigation). */
+  h1[tabindex='-1']:focus-visible {
+    outline: none;
+  }
+
+  /* Thin, quiet scrollbars everywhere (no arrow buttons, transparent track): panels, sheets and the page.
+     Firefox takes the standard properties. Chromium and Safari take the ::-webkit-scrollbar rules instead: there the
+     standard properties would win over them and Windows would still draw arrow buttons, so they are left at auto. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-ink-3) / 0.45) transparent;
+  }
+  @supports selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-ink-3) / 0.45);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--color-ink-3) / 0.7);
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+  /* The app shell reserves the page scrollbar's gutter, so opening a sheet (which locks the scroll) or a page
+     growing past the fold does not shift the layout sideways. Full-screen routes are left alone. */
+  html:has([data-app-shell]) {
+    scrollbar-gutter: stable;
+  }
+
+  /* Native controls, dressed once for every form (design system section 8): */
+  /* a select gets the field chevron instead of the OS arrow; a select drawing its own icon opts out. */
+  select:not([multiple]):not([size]):not(.appearance-none) {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: var(--select-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+  }
+  select:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  /* Checkboxes and radios: ink, never the browser's blue; 20 px unless a class sizes them. */
+  :where(input[type='checkbox'], input[type='radio']) {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    /* Beside a long label in a flex row it would otherwise shrink to a few pixels on phones. */
+    flex-shrink: 0;
+  }
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'] {
+    accent-color: rgb(var(--color-ink));
+  }
+  /* Date and time pickers: the lucide glyph in ink-2 instead of the OS calendar icon. */
+  input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    background: var(--date-glyph) center / 1rem 1rem no-repeat;
+    width: 1rem;
+    height: 1rem;
+    opacity: 1;
+    color: transparent;
+  }
+  input[type='time']::-webkit-calendar-picker-indicator {
+    background-image: var(--time-glyph);
   }
 }
 
+/* Fill context (see --fill-bg-2): the canvas gets the darker fills, a surface restores the token values. These are
+   plain class selectors on purpose: they follow whatever paints the element's background. */
+body,
+.bg-bg {
+  --color-surface-2: var(--fill-bg-2);
+  --color-surface-3: var(--fill-bg-3);
+}
+.bg-surface,
+.bg-sidebar {
+  --color-surface-2: var(--fill-surface-2);
+  --color-surface-3: var(--fill-surface-3);
+}
+
+@layer utilities {
+  /* Floating chrome only (design system section 5). Never on cards, rows or the sidebar. */
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: var(--glass-edge);
+  }
+  /* Floating menus: the glass edge and the pop shadow together (plain .glass would drop shadow-pop). */
+  .glass-pop { box-shadow: var(--glass-edge), 0 8px 32px rgba(0, 0, 0, 0.12); }
+  .bg-red-tint { background-color: rgb(var(--color-red) / var(--tint-alpha)); }
+  .bg-orange-tint { background-color: rgb(var(--color-orange) / var(--tint-alpha)); }
+  .bg-blue-tint { background-color: rgb(var(--color-blue) / var(--tint-alpha)); }
+  .bg-green-tint { background-color: rgb(var(--color-green) / var(--tint-alpha)); }
+  .pressable { transition: transform 160ms var(--ease-out), background-color 150ms ease, color 150ms ease; }
+  .pressable:active { transform: scale(0.97); transition-duration: 100ms; }
+  /* A floating panel's own scroll: a thin, quiet scrollbar on a transparent track. Every scroller now gets that from
+     the base rules, so this only restates it for Firefox (in Chromium the standard properties would bring back the
+     Windows arrow buttons). */
+  @supports not selector(::-webkit-scrollbar) {
+    .scroll-quiet { scrollbar-width: thin; scrollbar-color: rgb(var(--color-ink-3) / 0.45) transparent; }
+  }
+  /* A horizontal strip of chips or tabs: no scrollbar, and a soft fade on whichever edge has more content
+     (useEdgeFade sets data-fade-start / data-fade-end; ScrollStrip wires both). */
+  .scroll-strip {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    --fade-start: 0px;
+    --fade-end: 0px;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+  }
+  .scroll-strip::-webkit-scrollbar { display: none; }
+  .scroll-strip[data-fade-start] { --fade-start: 1.5rem; }
+  .scroll-strip[data-fade-end] { --fade-end: 1.5rem; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    --glass: rgb(var(--color-surface));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-separator: 198 198 200; /* #C6C6C8 */
+    --color-ink-2: 88 88 93;
+  }
+  .dark {
+    --color-separator: 56 56 58; /* #38383A */
+    --color-ink-2: 190 190 195;
+  }
+  .glass {
+    --glass: rgb(var(--color-surface));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :where(button, input, select, textarea):not(:focus-visible) {
+    outline: 1px solid rgb(var(--color-ink-3));
+  }
+}
+
+/* Instant press feedback on recording targets (tapFlash). A colour state, so reduced motion keeps it. */
+[data-flash] {
+  background-color: rgb(var(--color-surface-3)) !important;
+  transition: none;
+}
+/* An already-selected tile is surface-3, so its flash steps the other way to stay visible. */
+[data-flash][aria-pressed='true'] {
+  background-color: rgb(var(--color-surface-2)) !important;
+}
+
+@keyframes menu-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes menu-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.menu-pop { animation: menu-pop 160ms var(--ease-out); }
+
+/* Opaque root containers that paint their own canvas colour, so the theme switch eases (§6.7). */
+.canvas { transition: background-color 200ms ease, color 200ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas { transition: none; }
+  .menu-pop { animation: menu-fade 160ms linear; }
+  .pressable { transition: none; }
+  .pressable:active { transform: none; }
+  html,
+  body { transition: none; }
+}
+
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid CanvasText; }
+}
+
 @media print {
+  /* Print light whatever the theme: every dark token takes its light value. */
+  .dark {
+    color-scheme: light;
+    --color-navy: 35 86 168;
+    --brand-tile-edge: transparent;
+    --color-bg: 245 245 247;
+    --color-surface: 255 255 255;
+    --color-surface-2: 242 242 247;
+    --color-surface-3: 229 229 234;
+    --color-ink: 29 29 31;
+    --color-ink-2: 110 110 115;
+    --color-ink-3: 142 142 147;
+    --color-on-ink: 255 255 255;
+    --color-separator: 222 222 224;
+    --color-focus: 0 113 227;
+    --color-segment-thumb: 255 255 255;
+    --color-sidebar: 255 255 255;
+    --color-red: 255 59 48;
+    --color-red-strong: 205 0 20;
+    --color-orange: 255 149 0;
+    --color-orange-strong: 201 52 0;
+    --color-blue: 0 122 255;
+    --color-blue-strong: 0 64 221;
+    --color-green: 52 199 89;
+    --color-green-strong: 30 125 55;
+    --glass: rgb(255 255 255 / 0.72);
+    --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06);
+    --scrim: rgb(0 0 0 / 0.28);
+    --tint-alpha: 0.14;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --fill-bg-2: 232 232 237;
+    --fill-bg-3: 220 220 225;
+    --fill-surface-2: 242 242 247;
+    --fill-surface-3: 229 229 234;
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --date-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+    --time-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
+  }
   header, nav, footer { display: none !important; }
   body { background: #fff; }
   /* Report only: keep grade bars / rotation colors, don't split a player row. */

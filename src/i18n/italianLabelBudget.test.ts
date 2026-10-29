@@ -20,15 +20,46 @@ function pairs(): Pair[] {
   for (const k of ['home', 'teams', 'trainings', 'exercises', 'more'] as const) {
     out.push({ place: `layout.nav.${k}`, en: en.layout.nav[k], it: itCat.layout.nav[k] });
   }
+  for (const k of ['newMatch', 'newTraining', 'newExercise'] as const) {
+    out.push({ place: `home.shortcuts.${k}`, en: en.home.shortcuts[k], it: itCat.home.shortcuts[k] });
+  }
   for (const k of ['skillsRated', 'focusAreas', 'openObjectives', 'lastPhysicalTest'] as const) {
     out.push({ place: `players.kpi.${k}`, en: en.players.kpi[k], it: itCat.players.kpi[k] });
   }
   for (const k of ['players', 'avgSkill'] as const) {
     out.push({ place: `teams.statsRow.${k}`, en: en.teams.statsRow[k], it: itCat.teams.statsRow[k] });
   }
+  for (const k of ['roster', 'calendar', 'matches', 'stats', 'plan', 'physical', 'settings'] as const) {
+    out.push({ place: `teams.page.tabs.${k}`, en: en.teams.page.tabs[k], it: itCat.teams.page.tabs[k] });
+  }
+  for (const k of ['skills', 'matches', 'physical', 'plan', 'contact', 'privacy'] as const) {
+    out.push({ place: `players.card.sections.${k}`, en: en.players.card.sections[k], it: itCat.players.card.sections[k] });
+  }
   for (const k of ['record', 'sideOut', 'breakPoint', 'attackEff', 'receptionPos', 'acesServeErrors', 'oppErrors'] as const) {
     out.push({ place: `teams.stats.${k}`, en: en.teams.stats[k], it: itCat.teams.stats[k] });
   }
+  for (const k of ['wholeSeason', 'last5', 'last10', 'dates'] as const) {
+    out.push({ place: `teams.stats.${k}`, en: en.teams.stats[k], it: itCat.teams.stats[k] });
+  }
+  for (const k of ['tabCourt', 'tabLive', 'tabTimeline', 'tabText', 'dismiss', 'takeBack', 'leave'] as const) {
+    out.push({ place: `scout.page.${k}`, en: en.scout.page[k], it: itCat.scout.page[k] });
+  }
+  for (const k of ['saved', 'saving', 'retry'] as const) {
+    out.push({ place: `diagrams.editor.status.${k}`, en: en.diagrams.editor.status[k], it: itCat.diagrams.editor.status[k] });
+  }
+  for (const k of ['choose', 'photos', 'preview'] as const) {
+    out.push({ place: `awards.prepare.steps.${k}`, en: en.awards.prepare.steps[k], it: itCat.awards.prepare.steps[k] });
+  }
+  for (const k of ['skillGuide', 'physicalTestGuide'] as const) {
+    out.push({ place: `admin.guidesPage.${k}`, en: en.admin.guidesPage[k], it: itCat.admin.guidesPage[k] });
+  }
+  for (const k of ['profile', 'people', 'export', 'contract'] as const) {
+    out.push({ place: `clubs.area.tabs.${k}`, en: en.clubs.area.tabs[k], it: itCat.clubs.area.tabs[k] });
+  }
+  for (const k of ['clubs', 'leads'] as const) {
+    out.push({ place: `platform.tabs.${k}`, en: en.platform.tabs[k], it: itCat.platform.tabs[k] });
+  }
+  out.push({ place: 'scout.rally.timeoutShort', en: en.scout.rally.timeoutShort, it: itCat.scout.rally.timeoutShort });
   return out;
 }
 

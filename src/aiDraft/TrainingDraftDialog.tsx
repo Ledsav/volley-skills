@@ -4,7 +4,8 @@ import { useAuth } from '../auth/AuthContext';
 import { AI_MAX_TOKENS, DRAFT_TEMPERATURE, chatJson } from '../ai/aiClient';
 import { readAiSettings } from '../ai/aiSettings';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { ToggleChip } from '../components/Chip';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { Input, Textarea } from '../components/Input';
 import { OfflineError, useSave } from '../components/useSave';
 import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/ExerciseDetailSheet';
@@ -168,9 +169,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
       <Button variant="secondary" className="mr-auto" onClick={() => void generate()}>
         {t.regenerate}
       </Button>
-      <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        {cancel}
-      </Button>
+      <SheetCancelButton className="hidden md:inline-flex" />
       <Button variant="secondary" onClick={() => void handleOpenInBuilder()} disabled={!canSave}>
         {td.openInBuilder}
       </Button>
@@ -180,9 +179,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
     </>
   ) : (
     <>
-      <Button variant="ghost" onClick={onClose} className="hidden sm:inline-flex">
-        {cancel}
-      </Button>
+      <SheetCancelButton className="hidden md:inline-flex" />
       <Button variant="primary" onClick={() => void generate()} disabled={!goal.trim()}>
         {t.generate}
       </Button>
@@ -190,12 +187,12 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
   );
 
   return (
-    <Dialog title={td.title} size="lg" mobileSheet dirty={draft !== null} onClose={onClose} footer={footer}>
+    <Sheet title={td.title} size="lg" detent="large" dirty={draft !== null} onClose={onClose} footer={footer}>
       <div className="flex flex-col gap-4">
         {!draft && (
           <>
             <div>
-              <label htmlFor="tdraft-goal" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="tdraft-goal" className="mb-1 block text-callout font-medium text-ink">
                 {td.goal}
               </label>
               <Textarea
@@ -206,26 +203,26 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
               />
-              <p className="mt-1 text-xs text-slate">
+              <p className="mt-1 text-footnote text-ink-2">
                 {td.privacy}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="tdraft-age-in" className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor="tdraft-age-in" className="mb-1 block text-callout font-medium text-ink">
                   {td.ageGroup}
                 </label>
                 <Input id="tdraft-age-in" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="tdraft-min" className="mb-1 block text-sm font-medium text-ink">
+                <label htmlFor="tdraft-min" className="mb-1 block text-callout font-medium text-ink">
                   {td.totalMinutes}
                 </label>
                 <NumberField id="tdraft-min" min={30} max={180} value={minutes} onChange={setMinutes} />
               </div>
             </div>
             <div>
-              <label htmlFor="tdraft-players" className="mb-1 block text-sm font-medium text-ink">
+              <label htmlFor="tdraft-players" className="mb-1 block text-callout font-medium text-ink">
                 {td.suggestedPlayers}
               </label>
               <Input
@@ -236,37 +233,31 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
                 onChange={(e) => setPlayersText(e.target.value)}
                 className="w-24"
               />
-              <p className="mt-1 text-xs text-slate">{td.suggestedPlayersHint}</p>
+              <p className="mt-1 text-footnote text-ink-2">{td.suggestedPlayersHint}</p>
             </div>
             <div>
-              <span className="mb-1 block text-sm font-medium text-ink">{td.targets}</span>
-              <div role="group" aria-label={td.targets} className="flex flex-wrap gap-1.5">
+              <span className="mb-1 block text-callout font-medium text-ink">{td.targets}</span>
+              <div role="group" aria-label={td.targets} className="flex flex-wrap gap-2">
                 {EXERCISE_CATEGORIES.map((c) => {
-                  const active = targets.includes(c.key);
                   return (
-                    <button
+                    <ToggleChip
                       key={c.key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() =>
+                      pressed={targets.includes(c.key)}
+                      label={lb.exerciseCategory[c.key]}
+                      onToggle={() =>
                         setTargets((current) =>
                           current.includes(c.key)
                             ? current.filter((t) => t !== c.key)
                             : EXERCISE_CATEGORIES.map((x) => x.key).filter((k) => k === c.key || current.includes(k))
                         )
                       }
-                      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-                        active ? 'bg-blue text-white' : 'border border-border bg-surface text-slate hover:bg-bg'
-                      }`}
-                    >
-                      {lb.exerciseCategory[c.key]}
-                    </button>
+                    />
                   );
                 })}
               </div>
             </div>
             {canWriteExercises && (
-              <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
+              <label className="flex min-h-11 items-center gap-2 text-callout text-ink">
                 <input type="checkbox" className="h-4 w-4" checked={allowNew} onChange={(e) => setAllowNew(e.target.checked)} />
                 {td.allowNew}
               </label>
@@ -275,16 +266,16 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
         )}
 
         {generating && (
-          <p role="status" className="text-sm text-slate">
+          <p role="status" className="text-callout text-ink-2">
             {t.drafting}
           </p>
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-callout text-red-strong">
             {error.text}{' '}
             {error.settingsLink && (
-              <Link to="/settings" className="text-blue hover:underline">
+              <Link to="/settings" className="text-ink underline-offset-2 hover:underline">
                 {t.openSettings}
               </Link>
             )}
@@ -297,6 +288,6 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
       {draft && viewing !== null && (
         <ExerciseDetailSheet entries={toEntries(draft)} startIndex={viewing} onClose={() => setViewing(null)} />
       )}
-    </Dialog>
+    </Sheet>
   );
 }

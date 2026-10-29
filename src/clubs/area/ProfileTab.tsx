@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Button } from '../../components/Button';
-import { FIELD_CLASS, Input } from '../../components/Input';
+import { Field, Input } from '../../components/Input';
+import { Select } from '../../components/Select';
+import { SwitchRow } from '../../components/Switch';
 import { useNotify } from '../../components/Notice';
 import { useAuth } from '../../auth/AuthContext';
 import { CLUB_COUNTRY_CODES, updateClubProfile } from '../clubAdminApi';
@@ -12,6 +14,16 @@ const LOCALES: { id: ClubLocale; label: string }[] = [
   { id: 'en', label: 'English' },
   { id: 'it', label: 'Italiano' },
 ];
+
+const GROUP = 'overflow-hidden rounded-lg bg-surface shadow-card';
+// A row of at least 52px with a hairline above it, inset to the text like ListRow.
+const ROW = 'relative min-h-[52px] px-4 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden';
+
+function ToggleRow({ title, description, checked, disabled, onChange }: {
+  title: string; description: string; checked: boolean; disabled: boolean; onChange: (v: boolean) => void;
+}) {
+  return <SwitchRow className={`${ROW} py-2`} label={title} description={description} checked={checked} disabled={disabled} onChange={onChange} />;
+}
 
 export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
   const { club } = useAuth();
@@ -62,64 +74,42 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} noValidate
-      className="flex max-w-xl flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-card">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="club-name" className="text-sm font-medium text-ink">{p.nameLabel}</label>
-        <Input id="club-name" value={name} disabled={restricted} onChange={(e) => setName(e.target.value)}
-          aria-invalid={!!nameError} aria-describedby={nameError ? 'club-name-error' : undefined} />
-        {nameError && <p id="club-name-error" role="alert" className="text-sm text-red">{nameError}</p>}
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="club-country" className="text-sm font-medium text-ink">{p.country}</label>
-        <select id="club-country" value={country} disabled={restricted} onChange={(e) => setCountry(e.target.value)}
-          className={`${FIELD_CLASS} w-full`}>
-          {!CLUB_COUNTRY_CODES.includes(country) && <option value={country}>{country}</option>}
-          {countries.map((c) => <option key={c} value={c}>{regionNames.of(c) ?? c}</option>)}
-        </select>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="club-locale" className="text-sm font-medium text-ink">{t.settings.languageLabel}</label>
-        <select id="club-locale" value={locale} disabled={restricted}
-          onChange={(e) => setLocale(e.target.value as ClubLocale)} className={`${FIELD_CLASS} w-full`}>
-          {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en' || l.id === club.locale).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-        </select>
-      </div>
-
-      <div className="flex items-start gap-3">
-        <input id="club-ai" type="checkbox" checked={aiEnabled} disabled={restricted}
-          onChange={(e) => setAiEnabled(e.target.checked)} className="mt-1" />
-        <div>
-          <label htmlFor="club-ai" className="text-sm font-medium text-ink">{p.aiTitle}</label>
-          <p className="text-sm text-slate">
-            {p.aiDescription}
-          </p>
+    <form onSubmit={(e) => void submit(e)} noValidate className="flex max-w-xl flex-col gap-6">
+      <div className="flex flex-col gap-4 rounded-lg bg-surface p-4 shadow-card">
+        <div className="flex flex-col">
+          <Field label={p.nameLabel}>
+            <Input id="club-name" value={name} disabled={restricted} onChange={(e) => setName(e.target.value)}
+              aria-invalid={!!nameError} aria-describedby={nameError ? 'club-name-error' : undefined} />
+          </Field>
+          {nameError && <p id="club-name-error" role="alert" className="mt-1.5 text-footnote text-red-strong">{nameError}</p>}
         </div>
+        <Field label={p.country}>
+          <Select id="club-country" value={country} disabled={restricted} onChange={(e) => setCountry(e.target.value)}>
+            {!CLUB_COUNTRY_CODES.includes(country) && <option value={country}>{country}</option>}
+            {countries.map((c) => <option key={c} value={c}>{regionNames.of(c) ?? c}</option>)}
+          </Select>
+        </Field>
+        <Field label={t.settings.languageLabel}>
+          <Select id="club-locale" value={locale} disabled={restricted}
+            onChange={(e) => setLocale(e.target.value as ClubLocale)}>
+            {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en' || l.id === club.locale).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+          </Select>
+        </Field>
       </div>
 
-      <div className="flex items-start gap-3">
-        <input id="club-growth" type="checkbox" checked={growthTestsEnabled} disabled={restricted}
-          onChange={(e) => setGrowthTestsEnabled(e.target.checked)} className="mt-1" />
-        <div>
-          <label htmlFor="club-growth" className="text-sm font-medium text-ink">{p.growthTitle}</label>
-          <p className="text-sm text-slate">
-            {p.growthDescription}
-          </p>
-        </div>
+      <div className={GROUP}>
+        <ToggleRow title={p.aiTitle} description={p.aiDescription} checked={aiEnabled}
+          disabled={restricted} onChange={setAiEnabled} />
+        <ToggleRow title={p.growthTitle} description={p.growthDescription}
+          checked={growthTestsEnabled} disabled={restricted} onChange={setGrowthTestsEnabled} />
       </div>
 
-      <div className="flex items-start gap-3">
-        <input id="club-reference" type="checkbox" checked={referenceOptOut} disabled={restricted}
-          onChange={(e) => setReferenceOptOut(e.target.checked)} className="mt-1" />
-        <div>
-          <label htmlFor="club-reference" className="text-sm font-medium text-ink">{p.referenceTitle}</label>
-          <p className="text-sm text-slate">{p.referenceDescription}</p>
-        </div>
+      <div className={GROUP}>
+        <ToggleRow title={p.referenceTitle} description={p.referenceDescription}
+          checked={referenceOptOut} disabled={restricted} onChange={setReferenceOptOut} />
       </div>
 
-      {error && <p role="alert" className="text-red">{error}</p>}
+      {error && <p role="alert" className="text-red-strong">{error}</p>}
       {!restricted && (
         <Button type="submit" variant="primary" className="w-full sm:w-auto sm:self-start" disabled={saving}>
           {t.common.save}

@@ -7,11 +7,56 @@ import { createItem, emptyScene } from './sceneFactory';
 const withItems = (items: Scene['items']): Scene => ({ ...emptyScene('full'), items });
 
 describe('DiagramSvg', () => {
+  it('draws selection, handles and the marquee in the focus colour, never the Advanced blue', () => {
+    const a = { ...createItem('player', { x: 20, y: 20 }), id: 'a' };
+    const arrow = { ...createItem('arrow', { x: 50, y: 50 }), id: 'b' };
+    const marquee = { x: 5, y: 5, w: 10, h: 10 };
+    const paint = (el: Element) => `${el.getAttribute('stroke') ?? ''} ${el.getAttribute('fill') ?? ''}`;
+    const painted = (items: Scene['items'], ids: string[]) => {
+      const { container } = render(
+        <DiagramSvg scene={withItems(items)} interactive selectedIds={ids} marqueeRect={marquee} onEndpointPointerDown={() => {}} />,
+      );
+      return [
+        ...container.querySelectorAll('[data-selection-outline], [data-transform-handle], [data-endpoint-handle], [data-marquee-rect]'),
+      ];
+    };
+    const els = [...painted([a], ['a']), ...painted([arrow], ['b'])];
+    expect(els.length).toBeGreaterThan(3);
+    for (const el of els) {
+      expect(paint(el)).toContain('--color-focus');
+      expect(paint(el)).not.toContain('--color-blue');
+    }
+  });
+
   it('renders an svg with a 0 0 100 100 viewBox and the court backdrop', () => {
     const { container } = render(<DiagramSvg scene={emptyScene('half')} />);
     const svg = container.querySelector('svg');
     expect(svg?.getAttribute('viewBox')).toBe('0 0 100 100');
     expect(container.querySelector('[data-court="half"]')).not.toBeNull();
+  });
+
+  it('fit frames a half court on the court itself (centred), and grows to items measured outside it', () => {
+    const { container, unmount } = render(<DiagramSvg scene={emptyScene('half')} fit />);
+    // half court x 8..92 (net posts), y 6..72, plus 3 units of padding
+    expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('5 3 90 72');
+    unmount();
+
+    const original = (SVGElement.prototype as unknown as { getBBox?: unknown }).getBBox;
+    Object.defineProperty(SVGElement.prototype, 'getBBox', {
+      configurable: true,
+      value: () => ({ x: 4, y: 6, width: 100, height: 60 }),
+    });
+    try {
+      const fitted = render(<DiagramSvg scene={emptyScene('half')} fit />);
+      expect(fitted.container.querySelector('svg')?.getAttribute('viewBox')).toBe('1 3 106 72');
+    } finally {
+      Object.defineProperty(SVGElement.prototype, 'getBBox', { configurable: true, value: original });
+    }
+  });
+
+  it('never fits the interactive editor canvas', () => {
+    const { container } = render(<DiagramSvg scene={emptyScene('half')} interactive fit />);
+    expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 100 100');
   });
 
   it('renders items in array order (later items appear after earlier in the DOM)', () => {

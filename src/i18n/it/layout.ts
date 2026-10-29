@@ -2,7 +2,7 @@ import type { Catalog } from '../catalog';
 
 export const layout = {
   nav: {
-    home: 'Home',
+    home: 'Oggi',
     coaching: 'Coaching',
     teams: 'Squadre',
     trainings: 'Allenamenti',
@@ -19,6 +19,11 @@ export const layout = {
     scouting: 'Caricamento dello scouting…',
     awards: 'Caricamento dei premi…',
   },
+  lazyError: {
+    title: 'La pagina non si è caricata',
+    body: 'L’app potrebbe essere stata aggiornata o la connessione si è interrotta. Ricarica per riprovare.',
+    reload: 'Ricarica',
+  },
   appShell: {
     droppedClub: 'Non hai più accesso al club precedente.',
     skipToContent: 'Vai al contenuto',
@@ -31,6 +36,11 @@ export const layout = {
     settings: 'Impostazioni',
     termsAndPrivacy: 'Termini e privacy',
     signOut: 'Esci',
+    roleAdmin: 'Admin',
+    roleMember: 'Membro',
+    openNavigation: 'Apri la navigazione',
+    search: 'Cerca',
+    moreActions: 'Altre azioni',
   },
   morePage: {
     title: 'Altro',

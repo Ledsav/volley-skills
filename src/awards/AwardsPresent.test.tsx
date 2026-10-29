@@ -1,5 +1,5 @@
 // src/awards/AwardsPresent.test.tsx
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardModel } from './card/drawAwardCard';
 import type { StoryDeps } from './card/drawSlide';
@@ -78,5 +78,40 @@ describe('AwardsPresent', () => {
   it('never shows runners-up (only winners are in cards)', () => {
     render(<AwardsPresent slides={awardsOnly} deps={deps} onExit={vi.fn()} />);
     expect(screen.queryByText(/Runners-up/)).toBeNull();
+  });
+
+  it('the ? button and the ? key show the shortcuts', () => {
+    render(<AwardsPresent slides={awardsOnly} deps={deps} onExit={vi.fn()} />);
+    expect(screen.queryByRole('region', { name: 'Keyboard shortcuts' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
+    expect(within(screen.getByRole('region', { name: 'Keyboard shortcuts' })).getByText('Back to prepare')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.queryByRole('region', { name: 'Keyboard shortcuts' })).toBeNull();
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.getByRole('region', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
+  });
+
+  it('Escape closes the shortcuts first, then exits', () => {
+    const onExit = vi.fn();
+    render(<AwardsPresent slides={awardsOnly} deps={deps} onExit={onExit} />);
+    fireEvent.keyDown(window, { key: '?' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onExit).not.toHaveBeenCalled();
+    expect(screen.queryByRole('region', { name: 'Keyboard shortcuts' })).toBeNull();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('controls stay visible while the shortcuts are open', () => {
+    vi.useFakeTimers();
+    try {
+      render(<AwardsPresent slides={awardsOnly} deps={deps} onExit={vi.fn()} />);
+      const row = screen.getByRole('button', { name: 'Exit presentation' }).parentElement!;
+      fireEvent.keyDown(window, { key: '?' });
+      act(() => { vi.advanceTimersByTime(2500); });
+      expect(row).toHaveClass('opacity-100');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,20 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import { applyTheme, getInitialTheme, THEME_CHANGED_EVENT, type Theme } from './theme';
+import {
+  getThemePreference,
+  setThemePreference,
+  THEME_CHANGED_EVENT,
+  THEME_PREFERENCE_CHANGED_EVENT,
+  type ThemePreference,
+} from './theme';
 
-/** The current theme and a toggle; every caller follows changes made anywhere else. */
-export function useTheme(): [Theme, () => void] {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
+/** The stored preference (including 'system') and a setter; follows changes made anywhere else. */
+export function useThemePreference(): [ThemePreference, (p: ThemePreference) => void] {
+  const [pref, setPref] = useState<ThemePreference>(() => getThemePreference());
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const sync = () => setTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    const sync = () => setPref(getThemePreference());
     window.addEventListener(THEME_CHANGED_EVENT, sync);
-    return () => window.removeEventListener(THEME_CHANGED_EVENT, sync);
+    window.addEventListener(THEME_PREFERENCE_CHANGED_EVENT, sync);
+    return () => {
+      window.removeEventListener(THEME_CHANGED_EVENT, sync);
+      window.removeEventListener(THEME_PREFERENCE_CHANGED_EVENT, sync);
+    };
   }, []);
 
-  const toggle = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);
-  return [theme, toggle];
+  const set = useCallback((p: ThemePreference) => {
+    setThemePreference(p);
+    setPref(p);
+  }, []);
+  return [pref, set];
 }

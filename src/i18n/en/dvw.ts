@@ -57,6 +57,7 @@ export const dvw = {
     checks: 'Checks',
     set: 'Set',
     file: 'File',
+    matchGroup: 'Match',
     pointLines: 'Point lines',
     replayed: 'Replayed',
     setN: (n: number) => `Set ${n}`,

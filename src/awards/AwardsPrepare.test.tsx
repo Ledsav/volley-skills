@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ResolvedAward } from './resolveAwards';
 import { AwardsPrepare, type AwardsPrepareProps } from './AwardsPrepare';
@@ -40,7 +40,7 @@ describe('AwardsPrepare', () => {
     expect(p.onAction).toHaveBeenCalledWith({ type: 'pick', key: 'attacker', playerId: 'b' });
     fireEvent.change(within(row).getByLabelText('Winner'), { target: { value: '' } });
     expect(p.onAction).toHaveBeenCalledWith({ type: 'pick', key: 'attacker', playerId: null });
-    fireEvent.click(within(row).getByRole('checkbox', { name: 'Hide' }));
+    fireEvent.click(within(row).getByRole('switch', { name: 'Hide' }));
     expect(p.onAction).toHaveBeenCalledWith({ type: 'hide', key: 'attacker', hidden: true });
   });
 
@@ -62,7 +62,7 @@ describe('AwardsPrepare', () => {
     fireEvent.click(screen.getByRole('button', { name: '+ Custom award' }));
     fireEvent.change(screen.getByLabelText('Award title'), { target: { value: 'Spirit of the team' } });
     fireEvent.change(screen.getByLabelText('Player'), { target: { value: 'b' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add award' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add award' }));
     expect(p.onAction).toHaveBeenCalledWith({ type: 'addCustom', title: 'Spirit of the team', playerId: 'b', note: '' });
   });
 
@@ -93,6 +93,7 @@ describe('AwardsPrepare', () => {
 
   it('switches palette and toggles the story', () => {
     const p = setup();
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
     fireEvent.change(screen.getByLabelText('Palette'), { target: { value: 'wrapped' } });
     expect(p.onPalettePrefs).toHaveBeenCalledWith({ selectedId: 'wrapped', custom: [] });
     fireEvent.click(screen.getByLabelText('Include season story'));
@@ -101,6 +102,7 @@ describe('AwardsPrepare', () => {
 
   it('saves a new custom palette and selects it', () => {
     const p = setup();
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
     fireEvent.click(screen.getByRole('button', { name: 'New palette' }));
     fireEvent.change(screen.getByLabelText('Palette name'), { target: { value: 'Mine' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save palette' }));
@@ -112,11 +114,13 @@ describe('AwardsPrepare', () => {
 
   it('warns not to use photos of players as the background image', () => {
     setup();
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
     expect(screen.getByText("Don't use photos that show players.")).toBeInTheDocument();
   });
 
   it('disables photo controls for a winner without consent and says why', () => {
     setup({ photoAllowed: () => false });
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
     expect(screen.getAllByText('No photo consent on file — the card shows the jersey number.').length).toBeGreaterThan(0);
     expect(screen.queryByText('Add photo')).not.toBeInTheDocument();
   });
@@ -124,6 +128,7 @@ describe('AwardsPrepare', () => {
   it('offers background removal for a consented photo and shows progress, then an error on failure', async () => {
     const onCutout = vi.fn().mockRejectedValue(new Error('x'));
     setup({ photos: new Map([['attacker', document.createElement('canvas')]]), onCutout });
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove background' }));
     expect(screen.getByText('Preparing on this device…')).toBeInTheDocument();
     expect(await screen.findByText('Could not remove the background. The original photo is kept.')).toBeInTheDocument();
@@ -136,12 +141,16 @@ describe('AwardsPrepare', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Summary card/ }));
     expect(p.onExportSummary).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    expect(screen.getByRole('menuitem', { name: /Video export isn't supported in this browser/ })).toBeInTheDocument();
+    const video = screen.getByRole('menuitem', { name: /Video export isn't supported in this browser/ });
+    expect(video).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(video);
+    expect(p.onRecordVideo).not.toHaveBeenCalled();
   });
 
   it('branding: uploads a club logo and sponsor logos, removes one, and toggles original colours', () => {
     const logo = document.createElement('canvas');
     const p = setup({ branding: { clubLogo: null, sponsors: [logo, logo], mono: true } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
     const file = new File(['x'], 'l.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('Club logo'), { target: { files: [file] } });
     expect(p.onClubLogo).toHaveBeenCalledWith(file);
@@ -156,8 +165,54 @@ describe('AwardsPrepare', () => {
   it('branding: stops adding sponsors at six', () => {
     const logo = document.createElement('canvas');
     setup({ branding: { clubLogo: logo, sponsors: Array(6).fill(logo), mono: true } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
     expect(screen.getByLabelText('Add sponsor logos')).toBeDisabled();
     expect(screen.getByText('Up to 6 sponsors')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove club logo' })).toBeInTheDocument();
+  });
+
+  it('is split into Choose, Photos and Preview, starting on Choose', () => {
+    setup();
+    const tabs = within(screen.getByRole('tablist', { name: 'Award steps' })).getAllByRole('tab');
+    expect(tabs).toHaveLength(3);
+    expect(screen.getByRole('tab', { name: 'Choose' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('region', { name: 'Best attacker' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Palette')).toBeNull();
+  });
+
+  it('a running cut-out survives a step change', async () => {
+    let resolve!: () => void;
+    const onCutout = vi.fn(() => new Promise<void>((r) => { resolve = r; }));
+    setup({ photos: new Map([['attacker', document.createElement('canvas')]]), onCutout });
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove background' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
+    expect(screen.getByText('Preparing on this device…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove background' })).toBeDisabled();
+    await act(async () => { resolve(); });
+    expect(screen.queryByText('Preparing on this device…')).toBeNull();
+    expect(onCutout).toHaveBeenCalledTimes(1);
+    expect(onCutout).toHaveBeenCalledWith('attacker', true);
+  });
+
+  it('Cancel on the custom award sheet after typing asks to discard', () => {
+    setup();
+    fireEvent.click(screen.getByRole('button', { name: '+ Custom award' }));
+    const sheet = screen.getByRole('dialog');
+    fireEvent.change(within(sheet).getByLabelText('Award title'), { target: { value: 'Spirit' } });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Discard changes?');
+  });
+
+  it('Preview shows each card with its PNG, hidden awards included', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    const model = (key: string) => ({ key, awardTitle: key, name: 'Ana L.', number: 7, statLine: null, footer: '', teamName: 'U17', clubName: '', note: '' });
+    const p = setup({ awards: [award({}), award({ key: 'mvp', title: 'MVP', hidden: true })], cardFor: (a) => model(a.key) });
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
+    const png = screen.getAllByRole('button', { name: 'PNG' });
+    expect(png).toHaveLength(2);
+    fireEvent.click(png[0]);
+    expect(p.onExportOne).toHaveBeenCalledWith('attacker');
   });
 });

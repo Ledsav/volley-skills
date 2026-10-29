@@ -208,28 +208,28 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
   const canProcess = anchorState.inSet && configured && online && !busy && text.trim().length > 0;
 
   return (
-    <section aria-label={tx.ariaLabel} className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-3">
+    <section aria-label={tx.ariaLabel} className="flex flex-col gap-3 rounded-xl bg-surface p-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-ink">{tx.title}</h2>
-        <button type="button" onClick={onClose} className="min-h-11 rounded-md px-3 text-sm text-blue hover:bg-blue/10">{tx.close}</button>
+        <h2 className="text-headline text-ink">{tx.title}</h2>
+        <button type="button" onClick={onClose} className="min-h-11 rounded-md px-3 text-callout font-semibold text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">{tx.close}</button>
       </div>
-      <p className="text-xs tabular-nums text-slate">
+      <p className="text-footnote tabular-nums text-ink-2">
         {tx.inserting(!!anchorId, anchorState.score.us, anchorState.score.them, anchorState.set || '–', anchorState.rotation, anchorState.serving === 'us')}
       </p>
-      {!anchorState.inSet && <p className="text-sm text-orange-strong">{tx.startSetFirst}</p>}
+      {!anchorState.inSet && <p className="text-callout text-orange-strong">{tx.startSetFirst}</p>}
       {!configured && (
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-slate">{tx.noProvider}</p>
+          <p className="text-callout text-ink-2">{tx.noProvider}</p>
           <Link
             to="/settings"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-surface-2 px-3 py-1.5 text-callout font-semibold tracking-[-0.01em] text-ink hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             {tx.openSettings}
           </Link>
         </div>
       )}
-      {!online && <p className="text-sm text-slate">{tx.offline}</p>}
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+      {!online && <p className="text-callout text-ink-2">{tx.offline}</p>}
+      <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
         {tx.matchNotes}
         <Textarea
           aria-label={tx.matchNotes}
@@ -238,31 +238,33 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           onChange={(e) => editText(e.target.value)}
           placeholder={tx.placeholder}
         />
-        <span className="text-xs font-normal text-slate">{tx.tipResult}</span>
-        <span className="text-xs font-normal text-slate">{tx.tipDictate}</span>
-        <span className="text-xs font-normal text-slate">{tx.privacy}</span>
+        <span className="mt-1 flex flex-col gap-0.5 text-footnote font-normal text-ink-2">
+          <span>{tx.tipResult}</span>
+          <span>{tx.tipDictate}</span>
+          <span>{tx.privacy}</span>
+        </span>
       </label>
       <div className="flex items-center gap-2">
         <Button variant="primary" size="sm" onClick={() => void process()} disabled={!canProcess}>{tx.process}</Button>
         {busy && (
           <>
-            <span className="text-sm text-slate">{busy}</span>
+            <span className="text-callout text-ink-2">{busy}</span>
             <Button variant="ghost" size="sm" onClick={cancel}>{tx.cancel}</Button>
           </>
         )}
       </div>
-      {error && <p role="alert" className="text-sm text-red">{error}</p>}
+      {error && <p role="alert" className="text-callout text-red-strong">{error}</p>}
 
       {batch && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium tabular-nums text-ink">
+          <p className="text-callout font-semibold tabular-nums text-ink">
             {tx.scoreChange(anchorState.score.us, anchorState.score.them, afterState.score.us, afterState.score.them, afterState.rotation, afterState.serving === 'us')}
           </p>
           {laterConflicts > 0 && (
-            <p className="text-xs text-orange-strong">{tx.laterWarnings(laterConflicts)}</p>
+            <p className="text-footnote text-orange-strong">{tx.laterWarnings(laterConflicts)}</p>
           )}
           {batch.unparsed.length > 0 && (
-            <div className="rounded-md bg-orange/10 p-2 text-xs text-ink">
+            <div className="rounded-lg bg-orange-tint p-3 text-footnote text-ink">
               <p className="font-medium">{tx.notUnderstood}</p>
               <ul className="list-inside list-disc">
                 {batch.unparsed.map((u, i) => (
@@ -285,17 +287,17 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
             ))}
           </ul>
           <div className="flex items-end gap-2">
-            <label className="flex flex-col gap-1 text-xs text-slate">
+            <label className="flex flex-col gap-1 text-footnote text-ink-2">
               {tx.actualUs}
               <Input aria-label={tx.actualUsAria} type="number" min={0} className="w-20 tabular-nums" value={actual.us} onChange={(e) => setActual({ ...actual, us: e.target.value })} />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-slate">
+            <label className="flex flex-col gap-1 text-footnote text-ink-2">
               {tx.actualThem}
               <Input aria-label={tx.actualThemAria} type="number" min={0} className="w-20 tabular-nums" value={actual.them} onChange={(e) => setActual({ ...actual, them: e.target.value })} />
             </label>
           </div>
           {mismatch && (
-            <p role="alert" className="text-sm text-red">
+            <p role="alert" className="text-callout text-red-strong">
               {tx.mismatch(afterState.score.us, afterState.score.them, actual.us, actual.them)}
             </p>
           )}

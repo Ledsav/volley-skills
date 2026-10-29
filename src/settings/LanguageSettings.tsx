@@ -1,21 +1,44 @@
-import { FIELD_CLASS } from '../components/Input';
+import { useState } from 'react';
+import { Check } from 'lucide-react';
+import { GroupedList, ListRow } from '../components/GroupedList';
+import { Sheet } from '../components/Sheet';
 import { useLocale, useT } from '../i18n/I18nProvider';
 import { ITALIAN_ENABLED, type Locale } from '../i18n/locales';
-import { SettingsSection } from './SettingsSection';
 
 /** Personal language choice; hidden while Italian is not switched on. */
 export function LanguageSettings() {
-  const t = useT();
+  const t = useT().settings;
   const { locale, setLocale } = useLocale();
+  const [open, setOpen] = useState(false);
   if (!ITALIAN_ENABLED) return null;
+  const options: { id: Locale; label: string }[] = [
+    { id: 'en', label: t.english },
+    { id: 'it', label: t.italian },
+  ];
+  const current = options.find((o) => o.id === locale)?.label ?? t.english;
   return (
-    <SettingsSection title={t.settings.languageTitle} description={t.settings.languageDescription}>
-      <label htmlFor="app-language" className="sr-only">{t.settings.languageLabel}</label>
-      <select id="app-language" value={locale} onChange={(e) => setLocale(e.target.value as Locale)}
-        className={`${FIELD_CLASS} w-full sm:w-auto lg:self-start`}>
-        <option value="en">{t.settings.english}</option>
-        <option value="it">{t.settings.italian}</option>
-      </select>
-    </SettingsSection>
+    <>
+      <GroupedList header={t.languageTitle} footer={t.languageDescription}>
+        <ListRow onClick={() => setOpen(true)} title={t.languageLabel} trailing={current} />
+      </GroupedList>
+      {open && (
+        <Sheet title={t.languageLabel} detent="content" onClose={() => setOpen(false)}>
+          <GroupedList>
+            {options.map((o) => (
+              <ListRow
+                key={o.id}
+                title={o.label}
+                trailing={o.id === locale ? <Check size={18} aria-hidden="true" /> : undefined}
+                rowProps={{ 'aria-current': o.id === locale ? 'true' : undefined }}
+                onClick={() => {
+                  setLocale(o.id);
+                  setOpen(false);
+                }}
+              />
+            ))}
+          </GroupedList>
+        </Sheet>
+      )}
+    </>
   );
 }

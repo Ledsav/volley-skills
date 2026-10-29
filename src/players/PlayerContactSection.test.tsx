@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PlayerContactSection } from './PlayerContactSection';
 import * as playersApi from './playersApi';
+import { NoticeProvider } from '../components/Notice';
+import { PlayerSyncProvider } from './playerSync';
 import type { Player } from '../types/player';
 
 vi.mock('./playersApi');
@@ -190,5 +192,24 @@ describe('PlayerContactSection', () => {
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
     expect(screen.getByText('Outside')).toBeInTheDocument();
     expect(screen.getByText('00352 000 000')).toBeInTheDocument();
+  });
+});
+
+describe('offline saves', () => {
+  it('offline, the contact sheet closes as soon as the write is queued', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.spyOn(playersApi, 'updatePlayerContact').mockReturnValue(new Promise(() => undefined));
+    render(
+      <NoticeProvider>
+        <PlayerSyncProvider>
+          <ContactHarness player={basePlayer} />
+        </PlayerSyncProvider>
+      </NoticeProvider>,
+    );
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Updated Name' } });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(screen.queryByLabelText('Name')).not.toBeInTheDocument());
+    expect(screen.getByText('Saved on this device · will sync')).toBeInTheDocument();
   });
 });

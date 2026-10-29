@@ -1,10 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { Button } from './Button';
-import { Dialog } from './Dialog';
 import { EditButton } from './EditButton';
 import { HealthHint } from './HealthHint';
 import { Input, Textarea } from './Input';
+import { Sheet } from './Sheet';
 import { StatusChip, STATUS_OPTIONS } from './StatusChip';
 import type {
   DevelopmentPlan,
@@ -27,13 +27,13 @@ interface DevelopmentPlanEditorProps {
 }
 
 const selectClass =
-  'w-full rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-blue focus:border-blue';
+  'w-full min-h-11 rounded-md border border-separator bg-surface px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-focus';
 
 const STATUS_ACCENT: Record<ObjectiveStatus, string> = {
   Active: 'border-l-green',
   'In progress': 'border-l-blue',
   Completed: 'border-l-ink',
-  'Not started': 'border-l-slate',
+  'Not started': 'border-l-ink-3',
   Attention: 'border-l-orange',
 };
 
@@ -50,17 +50,17 @@ function ObjectiveCard({
 }) {
   const t = useT().components.plan;
   return (
-    <div className={`rounded-md border border-l-[3px] border-border bg-bg/40 p-3 ${STATUS_ACCENT[status]}`}>
+    <div className={`rounded-lg border-l-[3px] bg-surface-2 p-3 ${STATUS_ACCENT[status]}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-ink">{title || t.untitled}</p>
         <StatusChip status={status} />
       </div>
-      <p className="mt-1.5 flex items-center gap-1 text-xs text-slate">
+      <p className="mt-1.5 flex items-center gap-1 text-footnote text-ink-2">
         <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
         {targetLabel}
       </p>
       {coachComment && (
-        <p className="mt-2 border-t border-border pt-2 text-xs text-slate">{coachComment}</p>
+        <p className="mt-2 border-t border-separator pt-2 text-footnote text-ink-2">{coachComment}</p>
       )}
     </div>
   );
@@ -69,8 +69,8 @@ function ObjectiveCard({
 function GroupHeading({ label, count }: { label: string; count: number }) {
   return (
     <div className="mb-2 flex items-baseline gap-2">
-      <h3 className="text-sm font-semibold text-ink">{label}</h3>
-      <span className="text-xs tabular-nums text-slate">{count}</span>
+      <h3 className="text-title-3 text-ink">{label}</h3>
+      <span className="text-footnote tabular-nums text-ink-2">{count}</span>
     </div>
   );
 }
@@ -97,6 +97,8 @@ export function DevelopmentPlanEditor({
   const [seasonObjectives, setSeasonObjectives] = useState<SeasonObjective[]>(plan.seasonObjectives);
   const [generalNotes, setGeneralNotes] = useState(plan.generalNotes);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (editing) {
@@ -132,12 +134,18 @@ export function DevelopmentPlanEditor({
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     setError(null);
     try {
       await onSave({ shortTermObjectives, seasonObjectives, generalNotes });
     } catch {
       setError(t.saveError);
       return;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
     setEditing(false);
   }
@@ -154,7 +162,7 @@ export function DevelopmentPlanEditor({
       <section>
         <GroupHeading label={t.shortTerm} count={plan.shortTermObjectives.length} />
         {plan.shortTermObjectives.length === 0 ? (
-          <p className="text-sm text-slate">{t.noShortTerm}</p>
+          <p className="text-callout text-ink-2">{t.noShortTerm}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {plan.shortTermObjectives.map((o, i) => (
@@ -173,7 +181,7 @@ export function DevelopmentPlanEditor({
       <section>
         <GroupHeading label={t.season} count={plan.seasonObjectives.length} />
         {plan.seasonObjectives.length === 0 ? (
-          <p className="text-sm text-slate">{t.noSeason}</p>
+          <p className="text-callout text-ink-2">{t.noSeason}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {plan.seasonObjectives.map((o, i) => (
@@ -190,8 +198,8 @@ export function DevelopmentPlanEditor({
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-ink">{t.generalNotes}</h3>
-        <p className="whitespace-pre-wrap text-sm text-slate">{plan.generalNotes || t.noNotes}</p>
+        <h3 className="mb-2 text-title-3 text-ink">{t.generalNotes}</h3>
+        <p className="whitespace-pre-wrap text-callout text-ink-2">{plan.generalNotes || t.noNotes}</p>
       </section>
 
       {!isControlled && isAdmin && (
@@ -199,11 +207,18 @@ export function DevelopmentPlanEditor({
       )}
 
       {editing && isAdmin && (
-        <Dialog title={t.editTitle} size="lg" onClose={handleCancel} guardUnsaved>
-          <form onSubmit={handleSave} aria-label={t.editTitle}>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate">{t.shortTerm}</h3>
+        <Sheet
+          title={t.editTitle}
+          size="lg"
+          detent="large"
+          onClose={handleCancel}
+          guardUnsaved
+          confirm={{ label: c.save, form: 'development-plan-form', disabled: saving }}
+        >
+          <form id="development-plan-form" onSubmit={handleSave} aria-label={t.editTitle}>
+            <h3 className="text-headline text-ink">{t.shortTerm}</h3>
             {shortTermObjectives.map((o, i) => (
-              <div key={i} className="mt-3 rounded-md border border-border p-3">
+              <div key={i} className="mt-3 rounded-lg border border-separator p-3">
                 <label htmlFor={`short-term-objective-${i}`} className="mb-1 block text-sm font-medium text-ink">
                   {t.objective}
                 </label>
@@ -262,9 +277,9 @@ export function DevelopmentPlanEditor({
               {t.addShortTerm}
             </Button>
 
-            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{t.season}</h3>
+            <h3 className="mt-6 text-headline text-ink">{t.season}</h3>
             {seasonObjectives.map((o, i) => (
-              <div key={i} className="mt-3 rounded-md border border-border p-3">
+              <div key={i} className="mt-3 rounded-lg border border-separator p-3">
                 <label htmlFor={`season-objective-${i}`} className="mb-1 block text-sm font-medium text-ink">
                   {t.objective}
                 </label>
@@ -322,7 +337,7 @@ export function DevelopmentPlanEditor({
               {t.addSeason}
             </Button>
 
-            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{t.generalNotes}</h3>
+            <h3 className="mt-6 text-headline text-ink">{t.generalNotes}</h3>
             <Textarea
               aria-describedby="general-notes-hint"
               value={generalNotes}
@@ -331,21 +346,13 @@ export function DevelopmentPlanEditor({
             />
             <HealthHint id="general-notes-hint" />
 
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" onClick={handleCancel}>
-                {c.cancel}
-              </Button>
-              <Button variant="primary" type="submit">
-                {c.save}
-              </Button>
-            </div>
             {error && (
-              <p role="alert" className="mt-3 text-sm text-red">
+              <p role="alert" className="mt-3 text-sm text-red-strong">
                 {error}
               </p>
             )}
           </form>
-        </Dialog>
+        </Sheet>
       )}
     </div>
   );

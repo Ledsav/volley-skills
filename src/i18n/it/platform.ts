@@ -2,6 +2,7 @@ import type { Catalog } from '../catalog';
 
 export const platform = {
   pageTitle: 'Piattaforma',
+  backToApp: "Torna all'app",
   sectionsLabel: 'Sezioni della piattaforma',
   tabs: { clubs: 'Club', leads: 'Contatti' },
   actions: {
@@ -24,6 +25,7 @@ export const platform = {
     notAccepted: 'Non accettati',
     moreActionsFor: (club: string) => `Altre azioni per ${club}`,
     noClubs: (filtered: boolean) => (filtered ? 'Nessun club con questo stato.' : 'Ancora nessun club.'),
+    loading: 'Caricamento club…',
     loadMore: 'Carica altri',
   },
   dialog: {

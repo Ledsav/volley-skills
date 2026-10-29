@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { AlertTriangle, LogIn } from 'lucide-react';
+import { StatusLayout } from '../components/StatusLayout';
 import { AuthShell } from './AuthShell';
 import { takeReturnTo } from './returnTo';
 import { takeEmailForSignIn } from './emailLinkStorage';
@@ -40,13 +42,15 @@ export function FinishSignInPage() {
   }, [navigate]);
 
   return (
-    <AuthShell title="Volley Skills">
+    <AuthShell>
       {error ? (
-        <p role="alert" className="text-red">
-          {t[error]}
-        </p>
+        <StatusLayout icon={AlertTriangle} tone="error" title="Volley Skills">
+          <p role="alert">{t[error]}</p>
+        </StatusLayout>
       ) : (
-        <p className="text-slate">{t.signingIn}</p>
+        <StatusLayout icon={LogIn} title="Volley Skills">
+          {t.signingIn}
+        </StatusLayout>
       )}
     </AuthShell>
   );

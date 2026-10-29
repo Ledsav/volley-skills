@@ -1,6 +1,9 @@
 export const components = {
   close: 'Close',
+  done: 'Done',
+  cancel: 'Cancel',
   dismiss: 'Dismiss',
+  undo: 'Undo',
   edit: 'Edit',
   discardTitle: 'Discard changes?',
   discardMessage: "Your changes haven't been saved.",

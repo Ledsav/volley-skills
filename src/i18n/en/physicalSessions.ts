@@ -67,10 +67,12 @@ export const physicalSessions = {
     couldNotConfirmSaved: 'Could not confirm this was saved — check the player card before recording it again.',
   },
   start: {
+    newSession: 'New testing session',
     date: 'Date',
     startNew: 'Start new session',
     pastSessions: 'Past sessions',
     noSessions: 'No sessions yet.',
+    noSessionsBody: 'Test the whole team in one session: each player’s results go to their card.',
     loadError: 'Could not load past sessions.',
     couldNotStart: 'Could not start the session. Please try again.',
     alreadyOpen: 'A testing session is already open for this team.',

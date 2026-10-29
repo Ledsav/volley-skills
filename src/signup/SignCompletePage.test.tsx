@@ -96,3 +96,14 @@ describe('SignCompletePage', () => {
     expect(commitSignDraft).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SignCompletePage status layout', () => {
+  it('every view keeps the Completing sign-up heading', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue());
+    commitSignDraft.mockResolvedValue('wrongLink');
+    renderPage();
+    await screen.findByText(/doesn.t match the signing in progress in this browser/);
+    const h = screen.getByRole('heading', { name: 'Completing sign-up' });
+    expect(h).toHaveAttribute('tabindex', '-1');
+  });
+});

@@ -129,6 +129,7 @@ describe('AwardsPage', () => {
     nextCrop = [a, b];
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
     // photos need a winner with consent: player a wins Top scorer and MVP in this fixture
     const scorer = screen.getByRole('region', { name: /scorer/i });
     const pick = async (row: HTMLElement) => {
@@ -202,6 +203,7 @@ describe('AwardsPage', () => {
     ] as unknown as Player[]);
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
     expect(screen.getAllByText('No photo consent on file — the card shows the jersey number.').length).toBeGreaterThan(0);
   });
 
@@ -211,12 +213,14 @@ describe('AwardsPage', () => {
     ] as unknown as Player[]);
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('tab', { name: 'Photos' }));
     expect(screen.queryByText('No photo consent on file — the card shows the jersey number.')).toBeNull();
   });
 
   it('a logo the browser cannot read shows a message and adds nothing', async () => {
     renderAt('/teams/t1/awards', 'season');
     await screen.findByRole('region', { name: 'Best attacker' });
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));
     fireEvent.change(screen.getByLabelText('Club logo'), { target: { files: [new File(['x'], 'logo.txt', { type: 'text/plain' })] } });
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load that logo.');
     expect(screen.queryByRole('button', { name: 'Remove club logo' })).toBeNull();
@@ -232,6 +236,23 @@ describe('AwardsPage', () => {
     vi.mocked(teamsApi.getTeam).mockResolvedValue({ ...team, adminEmails: ['other@x.be'] });
     renderAt('/teams/t1/awards', 'season');
     expect(await screen.findByRole('heading', { name: 'Awards not found' })).toBeInTheDocument();
+  });
+
+  it('every awards state renders on the forced-dark root and leaves the page theme alone', async () => {
+    vi.mocked(teamsApi.getTeam).mockResolvedValue({ ...team, adminEmails: ['other@x.be'] });
+    const first = renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('heading', { name: 'Awards not found' });
+    const root = first.container.querySelector<HTMLElement>('[data-awards-root]')!;
+    expect(root).toHaveClass('dark');
+    expect(root.style.colorScheme).toBe('dark');
+    first.unmount();
+    vi.mocked(teamsApi.getTeam).mockResolvedValue(team);
+    const second = renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    const ready = second.container.querySelector<HTMLElement>('[data-awards-root]')!;
+    expect(ready).toHaveClass('dark');
+    expect(ready.style.colorScheme).toBe('dark');
+    expect(document.documentElement).not.toHaveClass('dark');
   });
 
   it('Present switches to the ceremony and Escape returns', async () => {

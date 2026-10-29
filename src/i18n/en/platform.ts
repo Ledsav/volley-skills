@@ -1,5 +1,6 @@
 export const platform = {
   pageTitle: 'Platform',
+  backToApp: 'Back to app',
   sectionsLabel: 'Platform sections',
   tabs: { clubs: 'Clubs', leads: 'Leads' },
   actions: {
@@ -22,6 +23,7 @@ export const platform = {
     notAccepted: 'Not accepted',
     moreActionsFor: (club: string) => `More actions for ${club}`,
     noClubs: (filtered: boolean) => `No clubs${filtered ? ' with this status' : ' yet'}.`,
+    loading: 'Loading clubs…',
     loadMore: 'Load more',
   },
   dialog: {

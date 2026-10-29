@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { WithChrome } from '../test/chromeProbe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import { TeamMatchesTab } from './TeamMatchesTab';
@@ -35,19 +36,28 @@ describe('TeamMatchesTab', () => {
   });
 
   it('lists matches with result and status', async () => {
-    render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
     expect(await screen.findByText('Rivals')).toBeInTheDocument();
     expect(screen.getByText('3–1')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /resume/i })).toHaveAttribute('href', '/teams/t1/matches/m2/scout');
   });
 
   it('opens the setup form, pre-filled from the calendar date', async () => {
-    render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" newMatchDate="2026-11-02" /></MemoryRouter>);
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" newMatchDate="2026-11-02" /></WithChrome></MemoryRouter>);
     expect(await screen.findByText('setup-form 2026-11-02')).toBeInTheDocument();
   });
 
+  it('opens the setup form from a pending action', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/teams/t1', search: '?tab=matches', state: { pendingAction: 'new-match' } }]}>
+        <WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome>
+      </MemoryRouter>
+    );
+    expect(await screen.findByText(/^setup-form [0-9]{4}-[0-9]{2}-[0-9]{2}$/)).toBeInTheDocument();
+  });
+
   it('opens the setup form from the button', async () => {
-    render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
     expect(screen.getByText(/setup-form/)).toBeInTheDocument();
   });
@@ -57,7 +67,7 @@ describe('TeamMatchesTab', () => {
     render(
       <MemoryRouter initialEntries={['/teams/t1']}>
         <Routes>
-          <Route path="/teams/:teamId" element={<TeamMatchesTab teamId="t1" teamName="Team" />} />
+          <Route path="/teams/:teamId" element={<WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome>} />
           <Route path="/teams/:teamId/matches/:matchId" element={<p>match page</p>} />
         </Routes>
       </MemoryRouter>,
@@ -68,18 +78,96 @@ describe('TeamMatchesTab', () => {
     expect(matchesApi.createMatch).toHaveBeenCalledWith('t1', { opponent: 'New FC' }, 'u1');
   });
 
+  it('season awards is in More for a team admin only', async () => {
+    const { unmount } = render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    await screen.findByText('Rivals');
+    expect(screen.getByRole('button', { name: /import from datavolley/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Season awards' })).not.toBeInTheDocument();
+    unmount();
+    render(
+      <MemoryRouter initialEntries={['/teams/t1']}>
+        <Routes>
+          <Route path="/teams/:teamId" element={<WithChrome><TeamMatchesTab teamId="t1" teamName="Team" admin /></WithChrome>} />
+          <Route path="/teams/:teamId/awards" element={<p>awards page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Rivals');
+    fireEvent.click(screen.getByRole('button', { name: 'Season awards' }));
+    expect(await screen.findByText('awards page')).toBeInTheDocument();
+  });
+
+  it('a live row offers Open and Scout; Delete asks first and removes the row after the delete', async () => {
+    vi.mocked(matchesApi.deleteMatch).mockResolvedValue(undefined);
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    const row = (await screen.findByText('Live FC')).closest('li') as HTMLElement;
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 });
+    const menu = screen.getByRole('menu', { name: 'Actions for vs Live FC' });
+    expect(within(menu).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Open', 'Scout', 'Delete…']);
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete…' }));
+    expect(matchesApi.deleteMatch).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete this match?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, delete' }));
+    expect(matchesApi.deleteMatch).toHaveBeenCalledWith('t1', 'm2');
+    await waitFor(() => expect(screen.queryByText('Live FC')).not.toBeInTheDocument());
+    expect(screen.getByText('Rivals')).toBeInTheDocument();
+  });
+
+  it('a double tap on Yes, delete removes the row with one delete call', async () => {
+    vi.mocked(matchesApi.deleteMatch).mockResolvedValue(undefined);
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    const row = (await screen.findByText('Live FC')).closest('li') as HTMLElement;
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 });
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Actions for vs Live FC' })).getByRole('menuitem', { name: 'Delete…' }));
+    const yes = within(screen.getByRole('alertdialog', { name: 'Delete this match?' })).getByRole('button', { name: 'Yes, delete' });
+    fireEvent.click(yes);
+    fireEvent.click(yes);
+    await waitFor(() => expect(screen.queryByText('Live FC')).not.toBeInTheDocument());
+    expect(matchesApi.deleteMatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('a finished row offers Report and Delete', async () => {
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    const row = (await screen.findByText('Rivals')).closest('li') as HTMLElement;
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 });
+    const menu = screen.getByRole('menu', { name: 'Actions for vs Rivals' });
+    expect(within(menu).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Report', 'Delete…']);
+  });
+
+  it('a failed delete keeps the row and shows the error in the dialog', async () => {
+    vi.mocked(matchesApi.deleteMatch).mockRejectedValue(new Error('nope'));
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    const row = (await screen.findByText('Rivals')).closest('li') as HTMLElement;
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete…' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Yes, delete' }));
+    expect(await within(screen.getByRole('alertdialog')).findByRole('alert')).toHaveTextContent('Could not delete the match. Please try again.');
+    expect(screen.getByText('Rivals')).toBeInTheDocument();
+  });
+
+  it('shows skeleton rows, not the empty text, until the first page arrives', async () => {
+    let resolve: (v: { matches: Match[]; lastDoc: null; hasMore: boolean }) => void = () => undefined;
+    vi.mocked(matchesApi.listMatches).mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { container } = render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    expect(container.querySelectorAll('[data-skeleton-block]')).toHaveLength(3);
+    expect(screen.queryByText('No matches yet.')).not.toBeInTheDocument();
+    resolve({ matches: [], lastDoc: null, hasMore: false });
+    expect(await screen.findByText('No matches yet.')).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-skeleton-block]')).toHaveLength(0);
+  });
+
   describe('DataVolley import', () => {
     afterEach(() => vi.restoreAllMocks());
 
     it('opens the import dialog online', async () => {
-      render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+      render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
       fireEvent.click(await screen.findByRole('button', { name: /import from datavolley/i }));
       expect(screen.getByText('dvw-dialog')).toBeInTheDocument();
     });
 
     it('disables the DataVolley import offline', async () => {
       vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
-      render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+      render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
       expect(await screen.findByRole('button', { name: /import from datavolley/i })).toBeDisabled();
       expect(screen.getByText('Connect to the internet to import.')).toBeInTheDocument();
     });
@@ -91,7 +179,7 @@ describe('TeamMatchesTab', () => {
     it("uses the local calendar date, not the UTC one", async () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(2026, 9, 14, 0, 30));
-      render(<MemoryRouter><TeamMatchesTab teamId="t1" teamName="Team" /></MemoryRouter>);
+      render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
       fireEvent.click(await screen.findByRole('button', { name: /new match/i }));
       expect(screen.getByText('setup-form 2026-10-14')).toBeInTheDocument();
     });

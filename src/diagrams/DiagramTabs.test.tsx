@@ -10,6 +10,16 @@ const diagrams: EditorDiagram[] = [
 ];
 
 describe('DiagramTabs', () => {
+  it('marks a diagram waiting to save with a neutral dot', () => {
+    const { container } = render(
+      <DiagramTabs diagrams={diagrams} activeId="d1" dirtyIds={new Set(['d2'])} canAdd dispatch={vi.fn()} />,
+    );
+    const dot = container.querySelector('span[aria-hidden]');
+    expect(dot).not.toBeNull();
+    expect(dot).toHaveClass('bg-ink-2');
+    expect(dot).not.toHaveClass('bg-orange');
+  });
+
   it('selects a diagram on chip click', () => {
     const dispatch = vi.fn();
     render(

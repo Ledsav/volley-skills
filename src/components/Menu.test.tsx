@@ -56,4 +56,39 @@ describe('Menu', () => {
     fireEvent.pointerDown(screen.getByText('Outside'));
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
+
+  it('a disabled item is announced and does nothing', () => {
+    const onSelect = vi.fn();
+    render(<Menu label="More" trigger="More" items={[{ kind: 'action', label: 'Import', onSelect, disabled: true }, { kind: 'action', label: 'Other', onSelect: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    const item = screen.getByRole('menuitem', { name: 'Import' });
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    expect(item.className).toContain('text-ink-3');
+    fireEvent.click(item);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu', { name: 'More' })).toBeInTheDocument();
+    // Still reachable with the arrow keys.
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowUp' });
+    expect(item).toHaveFocus();
+  });
+
+  it('lines labels up: with a check item, every row keeps the leading column', () => {
+    fireEvent.click(renderMenu());
+    for (const name of ['Print / PDF', 'Quick score', 'Sign out']) {
+      const row = screen.getByRole(name === 'Quick score' ? 'menuitemcheckbox' : 'menuitem', { name });
+      expect(row.firstElementChild).toHaveClass('w-4');
+    }
+  });
+
+  it('is glass by default and solid on request (over the scouting court)', () => {
+    const { unmount } = render(<Menu label="Tools" trigger="Tools" items={[{ kind: 'action', label: 'Exit', onSelect: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tools' }));
+    expect(screen.getByRole('menu')).toHaveClass('glass');
+    unmount();
+    render(<Menu label="Tools" trigger="Tools" material="solid" items={[{ kind: 'action', label: 'Exit', onSelect: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tools' }));
+    expect(screen.getByRole('menu')).toHaveClass('bg-surface');
+    expect(screen.getByRole('menu')).not.toHaveClass('glass');
+  });
 });

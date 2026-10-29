@@ -1,6 +1,7 @@
 import {
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -17,6 +18,7 @@ import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { withBackoff } from '../firebase/withBackoff';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { optionalForCreate, optionalForUpdate } from '../firebase/optionalFields';
+import { searchTokens } from '../search/searchTokens.js';
 import type { NewTrainingInput, Training, TrainingUpdate } from '../types/training';
 import { formatBusinessId } from './businessId';
 
@@ -38,6 +40,7 @@ export async function createTraining(
     tx.set(counterRef, { lastSequence: nextSequence });
     tx.set(trainingRef, {
       businessId: nextBusinessId,
+      searchTokens: searchTokens(input.name, nextBusinessId),
       ...optionalForCreate(input, ['suggestedPlayers', 'targets']),
       exerciseIds: input.exercises.map((e) => e.exerciseId),
       createdBy: creatorUid,
@@ -50,12 +53,23 @@ export async function createTraining(
   return { id: trainingRef.id, businessId };
 }
 
-export async function updateTraining(trainingId: string, updates: TrainingUpdate): Promise<void> {
+export async function updateTraining(
+  trainingId: string,
+  updates: TrainingUpdate,
+  businessId: string
+): Promise<void> {
   const payload = optionalForUpdate(updates, ['suggestedPlayers', 'targets']);
+  if (updates.name !== undefined) payload.searchTokens = searchTokens(updates.name, businessId);
   if (updates.exercises) {
     payload.exerciseIds = updates.exercises.map((e) => e.exerciseId);
   }
   await updateDoc(clubDoc('trainings', trainingId), payload);
+}
+
+export async function getTraining(trainingId: string): Promise<Training | null> {
+  const snapshot = await getDoc(clubDoc('trainings', trainingId));
+  if (!snapshot.exists()) return null;
+  return { id: snapshot.id, ...snapshot.data() } as Training;
 }
 
 export async function deleteTraining(trainingId: string): Promise<void> {
@@ -83,6 +97,27 @@ export async function listTrainings(
   const trainings = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Training);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { trainings, lastDoc, hasMore: snapshot.docs.length === TRAININGS_PAGE_SIZE };
+}
+
+const SEARCH_PAGE_SIZE = 20;
+
+/** One page of trainings whose name or businessId has a word starting with `token`. */
+export async function searchTrainings(
+  token: string,
+  afterDoc: QueryDocumentSnapshot | null = null
+): Promise<{ items: Training[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
+  const snapshot = await getDocs(
+    query(
+      clubCol('trainings'),
+      where('searchTokens', 'array-contains', token),
+      orderBy('name'),
+      ...(afterDoc ? [startAfter(afterDoc)] : []),
+      limit(SEARCH_PAGE_SIZE)
+    )
+  );
+  const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Training);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { items, lastDoc, hasMore: snapshot.docs.length === SEARCH_PAGE_SIZE };
 }
 
 export async function findTrainingByBusinessId(businessId: string): Promise<Training | null> {
@@ -137,8 +172,10 @@ export async function bulkCreateTrainings(
 
       inputs.forEach((input, i) => {
         const trainingRef = doc(clubCol('trainings'));
+        const businessId = formatBusinessId(lastSequence + i + 1);
         tx.set(trainingRef, {
-          businessId: formatBusinessId(lastSequence + i + 1),
+          businessId,
+          searchTokens: searchTokens(input.name, businessId),
           ...optionalForCreate(input, ['suggestedPlayers', 'targets']),
           exerciseIds: input.exercises.map((e) => e.exerciseId),
           createdBy: creatorUid,

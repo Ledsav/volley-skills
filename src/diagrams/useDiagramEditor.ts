@@ -28,6 +28,8 @@ export interface EditorState {
   deletedIds: string[];
   undo: Scene[];
   redo: Scene[];
+  /** Stashed undo/redo stacks of the inactive diagrams, by diagram id. */
+  history: Record<string, { undo: Scene[]; redo: Scene[] }>;
 }
 
 export type EditorAction =
@@ -56,7 +58,23 @@ export type EditorAction =
   | { type: 'toggleZones' }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'saved'; idMap: Record<string, string>; committedIds: string[] };
+  | {
+      type: 'saved';
+      idMap: Record<string, string>;
+      committedIds: string[];
+      /**
+       * What the save sent. The reducer keeps an id dirty when its current state differs
+       * from its snapshot, and removes only these deletes from the queue. Absent: every
+       * committed id counts as unchanged and as a sent delete.
+       */
+      sent?: SentSnapshot;
+    }
+  | { type: 'saveFailed'; idMap: Record<string, string>; sent: SentSnapshot };
+
+export interface SentSnapshot {
+  diagrams: { id: string; title: string; order: number; scene: Scene }[];
+  deletes: string[];
+}
 
 export const initialEditorState: EditorState = {
   diagrams: [],
@@ -67,7 +85,27 @@ export const initialEditorState: EditorState = {
   deletedIds: [],
   undo: [],
   redo: [],
+  history: {},
 };
+
+export function isEditorDirty(state: EditorState): boolean {
+  return state.dirtyIds.size > 0 || state.deletedIds.length > 0;
+}
+
+/** History with the active diagram's stacks stashed under its id. */
+function stashActive(state: EditorState): EditorState['history'] {
+  const id = state.activeDiagramId;
+  if (!id || (state.undo.length === 0 && state.redo.length === 0)) return state.history;
+  return { ...state.history, [id]: { undo: state.undo, redo: state.redo } };
+}
+
+/** Load `id`'s stacks out of `history` (empty when none), removing its key. */
+function takeHistory(history: EditorState['history'], id: string | null) {
+  const found = id ? history[id] : undefined;
+  const rest = { ...history };
+  if (id) delete rest[id];
+  return { history: rest, undo: found?.undo ?? [], redo: found?.redo ?? [] };
+}
 
 /** Set the selection to `ids`, keeping the derived single-select field in sync. */
 function withSelection(state: EditorState, ids: string[]): EditorState {
@@ -135,15 +173,16 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       const sorted = [...action.diagrams].sort((a, b) => a.order - b.order);
       return { ...initialEditorState, diagrams: sorted, activeDiagramId: sorted[0]?.id ?? null };
     }
-    case 'selectDiagram':
+    case 'selectDiagram': {
+      if (action.id === state.activeDiagramId) return withSelection(state, []);
       return {
         ...state,
         activeDiagramId: action.id,
         selectedIds: [],
         selectedItemId: null,
-        undo: [],
-        redo: [],
+        ...takeHistory(stashActive(state), action.id),
       };
+    }
     case 'addDiagram': {
       if (state.diagrams.length >= SCENE_LIMITS.diagramsPerExercise) return state;
       const n = state.diagrams.length;
@@ -162,6 +201,7 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         selectedIds: [],
         selectedItemId: null,
         dirtyIds: new Set(state.dirtyIds).add(id),
+        history: stashActive(state),
         undo: [],
         redo: [],
       };
@@ -198,17 +238,22 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
           if (d.order !== k) dirtyIds.add(d.id);
           return { ...d, order: k };
         });
+      const wasActive = state.activeDiagramId === action.id;
+      const newActive = wasActive ? diagrams[0]?.id ?? null : state.activeDiagramId;
+      const dropped = { ...state.history };
+      delete dropped[action.id];
+      const stacks = wasActive
+        ? takeHistory(dropped, newActive)
+        : { history: dropped, undo: state.undo, redo: state.redo };
       return {
         ...state,
         diagrams,
         dirtyIds,
         deletedIds: target.persisted ? [...state.deletedIds, action.id] : state.deletedIds,
-        activeDiagramId:
-          state.activeDiagramId === action.id ? diagrams[0]?.id ?? null : state.activeDiagramId,
+        activeDiagramId: newActive,
         selectedIds: [],
         selectedItemId: null,
-        undo: [],
-        redo: [],
+        ...stacks,
       };
     }
     case 'selectItem':
@@ -358,13 +403,18 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       };
     }
     case 'saved': {
-      // Scope the "clean" transition to exactly what this save committed.
-      // Edits (and new diagrams) made while the save was in flight must survive:
-      // an uncommitted new diagram keeps its temp id + persisted:false so the
-      // next save creates it, instead of being marked persisted with no idMap
-      // entry and then failing every later update.
+      // Scope the "clean" transition to exactly what this save sent, judged here, where
+      // every queued edit is visible. Edits, new diagrams and deletes made while the save
+      // was in flight must survive: an uncommitted new diagram keeps its temp id and
+      // persisted:false so the next save creates it.
       const committed = new Set(action.committedIds);
       const wasCommitted = (id: string) => committed.has(id) || id in action.idMap;
+      const snapshots = new Map((action.sent?.diagrams ?? []).map((d) => [d.id, d]));
+      const sentDeletes = new Set(action.sent ? action.sent.deletes : action.committedIds);
+      const changedSinceSent = (d: EditorDiagram) => {
+        const snap = snapshots.get(d.id);
+        return !!snap && (d.scene !== snap.scene || d.title !== snap.title || d.order !== snap.order);
+      };
       const diagrams = state.diagrams.map((d) => ({
         ...d,
         id: action.idMap[d.id] ?? d.id,
@@ -374,6 +424,14 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       state.dirtyIds.forEach((id) => {
         if (!wasCommitted(id)) dirtyIds.add(id);
       });
+      state.diagrams.forEach((d) => {
+        if (wasCommitted(d.id) && changedSinceSent(d)) dirtyIds.add(action.idMap[d.id] ?? d.id);
+      });
+      const deletedIds = state.deletedIds.filter((id) => !sentDeletes.has(id));
+      // A diagram created by this save and deleted before the ack exists in Firestore now.
+      Object.entries(action.idMap).forEach(([temp, real]) => {
+        if (!state.diagrams.some((d) => d.id === temp) && !deletedIds.includes(real)) deletedIds.push(real);
+      });
       return {
         ...state,
         diagrams,
@@ -381,9 +439,39 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
           ? action.idMap[state.activeDiagramId] ?? state.activeDiagramId
           : null,
         dirtyIds,
-        deletedIds: state.deletedIds.filter((id) => !committed.has(id)),
-        undo: [],
-        redo: [],
+        deletedIds,
+        history: Object.fromEntries(
+          Object.entries(state.history).map(([id, h]) => [action.idMap[id] ?? id, h]),
+        ),
+      };
+    }
+    case 'saveFailed': {
+      // The batch was handed over but never committed: undo `saved` for it.
+      const back: Record<string, string> = {};
+      Object.entries(action.idMap).forEach(([temp, real]) => {
+        back[real] = temp;
+      });
+      const diagrams = state.diagrams.map((d) => ({
+        ...d,
+        id: back[d.id] ?? d.id,
+        persisted: d.id in back ? false : d.persisted,
+      }));
+      const dirtyIds = new Set<string>();
+      state.dirtyIds.forEach((id) => dirtyIds.add(back[id] ?? id));
+      action.sent.diagrams.forEach((sd) => {
+        if (diagrams.some((d) => d.id === sd.id)) dirtyIds.add(sd.id);
+      });
+      const deletedIds = [...state.deletedIds];
+      action.sent.deletes.forEach((id) => {
+        if (!deletedIds.includes(id)) deletedIds.push(id);
+      });
+      return {
+        ...state,
+        diagrams,
+        activeDiagramId: state.activeDiagramId ? back[state.activeDiagramId] ?? state.activeDiagramId : null,
+        dirtyIds,
+        deletedIds,
+        history: Object.fromEntries(Object.entries(state.history).map(([id, h]) => [back[id] ?? id, h])),
       };
     }
   }
@@ -401,13 +489,24 @@ export function buildSaveOps(state: EditorState): DiagramSaveOps {
   };
 }
 
+
+export type EditorSaveStatus = 'saved' | 'saving' | 'failed';
+
 export function useDiagramEditor(exerciseId: string, uid: string) {
   const [state, dispatch] = useReducer(diagramReducer, initialEditorState);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
+
+  // Latest values for the save pipeline, which must keep working after unmount.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const idsRef = useRef({ exerciseId, uid });
+  idsRef.current = { exerciseId, uid };
+  const mountedRef = useRef(true);
+  const pending = useRef(0);
+  const skipAutosave = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -435,36 +534,121 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
     };
   }, [exerciseId]);
 
-  const save = useCallback(async () => {
-    // In-flight guard: never let a second save overlap the first. If the state
-    // is still dirty after this one resolves, the 3s autosave picks it up.
-    if (savingRef.current) return;
-    savingRef.current = true;
-    setSaveError(null);
-    setSaving(true);
-    try {
-      const ops = buildSaveOps(state);
-      const committedIds = [
-        ...ops.creates.map((c) => c.tempId),
-        ...ops.updates.map((u) => u.id),
-        ...ops.deletes,
-      ];
-      const { idMap } = await saveDiagramSet(exerciseId, ops, uid);
-      dispatch({ type: 'saved', idMap, committedIds });
-      invalidateDiagramThumbnail(exerciseId);
-    } catch (err) {
-      if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
-      setSaveError(
-        err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
-      );
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
+  const save = useCallback((): Promise<void> => {
+    if (!isEditorDirty(stateRef.current)) {
+      // Nothing left to lose: Retry just clears a stale error.
+      if (mountedRef.current) setSaveError(null);
+      return Promise.resolve();
     }
-  }, [state, exerciseId, uid]);
+    const sent = stateRef.current;
+    const ops = buildSaveOps(sent);
+    const committedIds = [
+      ...ops.creates.map((c) => c.tempId),
+      ...ops.updates.map((u) => u.id),
+      ...ops.deletes,
+    ];
+    const snapshot: SentSnapshot = {
+      diagrams: [...ops.creates.map((c) => ({ ...c, id: c.tempId })), ...ops.updates].map((d) => ({
+        id: d.id,
+        title: d.title,
+        order: d.order,
+        scene: d.scene,
+      })),
+      deletes: ops.deletes,
+    };
+    let queuedMap: Record<string, string> | null = null;
+    // The batch is handed to Firestore (its persistent cache keeps queued writes in
+    // order across reloads) before it is acknowledged, so the next save can follow at
+    // once. The reducer then decides what is still dirty.
+    const queued = (idMap: Record<string, string>) => {
+      if (queuedMap) return;
+      queuedMap = idMap;
+      const action: EditorAction = { type: 'saved', idMap, committedIds, sent: snapshot };
+      stateRef.current = diagramReducer(stateRef.current, action);
+      if (mountedRef.current) dispatch(action);
+    };
+    pending.current += 1;
+    if (mountedRef.current) {
+      setSaveError(null);
+      setSaving(true);
+    }
+    return (async () => {
+      try {
+        const { idMap } = await saveDiagramSet(idsRef.current.exerciseId, ops, idsRef.current.uid, queued);
+        queued(idMap);
+        invalidateDiagramThumbnail(idsRef.current.exerciseId);
+      } catch (err) {
+        if (queuedMap) {
+          const action: EditorAction = { type: 'saveFailed', idMap: queuedMap, sent: snapshot };
+          stateRef.current = diagramReducer(stateRef.current, action);
+          // The revert makes the state dirty again; that must not re-arm autosave.
+          skipAutosave.current = true;
+          if (mountedRef.current) dispatch(action);
+        }
+        if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
+        // A failure that leaves nothing unsaved (everything it carried was deleted) has no error to show.
+        if (mountedRef.current && isEditorDirty(stateRef.current)) {
+          setSaveError(
+            err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
+          );
+        }
+      } finally {
+        pending.current -= 1;
+        if (mountedRef.current && pending.current === 0) setSaving(false);
+      }
+    })();
+  }, []);
+
+  // Saves are queued the moment they are asked for, so flushing is just saving.
+  const flush = save;
+
+  const dirty = isEditorDirty(state);
+  const status: EditorSaveStatus = saveError ? 'failed' : saving || dirty ? 'saving' : 'saved';
+
+  // Autosave 3 s after the last change.
+  useEffect(() => {
+    if (skipAutosave.current) {
+      // A rejected save waits for the next real change or Retry.
+      skipAutosave.current = false;
+      return;
+    }
+    if (!dirty) return;
+    const timer = window.setTimeout(() => void save(), 3000);
+    return () => window.clearTimeout(timer);
+  }, [state, dirty, save]);
+
+  // Flush when the page hides and when the editor unmounts. The pagehide flush is best effort:
+  // Firestore's own pagehide handler runs first, so visibilitychange (hidden) and beforeunload
+  // cover most real closes.
+  useEffect(() => {
+    mountedRef.current = true;
+    const onHide = () => void flush();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') void flush();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+      mountedRef.current = false;
+      void flush();
+    };
+  }, [flush]);
+
+  // Warn about leaving while a save is failing or edits exist only in memory.
+  const warn = status === 'failed' || dirty;
+  useEffect(() => {
+    if (!warn) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [warn]);
 
   const activeDiagram = state.diagrams.find((d) => d.id === state.activeDiagramId) ?? null;
-  const dirty = state.dirtyIds.size > 0 || state.deletedIds.length > 0;
 
-  return { state, activeDiagram, dispatch, save, saving, dirty, loadError, notFound, saveError };
+  return { state, activeDiagram, dispatch, save, flush, status, saving, dirty, loadError, notFound, saveError };
 }

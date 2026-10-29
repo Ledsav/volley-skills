@@ -76,6 +76,10 @@ export const clubs = {
     saved: 'Dati del club salvati',
   },
   people: {
+    filterTeams: 'Filtra squadre',
+    noTeamsMatch: 'Nessuna squadra caricata corrisponde.',
+    loadMoreTeams: 'Carica altre squadre',
+    loadMoreTeamsFailed: 'Impossibile caricare altre squadre. Riprova.',
     loadFailed: 'Impossibile caricare le persone. Aggiorna la pagina.',
     invalidEmail: 'Inserisci un indirizzo email valido.',
     alreadyMember: (email: string) => `${email} è già membro.`,
@@ -97,6 +101,9 @@ export const clubs = {
     makeMember: 'Rendi membro',
     makeAdmin: 'Rendi amministratore',
     makeOwner: 'Rendi titolare',
+    madeAdmin: (e: string) => `${e} ora è admin`,
+    madeMember: (e: string) => `${e} ora è membro`,
+    rowMenu: (e: string) => `Azioni per ${e}`,
     removeFromClub: 'Rimuovi dal club',
     reason: {
       owner: 'Il titolare del club resta amministratore. Trasferisci prima la titolarità.',
@@ -121,8 +128,10 @@ export const clubs = {
     fullUseUntil: (date: string) => `Uso completo fino al ${date}`,
     exportUntil: (date: string) => `Esportazione dei dati fino al ${date}`,
     acceptedTerms: 'Termini accettati',
-    acceptedSummary: (versionKey: string, date: string | null, by: string) =>
-      `${versionKey}, accettati ${date ? `il ${date} ` : ''}da ${by}`,
+    acceptedDocs: (terms: string, dpa: string) =>
+      terms === dpa ? `Termini e DPA del ${terms}` : `Termini del ${terms} e DPA del ${dpa}`,
+    acceptedSummary: (what: string, date: string | null, by: string) =>
+      `${what}, accettati ${date ? `il ${date} ` : ''}da ${by}`,
     notAccepted: 'Non ancora accettati',
     terms: 'Termini',
     dpa: 'DPA',

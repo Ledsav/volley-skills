@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SkillGuideEditor } from './SkillGuideEditor';
 import { I18nProvider } from '../i18n/I18nProvider';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, clubAdminAccess } from '../test/authValue';
+import { NoticeProvider } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
 
 const mockGetDoc = vi.fn();
 vi.mock('firebase/firestore', () => ({
@@ -19,7 +21,11 @@ vi.mock('../i18n/locales', async (orig) => ({ ...(await orig<typeof import('../i
 function renderEditor() {
   return render(
     <I18nProvider>
-      <SkillGuideEditor />
+      <NoticeProvider>
+        <WithChrome>
+          <SkillGuideEditor />
+        </WithChrome>
+      </NoticeProvider>
     </I18nProvider>
   );
 }
@@ -41,9 +47,12 @@ describe('skill guide in Italian', () => {
     mockGetDoc.mockResolvedValue({ exists: () => false });
     renderEditor();
 
+    // The row label comes from the catalog; the items reload after it, so wait for Italian item text.
+    const row = await screen.findByRole('button', { name: /Battuta.*Conta la percentuale/ });
+    expect(document.querySelectorAll('li')).toHaveLength(9);
+    fireEvent.click(row);
     expect(await screen.findByDisplayValue('Irregolare, molti errori.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Battuta' })).toBeInTheDocument();
-    expect(screen.getAllByLabelText('Come valutare')).toHaveLength(9);
+    expect(screen.getByLabelText('Come valutare')).toBeInTheDocument();
   });
 
   it('shows a saved guide as stored, not translated', async () => {
@@ -64,6 +73,7 @@ describe('skill guide in Italian', () => {
     });
     renderEditor();
 
+    fireEvent.click(await screen.findByRole('button', { name: /Battuta/ }));
     expect(await screen.findByDisplayValue('Our own wording')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Our own evaluation notes')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Irregolare, molti errori.')).not.toBeInTheDocument();

@@ -17,7 +17,7 @@ const roster: RosterEntry[] = [
 const roles: RoleMap = Object.fromEntries(roster.map((r) => [r.playerId, r.positionCategory]));
 const LINEUP = ['s', 'oh1', 'mb1', 'o', 'oh2', 'mb2'];
 
-function renderDialog(onStart = vi.fn()) {
+function renderDialog(onStart = vi.fn(), initialServing: 'us' | 'them' | null = 'us') {
   render(
     <SetStartDialog
       setNumber={1}
@@ -25,7 +25,7 @@ function renderDialog(onStart = vi.fn()) {
       liberos={[{ playerId: 'lib', mode: 'receiving', replaces: ['mb1', 'mb2'] }]}
       roles={roles}
       initialLineup={LINEUP}
-      initialServing="us"
+      initialServing={initialServing}
       onStart={onStart}
       onCancel={() => undefined}
     />,
@@ -36,6 +36,19 @@ function renderDialog(onStart = vi.fn()) {
 const startButton = () => screen.getByRole('button', { name: 'Start set' });
 
 describe('SetStartDialog', () => {
+  it('with no serve default, Start stays disabled until a side is chosen', () => {
+    const onStart = renderDialog(vi.fn(), null);
+    expect(screen.getByLabelText('We serve')).not.toBeChecked();
+    expect(screen.getByLabelText('They serve')).not.toBeChecked();
+    expect(startButton()).toBeDisabled();
+    expect(screen.getByText('Choose who serves first.')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('We serve'));
+    expect(startButton()).toBeEnabled();
+    fireEvent.click(startButton());
+    expect(onStart.mock.calls[0][1]).toBe('us');
+  });
+
+
   it('pre-fills the slots from the previous 5-1 lineup and lists matching roles first', () => {
     renderDialog();
     expect(screen.getByLabelText('Setter')).toHaveValue('s');

@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
-import { FIELD_CLASS, Input, Textarea } from '../components/Input';
+import { Sheet } from '../components/Sheet';
+import { FIELD_CLASS, FIELD_LABEL_CLASS, Input, Textarea } from '../components/Input';
 import { useSave } from '../components/useSave';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
@@ -14,7 +13,7 @@ interface CreateTeamDialogProps {
   onCreated: () => void;
 }
 
-const labelClass = 'mb-1 block text-sm font-medium text-ink';
+const labelClass = FIELD_LABEL_CLASS;
 const fieldClass = 'mb-4';
 
 export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) {
@@ -46,8 +45,13 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
   }
 
   return (
-    <Dialog title={t.teams.create.title} onClose={onClose} guardUnsaved>
-      <form onSubmit={handleSubmit} aria-label={t.teams.create.title}>
+    <Sheet
+      title={t.teams.create.title}
+      onClose={onClose}
+      guardUnsaved
+      confirm={{ label: saving ? t.teams.shared.saving : t.teams.create.submit, form: 'create-team-form', disabled: saving || gender === '' }}
+    >
+      <form id="create-team-form" onSubmit={handleSubmit} aria-label={t.teams.create.title}>
 
         <div className={fieldClass}>
           <label htmlFor="team-name" className={labelClass}>
@@ -104,20 +108,12 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           />
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            {t.common.cancel}
-          </Button>
-          <Button variant="primary" type="submit" disabled={saving || gender === ''}>
-            {saving ? t.teams.shared.saving : t.teams.create.submit}
-          </Button>
-        </div>
         {error && (
-          <p role="alert" className="mt-3 text-right text-sm text-red">
+          <p role="alert" className="mt-3 text-callout text-red-strong">
             {error}
           </p>
         )}
       </form>
-    </Dialog>
+    </Sheet>
   );
 }

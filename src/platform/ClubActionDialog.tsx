@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { Input, Textarea } from '../components/Input';
 import { useNotify } from '../components/Notice';
 import type { Club } from '../types/club';
@@ -98,10 +98,10 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
   }
 
   return (
-    <Dialog title={d.title(action.label, club.name)} onClose={onClose}
+    <Sheet title={d.title(action.label, club.name)} onClose={onClose} guardUnsaved
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{t.common.cancel}</Button>
+          <SheetCancelButton />
           <Button variant={action.kind === 'activate' || action.kind === 'reinstate' ? 'primary' : 'destructive'}
             disabled={!canConfirm} onClick={() => void confirm()}>
             {action.label}
@@ -109,29 +109,29 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
         </>
       }>
       <div className="flex flex-col gap-4">
-        <p className="text-slate">{intro[action.kind]}</p>
+        <p className="text-callout text-ink-2">{intro[action.kind]}</p>
         {action.kind === 'endContract' && club.status === 'suspended' && (
-          <p className="text-slate">{d.laterEndDate}</p>
+          <p className="text-callout text-ink-2">{d.laterEndDate}</p>
         )}
         {action.needsDates && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            <label className="flex flex-col gap-1 text-footnote text-ink-2">
               {d.endDate}
               <Input type="date" value={effective} onChange={(e) => setEffective(e.target.value)} />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+            <label className="flex flex-col gap-1 text-footnote text-ink-2">
               {d.exportOpenUntil}
               <Input type="date" value={retrieval} onChange={(e) => setRetrieval(e.target.value)} />
             </label>
           </div>
         )}
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-footnote text-ink-2">
           {action.reasonRequired ? d.reason : d.reasonOptional}
           <Textarea rows={3} maxLength={REASON_MAX} value={reason} onChange={(e) => setReason(e.target.value)} />
-          <span className="self-end text-xs font-normal tabular-nums text-slate">{reason.length}/{REASON_MAX}</span>
+          <span className="self-end text-caption tabular-nums text-ink-2">{reason.length}/{REASON_MAX}</span>
         </label>
-        {(dateError || error) && <p role="alert" className="text-sm text-red">{dateError ?? error}</p>}
+        {(dateError || error) && <p role="alert" className="text-footnote text-red-strong">{dateError ?? error}</p>}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 export const layout = {
   nav: {
-    home: 'Home',
+    home: 'Today',
     coaching: 'Coaching',
     teams: 'Teams',
     trainings: 'Trainings',
@@ -17,6 +17,11 @@ export const layout = {
     scouting: 'Loading scouting…',
     awards: 'Loading awards…',
   },
+  lazyError: {
+    title: "This page didn't load",
+    body: 'The app may have been updated, or the connection dropped. Reload to try again.',
+    reload: 'Reload',
+  },
   appShell: {
     droppedClub: 'You no longer have access to your previous club.',
     skipToContent: 'Skip to content',
@@ -29,6 +34,11 @@ export const layout = {
     settings: 'Settings',
     termsAndPrivacy: 'Terms & privacy',
     signOut: 'Sign out',
+    roleAdmin: 'Admin',
+    roleMember: 'Member',
+    openNavigation: 'Open navigation',
+    search: 'Search',
+    moreActions: 'More actions',
   },
   morePage: {
     title: 'More',

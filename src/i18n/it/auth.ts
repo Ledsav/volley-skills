@@ -24,7 +24,9 @@ export const auth = {
     sendLink: 'Invia link di accesso',
     or: 'oppure',
     continueWithGoogle: 'Continua con Google',
-    noAccessYet: "Non hai ancora l'accesso? Richiedi l'accesso anticipato",
+    noAccessYet: "Non hai ancora l'accesso?",
+    requestEarlyAccess: "Richiedi l'accesso anticipato",
+    openOnThisDevice: 'Aprilo su questo dispositivo.',
     createClub: 'Crea il tuo club',
   },
   finishSignIn: {

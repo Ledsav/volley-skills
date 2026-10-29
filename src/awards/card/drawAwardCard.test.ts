@@ -7,8 +7,9 @@ import { SPONSOR_ROW } from './branding';
 const card: CardModel = {
   key: 'mvp', awardTitle: 'MVP', name: 'Lena P.', number: 12, statLine: '6.2 MVP pts', footer: 'vs Rivals · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC', note: '',
 };
-const colors = slideColors(PRESET_PALETTES[0], 0);
-const colors2 = slideColors(PRESET_PALETTES[1], 0);
+const NAVY = PRESET_PALETTES.find((p) => p.id === 'navy')!;
+const colors = slideColors(NAVY, 0);
+const colors2 = slideColors(PRESET_PALETTES.find((p) => p.id === 'gold')!, 0);
 const fakeImage = { width: 800, height: 600 } as unknown as ImageBitmap;
 
 describe('drawAwardCard', () => {
@@ -16,13 +17,13 @@ describe('drawAwardCard', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 1);
     const all = texts();
-    for (const s of ['DEMO VC · U17 GIRLS', 'VS RIVALS · 12 OCT 2026', 'MVP', 'Lena P.', '6.2 MVP pts']) expect(all).toContain(s);
+    for (const s of ['Demo VC · U17 Girls', 'vs Rivals · 12 Oct 2026', 'MVP', 'Lena P.', '6.2 MVP pts']) expect(all).toContain(s);
   });
 
   it('header shows only the team when the team has no club', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, { ...card, clubName: '  ' }, colors, { photo: null, cutout: null, background: null }, 1);
-    expect(texts()).toContain('U17 GIRLS');
+    expect(texts()).toContain('U17 Girls');
     expect(texts().some((t) => t.includes('·') && t.includes('U17'))).toBe(false);
   });
 
@@ -114,6 +115,61 @@ describe('drawAwardCard', () => {
     drawAwardCard(ctx, { ...card, statLine: null, note: 'Always cheering' }, colors, { photo: null, cutout: null, background: null }, 1);
     expect(texts()).toContain('Always cheering');
     expect(texts()).not.toContain('6.2 MVP pts');
+  });
+
+  it('the background glows softly in the accent instead of a solid disc', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 0);
+    expect(calls.some((c) => c.method === 'createRadialGradient')).toBe(true);
+    expect(calls.some((c) => c.method === 'set:globalAlpha' && c.args[0] === 0.18)).toBe(false);
+  });
+
+  it('draws only 500–700 weights', () => {
+    const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
+    const re = /^(500|600|700) [\d.]+px Inter, system-ui, sans-serif$/;
+    for (const art of [{ photo: null, cutout: null, background: null }, { photo: null, cutout: cut, background: null }, { photo: fakeImage, cutout: null, background: null }]) {
+      const { ctx, calls } = recordingCtx();
+      drawAwardCard(ctx, card, colors, art, 1);
+      const fonts = calls.filter((c) => c.method === 'set:font').map((c) => String(c.args[0]));
+      expect(fonts.length).toBeGreaterThan(0);
+      for (const f of fonts) expect(f).toMatch(re);
+    }
+    const { ctx, calls } = recordingCtx();
+    drawTitleCard(ctx, 'Best server', colors, { photo: null, cutout: null, background: null }, 0.5);
+    for (const c of calls.filter((c) => c.method === 'set:font')) expect(String(c.args[0])).toMatch(re);
+  });
+
+  it('draws the award title with display tracking', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 1);
+    const at = calls.findIndex((c) => c.method === 'fillText' && c.args[0] === 'MVP');
+    const spacing = calls.slice(0, at).filter((c) => c.method === 'set:letterSpacing').pop()!;
+    expect(parseFloat(String(spacing.args[0]))).toBeLessThan(0);
+  });
+
+  it('the player stands on a soft accent glow', () => {
+    const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: cut, background: null }, 1);
+    const draws = calls.map((c, i) => ({ c, i })).filter(({ c }) => c.method === 'drawImage' && c.args[0] === cut);
+    const first = draws[0];
+    const glow = calls.map((c, i) => ({ c, i })).filter(({ c, i }) => c.method === 'createRadialGradient' && i < first.i).pop()!;
+    const gx = glow.c.args[0] as number;
+    const xs = draws.map(({ c }) => c.args as number[]);
+    expect(gx).toBeGreaterThan(Math.min(...xs.map((d) => d[5])));
+    expect(gx).toBeLessThan(Math.max(...xs.map((d) => d[5] + d[7])));
+  });
+
+  it('the photo circle has no ring', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: fakeImage, cutout: null, background: null }, 1);
+    expect(calls.some((c) => c.method === 'stroke')).toBe(false);
+  });
+
+  it('with no photo and no number the card shows the initials', () => {
+    const { ctx, texts } = recordingCtx();
+    drawAwardCard(ctx, { ...card, number: null }, colors, { photo: null, cutout: null, background: null }, 1);
+    expect(texts()).toContain('LP');
   });
 
   it('title card shows only the award title', () => {

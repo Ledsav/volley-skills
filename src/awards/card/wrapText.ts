@@ -1,5 +1,5 @@
 // src/awards/card/wrapText.ts
-const FAMILY = 'Inter, system-ui, sans-serif';
+import { FAMILY } from './type';
 
 /** Greedy word wrap at the context's current font. */
 export function wrapLines(ctx: CanvasRenderingContext2D, s: string, maxWidth: number): string[] {
@@ -64,7 +64,7 @@ export function fitBlock(
 
 /** One line of text at (x, y) with the given alignment; nothing when alpha ≤ 0. */
 export function textAt(
-  ctx: CanvasRenderingContext2D, s: string, x: number, y: number, font: string, color: string, alpha: number, align: CanvasTextAlign = 'left',
+  ctx: CanvasRenderingContext2D, s: string, x: number, y: number, font: string, color: string, alpha: number, align: CanvasTextAlign = 'left', letterSpacing = 0,
 ) {
   if (alpha <= 0 || !s) return;
   ctx.save();
@@ -73,6 +73,39 @@ export function textAt(
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = 'alphabetic';
+  if (letterSpacing !== 0 && 'letterSpacing' in ctx) ctx.letterSpacing = `${letterSpacing}px`;
   ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+/**
+ * Text with every digit in a fixed-width cell (Inter's proportional digits would make a counting
+ * number jitter). Spacing is manual, so ctx.letterSpacing is never set.
+ */
+export function fillTabular(
+  ctx: CanvasRenderingContext2D, s: string, x: number, y: number, font: string, color: string, alpha: number,
+  align: 'left' | 'center' | 'right', letterSpacing = 0,
+): void {
+  if (alpha <= 0 || !s) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'alphabetic';
+  const cell = ctx.measureText('0').width + letterSpacing;
+  const chars = Array.from(s);
+  const adv = chars.map((ch) => (/\d/.test(ch) ? cell : ctx.measureText(ch).width + letterSpacing));
+  const total = adv.reduce((a, b) => a + b, 0);
+  let cx = align === 'left' ? x : align === 'center' ? x - total / 2 : x - total;
+  chars.forEach((ch, i) => {
+    if (/\d/.test(ch)) {
+      ctx.textAlign = 'center';
+      ctx.fillText(ch, cx + adv[i] / 2, y);
+    } else {
+      ctx.textAlign = 'left';
+      ctx.fillText(ch, cx, y);
+    }
+    cx += adv[i];
+  });
   ctx.restore();
 }

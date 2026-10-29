@@ -106,3 +106,30 @@ describe('LoginPage sign-up link', () => {
     expect(screen.getByRole('link', { name: 'Create your club' })).toHaveAttribute('href', '/signup');
   });
 });
+
+describe('LoginPage v2 states', () => {
+  async function sendFor(address: string) {
+    mockSendSignInLinkToEmail.mockResolvedValue(undefined);
+    renderLoginPage();
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: address } });
+    fireEvent.click(screen.getByText('Send sign-in link'));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument());
+  }
+
+  it('check your email tells the coach to open the link on this device', async () => {
+    await sendFor('coach@example.com');
+    expect(screen.getByText(/Open it on this device\./)).toBeInTheDocument();
+  });
+
+  it('a long email wraps inside the status layout', async () => {
+    const long = 'a.very.long.coach.name@some-really-long-club-domain.example';
+    await sendFor(long);
+    expect(screen.getByText(long).tagName).toBe('B');
+    expect(screen.getByText(long)).toHaveClass('break-all');
+  });
+
+  it('links Request early access to the request form', () => {
+    renderLoginPage();
+    expect(screen.getByRole('link', { name: 'Request early access' })).toHaveAttribute('href', '/request-access');
+  });
+});

@@ -131,6 +131,11 @@
     outline: 2px solid rgb(var(--color-focus));
     outline-offset: 2px;
   }
+  /* A route change moves focus to the page heading for screen readers. The heading isn't a control, so it gets no
+     ring (Chrome otherwise draws one after a typed URL or a script navigation). */
+  h1[tabindex='-1']:focus-visible {
+    outline: none;
+  }
 
   /* Thin, quiet scrollbars everywhere (no arrow buttons, transparent track): panels, sheets and the page.
      Firefox takes the standard properties. Chromium and Safari take the ::-webkit-scrollbar rules instead: there the
@@ -193,6 +198,8 @@
     width: 1.25rem;
     height: 1.25rem;
     cursor: pointer;
+    /* Beside a long label in a flex row it would otherwise shrink to a few pixels on phones. */
+    flex-shrink: 0;
   }
   input[type='checkbox'],
   input[type='radio'],

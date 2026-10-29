@@ -66,6 +66,15 @@ const DESKTOP_WIDTH: Record<NonNullable<SheetProps['size']>, string> = {
   lg: 'max-w-[720px]',
 };
 
+/** Reserves a header side's width for the label on the other side, so the title stays centred. */
+function SidePlaceholder({ label }: { label: string }) {
+  return (
+    <Button variant="ghost" type="button" tabIndex={-1} aria-hidden="true" className="invisible col-start-1 row-start-1">
+      {label}
+    </Button>
+  );
+}
+
 export function Sheet(props: SheetProps) {
   const { title, onClose, children, size = 'md', footer, confirm, dirty = false, guardUnsaved = false, detent = 'content', variant = 'form' } = props;
   const t = useT().components;
@@ -235,6 +244,19 @@ export function Sheet(props: SheetProps) {
     </Button>
   );
 
+  // Phone header sides: Cancel on the left (never on a view sheet); Done, the confirm action or nothing on the right.
+  const leadingLabel = variant === 'view' ? null : t.cancel;
+  const trailingLabel =
+    variant === 'view' ? t.done : confirm ? confirm.label : footer || guardUnsaved || dirty ? null : t.done;
+  const trailing =
+    variant !== 'view' && confirmButton
+      ? confirmButton
+      : trailingLabel && (
+          <Button variant="ghost" onClick={requestClose}>
+            {trailingLabel}
+          </Button>
+        );
+
   const body = (
     // The body's gutter is --page-gutter, so full-bleed strips inside (FilterChips) line up with the sheet edge.
     <div
@@ -295,28 +317,21 @@ export function Sheet(props: SheetProps) {
           >
             <div ref={headerRef} {...bindDrag()} className="shrink-0 touch-none select-none border-b border-separator">
               <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-ink-3/40" aria-hidden="true" />
+              {/* Both sides take the wider of the two labels (an invisible copy fills an empty side), so the title
+                  stays centred when only Cancel or only Done is shown. */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
-                <div className="justify-self-start">
-                  {variant === 'view' ? null : (
-                    <Button variant="ghost" onClick={requestClose}>
-                      {t.cancel}
+                <div className="grid justify-items-start">
+                  {leadingLabel && (
+                    <Button variant="ghost" onClick={requestClose} className="col-start-1 row-start-1">
+                      {leadingLabel}
                     </Button>
                   )}
+                  {trailingLabel && <SidePlaceholder label={trailingLabel} />}
                 </div>
                 <h2 className="min-w-0 truncate text-headline text-ink">{title}</h2>
-                <div className="justify-self-end">
-                  {variant === 'view' ? (
-                    <Button variant="ghost" onClick={requestClose}>
-                      {t.done}
-                    </Button>
-                  ) : (
-                    (confirmButton ??
-                    (footer || guardUnsaved || dirty ? null : (
-                      <Button variant="ghost" onClick={requestClose}>
-                        {t.done}
-                      </Button>
-                    )))
-                  )}
+                <div className="grid justify-items-end">
+                  {trailing && <div className="col-start-1 row-start-1">{trailing}</div>}
+                  {leadingLabel && <SidePlaceholder label={leadingLabel} />}
                 </div>
               </div>
               <button type="button" onClick={requestClose} aria-label={t.close} className="sr-only">

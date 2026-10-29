@@ -75,4 +75,14 @@ describe('ShellToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(open).toHaveBeenCalled();
   });
+
+  it('a main action with a menu opens it from the pill', () => {
+    const onSelect = vi.fn();
+    renderToolbar({ mainAction: { label: 'Export', menu: [{ kind: 'action', label: 'CSV', onSelect }] } });
+    const pill = screen.getByRole('button', { name: 'Export' });
+    expect(pill).toHaveAttribute('aria-haspopup', 'menu');
+    fireEvent.click(pill);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV' }));
+    expect(onSelect).toHaveBeenCalled();
+  });
 });

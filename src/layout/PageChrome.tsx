@@ -2,12 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import type { LucideIcon } from 'lucide-react';
 import type { MenuItem } from '../components/Menu';
 
-export interface PageMainAction {
-  label: string;
-  onSelect: () => void;
-  icon?: LucideIcon;
-  disabled?: boolean;
-}
+export type PageMainAction = { label: string; icon?: LucideIcon; disabled?: boolean } &
+  ({ onSelect: () => void; menu?: undefined } | { menu: MenuItem[]; onSelect?: undefined });
 
 export interface PageChromeState {
   title: string | null;
@@ -46,7 +42,14 @@ function sameChrome(a: PageChromeState, b: PageChromeState): boolean {
   const ma = a.mainAction;
   const mb = b.mainAction;
   const sameAction =
-    ma === mb || (!!ma && !!mb && ma.label === mb.label && ma.icon === mb.icon && (ma.disabled ?? false) === (mb.disabled ?? false));
+    ma === mb ||
+    (!!ma &&
+      !!mb &&
+      ma.label === mb.label &&
+      ma.icon === mb.icon &&
+      (ma.disabled ?? false) === (mb.disabled ?? false) &&
+      !!ma.menu === !!mb.menu &&
+      sameMore(ma.menu ?? [], mb.menu ?? []));
   return a.title === b.title && sameAction && sameMore(a.more, b.more);
 }
 
@@ -110,17 +113,25 @@ export function usePublishPageChrome(state: Partial<PageChromeState>, enabled = 
       return;
     }
     const action = latest.current.mainAction;
-    publisher.publish(me.current, {
-      title,
-      mainAction: action && { ...action, onSelect: () => latest.current.mainAction?.onSelect() },
-      more: moreItems.map((item, i) =>
+    const wrap = (items: MenuItem[], read: () => MenuItem[] | undefined): MenuItem[] =>
+      items.map((item, i) =>
         item.kind === 'divider'
           ? item
           : { ...item, onSelect: () => {
-              const cur = latest.current.more?.[i];
+              const cur = read()?.[i];
               if (cur && cur.kind !== 'divider') cur.onSelect();
             } }
-      ),
+      );
+    let mainOut: PageMainAction | null = null;
+    if (action) {
+      mainOut = action.menu
+        ? { ...action, menu: wrap(action.menu, () => latest.current.mainAction?.menu) }
+        : { ...action, onSelect: () => latest.current.mainAction?.onSelect?.() };
+    }
+    publisher.publish(me.current, {
+      title,
+      mainAction: mainOut,
+      more: wrap(moreItems, () => latest.current.more),
     });
   });
 

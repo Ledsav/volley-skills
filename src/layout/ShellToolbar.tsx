@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import { MoreHorizontal, PanelLeft, Search } from 'lucide-react';
-import { MainAction, Toolbar } from '../components/Toolbar';
+import { MAIN_ACTION_CLASS, MainAction, Toolbar } from '../components/Toolbar';
 import { Menu } from '../components/Menu';
 import { useMediaQuery } from '../components/useMediaQuery';
 import { useT } from '../i18n/I18nProvider';
@@ -64,12 +64,20 @@ export function ShellToolbar({
 
   const MainIcon = mainAction?.icon;
   const iconOnly = isPhone && !!MainIcon;
-  const main = mainAction && (
-    <MainAction className="gap-2" onClick={mainAction.onSelect} disabled={mainAction.disabled} aria-label={iconOnly ? mainAction.label : undefined}>
+  const mainContent = mainAction && (
+    <>
       {MainIcon && <MainIcon size={16} strokeWidth={1.75} aria-hidden="true" />}
       {!iconOnly && mainAction.label}
-    </MainAction>
+    </>
   );
+  const main = mainAction &&
+    (mainAction.menu ? (
+      <Menu label={mainAction.label} items={mainAction.menu} align="end" triggerClassName={MAIN_ACTION_CLASS} trigger={mainContent} />
+    ) : (
+      <MainAction className="gap-2" onClick={mainAction.onSelect} disabled={mainAction.disabled} aria-label={iconOnly ? mainAction.label : undefined}>
+        {mainContent}
+      </MainAction>
+    ));
 
   return <Toolbar title={title ?? ''} leading={leading} actions={actions} mainAction={main} />;
 }

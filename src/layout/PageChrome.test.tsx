@@ -18,7 +18,7 @@ let probeRenders = 0;
 const CountingProbe = memo(function CountingProbe() {
   probeRenders += 1;
   const s = usePageChromeState();
-  return <button onClick={() => s.mainAction?.onSelect()}>{s.mainAction?.label ?? 'none'}</button>;
+  return <button onClick={() => s.mainAction?.onSelect?.()}>{s.mainAction?.label ?? 'none'}</button>;
 });
 
 const read = () => JSON.parse(screen.getByTestId('probe').textContent ?? '{}');
@@ -132,5 +132,38 @@ describe('PageChrome', () => {
     // Disabled publisher that owns the chrome releases it.
     rerender(tree(false, false));
     expect(read()).toEqual({ title: null, action: null, more: 0 });
+  });
+
+  it('a menu main action runs the latest handler', () => {
+    const a = vi.fn();
+    const b = vi.fn();
+    function MenuProbe() {
+      const s = usePageChromeState();
+      const m = s.mainAction?.menu ?? [];
+      return (
+        <div>
+          {m.map((x, k) => (x.kind === 'action' ? <button key={k} onClick={x.onSelect}>{x.label}</button> : null))}
+        </div>
+      );
+    }
+    function MenuPublisher({ onSelect }: { onSelect: () => void }) {
+      usePublishPageChrome({ mainAction: { label: 'Export', menu: [{ kind: 'action', label: 'CSV', onSelect }] } });
+      return null;
+    }
+    const { rerender } = render(
+      <PageChromeProvider>
+        <MenuProbe />
+        <MenuPublisher onSelect={a} />
+      </PageChromeProvider>
+    );
+    rerender(
+      <PageChromeProvider>
+        <MenuProbe />
+        <MenuPublisher onSelect={b} />
+      </PageChromeProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'CSV' }));
+    expect(b).toHaveBeenCalledTimes(1);
+    expect(a).not.toHaveBeenCalled();
   });
 });

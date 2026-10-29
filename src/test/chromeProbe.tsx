@@ -6,10 +6,22 @@ function ChromeProbe() {
   const s = usePageChromeState();
   return (
     <div data-testid="chrome-probe">
-      {s.mainAction && (
+      {s.mainAction && !s.mainAction.menu && (
         <button disabled={s.mainAction.disabled} onClick={s.mainAction.onSelect}>
           {s.mainAction.label}
         </button>
+      )}
+      {s.mainAction?.menu && (
+        <>
+          <span>{s.mainAction.label}</span>
+          {s.mainAction.menu.map((m, i) =>
+            m.kind === 'action' ? (
+              <button key={i} disabled={m.disabled} onClick={m.onSelect}>
+                {m.label}
+              </button>
+            ) : null
+          )}
+        </>
       )}
       {s.more.map((m, i) =>
         m.kind === 'action' ? (

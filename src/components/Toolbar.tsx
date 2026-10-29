@@ -1,6 +1,6 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode, type RefObject } from 'react';
 import { TOOLBAR_H } from '../layout/chromeMetrics';
-import { Button } from './Button';
+import { Button, buttonClassName } from './Button';
 
 /**
  * Sticky top bar: transparent at rest (the page shows its large title), glass with the inline title once the
@@ -50,6 +50,9 @@ export function Toolbar({
     </header>
   );
 }
+
+/** MainAction's classes, shared with a main action that opens a menu. */
+export const MAIN_ACTION_CLASS = `${buttonClassName('primary', 'pill')} relative gap-2 before:absolute before:-inset-y-1 before:inset-x-0`;
 
 /** The screen's one main action: a filled ink pill with a 44px hit area around the 36px pill. */
 export function MainAction({

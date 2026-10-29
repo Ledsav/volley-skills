@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'dangerGhost' | 'destructive';
-type ButtonSize = 'sm' | 'md' | 'icon' | 'pill';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'dangerGhost' | 'destructive';
+export type ButtonSize = 'sm' | 'md' | 'icon' | 'pill';
 
 // inline-flex + min-h-11 (44px) keeps every text button at least the recommended
 // mobile touch-target size, regardless of how tight its padding/text is. The
@@ -26,6 +26,10 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   destructive: 'font-semibold text-red-strong hover:bg-red-tint',
 };
 
+export function buttonClassName(variant: ButtonVariant, size: ButtonSize = 'md'): string {
+  return `${BASE_CLASS} ${SIZE_CLASS[size]} ${VARIANT_CLASS[variant]}`;
+}
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant: ButtonVariant;
   size?: ButtonSize;
@@ -40,7 +44,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       type={type ?? 'button'}
-      className={`${BASE_CLASS} ${SIZE_CLASS[size]} ${VARIANT_CLASS[variant]} ${className}`.trim()}
+      className={`${buttonClassName(variant, size)} ${className}`.trim()}
       {...rest}
     >
       {children}

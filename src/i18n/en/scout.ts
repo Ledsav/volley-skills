@@ -5,6 +5,7 @@ export const scout = {
     title: 'Scouting',
     lockedTitle: 'Being scouted on another device',
     lockedMessage: 'Another device scouted this match in the last two minutes. Take over here? Only one device should scout at a time.',
+    dismiss: 'Dismiss',
     lockedConfirm: 'Take over',
     writeAction: 'An action could not be saved. Check your connection and the timeline.',
     writeText: 'Some text events could not be saved. Check your connection and the timeline.',

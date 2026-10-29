@@ -5,8 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { useClubFeatures } from '../../clubs/useClubFeatures';
 import { getT, useT } from '../../i18n/I18nProvider';
-import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { Button } from '../../components/Button';
 import { Tab } from '../../components/Tab';
 import { useMediaQuery } from '../../components/useMediaQuery';
 import type { ActionEvent, EventSource, Grade, Match, MatchEvent, MatchEventPayload, PointReason, RoleMap, Side, Skill, UsageProfile } from '../../types/match';
@@ -31,6 +31,9 @@ import { keyLabel } from './hotkeys';
 import { Kbd } from './Kbd';
 import { RallyBar, type ReasonPrompt } from './RallyBar';
 import { onlyImports, undoTarget } from './undoTarget';
+import { StatusStrip, type StatusStripProps } from './StatusStrip';
+import { pickStrip } from './pickStrip';
+import { useWriteError } from './useWriteError';
 import { ScoutHeader } from './ScoutHeader';
 import type { MenuItem } from '../../components/Menu';
 import { LiveStatsPanel } from './LiveStatsPanel';
@@ -117,7 +120,7 @@ export function ScoutPage() {
   const [usage, setUsage] = useState<UsageProfile>({ players: {} });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [writeError, setWriteError] = useState<string | null>(null);
+  const writeError = useWriteError();
   const [locked, setLocked] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [autoSelect, setAutoSelect] = useState(readAutoSelect);
@@ -249,7 +252,7 @@ export function ScoutPage() {
       setReasonPrompt(null);
       const order = nextOrder(events, anchorId, lastWriteRef.current, maxOrderRef.current);
       const { id, written } = addEvent(teamId, matchId, { ...payload, order, source, chunkId: null }, firebaseUser.uid);
-      written.catch(() => setWriteError(getT().scout.page.writeAction));
+      writeError.track(written, getT().scout.page.writeAction);
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order };
       maxOrderRef.current = Math.max(maxOrderRef.current, order);
@@ -263,7 +266,7 @@ export function ScoutPage() {
       }
       return id;
     },
-    [events, firebaseUser, anchorId, teamId, matchId],
+    [events, firebaseUser, anchorId, teamId, matchId, writeError],
   );
 
   function mergeText(payloads: MatchEventPayload[], orders: number[]): boolean {
@@ -271,7 +274,7 @@ export function ScoutPage() {
     const chunkId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `chunk-${Date.now()}`;
     payloads.forEach((payload, i) => {
       const { id, written } = addEvent(teamId, matchId, { ...payload, order: orders[i], source: 'text', chunkId }, firebaseUser.uid);
-      written.catch(() => setWriteError(getT().scout.page.writeText));
+      writeError.track(written, getT().scout.page.writeText);
       writtenRef.current.push(id);
       lastWriteRef.current = { id, order: orders[i] };
       maxOrderRef.current = Math.max(maxOrderRef.current, orders[i]);
@@ -311,7 +314,7 @@ export function ScoutPage() {
     const ids = target.ids;
     if (target.kind === 'batch') setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.undoError));
+    if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => writeError.show(getT().scout.page.undoError));
   }
 
   function recordPoint(winner: Side) {
@@ -320,7 +323,7 @@ export function ScoutPage() {
   }
 
   function amendReason(eventId: string, reason: PointReason) {
-    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => setWriteError(getT().scout.page.pointReasonError));
+    void updateEvent(teamId, matchId, eventId, { reason }).catch(() => writeError.show(getT().scout.page.pointReasonError));
     setReasonPrompt(null);
   }
 
@@ -361,7 +364,7 @@ export function ScoutPage() {
   function deleteFromTimeline(ids: string[]) {
     if (reasonPrompt && ids.includes(reasonPrompt.eventId)) setReasonPrompt(null);
     if (anchorId && ids.includes(anchorId)) setAnchorId(null);
-    void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.deleteError));
+    void deleteEvents(teamId, matchId, ids).catch(() => writeError.show(getT().scout.page.deleteError));
   }
 
   async function finish() {
@@ -372,7 +375,7 @@ export function ScoutPage() {
       fresh = await getUsageProfile(teamId);
     } catch {
       finishingRef.current = false;
-      setWriteError(getT().matches.page.usageError);
+      writeError.show(getT().matches.page.usageError);
       return;
     }
     finishMatch(teamId, matchId, buildFinishPayload(match, state, fresh)).catch(() => undefined);
@@ -408,6 +411,38 @@ export function ScoutPage() {
 
   const liberoIds = new Set(match.liberos.map((l) => l.playerId));
   const selected = selectedId ? roster.get(selectedId) : undefined;
+  const stripKind = pickStrip({
+    error: writeError.error !== null,
+    matchOver: state.matchOver,
+    betweenSets: !state.inSet && !state.matchOver,
+    inserting: anchorId !== null,
+  });
+  let stripProps: StatusStripProps | null = null;
+  if (stripKind === 'error') {
+    stripProps = { kind: 'error', message: writeError.error ?? '', dismissLabel: sp.dismiss, onDismiss: writeError.dismiss };
+  } else if (stripKind === 'matchOver') {
+    stripProps = {
+      kind: 'matchOver',
+      label: sp.matchOver(state.setsWon.us, state.setsWon.them),
+      finishLabel: tr.matches.page.finish,
+      onFinish: () => void finish(),
+    };
+  } else if (stripKind === 'betweenSets') {
+    stripProps = {
+      kind: 'betweenSets',
+      label:
+        state.set === 0
+          ? sp.setLineup
+          : sp.setOver(state.set, state.setScores[state.set - 1]?.us ?? 0, state.setScores[state.set - 1]?.them ?? 0),
+      undoLabel: state.set > 0 ? sp.undoSetEnd : null,
+      onUndo: undoSetEnd,
+      startLabel: sp.startSet(state.set + 1),
+      onStart: () => setSetDialogOpen(true),
+    };
+  } else if (stripKind === 'inserting') {
+    stripProps = { kind: 'inserting', label: sp.inserting, backLabel: sp.backToLive, onBack: () => setAnchorId(null) };
+  }
+
   const bench = match.roster.filter((r) => !state.court.includes(r.playerId));
   const skillsFor = (playerId: string) => {
     const entry = roster.get(playerId);
@@ -585,36 +620,7 @@ export function ScoutPage() {
           )
         }
       />
-      {writeError && <p role="alert" className="bg-red/10 px-4 py-2 text-sm text-red-strong">{writeError}</p>}
-      {anchorId && (
-        <div className="flex items-center justify-between bg-blue/10 px-4 py-2 text-sm text-ink">
-          <span>{sp.inserting}</span>
-          <button type="button" onClick={() => setAnchorId(null)} className="font-medium text-blue-strong">{sp.backToLive}</button>
-        </div>
-      )}
-      {!state.inSet && !state.matchOver && (
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-orange/10 px-4 py-2">
-          <span className="font-semibold text-ink">
-            {state.set === 0
-              ? sp.setLineup
-              : sp.setOver(state.set, state.setScores[state.set - 1]?.us ?? 0, state.setScores[state.set - 1]?.them ?? 0)}
-          </span>
-          <div className="flex gap-2">
-            {state.set > 0 && (
-              <Button variant="ghost" size="sm" onClick={undoSetEnd}>{sp.undoSetEnd}</Button>
-            )}
-            <Button variant="primary" size="sm" onClick={() => setSetDialogOpen(true)}>{sp.startSet(state.set + 1)}</Button>
-          </div>
-        </div>
-      )}
-      {state.matchOver && (
-        <div className="flex items-center justify-between gap-3 bg-green/15 px-4 py-3">
-          <span className="font-semibold text-ink">
-            {sp.matchOver(state.setsWon.us, state.setsWon.them)}
-          </span>
-          <Button variant="primary" size="sm" onClick={() => void finish()}>{tr.matches.page.finish}</Button>
-        </div>
-      )}
+      {stripProps && <StatusStrip {...stripProps} />}
       {isDesktop ? (
         <main className="grid min-h-0 flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 overflow-y-auto p-4">
           {courtColumn}
@@ -676,7 +682,7 @@ export function ScoutPage() {
               const nextRoster = match.roster.map((r) => ({ ...r, positionCategory: roles[r.playerId] ?? r.positionCategory }));
               setMatch({ ...match, roster: nextRoster });
               updateMatchRoster(teamId, matchId, nextRoster).catch(() =>
-                setWriteError(sp.rosterError),
+                writeError.show(sp.rosterError),
               );
             }
           }}
@@ -730,7 +736,7 @@ export function ScoutPage() {
           roster={match.roster}
           onCancel={() => setEditing(null)}
           onSave={(patch) => {
-            void updateEvent(teamId, matchId, editing.id, patch).catch(() => setWriteError(getT().scout.page.editError));
+            void updateEvent(teamId, matchId, editing.id, patch).catch(() => writeError.show(getT().scout.page.editError));
             setEditing(null);
           }}
         />
@@ -775,7 +781,7 @@ export function ScoutPage() {
           onCancel={() => setPendingUndo(null)}
           onConfirm={() => {
             if (anchorId && pendingUndo.includes(anchorId)) setAnchorId(null);
-            void deleteEvents(teamId, matchId, pendingUndo).catch(() => setWriteError(sp.undoError));
+            void deleteEvents(teamId, matchId, pendingUndo).catch(() => writeError.show(sp.undoError));
             setPendingUndo(null);
           }}
         />

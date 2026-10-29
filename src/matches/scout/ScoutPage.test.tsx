@@ -494,6 +494,47 @@ describe('ScoutPage', () => {
     expect(api.finishMatch).not.toHaveBeenCalled();
   });
 
+  it('the write-error strip clears when a later write is acknowledged', async () => {
+    renderPage([setStart]);
+    vi.mocked(api.addEvent).mockImplementationOnce(() => ({ id: 'bad', written: Promise.reject(new Error('offline')) }));
+    fireEvent.click(await screen.findByRole('button', { name: /T\/O us/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('An action could not be saved');
+    fireEvent.click(screen.getByRole('button', { name: /T\/O them/ }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
+  it('after a usage error, Dismiss brings back Finish match', async () => {
+    vi.mocked(api.getUsageProfile).mockResolvedValueOnce({ players: {} }).mockRejectedValueOnce(new Error('offline'));
+    const events: MatchEvent[] = [];
+    let order = 0;
+    for (let set = 1; set <= 3; set++) {
+      events.push(
+        { ...setStart, id: `s${set}`, order: ++order, set } as MatchEvent,
+        { id: `c${set}`, order: ++order, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 10 }, rotation: null, serving: null },
+        { id: `x${set}`, order: ++order, source: 'tap', chunkId: null, type: 'setEnd', set },
+      );
+    }
+    renderPage(events);
+    fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load usage history');
+    expect(screen.queryByRole('button', { name: 'Finish match' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.getByRole('button', { name: 'Finish match' })).toBeInTheDocument();
+  });
+
+  it('shows one strip at a time', async () => {
+    const last: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
+    renderPage([setStart, last]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Insert after' }))[0]);
+    expect(screen.getByText('Inserting into the timeline')).toBeInTheDocument();
+    vi.mocked(api.addEvent).mockImplementationOnce(() => ({ id: 'bad', written: Promise.reject(new Error('offline')) }));
+    fireEvent.click(screen.getByRole('button', { name: /T\/O them/ }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText('Inserting into the timeline')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.getByText('Inserting into the timeline')).toBeInTheDocument();
+  });
+
   it('undo clears the insert anchor when the anchor event is deleted', async () => {
     const last: MatchEvent = { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'timeout', team: 'us' };
     renderPage([setStart, last]);

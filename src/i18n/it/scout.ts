@@ -6,6 +6,7 @@ export const scout = {
     title: 'Scouting',
     lockedTitle: 'Scouting in corso su un altro dispositivo',
     lockedMessage: 'Un altro dispositivo ha fatto lo scouting di questa partita negli ultimi due minuti. Vuoi subentrare qui? Dovrebbe esserci un solo dispositivo alla volta.',
+    dismiss: 'Chiudi',
     lockedConfirm: 'Subentra',
     writeAction: 'Non è stato possibile salvare un’azione. Controlla la connessione e la cronologia.',
     writeText: 'Non è stato possibile salvare alcuni eventi del testo. Controlla la connessione e la cronologia.',

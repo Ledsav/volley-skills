@@ -472,4 +472,78 @@ describe('TrainingBuilderDialog naming hint', () => {
     expect(name).toHaveAttribute('placeholder', 'Reception + free ball: control and convert');
     expect(name).toHaveAccessibleDescription(/Focus \+ focus: objective/);
   });
+
+  describe('discard guard', () => {
+    const twoRows = {
+      id: 't-1',
+      businessId: 'TR-0007',
+      name: 'Circuit',
+      description: '',
+      ageGroupTarget: 'U17',
+      exercises: [
+        { exerciseId: 'ex-1', order: 1, durationMinutes: 10 },
+        { exerciseId: 'ex-2', order: 2, durationMinutes: 10 },
+      ],
+      exerciseIds: ['ex-1', 'ex-2'],
+      createdBy: 'x',
+      createdAt: null,
+    };
+
+    it('Cancel after only reordering asks to discard', async () => {
+      vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([exOne, exTwo]);
+      const onClose = vi.fn();
+      render(<TrainingBuilderDialog training={twoRows} onClose={onClose} onSaved={vi.fn()} />);
+      fireEvent.click(await screen.findByLabelText('Move exercise 1 down'));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('Cancel after adding an exercise asks to discard', async () => {
+      render(<TrainingBuilderDialog onClose={vi.fn()} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByText('Add exercise'));
+      await screen.findByRole('button', { name: 'Add Pepper' });
+      fireEvent.click(addBtn('Pepper'));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+    });
+
+    it('Cancel on an untouched builder closes at once', () => {
+      const onClose = vi.fn();
+      render(<TrainingBuilderDialog onClose={onClose} onSaved={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onClose).toHaveBeenCalled();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+
+    it('a builder prefilled from a draft asks before Cancel discards it', async () => {
+      vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([exOne]);
+      const onClose = vi.fn();
+      render(
+        <TrainingBuilderDialog
+          initial={{ name: 'AI plan', description: 'D', ageGroupTarget: 'U15', exercises: [{ exerciseId: 'ex-1', order: 1, durationMinutes: 15 }] }}
+          onClose={onClose}
+          onSaved={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+  });
+
+  it('each plan row has a drag handle hidden from assistive tech', async () => {
+    vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([exOne]);
+    render(
+      <TrainingBuilderDialog
+        initial={{ name: 'AI plan', description: 'D', ageGroupTarget: 'U15', exercises: [{ exerciseId: 'ex-1', order: 1, durationMinutes: 15 }] }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+    await screen.findByLabelText('Move exercise 1 down');
+    const list = screen.getByRole('list', { name: /exercises/i });
+    expect(list.querySelectorAll('li [aria-hidden="true"] svg.lucide-grip-vertical').length).toBe(1);
+    expect(screen.queryByRole('button', { name: /drag/i })).not.toBeInTheDocument();
+  });
 });

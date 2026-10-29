@@ -1,9 +1,12 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, useLocation, type InitialEntry } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { TeamCalendarTab } from './TeamCalendarTab';
 import * as calendarApi from './calendarApi';
 import * as matchesApi from '../matches/matchesApi';
+import { NoticeProvider, UNDO_MS } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
+import { withPendingAction } from '../search/pendingAction';
 
 vi.mock('./calendarApi');
 vi.mock('../matches/matchesApi');
@@ -22,6 +25,24 @@ const session = {
   createdBy: 'coach-uid',
   createdAt: null,
 };
+
+function LocationProbe() {
+  const loc = useLocation();
+  return <div data-testid="loc">{loc.pathname + loc.search}</div>;
+}
+
+function renderTab(entry: InitialEntry = '/teams/team-1?tab=calendar') {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <NoticeProvider>
+        <WithChrome>
+          <TeamCalendarTab teamId="team-1" teamName="U17 Boys" />
+          <LocationProbe />
+        </WithChrome>
+      </NoticeProvider>
+    </MemoryRouter>
+  );
+}
 
 describe('TeamCalendarTab', () => {
   beforeEach(() => {
@@ -120,19 +141,126 @@ describe('TeamCalendarTab', () => {
     expect(screen.getByText('assign-stub')).toBeInTheDocument();
   });
 
-  it('removes a session after confirmation', async () => {
-    vi.mocked(calendarApi.deleteCalendarSession).mockResolvedValue(undefined);
-    render(
-      <MemoryRouter>
-        <TeamCalendarTab teamId="team-1" />
-      </MemoryRouter>
-    );
-    await screen.findByText('TR-0007 · Passing circuit');
+  describe('session sheet and undoable remove', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-09-15T12:00:00Z'));
+      vi.mocked(calendarApi.deleteCalendarSession).mockResolvedValue(undefined);
+    });
 
-    fireEvent.click(screen.getByLabelText('Remove TR-0007 on 2026-09-10'));
-    fireEvent.click(screen.getByText('Yes, remove'));
+    async function openSheet() {
+      renderTab();
+      fireEvent.click(await screen.findByRole('button', { name: 'TR-0007 · Passing circuit' }));
+      return screen.findByRole('dialog', { name: 'Passing circuit' });
+    }
+    const removeName = 'Remove TR-0007 on 2026-09-10';
 
-    await waitFor(() => expect(calendarApi.deleteCalendarSession).toHaveBeenCalledWith('team-1', 's-1'));
+    it('a session opens its sheet with a link to the training', async () => {
+      const dialog = await openSheet();
+      expect(within(dialog).getByRole('link', { name: 'Open training' })).toHaveAttribute(
+        'href',
+        '/trainings?businessId=TR-0007&team=team-1&session=s-1'
+      );
+      expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=calendar&session=s-1');
+    });
+
+    it('closing the sheet drops the session param and keeps the tab', async () => {
+      await openSheet();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=calendar');
+    });
+
+    it('removing is an undo: the session leaves at once and is deleted when the notice expires', async () => {
+      const dialog = await openSheet();
+      fireEvent.click(within(dialog).getByRole('button', { name: removeName }));
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'TR-0007 · Passing circuit' })).not.toBeInTheDocument();
+      expect(calendarApi.deleteCalendarSession).not.toHaveBeenCalled();
+
+      vi.mocked(calendarApi.listCalendarSessions).mockClear();
+      await act(() => vi.advanceTimersByTimeAsync(UNDO_MS));
+      expect(calendarApi.deleteCalendarSession).toHaveBeenCalledWith('team-1', 's-1');
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalled());
+    });
+
+    it('Undo restores the session and never deletes', async () => {
+      const dialog = await openSheet();
+      fireEvent.click(within(dialog).getByRole('button', { name: removeName }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+      expect(await screen.findByRole('button', { name: 'TR-0007 · Passing circuit' })).toBeInTheDocument();
+      await act(() => vi.advanceTimersByTimeAsync(UNDO_MS * 2));
+      expect(calendarApi.deleteCalendarSession).not.toHaveBeenCalled();
+    });
+
+    it('a failed remove brings the session back with the error', async () => {
+      vi.mocked(calendarApi.deleteCalendarSession).mockRejectedValue(new Error('denied'));
+      const dialog = await openSheet();
+      fireEvent.click(within(dialog).getByRole('button', { name: removeName }));
+      await act(() => vi.advanceTimersByTimeAsync(UNDO_MS));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not remove the session. Please try again.');
+      expect(screen.getByRole('button', { name: 'TR-0007 · Passing circuit' })).toBeInTheDocument();
+    });
+
+    it('changing month during the undo window still deletes the session', async () => {
+      const dialog = await openSheet();
+      fireEvent.click(within(dialog).getByRole('button', { name: removeName }));
+      fireEvent.click(screen.getByLabelText('Next month'));
+      await waitFor(() =>
+        expect(calendarApi.listCalendarSessions).toHaveBeenLastCalledWith('team-1', '2026-10-01', '2026-10-31')
+      );
+      vi.mocked(calendarApi.listCalendarSessions).mockClear();
+      await act(() => vi.advanceTimersByTimeAsync(UNDO_MS));
+      expect(calendarApi.deleteCalendarSession).toHaveBeenCalledWith('team-1', 's-1');
+      // the reload after the delete is for the month on screen, not the one it was removed from
+      await waitFor(() =>
+        expect(calendarApi.listCalendarSessions).toHaveBeenLastCalledWith('team-1', '2026-10-01', '2026-10-31')
+      );
+    });
+
+    it("a session link opens that session's month and sheet", async () => {
+      const s9 = { ...session, id: 's9', date: '2026-11-03' };
+      vi.mocked(calendarApi.getCalendarSession).mockResolvedValue(s9);
+      vi.mocked(calendarApi.listCalendarSessions).mockImplementation(async (_t, start) =>
+        start === '2026-11-01' ? [s9] : []
+      );
+      renderTab('/teams/team-1?tab=calendar&session=s9');
+      expect(await screen.findByRole('dialog', { name: 'Passing circuit' })).toBeInTheDocument();
+      expect(calendarApi.getCalendarSession).toHaveBeenCalledWith('team-1', 's9');
+      await waitFor(() =>
+        expect(calendarApi.listCalendarSessions).toHaveBeenCalledWith('team-1', '2026-11-01', '2026-11-30')
+      );
+      expect(screen.getByText('November 2026')).toBeInTheDocument();
+    });
+
+    it('a link to a missing session is dropped quietly', async () => {
+      vi.mocked(calendarApi.getCalendarSession).mockResolvedValue(null);
+      renderTab('/teams/team-1?tab=calendar&session=gone');
+      await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=calendar'));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('a link whose read fails is dropped quietly too', async () => {
+      vi.mocked(calendarApi.getCalendarSession).mockRejectedValue(new Error('denied'));
+      renderTab('/teams/team-1?tab=calendar&session=gone');
+      await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/teams/team-1?tab=calendar'));
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('New session in the toolbar opens the assign sheet for the selected day', async () => {
+      renderTab();
+      await screen.findByRole('button', { name: 'TR-0007 · Passing circuit' });
+      fireEvent.click(within(screen.getByTestId('chrome-probe')).getByRole('button', { name: 'New session' }));
+      expect(screen.getByText('assign-stub')).toBeInTheDocument();
+    });
+
+    it('Plan a training lands with the assign sheet open', async () => {
+      renderTab({ pathname: '/teams/team-1', search: '?tab=calendar', ...withPendingAction('new-session') });
+      expect(await screen.findByText('assign-stub')).toBeInTheDocument();
+    });
   });
 
   it('shows matches in the month as links to the match page', async () => {
@@ -178,7 +306,8 @@ describe('TeamCalendarTab', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Thursday 10 September, 1 training' }));
 
       expect(screen.getByText('Passing circuit')).toBeInTheDocument();
-      expect(screen.getByLabelText('Remove TR-0007 on 2026-09-10')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'TR-0007 · Passing circuit' }));
+      expect(await screen.findByLabelText('Remove TR-0007 on 2026-09-10')).toBeInTheDocument();
     });
 
     it('gives the match chip of the tapped day a 44px touch target', async () => {
@@ -210,7 +339,8 @@ describe('TeamCalendarTab', () => {
         <TeamCalendarTab teamId="team-1" />
       </MemoryRouter>
     );
-    const link = await screen.findByRole('link', { name: 'TR-0007 · Passing circuit' });
+    fireEvent.click(await screen.findByRole('button', { name: 'TR-0007 · Passing circuit' }));
+    const link = await screen.findByRole('link', { name: 'Open training' });
     expect(link).toHaveAttribute('href', `/trainings?businessId=TR-0007&team=team-1&session=${session.id}`);
   });
 });

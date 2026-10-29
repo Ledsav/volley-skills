@@ -22,6 +22,7 @@ vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../calendar/calendarApi', () => ({
   listCalendarSessions: vi.fn().mockResolvedValue([]),
+  getCalendarSession: vi.fn().mockResolvedValue(null),
   createCalendarSession: vi.fn(),
   deleteCalendarSession: vi.fn(),
 }));
@@ -387,6 +388,8 @@ describe('TeamPage', () => {
     expect(read().title).toBe('U17 Boys');
     expect(read().more).toEqual(['Import from DataVolley (.dvw)', 'Season awards']);
     await screen.findByText('No matches yet.');
+    fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: 'New session', more: [] }));
     fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: null, more: [] }));
   });

@@ -9,16 +9,16 @@ const W_WIDE = 640, W_NARROW = 320;
 const H = 200, PAD_L = 36, PAD_R = 8, PAD_T = 12, PAD_B = 28;
 const Y_MIN = -0.5, Y_MAX = 1;
 const SERIES = [
-  { key: 'sideOut', className: 'stroke-blue' },
-  { key: 'attackEff', className: 'stroke-orange' },
-  { key: 'receptionPos', className: 'stroke-green' },
+  { key: 'sideOut', className: 'stroke-ink', dash: undefined },
+  { key: 'attackEff', className: 'stroke-ink-2', dash: '6 4' },
+  { key: 'receptionPos', className: 'stroke-ink-3', dash: '2 3' },
 ] as const;
 
 export function TeamTrendChart({ points }: { points: TrendPoint[] }) {
   const t = useT().teams.stats;
   const seriesLabel = { sideOut: t.sideOutPct, attackEff: t.attackEff, receptionPos: t.receptionPos };
   const W = useMediaQuery('(min-width: 640px)') ? W_WIDE : W_NARROW;
-  if (points.length < 2) return <p className="text-sm text-slate">{t.trendNone}</p>;
+  if (points.length < 2) return <p className="text-callout text-ink-2">{t.trendNone}</p>;
   const x = (i: number) => PAD_L + (i / (points.length - 1)) * (W - PAD_L - PAD_R);
   const y = (v: number) => PAD_T + ((Y_MAX - Math.max(Y_MIN, Math.min(Y_MAX, v))) / (Y_MAX - Y_MIN)) * (H - PAD_T - PAD_B);
   const path = (key: (typeof SERIES)[number]['key']) =>
@@ -28,25 +28,25 @@ export function TeamTrendChart({ points }: { points: TrendPoint[] }) {
       .map((p, j) => `${j === 0 ? 'M' : 'L'}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`)
       .join(' ');
   return (
-    <figure className="break-inside-avoid">
+    <figure className="break-inside-avoid rounded-lg bg-surface p-4 shadow-card">
       <svg viewBox={`0 0 ${W} ${H}`} className="block w-full [print-color-adjust:exact]" aria-hidden="true">
         {[0, 0.5, 1].map((g) => (
           <g key={g}>
-            <line x1={PAD_L} x2={W - PAD_R} y1={y(g)} y2={y(g)} className="stroke-border" strokeDasharray={g === 0 ? undefined : '3 3'} />
-            <text x={PAD_L - 4} y={y(g) + 4} textAnchor="end" className="fill-slate text-[11px]">{g * 100}%</text>
+            <line x1={PAD_L} x2={W - PAD_R} y1={y(g)} y2={y(g)} className="stroke-separator" strokeDasharray={g === 0 ? undefined : '3 3'} />
+            <text x={PAD_L - 4} y={y(g) + 4} textAnchor="end" className="fill-ink-2 text-[11px]">{g * 100}%</text>
           </g>
         ))}
-        {SERIES.map((s) => <path key={s.key} d={path(s.key)} fill="none" strokeWidth={2} className={s.className} />)}
+        {SERIES.map((s) => <path key={s.key} d={path(s.key)} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={s.dash} className={s.className} />)}
         {points.map((p, i) => (
           <text key={p.matchId} x={x(i)} y={H - 8} textAnchor="middle" className={`text-[11px] font-bold ${p.won ? 'fill-green-strong' : 'fill-red-strong'}`}>
             {p.won ? t.wonShort : t.lostShort}
           </text>
         ))}
       </svg>
-      <figcaption className="mt-2 flex flex-wrap gap-4 text-xs text-slate">
+      <figcaption className="mt-2 flex flex-wrap gap-4 text-footnote text-ink-2">
         {SERIES.map((s) => (
           <span key={s.key} className="inline-flex items-center gap-1">
-            <svg width="16" height="4" aria-hidden="true"><line x1="0" x2="16" y1="2" y2="2" strokeWidth="3" className={s.className} /></svg>
+            <svg width="16" height="4" aria-hidden="true"><line x1="0" x2="16" y1="2" y2="2" strokeWidth="3" strokeLinecap="round" strokeDasharray={s.dash} className={s.className} /></svg>
             {seriesLabel[s.key]}
           </span>
         ))}

@@ -213,7 +213,7 @@ export default function TeamStatsTab({ team }: { team: Team }) {
             {t.seasonAwards}&nbsp;<span aria-hidden="true">→</span>
           </Link>
         </div>
-        <Leaderboards teamId={team.id} rankings={view.rankings} people={view.people} gender={teamGender(team)} />
+        <Leaderboards teamId={team.id} rankings={view.rankings} people={view.people} gender={teamGender(team)} players={season.players} />
       </section>
       <section aria-labelledby="pt-h" className="print:break-before-page">
         <h3 id="pt-h" className="mb-2 text-title-3 text-ink">{t.players}</h3>

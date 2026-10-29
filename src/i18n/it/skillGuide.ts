@@ -4,6 +4,7 @@ import type { SkillGuideEntry } from '../../types/skillGuide';
 export const skillGuide = {
   loadError: 'Impossibile caricare la guida alle abilità. Aggiorna la pagina.',
   saveError: 'Impossibile salvare la guida alle abilità. Riprova.',
+  saved: 'Guida alle abilità salvata',
   howToEvaluate: 'Come valutare',
   /** Italian fallback until an admin saves the guide; a saved guide shows its stored text in both languages. */
   defaults: [

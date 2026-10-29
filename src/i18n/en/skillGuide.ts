@@ -3,6 +3,7 @@ import type { SkillGuideEntry } from '../../types/skillGuide';
 export const skillGuide = {
   loadError: 'Could not load the skill guide. Please refresh the page.',
   saveError: 'Could not save the skill guide. Please try again.',
+  saved: 'Skill guide saved',
   howToEvaluate: 'How to evaluate',
   /**
    * Fallback shown until an admin saves `config/skillGuide` for the first time, so the editor is usable on

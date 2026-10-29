@@ -50,6 +50,9 @@ function pairs(): Pair[] {
   for (const k of ['choose', 'photos', 'preview'] as const) {
     out.push({ place: `awards.prepare.steps.${k}`, en: en.awards.prepare.steps[k], it: itCat.awards.prepare.steps[k] });
   }
+  for (const k of ['skillGuide', 'physicalTestGuide'] as const) {
+    out.push({ place: `admin.guidesPage.${k}`, en: en.admin.guidesPage[k], it: itCat.admin.guidesPage[k] });
+  }
   out.push({ place: 'scout.rally.timeoutShort', en: en.scout.rally.timeoutShort, it: itCat.scout.rally.timeoutShort });
   return out;
 }

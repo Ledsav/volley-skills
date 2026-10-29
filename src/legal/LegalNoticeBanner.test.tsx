@@ -70,3 +70,15 @@ describe('LegalNoticeBanner', () => {
     set.mockRestore();
   });
 });
+
+describe('LegalNoticeBanner look', () => {
+  it('is a neutral strip with ink links, never blue', () => {
+    window.sessionStorage.clear();
+    upcomingMock.mockReset();
+    upcomingMock.mockImplementation((doc: string) => (doc === 'terms' ? next : null));
+    vi.mocked(useAuth).mockReturnValue(authValue({ role: 'admin' }));
+    renderBanner();
+    expect(screen.getByRole('status').className).not.toMatch(/blue/);
+    expect(screen.getByRole('link', { name: 'review the Terms of Service' })).toHaveClass('text-ink');
+  });
+});

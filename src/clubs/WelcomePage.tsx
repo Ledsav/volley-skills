@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { Users } from 'lucide-react';
+import { StatusLayout } from '../components/StatusLayout';
 import { AuthShell } from '../auth/AuthShell';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
@@ -13,39 +15,38 @@ export function WelcomePage() {
   const w = useT().clubs.welcome;
   const email = appUser?.email ?? firebaseUser?.email ?? '';
   const others = otherUsableClubs(memberships, activeClubId);
+  const pill =
+    'inline-flex min-h-12 w-full items-center justify-center rounded-md px-4 py-2 font-semibold tracking-[-0.01em] focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
   return (
-    <AuthShell title={w.title}>
-      <p className="text-center text-slate">
-        {others.length > 0
-          ? w.noLongerAccess
-          : w.askAdmin(email)}
-      </p>
-      <div className="mt-6 flex flex-col items-center gap-2">
-        {isPlatformAdmin && (
-          <Link
-            to="/platform"
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-navy px-4 py-2 font-medium text-white hover:bg-navy/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-          >
-            {w.openPlatform}
-          </Link>
-        )}
-        {!isPlatformAdmin && (
-          <Link
-            to="/signup/club"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-blue bg-surface px-4 py-2 font-medium text-blue-strong hover:bg-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-          >
-            {w.createClub}
-          </Link>
-        )}
-        {others.map((m) => (
-          <Button key={m.clubId} variant="primary" onClick={() => switchClub(m.clubId)}>
-            {w.switchTo(m.clubName)}
-          </Button>
-        ))}
-        <Button variant="secondary" onClick={signOut}>
-          {w.signOut}
-        </Button>
-      </div>
+    <AuthShell>
+      <StatusLayout
+        icon={Users}
+        title={w.title}
+        actions={
+          <>
+            {isPlatformAdmin && (
+              <Link to="/platform" className={`${pill} bg-ink text-on-ink hover:bg-ink/90`}>
+                {w.openPlatform}
+              </Link>
+            )}
+            {!isPlatformAdmin && (
+              <Link to="/signup/club" className={`${pill} bg-surface-2 text-ink hover:bg-surface-3`}>
+                {w.createClub}
+              </Link>
+            )}
+            {others.map((m) => (
+              <Button key={m.clubId} variant="primary" className="min-h-12 w-full" onClick={() => switchClub(m.clubId)}>
+                {w.switchTo(m.clubName)}
+              </Button>
+            ))}
+            <Button variant="secondary" className="min-h-12 w-full" onClick={signOut}>
+              {w.signOut}
+            </Button>
+          </>
+        }
+      >
+        <p>{others.length > 0 ? w.noLongerAccess : w.askAdmin(email)}</p>
+      </StatusLayout>
       {unsyncedDialog}
     </AuthShell>
   );

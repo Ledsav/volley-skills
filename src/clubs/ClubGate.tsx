@@ -45,7 +45,7 @@ export function ClubGate({ children }: { children: ReactNode }) {
         if (club?.termination?.requestedAt) {
           return (
             <>
-              <div role="status" className="border-b border-orange bg-orange/10 px-4 py-2 text-sm text-ink">
+              <div role="status" className="border-b border-separator bg-orange-tint px-4 py-2.5 text-footnote text-ink">
                 {t.gate.contractEndedInstead}
               </div>
               {children}

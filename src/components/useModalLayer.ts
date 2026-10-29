@@ -6,7 +6,8 @@ const stack: symbol[] = [];
 
 // Where the most recently closed layer returned focus. A layer that replaces another in one render
 // (a picker handing over to an edit sheet) records the outgoing layer's row as its opener, which is
-// gone by the time it closes, so it falls back to where that layer sent focus.
+// gone by the time it closes, so it falls back to where that layer sent focus. The fallback is
+// consumed when a layer opens, so it serves only the layer that opens right after another closed.
 let lastReturnedTo: HTMLElement | null = null;
 
 const FOCUSABLE =
@@ -33,6 +34,7 @@ export function useModalLayer(onEscape: () => void, panelRef?: RefObject<HTMLEle
     const id = Symbol('modal-layer');
     const recorded = openerRef.current;
     const opener = recorded instanceof HTMLElement && recorded.isConnected ? recorded : lastReturnedTo;
+    lastReturnedTo = null;
     if (stack.length === 0) document.body.style.overflow = 'hidden';
     stack.push(id);
 

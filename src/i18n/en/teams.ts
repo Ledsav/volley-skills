@@ -12,6 +12,9 @@ export const teams = {
     promptHint: 'Used for wording in Italian. You can change it later in Settings.',
     saveError: 'Could not save the team type. Please try again.',
   },
+  summary: {
+    players: ((n: number) => (n === 1 ? '1 player' : `${n} players`)) as (n: number, g: Gender) => string,
+  },
   shared: {
     saving: 'Saving…',
     loadMore: 'Load more',
@@ -24,6 +27,9 @@ export const teams = {
     none: 'No teams yet.',
     noneAssigned: 'No teams assigned yet — ask your club admin.',
     season: (season: string) => `Season ${season}`,
+    rowMenu: (n: string) => `Actions for ${n}`,
+    open: 'Open',
+    openNewTab: 'Open in new tab',
     importTitle: 'Import teams',
     imported: (n: number) => `Imported ${n} ${plural('en', n, { one: 'team', other: 'teams' })}.`,
   },

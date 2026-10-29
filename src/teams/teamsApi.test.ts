@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
-import { bulkCreateTeams, createTeam, deleteTeam, listClubTeams, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
+import { bulkCreateTeams, createTeam, deleteTeam, getTeamSummary, listClubTeams, listMyTeams, updateTeamDevelopmentPlan } from './teamsApi';
 import { deleteCollection } from '../firebase/deleteCollection';
 
-const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
+const { mockGetAggregate, mockAverage, mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrderBy, mockLimit, mockUpdateDoc, mockDeleteDoc, mockWriteBatch } = vi.hoisted(() => ({
+  mockGetAggregate: vi.fn(),
+  mockAverage: vi.fn((f: string) => ({ avgOf: f })),
   mockAddDoc: vi.fn(),
   mockCollection: vi.fn(() => 'teams-collection'),
   mockGetDocs: vi.fn(),
@@ -17,6 +19,9 @@ const { mockAddDoc, mockCollection, mockGetDocs, mockQuery, mockWhere, mockOrder
 
 vi.mock('firebase/firestore', () => ({
   collection: mockCollection,
+  getAggregateFromServer: mockGetAggregate,
+  count: () => 'count-agg',
+  average: mockAverage,
   addDoc: mockAddDoc,
   getDocs: mockGetDocs,
   query: mockQuery,
@@ -194,5 +199,18 @@ describe('teamsApi', () => {
       'clubs/club-1/teams/team-1/scoutProfile',
       'team-doc',
     ]);
+  });
+
+  it('summarises a team with one aggregation over its players', async () => {
+    mockGetAggregate.mockResolvedValue({ data: () => ({ count: 14, avg: 6.43 }) });
+    const summary = await getTeamSummary('t1');
+    expect(mockAverage).toHaveBeenCalledWith('avgScore');
+    expect(mockCollection.mock.calls.at(-1)?.slice(-3)).toEqual(['teams', 't1', 'players']);
+    expect(summary).toEqual({ players: 14, avgScore: 6.43 });
+  });
+
+  it('reports no average when no player has a score', async () => {
+    mockGetAggregate.mockResolvedValue({ data: () => ({ count: 2, avg: null }) });
+    expect(await getTeamSummary('t1')).toEqual({ players: 2, avgScore: null });
   });
 });

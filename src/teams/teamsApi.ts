@@ -3,6 +3,9 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  average,
+  count,
+  getAggregateFromServer,
   getDocs,
   limit,
   orderBy,
@@ -98,6 +101,21 @@ export async function listClubTeams(afterDoc: QueryDocumentSnapshot | null = nul
   const teams = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Team);
   const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
   return { teams, lastDoc, hasMore: snapshot.docs.length === TEAMS_PAGE_SIZE };
+}
+
+export interface TeamSummary {
+  players: number;
+  avgScore: number | null;
+}
+
+/** One server-side aggregation over a team's players: every player doc counts (former players and unnumbered included). */
+export async function getTeamSummary(teamId: string): Promise<TeamSummary> {
+  const snap = await getAggregateFromServer(clubCol('teams', teamId, 'players'), {
+    count: count(),
+    avg: average('avgScore'),
+  });
+  const data = snap.data();
+  return { players: data.count, avgScore: data.avg ?? null };
 }
 
 export async function getTeam(teamId: string): Promise<Team | null> {

@@ -13,6 +13,13 @@ export const teams = {
     promptHint: 'Serve per i testi in italiano. Puoi cambiarlo più tardi nelle Impostazioni.',
     saveError: 'Impossibile salvare il tipo di squadra. Riprova.',
   },
+  summary: {
+    players: (n: number, g: Gender) =>
+      plural('it', n, {
+        one: `1 ${agree(g, 'giocatore', 'giocatrice', 'giocatore/trice')}`,
+        other: `${n} ${agree(g, 'giocatori', 'giocatrici', 'giocatori/trici')}`,
+      }),
+  },
   shared: {
     saving: 'Salvataggio…',
     loadMore: 'Carica altri',
@@ -25,6 +32,9 @@ export const teams = {
     none: 'Ancora nessuna squadra.',
     noneAssigned: "Nessuna squadra assegnata — chiedi all'amministratore del club.",
     season: (season: string) => `Stagione ${season}`,
+    rowMenu: (n: string) => `Azioni per ${n}`,
+    open: 'Apri',
+    openNewTab: 'Apri in una nuova scheda',
     importTitle: 'Importa squadre',
     imported: (n: number) => `${plural('it', n, { one: '1 squadra importata', other: `${n} squadre importate` })}.`,
   },

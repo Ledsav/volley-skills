@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { StatTile } from '../components/StatTile';
 import { fmtEff, fmtPct } from '../matches/format';
 import type { SeasonStats } from './matchRating';
 import { useT } from '../i18n/I18nProvider';
@@ -12,48 +13,40 @@ interface PlayerMatchStatsSectionProps {
   gender?: Gender;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border p-2">
-      <p className="text-xs text-slate">{label}</p>
-      <p className="text-lg font-semibold tabular-nums text-ink">{value}</p>
-    </div>
-  );
-}
-
 export function PlayerMatchStatsSection({ teamId, season, error, gender = 'mixed' }: PlayerMatchStatsSectionProps) {
   const m = useT().players.matchStats;
-  if (error) return <p role="alert" className="text-sm text-red-strong">{m.loadError}</p>;
-  if (!season) return <p className="text-sm text-slate">{m.loading}</p>;
-  if (season.matchesPlayed === 0) return <p className="text-sm text-slate">{m.none(gender)}</p>;
+  if (error) return <p role="alert" className="text-callout text-red-strong">{m.loadError}</p>;
+  if (!season) return <p className="text-callout text-ink-2">{m.loading}</p>;
+  if (season.matchesPlayed === 0) return <p className="text-callout text-ink-2">{m.none(gender)}</p>;
 
+  const th = 'sticky top-0 bg-surface px-2 py-2 text-caption font-medium text-ink-2';
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <Stat label={m.matches} value={String(season.matchesPlayed)} />
-        <Stat label={m.attackEff} value={fmtEff(season.attackEff)} />
-        <Stat label={m.serveEff} value={fmtEff(season.serveEff)} />
-        <Stat label={m.receptionPos} value={fmtPct(season.receptionPos)} />
-        <Stat label={m.ptsErr} value={`${season.points} / ${season.errors}`} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <StatTile label={m.matches} value={String(season.matchesPlayed)} />
+        <StatTile label={m.attackEff} value={fmtEff(season.attackEff)} />
+        <StatTile label={m.serveEff} value={fmtEff(season.serveEff)} />
+        <StatTile label={m.receptionPos} value={fmtPct(season.receptionPos)} />
+        <StatTile label={m.ptsErr} value={`${season.points} / ${season.errors}`} />
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm tabular-nums">
-          <thead className="bg-bg text-left text-xs uppercase text-slate">
+      <div className="overflow-x-auto">
+        <table className="w-full text-callout tabular-nums">
+          <thead className="text-left">
             <tr>
-              <th scope="col" className="px-2 py-2 font-medium">{m.date}</th>
-              <th scope="col" className="px-2 py-2 font-medium">{m.opponent}</th>
-              <th scope="col" className="px-2 py-2 font-medium">{m.attEffCol}</th>
-              <th scope="col" className="px-2 py-2 font-medium">{m.serveEffCol}</th>
-              <th scope="col" className="px-2 py-2 font-medium">{m.recPosCol}</th>
-              <th scope="col" className="px-2 py-2 font-medium">{m.ptsErr}</th>
+              <th scope="col" className={th}>{m.date}</th>
+              <th scope="col" className={th}>{m.opponent}</th>
+              <th scope="col" className={th}>{m.attEffCol}</th>
+              <th scope="col" className={th}>{m.serveEffCol}</th>
+              <th scope="col" className={th}>{m.recPosCol}</th>
+              <th scope="col" className={th}>{m.ptsErr}</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-separator">
             {season.rows.map((row) => (
-              <tr key={row.matchId} className="border-t border-border">
-                <td className="whitespace-nowrap px-2 py-2 text-slate">{row.date}</td>
+              <tr key={row.matchId}>
+                <td className="whitespace-nowrap px-2 py-2 text-ink-2">{row.date}</td>
                 <td className="px-2 py-2">
-                  <Link to={`/teams/${teamId}/matches/${row.matchId}`} className="text-blue-strong hover:underline">
+                  <Link to={`/teams/${teamId}/matches/${row.matchId}`} className="text-ink underline-offset-2 hover:underline">
                     {row.opponent}
                   </Link>
                 </td>

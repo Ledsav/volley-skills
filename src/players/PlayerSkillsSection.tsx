@@ -25,18 +25,18 @@ const SKILL_ORDER = SKILL_KEYS;
 function SkillGuideHint({ entry }: { entry: SkillGuideEntry }) {
   return (
     <>
-      <p className="mb-1 font-semibold text-ink">{entry.label}</p>
+      <p className="mb-1 text-headline text-ink">{entry.label}</p>
       <ul className="space-y-0.5">
         {entry.ranges.map((range) => (
           <li key={`${range.min}-${range.max}`}>
-            <span className="tabular-nums text-slate">
+            <span className="tabular-nums text-ink-2">
               {range.min}–{range.max}
             </span>{' '}
             {range.description}
           </li>
         ))}
       </ul>
-      {entry.howToEvaluate && <p className="mt-2 text-slate">{entry.howToEvaluate}</p>}
+      {entry.howToEvaluate && <p className="mt-2 text-ink-2">{entry.howToEvaluate}</p>}
     </>
   );
 }
@@ -77,7 +77,7 @@ export function PlayerSkillsSection({
   const p = t.players;
   const { locale } = useLocale();
   // Italian skill names are longer ("Lettura del gioco"), so their label column is wider.
-  const listGridClass = locale === 'it' ? 'grid-cols-[9.5rem_2rem_1fr_3.5rem]' : 'grid-cols-[6.5rem_2rem_1fr_3.5rem]';
+  const listGridClass = locale === 'it' ? 'grid-cols-[9.5rem_1fr_2rem_4.5rem]' : 'grid-cols-[6.5rem_1fr_2rem_4.5rem]';
   const editGridClass =
     locale === 'it' ? 'grid-cols-[9rem_5rem] sm:grid-cols-[9rem_5rem_1fr_auto]' : 'grid-cols-[7rem_5rem] sm:grid-cols-[7rem_5rem_1fr_auto]';
   const matchLine = (rating: { rating: number | null; attempts: number }): string =>
@@ -179,25 +179,21 @@ export function PlayerSkillsSection({
             labels={SKILL_ORDER.map((key) => lb.playerSkill[key])}
             level={player.level}
           />
-          <p className="mt-2 text-center text-sm text-slate">
+          <p className="mt-2 text-center text-callout text-ink-2">
             {p.skills.average} <span className="font-semibold tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</span>{' '}
             ({player.level ? lb.level[player.level](gender) : p.shared.noScores})
           </p>
         </div>
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col divide-y divide-separator">
           {SKILL_ORDER.map((key) => {
             const { score, priority } = player.skills[key] ?? { score: null, priority: false };
             const rating = ratings?.[key];
             const suggested = suggestionFor(rating, score);
+            const up = suggested !== null && suggested > (score ?? 0);
             return (
-              <li key={key} className={`grid ${listGridClass} items-center gap-x-2`}>
-                <span className={`flex items-center gap-1 text-sm font-medium ${priority ? 'text-orange-strong' : 'text-ink'}`}>
+              <li key={key} className={`grid min-h-[52px] ${listGridClass} items-center gap-x-3`}>
+                <span className={`flex items-center gap-1 text-callout ${priority ? 'text-orange-strong' : 'text-ink'}`}>
                   {lb.playerSkill[key]}
-                  {guide[key] && (
-                    <InfoTooltip label={p.skills.scoringGuide(lb.playerSkill[key])}>
-                      <SkillGuideHint entry={guide[key]} />
-                    </InfoTooltip>
-                  )}
                   {priority && (
                     <Target
                       role="img"
@@ -205,22 +201,28 @@ export function PlayerSkillsSection({
                       className="h-3.5 w-3.5 shrink-0 text-orange-strong"
                     />
                   )}
+                  {guide[key] && (
+                    <InfoTooltip label={p.skills.scoringGuide(lb.playerSkill[key])}>
+                      <SkillGuideHint entry={guide[key]} />
+                    </InfoTooltip>
+                  )}
                 </span>
-                <span className="text-right text-sm tabular-nums text-ink">{score ?? '—'}</span>
-                <div title={suggested !== null && rating ? p.skills.suggests(matchLine(rating), suggested) : undefined}>
+                <div className="min-w-0 flex-1" title={suggested !== null && rating ? p.skills.suggests(matchLine(rating), suggested) : undefined}>
                   <SkillMeter score={score} suggested={suggested} />
                 </div>
+                <span className="text-right text-headline tabular-nums text-ink">{score ?? '—'}</span>
                 {suggested !== null && isAdmin ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
                     aria-label={p.skills.adaptAria(lb.playerSkill[key], suggested)}
                     onClick={() => void adapt(key, suggested)}
-                    className={`!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs tabular-nums ${suggested > (score ?? 0) ? 'text-green-strong hover:bg-green/10' : 'text-orange-strong hover:bg-orange/10'}`}
+                    className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-0.5 rounded-full px-3 text-footnote tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                      up ? 'bg-green-tint text-green-strong' : 'bg-orange-tint text-orange-strong'
+                    }`}
                   >
-                    {suggested > (score ?? 0) ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : <ArrowDown className="h-3 w-3" aria-hidden="true" />}
+                    {up ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : <ArrowDown className="h-3 w-3" aria-hidden="true" />}
                     {suggested}
-                  </Button>
+                  </button>
                 ) : (
                   <span />
                 )}
@@ -233,7 +235,7 @@ export function PlayerSkillsSection({
       {editing && isAdmin && (
         <Dialog title={p.skills.editTitle} onClose={() => onEditingChange(false)} guardUnsaved>
           <div aria-label={p.skills.editTitle}>
-            <p className="mb-4 text-sm text-slate">
+            <p className="mb-4 text-callout text-ink-2">
               {p.skills.average} <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
               ({previewLevel ? lb.level[previewLevel](gender) : p.shared.noScores})
             </p>
@@ -244,7 +246,7 @@ export function PlayerSkillsSection({
                 return (
                   <div
                     key={key}
-                    className={`grid ${editGridClass} items-center gap-x-4 gap-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0`}
+                    className={`grid ${editGridClass} items-center gap-x-4 gap-y-2 border-b border-separator pb-4 last:border-b-0 last:pb-0`}
                   >
                     <span className="flex items-center gap-1">
                       <label htmlFor={`skill-${key}`} className="text-sm font-medium text-ink">
@@ -268,17 +270,17 @@ export function PlayerSkillsSection({
                     <div className="col-span-2 sm:col-span-1">
                       <SkillMeter score={skills[key].score} />
                     </div>
-                    <label className="col-span-2 flex items-center gap-2 text-sm text-slate sm:col-span-1">
+                    <label className="col-span-2 flex items-center gap-2 text-sm text-ink-2 sm:col-span-1">
                       <input
                         type="checkbox"
                         checked={skills[key].priority}
                         onChange={(e) => updatePriority(key, e.target.checked)}
-                        className="h-4 w-4 rounded-sm border-border text-blue-strong focus:outline-none focus:ring-2 focus:ring-blue"
+                        className="h-4 w-4 rounded-sm border-separator text-blue-strong focus:outline-none focus:ring-2 focus:ring-blue"
                       />
                       {p.skills.focusArea}
                     </label>
                     {suggestionFor(rating, skills[key].score) !== null && rating && value !== null && (
-                      <div className="col-span-2 flex items-center gap-2 text-xs tabular-nums text-slate sm:col-span-4">
+                      <div className="col-span-2 flex items-center gap-2 text-xs tabular-nums text-ink-2 sm:col-span-4">
                         <div className="w-40" title={matchLine(rating)}>
                           <SkillMeter score={skills[key].score} suggested={suggestedScore(value)} />
                         </div>

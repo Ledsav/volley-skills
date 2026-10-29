@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import * as playersApi from './playersApi';
@@ -238,6 +238,15 @@ describe('match suggestions', () => {
       expect(save).toHaveBeenCalledWith('team-1', 'player-1', expect.objectContaining({ serve: expect.objectContaining({ score: 8 }) }), 8, 'Elite'),
     );
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ avgScore: 8, level: 'Elite' }));
+  });
+
+  it("Adapt is a 44 px pill in the suggestion's colour", () => {
+    render(<SkillsHarness player={withServe(5)} ratings={serveRating} />);
+    const up = screen.getByRole('button', { name: 'Adapt Serve to 8' });
+    expect(up).toHaveClass('min-h-11', 'rounded-full', 'text-green-strong');
+    cleanup();
+    render(<SkillsHarness player={withServe(10)} ratings={serveRating} />);
+    expect(screen.getByRole('button', { name: 'Adapt Serve to 8' })).toHaveClass('text-orange-strong');
   });
 
   it('hides a suggestion that already matches the score', () => {

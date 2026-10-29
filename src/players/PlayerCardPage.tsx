@@ -304,17 +304,17 @@ function PlayerCardContent() {
             <Section title={c.tiles.nextObjective}>
               {next ? (
                 <div>
-                  <p className="font-medium text-ink">{next.objective}</p>
+                  <p className="text-headline text-ink">{next.objective}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <StatusChip status={next.status} />
-                    <span className="text-xs text-slate">
+                    <span className="text-footnote tabular-nums text-ink-2">
                       {next.targetDate ? c.due(next.targetDate) : c.noTargetDate}
                     </span>
                   </div>
-                  {next.coachComment && <p className="mt-2 text-sm text-slate">{next.coachComment}</p>}
+                  {next.coachComment && <p className="mt-2 text-callout text-ink-2">{next.coachComment}</p>}
                 </div>
               ) : (
-                <p className="text-sm text-slate">{c.noOpenObjectives}</p>
+                <p className="text-callout text-ink-2">{c.noOpenObjectives}</p>
               )}
             </Section>
           </div>

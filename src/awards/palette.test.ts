@@ -56,6 +56,10 @@ describe('palette', () => {
     expect(selectedPalette(prefs)).toBe(PRESET_PALETTES[0]);
   });
 
+  it('an unknown selectedId draws Night', () => {
+    expect(selectedPalette({ selectedId: 'gone', custom: [] }).id).toBe('night');
+  });
+
   it('a coach who never chose a palette gets Night', () => {
     expect(readPalettePrefs().selectedId).toBe('night');
   });

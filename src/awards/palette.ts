@@ -102,5 +102,5 @@ export function allPalettes(p: PalettePrefs): Palette[] {
 }
 
 export function selectedPalette(p: PalettePrefs): Palette {
-  return allPalettes(p).find((x) => x.id === p.selectedId) ?? PRESET_PALETTES.find((p) => p.id === 'navy')!;
+  return allPalettes(p).find((x) => x.id === p.selectedId) ?? PRESET_PALETTES[0];
 }

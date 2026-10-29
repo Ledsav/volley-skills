@@ -68,7 +68,7 @@ interface TrainingPdfInput {
   diagramsById: Map<string, Diagram[]>;
   /** Turns a saved diagram into an SVG string (injected so this module stays pure). */
   svgFor: (d: Diagram) => string;
-  /** Width in pt of regular-weight text, for sizing category pills. The default estimates Roboto, the PDF's font. */
+  /** Width in pt of regular-weight text, for sizing category pills. The default is an estimate of Roboto, the PDF's font (0.56 em per character); a few labels measure wider, so pillMetrics.test.ts pins every catalog label against the real font. */
   measure?: (text: string, fontSize: number) => number;
 }
 

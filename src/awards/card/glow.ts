@@ -25,7 +25,17 @@ function mix(a: string, b: string, t: number): string {
   return '#' + [0, 1, 2].map((i) => Math.round(ch(a, i) * (1 - t) + ch(b, i) * t).toString(16).padStart(2, '0')).join('');
 }
 
-/** True when `text` still reads (contrast at least 4.5) on `bg` blended with a glow of `alpha` at its brightest. */
-export function readableOverGlow(bg: string, accent: string, text: string, alpha: number): boolean {
-  return contrast(mix(bg, accent, Math.max(0, Math.min(1, alpha))), text) >= 4.5;
+/** The background glow layer in drawBackground (alpha 0.22) can sit under any circle, so assume the worst overlap. */
+const BACKGROUND_GLOW = 0.22;
+
+/**
+ * The largest glow alpha up to `max` (in steps of 0.02) that keeps `text` at 3:1 or better (large display text)
+ * against `bg` blended with the background glow and then this glow, both at their brightest. 0 when none does.
+ */
+export function glowAlphaFor(bg: string, accent: string, text: string, max: number): number {
+  const under = mix(bg, accent, BACKGROUND_GLOW);
+  for (let a = max; a > 0.001; a -= 0.02) {
+    if (contrast(mix(under, accent, a), text) >= 3) return Math.round(a * 100) / 100;
+  }
+  return 0;
 }

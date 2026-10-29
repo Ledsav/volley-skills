@@ -9,7 +9,7 @@ vi.mock('./platformApi');
 vi.mock('../interest/interestApi');
 vi.mock('../firebase/config', () => ({ db: {} }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ appUser: { email: 'op@example.com' } }) }));
-vi.mock('../components/Notice', () => ({ useNotify: () => vi.fn() }));
+vi.mock('../components/Notice', () => ({ useNotify: () => vi.fn(), useUndoable: () => vi.fn() }));
 
 function setup() {
   vi.mocked(platformApi.listClubs).mockResolvedValue({ clubs: [], lastDoc: null, hasMore: false });

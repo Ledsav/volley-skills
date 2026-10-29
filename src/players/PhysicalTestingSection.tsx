@@ -19,10 +19,12 @@ interface PhysicalTestingSectionProps {
   /** `player.latestTests` from the already-loaded player doc. */
   storedLatest?: LatestTests;
   /** Notified after each successful load so a parent dashboard can derive summary stats. */
+  /** Identity for the add-test sheet. */
+  player?: { fullName: string; number: number };
   onLatestLoaded?: (latestByType: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => void;
 }
 
-export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest, onLatestLoaded }: PhysicalTestingSectionProps) {
+export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest, onLatestLoaded, player }: PhysicalTestingSectionProps) {
   const t = useT();
   const p = t.players.physical;
   const { firebaseUser } = useAuth();
@@ -59,28 +61,28 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
   return (
     <div className="flex h-full flex-col">
       {loadError && (
-        <p role="alert" className="text-sm text-red-strong">
+        <p role="alert" className="text-callout text-red-strong">
           {loadError}
         </p>
       )}
       {deleteError && (
-        <p role="alert" className="text-sm text-red-strong">
+        <p role="alert" className="text-callout text-red-strong">
           {deleteError}
         </p>
       )}
       {!loadError && (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-separator">
           {PHYSICAL_TEST_ORDER.filter((type) => visible.includes(type) || !!latestByType[type]).map((testType) => {
             const latest = latestByType[testType];
             const canAdd = isAdmin && visible.includes(testType);
             return (
-              <li key={testType} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
+              <li key={testType} className="flex min-h-[52px] flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                  <p className="flex items-center gap-1.5 text-headline text-ink">
                     {t.labels.physicalTest[testType]}
                     <PendingDot pending={sync.isPending(`test:${testType}`)} />
                   </p>
-                  <p className="text-xs text-slate">
+                  <p className="text-footnote tabular-nums text-ink-2">
                     {latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : p.noData}
                   </p>
                 </div>
@@ -108,6 +110,8 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
           playerId={playerId}
           testType={activeDialogType}
           recordedByUid={firebaseUser.uid}
+          player={player}
+          latest={latestByType[activeDialogType]}
           onClose={() => setActiveDialogType(null)}
           onSaved={() => {
             setActiveDialogType(null);

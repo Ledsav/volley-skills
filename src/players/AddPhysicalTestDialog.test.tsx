@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AddPhysicalTestDialog } from './AddPhysicalTestDialog';
+import type { PhysicalTest } from '../types/physicalTest';
 import * as physicalTestsApi from './physicalTestsApi';
 
 vi.mock('./physicalTestsApi');
@@ -266,5 +267,31 @@ describe('AddPhysicalTestDialog', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
+
+  it('shows who is being tested and their latest result', () => {
+    const latest = {
+      id: 't1',
+      testType: 'sprint10m',
+      attemptsSeconds: [1.85, 1.79],
+      bestSeconds: 1.79,
+      date: '2026-09-01',
+      notes: '',
+    } as unknown as PhysicalTest;
+    render(
+      <AddPhysicalTestDialog
+        teamId="team-1"
+        playerId="player-1"
+        testType="sprint10m"
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        player={{ fullName: 'Giulia Bianchi', number: 9 }}
+        latest={latest}
+      />,
+    );
+    expect(screen.getByText('GB')).toBeInTheDocument();
+    expect(screen.getByText('Giulia Bianchi')).toBeInTheDocument();
+    expect(screen.getByText('#9 · 1.79 s')).toBeInTheDocument();
   });
 });

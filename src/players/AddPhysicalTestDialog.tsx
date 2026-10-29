@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { useSave } from '../components/useSave';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { HealthHint } from '../components/HealthHint';
@@ -12,6 +11,9 @@ import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../
 import { formatNumber } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
 import { usePlayerSync } from './playerSync';
+import { getInitials } from './nameFormat';
+import { formatPhysicalTestSummary } from './physicalTestFormat';
+import type { PhysicalTest } from '../types/physicalTest';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -20,7 +22,13 @@ interface AddPhysicalTestDialogProps {
   recordedByUid: string;
   onClose: () => void;
   onSaved: () => void;
+  /** Who is being tested, for the identity block (screen 8). */
+  player?: { fullName: string; number: number };
+  /** That player's latest result of this type. */
+  latest?: PhysicalTest | null;
 }
+
+const STAT_INPUT = 'w-full text-center text-stat tabular-nums';
 
 export function AddPhysicalTestDialog({
   teamId,
@@ -29,6 +37,8 @@ export function AddPhysicalTestDialog({
   recordedByUid,
   onClose,
   onSaved,
+  player,
+  latest,
 }: AddPhysicalTestDialogProps) {
   const t = useT();
   const a = t.players.physical.add;
@@ -109,8 +119,31 @@ export function AddPhysicalTestDialog({
   }
 
   return (
-    <Dialog title={a.title(testName)} onClose={onClose} guardUnsaved mobileSheet>
-      <form onSubmit={handleSubmit} aria-label={a.formLabel(testName)}>
+    <Sheet
+      title={a.title(testName)}
+      onClose={onClose}
+      detent="large"
+      guardUnsaved
+      confirm={{ label: saving ? t.players.shared.saving : t.common.save, form: 'physical-test-form', disabled: saving }}
+    >
+      {player && (
+        <div className="mb-5 flex flex-col items-center gap-1 text-center md:flex-row md:gap-3 md:text-left">
+          <div
+            aria-hidden="true"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-3 text-headline text-ink-2"
+          >
+            {getInitials(player.fullName)}
+          </div>
+          <div className="min-w-0">
+            <p className="text-headline text-ink">{player.fullName}</p>
+            <p className="text-footnote tabular-nums text-ink-2">
+              {player.number ? `#${player.number} · ` : ''}
+              {latest ? formatPhysicalTestSummary(latest) : t.players.physical.noData}
+            </p>
+          </div>
+        </div>
+      )}
+      <form id="physical-test-form" onSubmit={handleSubmit} aria-label={a.formLabel(testName)}>
 
         <div className="mb-4">
           <label htmlFor="physical-test-date" className="mb-1 block text-sm font-medium text-ink">
@@ -128,11 +161,12 @@ export function AddPhysicalTestDialog({
               <Input
                 id="growth-height"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={heightCm}
                 onChange={(e) => setHeightCm(e.target.value)}
                 required
-                className="w-full"
+                className={STAT_INPUT}
               />
             </div>
             <div className="mb-4">
@@ -142,22 +176,24 @@ export function AddPhysicalTestDialog({
               <Input
                 id="growth-body-mass"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={bodyMassKg}
                 onChange={(e) => setBodyMassKg(e.target.value)}
                 required
-                className="w-full"
+                className={STAT_INPUT}
               />
             </div>
           </>
         )}
 
         {testType === 'cmj' && (
-          <AttemptsInput name="cmj" label={a.attemptCm} values={cmjAttempts} onChange={setCmjAttempts} minCount={3} />
+          <AttemptsInput size="stat" name="cmj" label={a.attemptCm} values={cmjAttempts} onChange={setCmjAttempts} minCount={3} />
         )}
 
         {testType === 'broadJump' && (
           <AttemptsInput
+            size="stat"
             name="broad-jump"
             label={a.attemptCm}
             values={broadJumpAttempts}
@@ -175,14 +211,16 @@ export function AddPhysicalTestDialog({
               <Input
                 id="standing-reach"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={standingReachCm}
                 onChange={(e) => setStandingReachCm(e.target.value)}
                 required
-                className="w-full"
+                className={STAT_INPUT}
               />
             </div>
             <AttemptsInput
+            size="stat"
               name="approach-touch"
               label={a.touchAttemptCm}
               values={touchAttempts}
@@ -194,6 +232,7 @@ export function AddPhysicalTestDialog({
 
         {testType === 'sprint10m' && (
           <AttemptsInput
+            size="stat"
             name="sprint"
             label={a.attemptS}
             values={sprintAttempts}
@@ -212,11 +251,12 @@ export function AddPhysicalTestDialog({
               <Input
                 id="shuttle-right"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={rightFirstSeconds}
                 onChange={(e) => setRightFirstSeconds(e.target.value)}
                 required
-                className="w-full"
+                className={STAT_INPUT}
               />
             </div>
             <div className="mb-4">
@@ -226,11 +266,12 @@ export function AddPhysicalTestDialog({
               <Input
                 id="shuttle-left"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={leftFirstSeconds}
                 onChange={(e) => setLeftFirstSeconds(e.target.value)}
                 required
-                className="w-full"
+                className={STAT_INPUT}
               />
             </div>
           </>
@@ -238,6 +279,7 @@ export function AddPhysicalTestDialog({
 
         {testType === 'reaction' && (
           <AttemptsInput
+            size="stat"
             name="reaction"
             label={a.dropAttemptCm}
             values={reactionAttempts}
@@ -286,14 +328,15 @@ export function AddPhysicalTestDialog({
                   <Input
                     id="strength-weight"
                     type="number"
+                inputMode="decimal"
                     step="any"
                     value={weightKg}
                     onChange={(e) => setWeightKg(e.target.value)}
                     required
-                    className="w-full"
+                    className={STAT_INPUT}
                   />
                 </div>
-                <p className="mb-4 text-sm text-slate">
+                <p className="mb-4 text-callout tabular-nums text-ink-2">
                   {latestBodyMassKg !== null && weightKg !== ''
                     ? a.ratio(formatNumber(computeBodyMassRatio(Number(weightKg), latestBodyMassKg), 2))
                     : a.ratioNeeds}
@@ -319,7 +362,7 @@ export function AddPhysicalTestDialog({
                   <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">
                     {a.reps}
                   </label>
-                  <Input id="strength-reps" type="number" value={reps} onChange={(e) => setReps(e.target.value)} required className="w-full" />
+                  <Input id="strength-reps" type="number" inputMode="numeric" value={reps} onChange={(e) => setReps(e.target.value)} required className={STAT_INPUT} />
                 </div>
               </>
             )}
@@ -334,20 +377,12 @@ export function AddPhysicalTestDialog({
           <HealthHint id="physical-test-notes-hint" />
         </div>
 
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            {t.common.cancel}
-          </Button>
-          <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? t.players.shared.saving : t.common.save}
-          </Button>
-        </div>
         {error && (
-          <p role="alert" className="mt-3 text-right text-sm text-red-strong">
+          <p role="alert" className="mt-3 text-sm text-red-strong">
             {error}
           </p>
         )}
       </form>
-    </Dialog>
+    </Sheet>
   );
 }

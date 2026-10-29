@@ -333,6 +333,7 @@ function PlayerCardContent() {
               playerId={playerId}
               isAdmin={isAdmin}
               storedLatest={player.latestTests}
+              player={{ fullName: player.fullName, number: player.number }}
               onLatestLoaded={handleLatestLoaded}
             />
           </Section>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { listCalendarSessions } from '../calendar/calendarApi';
 import { listMatchesInRange } from '../matches/matchesApi';
-import { listMyTeams } from '../teams/teamsApi';
+import { listClubTeams, listMyTeams } from '../teams/teamsApi';
 import type { Team } from '../types/team';
 import { addDays, todayIso, type FeedInput } from './homeFeed';
 
@@ -14,7 +14,10 @@ interface HomeFeedState {
   errors: { teams: boolean; sessions: boolean; matches: boolean };
 }
 
-export function useHomeFeed(email: string | null): HomeFeedState {
+/** `club`: a club admin's first page of every club team; `mine`: the teams the person admins; `null`: access not known yet (stays loading, reads nothing). */
+export type HomeScope = 'mine' | 'club';
+
+export function useHomeFeed(email: string | null, scope: HomeScope | null): HomeFeedState {
   const [state, setState] = useState<HomeFeedState>({
     loading: true, today: todayIso(), teams: [], hasMoreTeams: false, feed: [], errors: { teams: false, sessions: false, matches: false },
   });
@@ -24,13 +27,14 @@ export function useHomeFeed(email: string | null): HomeFeedState {
       setState((s) => (s.loading ? { ...s, loading: false } : s));
       return;
     }
+    if (!scope) return;
     let cancelled = false;
     const today = todayIso();
     void (async () => {
       let teams: Team[] = [];
       let hasMoreTeams = false;
       try {
-        const page = await listMyTeams(email);
+        const page = await (scope === 'club' ? listClubTeams() : listMyTeams(email));
         teams = page.teams;
         hasMoreTeams = page.hasMore;
       } catch {
@@ -61,7 +65,7 @@ export function useHomeFeed(email: string | null): HomeFeedState {
     return () => {
       cancelled = true;
     };
-  }, [email]);
+  }, [email, scope]);
 
   return state;
 }

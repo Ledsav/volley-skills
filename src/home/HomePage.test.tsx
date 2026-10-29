@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authValue, testClub } from '../test/authValue';
+import { authValue, clubAdminAccess } from '../test/authValue';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
 import type { Team } from '../types/team';
 import { finished, player } from '../awards/testMatches';
@@ -9,6 +9,7 @@ import { HomePage } from './HomePage';
 import * as teamsApi from '../teams/teamsApi';
 import * as calendarApi from '../calendar/calendarApi';
 import * as matchesApi from '../matches/matchesApi';
+import { formatDateValue } from '../i18n/format';
 
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../teams/teamsApi');
@@ -37,6 +38,7 @@ describe('HomePage', () => {
     vi.setSystemTime(new Date(2026, 9, 14, 18, 0));
     useAuthMock.mockReturnValue(authValue());
     vi.mocked(teamsApi.listMyTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    vi.mocked(teamsApi.getTeamSummary).mockResolvedValue({ players: 0, avgScore: null });
     vi.mocked(calendarApi.listCalendarSessions).mockResolvedValue([]);
     vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([live]);
   });
@@ -45,19 +47,50 @@ describe('HomePage', () => {
     vi.useRealTimers();
   });
 
-  it('greets and shows a live match to resume', async () => {
+  it('shows a live match to resume', async () => {
     renderHome();
-    expect(screen.getByRole('heading', { level: 1, name: /Good evening/ })).toBeInTheDocument();
     const resume = await screen.findByRole('link', { name: /Resume scouting/ });
     expect(resume).toHaveAttribute('href', '/teams/t1/matches/m1/scout');
   });
 
-  it('shows the club name from the active club', async () => {
-    useAuthMock.mockReturnValue(authValue({ club: testClub({ name: 'Volley Demo' }) }));
+  it('is titled Today with the date as overline', async () => {
     renderHome();
-    const band = screen.getByRole('region', { name: 'Welcome' });
-    expect(await within(band).findByText('Volley Demo')).toBeInTheDocument();
-    expect(band.className).toContain('bg-navy');
+    expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByText(formatDateValue(new Date(2026, 9, 14, 18), 'full'))).toBeInTheDocument();
+    await screen.findByRole('link', { name: /Resume scouting/ });
+  });
+
+  it('a session in Next 7 days opens the team calendar on that session (B1)', async () => {
+    vi.mocked(calendarApi.listCalendarSessions).mockResolvedValue([
+      { id: 's1', date: '2026-10-15', trainingId: 'tr1', trainingName: 'Serve and receive' } as never,
+    ]);
+    vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([{ ...live, id: 'm2', status: 'setup', date: '2026-10-16' }]);
+    renderHome();
+    const session = await screen.findByRole('link', { name: /Serve and receive/ });
+    expect(session).toHaveAttribute('href', '/teams/t1?tab=calendar&session=s1');
+    expect(screen.getByRole('link', { name: /vs Rivals/ })).toHaveAttribute('href', '/teams/t1/matches/m2');
+  });
+
+  it('a club admin sees the first page of every club team', async () => {
+    useAuthMock.mockReturnValue(authValue({ access: clubAdminAccess }));
+    vi.mocked(teamsApi.listClubTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    renderHome();
+    await screen.findByRole('link', { name: /Resume scouting/ });
+    expect(teamsApi.listClubTeams).toHaveBeenCalled();
+    expect(teamsApi.listMyTeams).not.toHaveBeenCalled();
+  });
+
+  it('a member sees only their teams', async () => {
+    renderHome();
+    await screen.findByRole('link', { name: /Resume scouting/ });
+    expect(teamsApi.listMyTeams).toHaveBeenCalledWith('user@example.com');
+    expect(teamsApi.listClubTeams).not.toHaveBeenCalled();
+  });
+
+  it('team cards show the player count', async () => {
+    vi.mocked(teamsApi.getTeamSummary).mockResolvedValue({ players: 3, avgScore: null });
+    renderHome();
+    expect(await screen.findByText(/3 players/)).toBeInTheDocument();
   });
 
   it('shows the no-access card when the user has no teams or sections', async () => {

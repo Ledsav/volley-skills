@@ -2,10 +2,6 @@ import type { Catalog } from '../catalog';
 
 export const home = {
   title: 'Oggi',
-  greetingMorning: 'Buongiorno',
-  greetingAfternoon: 'Buon pomeriggio',
-  greetingEvening: 'Buonasera',
-  welcome: 'Ciao',
   loading: 'Caricamento della dashboard...',
   teamsError: 'Impossibile caricare le tue squadre.',
   noAccessTitle: 'Non hai ancora accesso a nessuna squadra',

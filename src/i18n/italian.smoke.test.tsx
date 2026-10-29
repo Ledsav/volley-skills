@@ -81,6 +81,8 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
       }),
     );
     vi.mocked(teamsApi.listMyTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    vi.mocked(teamsApi.listClubTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
+    vi.mocked(teamsApi.getTeamSummary).mockResolvedValue({ players: 0, avgScore: null });
     vi.mocked(teamsApi.getTeam).mockResolvedValue(team);
     vi.mocked(playersApi.listPlayers).mockResolvedValue({ players: [player], lastDoc: null, hasMore: false });
     vi.mocked(playersApi.getPlayer).mockResolvedValue(player);
@@ -102,9 +104,8 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
   it('Home', async () => {
     render(<MemoryRouter><I18nProvider><HomePage /></I18nProvider></MemoryRouter>);
     await screen.findByRole('link', { name: new RegExp(itCat.home.resumeScouting) });
-    expectItalianAndClean([itCat.home.resumeScouting]);
+    expectItalianAndClean([itCat.home.title, itCat.home.resumeScouting]);
     expectNoEnglish([enCat.home.resumeScouting]);
-    expect(document.body.textContent).toMatch(/Buongiorno|Buon pomeriggio|Buonasera/);
   });
 
   it('a team page', async () => {

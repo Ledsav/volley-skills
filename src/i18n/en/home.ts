@@ -1,9 +1,5 @@
 export const home = {
   title: 'Today',
-  greetingMorning: 'Good morning',
-  greetingAfternoon: 'Good afternoon',
-  greetingEvening: 'Good evening',
-  welcome: 'Welcome',
   loading: 'Loading your dashboard...',
   teamsError: 'Could not load your teams.',
   noAccessTitle: "You don't have access to any team yet",

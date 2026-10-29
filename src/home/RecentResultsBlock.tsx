@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { GroupedList } from '../components/GroupedList';
+import { formatDate } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
 import type { FeedMatch } from './homeFeed';
 
@@ -35,7 +36,7 @@ export function RecentResultsBlock({ items, failed, mvpFor }: { items: FeedMatch
                     <span className="truncate text-headline tabular-nums text-ink">
                       {match.result.setsUs}–{match.result.setsThem} {t.vs(match.opponent)}
                     </span>
-                    <span className="truncate text-footnote tabular-nums text-ink-2">{team.name} · {match.date}</span>
+                    <span className="truncate text-footnote tabular-nums text-ink-2">{team.name} · {formatDate(match.date, 'weekday')}</span>
                   </span>
                 </Link>
                 {mvp && (

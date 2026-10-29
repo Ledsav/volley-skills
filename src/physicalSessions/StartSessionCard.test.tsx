@@ -90,7 +90,7 @@ describe('StartSessionCard start sheet', () => {
     await waitFor(() => expect(testingSessionsApi.listPastSessions).toHaveBeenCalled());
   });
 
-  it('starts from the sheet and reports an open session', async () => {
+  it('starts from the sheet', async () => {
     vi.spyOn(testingSessionsApi, 'listPastSessions').mockResolvedValue([]);
     vi.spyOn(testingSessionsApi, 'startSession').mockResolvedValue('session-new');
     const onStarted = vi.fn();

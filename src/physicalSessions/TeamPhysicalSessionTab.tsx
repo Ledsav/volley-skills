@@ -67,15 +67,15 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   if (!firebaseUser) return null;
 
   if (playersError) {
-    return <p role="alert" className="text-sm text-red-strong">{playersError}</p>;
+    return <p role="alert" className="text-footnote text-red-strong">{playersError}</p>;
   }
 
   if (!players) {
-    return <p className="text-sm text-ink-2">{s.loadingRoster}</p>;
+    return <p className="text-footnote text-ink-2">{s.loadingRoster}</p>;
   }
 
   if (error) {
-    return <p role="alert" className="text-sm text-red-strong">{error}</p>;
+    return <p role="alert" className="text-footnote text-red-strong">{error}</p>;
   }
 
   if (team.activeTestingSessionId && session) {
@@ -94,7 +94,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }
 
   if (team.activeTestingSessionId) {
-    return <p className="text-sm text-ink-2">{s.loadingSession}</p>;
+    return <p className="text-footnote text-ink-2">{s.loadingSession}</p>;
   }
 
   return (

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Sheet } from '../components/Sheet';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
@@ -321,9 +322,9 @@ export function SessionQualityPanel({
                     type="button"
                     aria-label={s.removeAttempt(index + 1)}
                     onClick={() => removeAttempt(index)}
-                    className="rounded-full p-1 text-red-strong hover:bg-surface-3"
+                    className="relative flex h-6 w-6 items-center justify-center rounded-full text-red-strong before:absolute before:-inset-2.5 hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   >
-                    x
+                    <X size={14} aria-hidden="true" />
                   </button>
                 </li>
               ))}

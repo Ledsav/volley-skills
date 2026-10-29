@@ -113,6 +113,23 @@ describe('HomePage', () => {
     expect(screen.getByRole('link', { name: /Resume scouting/ })).toBeInTheDocument();
   });
 
+  it('shows only the teams error when the teams cannot be loaded (invariant 2)', async () => {
+    vi.mocked(teamsApi.listMyTeams).mockRejectedValue(new Error('denied'));
+    renderHome();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load your teams.');
+    expect(screen.queryByText('Next 7 days')).not.toBeInTheDocument();
+    expect(screen.queryByText("You don't have access to any team yet")).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Resume scouting/ })).not.toBeInTheDocument();
+  });
+
+  it('recent results date the match like Next 7 days, not as an ISO string', async () => {
+    vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([finished('m9', '2026-10-12', [player('a', { A: '###' })])]);
+    renderHome();
+    await screen.findByText('MVP: #1 Player a.');
+    expect(screen.queryByText(/2026-10-12/)).not.toBeInTheDocument();
+    expect(screen.getByText(/U17 Girls · Mon 12 Oct/)).toBeInTheDocument();
+  });
+
   it('recent results show the MVP', async () => {
     vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([finished('m9', '2026-10-12', [player('a', { A: '###' })])]);
     renderHome();

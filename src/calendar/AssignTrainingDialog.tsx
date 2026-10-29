@@ -233,7 +233,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
                         }
                         onClick={() => setExpandedId(expanded ? null : row.exerciseId)}
                         disabled={!row.name}
-                        className="shrink-0 text-ink-3 hover:text-ink disabled:opacity-30"
+                        className="relative shrink-0 text-ink-3 before:absolute before:-inset-3 hover:text-ink disabled:opacity-30"
                       >
                         {expanded ? (
                           <ChevronDown className="h-4 w-4" aria-hidden="true" />

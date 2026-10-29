@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
 import { replay } from '../scoutEngine';
@@ -27,14 +27,14 @@ describe('MatchReport', () => {
     expect(screen.getByText('Aces / serve errors')).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /#1 Ns/ })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /#2 Na/ })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Set'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Set 2' }));
     expect(screen.queryByRole('row', { name: /#1 Ns/ })).toBeNull();
   });
 
   it('labels a single-set view for print, and not the whole match', () => {
     render(<MatchReport match={match} report={buildReportData(replay(match, events))} />);
     expect(screen.queryByText(/Set \d+ only/)).toBeNull();
-    fireEvent.change(screen.getByLabelText('Set'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Set 2' }));
     expect(screen.getByText('Set 2 only')).toHaveClass('hidden', 'print:block');
   });
 
@@ -51,5 +51,20 @@ describe('MatchReport', () => {
   it('keeps the tapped and text wording for summaries without an import count', () => {
     render(<MatchReport match={match} report={withCounts({ tap: 5, text: 5 })} />);
     expect(screen.getByText('50% tapped · 50% from text')).toBeInTheDocument();
+  });
+
+  it('shows the result and each set score', () => {
+    const base = buildReportData(replay(match, events));
+    const report = { ...base, setsWon: { us: 3, them: 1 }, setScores: [{ us: 25, them: 20 }, { us: 22, them: 25 }] };
+    render(<MatchReport match={match} report={report} />);
+    expect(screen.getByText('Won')).toBeInTheDocument();
+    expect(screen.getByText('3–1')).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Set scores' })).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByText('22–25')).toHaveClass('text-ink-2');
+  });
+
+  it('names how the weakest rotation is judged', () => {
+    render(<MatchReport match={match} report={buildReportData(replay(match, events))} />);
+    expect(screen.getByText(/In court order 1, 6, 5, 4, 3, 2/)).toBeInTheDocument();
   });
 });

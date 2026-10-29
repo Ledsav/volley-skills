@@ -19,6 +19,7 @@ import { reportCsv, reportCsvFileName, type CsvFormat } from './report/reportCsv
 import { buildReportData } from './report/reportData';
 import { replay } from './scoutEngine';
 import { useMatchEvents } from './useMatchEvents';
+import { formatDate } from '../i18n/format';
 import { getT, useT } from '../i18n/I18nProvider';
 
 export function MatchPage() {
@@ -34,6 +35,7 @@ export function MatchPage() {
   const [dirty, setDirty] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [reportSet, setReportSet] = useState<number | 'all'>('all');
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export function MatchPage() {
     getMatch(teamId, matchId)
       .then((m) => (m ? setMatch(m) : setNotFound(true)))
       .catch((e) => (isNotFoundError(e) ? setNotFound(true) : setError(getT().matches.page.loadError)));
-  }, [teamId, matchId]);
+  }, [teamId, matchId, attempt]);
 
   // A finished match carries its report, so it never reads the event log; only
   // live matches (and ones finished before the report was stored) need events.
@@ -61,7 +63,14 @@ export function MatchPage() {
   if (notFound) {
     return <NotFoundState title={p.notFoundTitle} message={p.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={p.backToTeam} />;
   }
-  if (error) return <p role="alert" className="p-6 text-red-strong">{error}</p>;
+  if (error) {
+    return (
+      <div className="p-6">
+        <p role="alert" className="text-callout text-red-strong">{error}</p>
+        <Button variant="secondary" className="mt-3" onClick={() => { setError(null); setAttempt((n) => n + 1); }}>{t.common.retry}</Button>
+      </div>
+    );
+  }
   if (!match) return <PageSkeleton layout="match" label={p.loading} />;
 
   // Setup-phase writes are fire-and-forget like scouting events: offline, a
@@ -141,7 +150,7 @@ export function MatchPage() {
         title={p.title(match.opponent)}
         eyebrow={
           <span className="tabular-nums">
-            {match.date} · {match.homeAway === 'home' ? t.matches.shared.home : t.matches.shared.away} · <span>{t.labels.competition[match.competition]}</span>
+            {formatDate(match.date, 'short')} · {match.homeAway === 'home' ? t.matches.shared.home : t.matches.shared.away} · <span>{t.labels.competition[match.competition]}</span>
           </span>
         }
         mainAction={mainAction}

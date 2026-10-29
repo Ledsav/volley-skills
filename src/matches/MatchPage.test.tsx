@@ -133,7 +133,7 @@ describe('MatchPage', () => {
     await pick('CSV · Excel (English) / Sheets');
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-all.csv', expect.stringContaining('Number,Name'), 'text/csv;charset=utf-8');
 
-    fireEvent.change(screen.getByLabelText('Set'), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Set 1' }));
     await pick('CSV · Excel (Belgium/EU)');
     expect(downloadText).toHaveBeenLastCalledWith('2026-10-18-Rivals-set1.csv', expect.any(String), 'text/csv;charset=utf-8');
     expect(screen.getByRole('button', { name: 'Reopen for editing' })).toBeInTheDocument();
@@ -210,5 +210,12 @@ describe('MatchPage', () => {
       }
       unmount();
     }
+  });
+
+  it('a load error offers Retry, which loads the match', async () => {
+    vi.mocked(matchesApi.getMatch).mockRejectedValueOnce(new Error('boom')).mockResolvedValue(match);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /vs Rivals/ })).toBeInTheDocument();
   });
 });

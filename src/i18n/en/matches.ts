@@ -104,6 +104,11 @@ export const matches = {
     },
   },
   report: {
+    setN: (n: number) => `Set ${n}`,
+    setScores: 'Set scores',
+    won: 'Won',
+    lost: 'Lost',
+    rotationsNote: 'In court order 1, 6, 5, 4, 3, 2. The weakest has the lowest points won minus lost.',
     set: 'Set',
     setOnly: (set: number) => `Set ${set} only`,
     all: 'All',

@@ -28,6 +28,14 @@ export const calendar = {
       }`,
     trainingsOn: (day: string) => `Allenamenti di ${day}`,
     noTrainings: 'Nessun allenamento in programma.',
+    today: 'Oggi',
+    partsHeading: 'Piano della sessione',
+    partsSummary: (n: number, minutes: number) =>
+      `${n} ${plural('it', n, { one: 'parte', other: 'parti' })} · ${minutes} min`,
+    partsLoading: 'Caricamento del piano della sessione',
+    partsError: 'Impossibile caricare il piano della sessione.',
+    trainingDeleted: 'Questo allenamento è stato eliminato, quindi le sue parti non sono disponibili.',
+    noParts: 'Questo allenamento non ha parti.',
   },
   assign: {
     title: 'Assegna allenamento',

@@ -27,6 +27,14 @@ export const calendar = {
       }`,
     trainingsOn: (day: string) => `Trainings on ${day}`,
     noTrainings: 'No trainings scheduled.',
+    today: 'Today',
+    partsHeading: 'Session plan',
+    partsSummary: (n: number, minutes: number) =>
+      `${n} ${plural('en', n, { one: 'part', other: 'parts' })} · ${minutes} min`,
+    partsLoading: 'Loading the session plan',
+    partsError: 'Could not load the session plan.',
+    trainingDeleted: 'This training was deleted, so its parts are not available.',
+    noParts: 'This training has no parts.',
   },
   assign: {
     title: 'Assign training',

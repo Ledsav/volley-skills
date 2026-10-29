@@ -19,7 +19,8 @@ import {
   addMonths,
   buildMonthGrid,
   formatDayLabel,
-    monthRange,
+  formatWeekRange,
+  monthRange,
   shiftDate,
   todayIso,
 } from './monthGrid';
@@ -96,14 +97,23 @@ export function TeamCalendarTab({
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const mounted = useRef(true);
 
+  // Only the newest load may write: a slow answer for an older month (or for the month a `?session=` link
+  // replaced) must not overwrite the month now showing.
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const { start, end } = monthRange(view.year, view.month);
-    const [sessionList, matchList] = await Promise.all([
-      listCalendarSessions(teamId, start, end),
-      listMatchesInRange(teamId, start, end).catch(() => [] as Match[]),
-    ]);
-    setSessions(sessionList);
-    setMatches(matchList);
+    try {
+      const [sessionList, matchList] = await Promise.all([
+        listCalendarSessions(teamId, start, end),
+        listMatchesInRange(teamId, start, end).catch(() => [] as Match[]),
+      ]);
+      if (seq !== loadSeq.current) return;
+      setSessions(sessionList);
+      setMatches(matchList);
+    } catch (e) {
+      if (seq === loadSeq.current) throw e;
+    }
   }, [teamId, view]);
   // A pending remove commits seconds later, maybe after the month changed: it must reload the month then showing.
   const loadRef = useRef(load);
@@ -186,6 +196,12 @@ export function TeamCalendarTab({
     setSelectedDate(defaultSelection(next.year, next.month));
   }
 
+  function goToToday() {
+    const now = new Date();
+    setView({ year: now.getFullYear(), month: now.getMonth() });
+    setSelectedDate(todayIso());
+  }
+
   function shiftWeek(direction: -1 | 1) {
     const next = shiftDate(selectedDate, 7 * direction);
     const year = Number(next.slice(0, 4));
@@ -222,7 +238,8 @@ export function TeamCalendarTab({
       message: c.removed(sessionLabel(s), s.date),
       commit: async () => {
         await deleteCalendarSession(teamId, s.id);
-        if (mounted.current) await loadRef.current();
+        // The delete worked: a failed reload is a load problem, never "could not remove" (that would unhide a deleted row).
+        if (mounted.current) void loadRef.current().catch(() => mounted.current && setError(c.loadError));
       },
       onUndo: () => {
         if (mounted.current) setHiddenId(s.id, false);
@@ -267,6 +284,13 @@ export function TeamCalendarTab({
             className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             <ChevronLeft size={20} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={goToToday}
+            className="flex h-11 items-center rounded-md px-3 text-callout font-medium text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            {c.today}
           </button>
           <button
             type="button"
@@ -332,10 +356,11 @@ function SessionPill({ session, onOpen, onRemove }: { session: CalendarSession; 
         type="button"
         onClick={() => onOpen(session)}
         title={label}
+        aria-label={label}
         {...targetProps}
         className="block w-full truncate rounded-full bg-ink px-2 text-left text-caption text-on-ink hover:bg-ink/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
-        {label}
+        {session.trainingName}
       </button>
       {menu}
     </li>
@@ -475,9 +500,7 @@ function MobileMonthView({
           <button type="button" aria-label={c.previousWeek} onClick={() => onShiftWeek(-1)} className={arrowClass}>
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
-          <span className="text-footnote tabular-nums text-ink-2">
-            {Number(week[0].date.slice(-2))}–{Number(week[6].date.slice(-2))}
-          </span>
+          <span className="text-footnote tabular-nums text-ink-2">{formatWeekRange(week[0].date, week[6].date)}</span>
           <button type="button" aria-label={c.nextWeek} onClick={() => onShiftWeek(1)} className={arrowClass}>
             <ChevronRight size={20} aria-hidden="true" />
           </button>

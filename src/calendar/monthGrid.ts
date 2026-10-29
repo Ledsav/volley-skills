@@ -28,6 +28,15 @@ export function formatDayLabel(date: string): string {
   return `${weekdayNames('long')[(d.getUTCDay() + 6) % 7]} ${d.getUTCDate()} ${monthNames()[d.getUTCMonth()]}`;
 }
 
+/** "2026-10-14" and "2026-10-20" → "14–20 Oct"; across a month boundary "28 Sep – 4 Oct". */
+export function formatWeekRange(start: string, end: string): string {
+  const short = monthNames(undefined, 'short');
+  const s = new Date(`${start}T00:00:00Z`);
+  const e = new Date(`${end}T00:00:00Z`);
+  if (s.getUTCMonth() === e.getUTCMonth()) return `${s.getUTCDate()}–${e.getUTCDate()} ${short[e.getUTCMonth()]}`;
+  return `${s.getUTCDate()} ${short[s.getUTCMonth()]} – ${e.getUTCDate()} ${short[e.getUTCMonth()]}`;
+}
+
 /** Today's date as an ISO "YYYY-MM-DD" string, in the viewer's local timezone
  *  (grid cell dates represent local calendar days, not UTC ones). */
 export function todayIso(): string {

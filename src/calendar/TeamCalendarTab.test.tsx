@@ -4,12 +4,16 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { TeamCalendarTab } from './TeamCalendarTab';
 import * as calendarApi from './calendarApi';
 import * as matchesApi from '../matches/matchesApi';
+import * as trainingsApi from '../trainings/trainingsApi';
+import * as exercisesApi from '../exercises/exercisesApi';
 import { NoticeProvider, UNDO_MS } from '../components/Notice';
 import { WithChrome } from '../test/chromeProbe';
 import { withPendingAction } from '../search/pendingAction';
 
 vi.mock('./calendarApi');
 vi.mock('../matches/matchesApi');
+vi.mock('../trainings/trainingsApi');
+vi.mock('../exercises/exercisesApi');
 vi.mock('./AssignTrainingDialog', () => ({
   AssignTrainingDialog: ({ onSaved }: { onSaved: () => void }) => <button onClick={onSaved}>assign-stub</button>,
 }));
@@ -52,6 +56,20 @@ describe('TeamCalendarTab', () => {
     vi.clearAllMocks();
     vi.setSystemTime(new Date('2026-09-15T12:00:00Z'));
     vi.mocked(calendarApi.listCalendarSessions).mockResolvedValue([session]);
+    vi.mocked(trainingsApi.getTraining).mockResolvedValue({
+      id: 't-1',
+      businessId: 'TR-0007',
+      name: 'Passing circuit',
+      exercises: [
+        { exerciseId: 'e-2', order: 2, durationMinutes: 15 },
+        { exerciseId: 'e-1', order: 1, durationMinutes: 10 },
+        { exerciseId: 'e-gone', order: 3, durationMinutes: 5 },
+      ],
+    } as never);
+    vi.mocked(exercisesApi.getExercisesByIds).mockResolvedValue([
+      { id: 'e-1', name: 'Pepper' },
+      { id: 'e-2', name: 'Serve receive' },
+    ] as never);
     vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([
       { id: 'm1', date: '2026-09-12', opponent: 'Rivals', status: 'finished', result: { setsUs: 3, setsThem: 1, sets: [] } } as never,
     ]);
@@ -68,7 +86,7 @@ describe('TeamCalendarTab', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('TR-0007 · Passing circuit')).toBeInTheDocument();
+    expect(await screen.findByText('Passing circuit')).toBeInTheDocument();
     expect(calendarApi.listCalendarSessions).toHaveBeenCalledWith('team-1', '2026-09-01', '2026-09-30');
   });
 
@@ -78,7 +96,7 @@ describe('TeamCalendarTab', () => {
         <TeamCalendarTab teamId="team-1" />
       </MemoryRouter>
     );
-    await screen.findByText('TR-0007 · Passing circuit');
+    await screen.findByText('Passing circuit');
 
     fireEvent.click(screen.getByLabelText('Next month'));
 
@@ -105,7 +123,7 @@ describe('TeamCalendarTab', () => {
         <TeamCalendarTab teamId="team-1" />
       </MemoryRouter>
     );
-    await screen.findByText('TR-0007 · Passing circuit');
+    await screen.findByText('Passing circuit');
 
     // System time is 2026-09-15 (see beforeEach); the day number is rendered
     // as a distinguishable node so we can single out today's cell from others.
@@ -119,7 +137,7 @@ describe('TeamCalendarTab', () => {
         <TeamCalendarTab teamId="team-1" />
       </MemoryRouter>
     );
-    await screen.findByText('TR-0007 · Passing circuit');
+    await screen.findByText('Passing circuit');
 
     // Viewing September 2026: Aug 31 and Oct 1 are adjacent-month padding cells.
     expect(screen.queryByLabelText('Add training on 2026-08-31')).not.toBeInTheDocument();
@@ -133,7 +151,7 @@ describe('TeamCalendarTab', () => {
         <TeamCalendarTab teamId="team-1" />
       </MemoryRouter>
     );
-    await screen.findByText('TR-0007 · Passing circuit');
+    await screen.findByText('Passing circuit');
 
     expect(screen.queryByText('assign-stub')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Add training on 2026-09-20'));
@@ -263,6 +281,128 @@ describe('TeamCalendarTab', () => {
     });
   });
 
+  describe('Today button', () => {
+    it('sits between the month arrows and returns to the current month', async () => {
+      renderTab();
+      await screen.findByText('Passing circuit');
+      const buttons = within(screen.getByRole('heading', { name: 'September 2026' }).parentElement as HTMLElement).getAllByRole('button');
+      expect(buttons.map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual(['Previous month', 'Today', 'Next month']);
+
+      fireEvent.click(screen.getByLabelText('Next month'));
+      fireEvent.click(screen.getByLabelText('Next month'));
+      expect(await screen.findByRole('heading', { name: 'November 2026' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+      expect(await screen.findByRole('heading', { name: 'September 2026' })).toBeInTheDocument();
+      await waitFor(() =>
+        expect(calendarApi.listCalendarSessions).toHaveBeenLastCalledWith('team-1', '2026-09-01', '2026-09-30')
+      );
+    });
+  });
+
+  describe('session plan in the sheet', () => {
+    async function openSheet() {
+      renderTab();
+      fireEvent.click(await screen.findByRole('button', { name: 'TR-0007 · Passing circuit' }));
+      return screen.findByRole('dialog', { name: 'Passing circuit' });
+    }
+
+    it('reads the training only when the sheet opens, then lists its numbered parts in order', async () => {
+      renderTab();
+      await screen.findByText('Passing circuit');
+      expect(trainingsApi.getTraining).not.toHaveBeenCalled();
+      expect(exercisesApi.getExercisesByIds).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'TR-0007 · Passing circuit' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Passing circuit' });
+      expect(await within(dialog).findByText('3 parts · 30 min')).toBeInTheDocument();
+      expect(trainingsApi.getTraining).toHaveBeenCalledTimes(1);
+      expect(trainingsApi.getTraining).toHaveBeenCalledWith('t-1');
+      expect(exercisesApi.getExercisesByIds).toHaveBeenCalledWith(['e-1', 'e-2', 'e-gone']);
+      const rows = within(within(dialog).getByRole('list')).getAllByRole('listitem').map((li) => li.textContent);
+      expect(rows).toEqual(['#1Pepper10 min', '#2Serve receive15 min', '#3Deleted exercise5 min']);
+    });
+
+    it('shows a loading state while the parts load', async () => {
+      vi.mocked(trainingsApi.getTraining).mockReturnValue(new Promise(() => {}));
+      const dialog = await openSheet();
+      expect(within(dialog).getByRole('status')).toHaveTextContent('Loading the session plan');
+    });
+
+    it('keeps the sheet usable and hides the parts when the training was deleted', async () => {
+      vi.mocked(trainingsApi.getTraining).mockResolvedValue(null);
+      const dialog = await openSheet();
+      expect(await within(dialog).findByText(/This training was deleted/)).toBeInTheDocument();
+      expect(within(dialog).queryByRole('list')).not.toBeInTheDocument();
+      expect(exercisesApi.getExercisesByIds).not.toHaveBeenCalled();
+      expect(within(dialog).getByRole('link', { name: 'Open training' })).toBeInTheDocument();
+    });
+
+    it('shows one line and keeps the sheet usable when the parts cannot be read (offline)', async () => {
+      vi.mocked(trainingsApi.getTraining).mockRejectedValue(new Error('offline'));
+      const dialog = await openSheet();
+      expect(await within(dialog).findByText('Could not load the session plan.')).toBeInTheDocument();
+      expect(within(dialog).getByRole('link', { name: 'Open training' })).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('month loading', () => {
+    it('ignores a slow answer for an older month', async () => {
+      let resolveSep: (v: (typeof session)[]) => void = () => {};
+      vi.mocked(calendarApi.listCalendarSessions).mockImplementation((_t, start) =>
+        start === '2026-09-01'
+          ? new Promise((resolve) => {
+              resolveSep = resolve as never;
+            })
+          : Promise.resolve([{ ...session, id: 'oct', date: '2026-10-05', trainingName: 'October drill' }])
+      );
+      renderTab();
+      fireEvent.click(await screen.findByLabelText('Next month'));
+      expect(await screen.findByText('October drill')).toBeInTheDocument();
+      await act(async () => resolveSep([session]));
+      expect(screen.getByText('October drill')).toBeInTheDocument();
+      expect(screen.queryByText('Passing circuit')).not.toBeInTheDocument();
+    });
+
+    it('a session link keeps the linked month when the current month answers late', async () => {
+      const s9 = { ...session, id: 's9', date: '2026-11-03', trainingName: 'November drill' };
+      let resolveSep: (v: (typeof session)[]) => void = () => {};
+      vi.mocked(calendarApi.getCalendarSession).mockResolvedValue(s9);
+      vi.mocked(calendarApi.listCalendarSessions).mockImplementation((_t, start) =>
+        start === '2026-11-01'
+          ? Promise.resolve([s9])
+          : new Promise((resolve) => {
+              resolveSep = resolve as never;
+            })
+      );
+      renderTab('/teams/team-1?tab=calendar&session=s9');
+      expect(await screen.findByRole('dialog', { name: 'November drill' })).toBeInTheDocument();
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalledWith('team-1', '2026-11-01', '2026-11-30'));
+      await act(async () => resolveSep([session]));
+      expect(screen.getByRole('heading', { name: 'November 2026' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'TR-0007 · Passing circuit' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'TR-0007 · November drill' })).toBeInTheDocument();
+    });
+
+    it('a failed reload after a successful delete is a load error, never "could not remove"', async () => {
+      vi.useRealTimers();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-09-15T12:00:00Z'));
+      vi.mocked(calendarApi.deleteCalendarSession).mockResolvedValue(undefined);
+      renderTab();
+      fireEvent.click(await screen.findByRole('button', { name: 'TR-0007 · Passing circuit' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Passing circuit' });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Remove TR-0007 on 2026-09-10' }));
+      vi.mocked(calendarApi.listCalendarSessions).mockRejectedValue(new Error('offline'));
+      await act(() => vi.advanceTimersByTimeAsync(UNDO_MS));
+      expect(calendarApi.deleteCalendarSession).toHaveBeenCalledWith('team-1', 's-1');
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not load calendar sessions');
+      expect(screen.queryByText(/Could not remove/)).not.toBeInTheDocument();
+      // the deleted row stays gone
+      expect(screen.queryByRole('button', { name: 'TR-0007 · Passing circuit' })).not.toBeInTheDocument();
+    });
+  });
+
   it('shows matches in the month as links to the match page', async () => {
     render(<MemoryRouter><TeamCalendarTab teamId="team-1" /></MemoryRouter>);
     const link = await screen.findByRole('link', { name: 'vs Rivals 3–1' });
@@ -339,6 +479,22 @@ describe('TeamCalendarTab', () => {
         expect(calendarApi.listCalendarSessions).toHaveBeenLastCalledWith('team-1', '2026-10-01', '2026-10-31')
       );
       expect(screen.getByRole('button', { name: 'Tuesday 6 October' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('labels the week strip with the month and Today jumps back to this week', async () => {
+      render(
+        <MemoryRouter>
+          <TeamCalendarTab teamId="team-1" />
+        </MemoryRouter>
+      );
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalled());
+      expect(screen.getByText('14–20 Sep')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Next week' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next week' }));
+      expect(screen.getByText('28 Sep – 4 Oct')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+      expect(await screen.findByRole('button', { name: 'Today, Tuesday 15 September' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('14–20 Sep')).toBeInTheDocument();
     });
 
     it('Previous week from the first week moves to the previous month', async () => {

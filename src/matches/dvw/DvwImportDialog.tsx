@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/Button';
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import { useNotify } from '../../components/Notice';
 import { useT } from '../../i18n/I18nProvider';
 import type { Gender } from '../../i18n/catalog';
@@ -144,7 +144,7 @@ export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported 
   }
 
   return (
-    <Dialog title={d.title} onClose={handleClose} size="lg" mobileSheet dirty={!!running}>
+    <Sheet title={d.title} onClose={handleClose} size="lg" detent="large" dirty={!!running}>
       {running ? (
         <div className="flex flex-col gap-3">
           <p className="text-callout text-ink tabular-nums" role="status">
@@ -185,6 +185,6 @@ export function DvwImportDialog({ teamId, teamName, gender, onClose, onImported 
           <p className="text-footnote text-ink-2">{d.disclaimer}</p>
         </div>
       )}
-    </Dialog>
+    </Sheet>
   );
 }

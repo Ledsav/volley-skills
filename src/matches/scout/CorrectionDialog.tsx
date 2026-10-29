@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../components/Button';
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import { FIELD_CLASS, Input } from '../../components/Input';
 import type { SetScore, Side } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
@@ -30,7 +30,7 @@ export function CorrectionDialog({ score, serving, rotation, onSave, onCancel }:
   }
 
   return (
-    <Dialog
+    <Sheet
       title={t.scout.correction.title}
       onClose={onCancel}
       footer={
@@ -66,6 +66,6 @@ export function CorrectionDialog({ score, serving, rotation, onSave, onCancel }:
           </select>
         </label>
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../components/Button';
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import { FIELD_CLASS } from '../../components/Input';
 import { SKILLS, type ActionEvent, type Grade, type RosterEntry, type Skill } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
@@ -22,7 +22,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
   const effectiveGrade = grades.includes(grade) ? grade : grades[0];
 
   return (
-    <Dialog
+    <Sheet
       title={t.scout.editEvent.title}
       onClose={onCancel}
       footer={
@@ -58,6 +58,6 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
           </select>
         </label>
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

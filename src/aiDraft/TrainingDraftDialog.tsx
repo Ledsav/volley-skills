@@ -5,8 +5,7 @@ import { AI_MAX_TOKENS, DRAFT_TEMPERATURE, chatJson } from '../ai/aiClient';
 import { readAiSettings } from '../ai/aiSettings';
 import { Button } from '../components/Button';
 import { ToggleChip } from '../components/Chip';
-import { Dialog } from '../components/Dialog';
-import { SheetCancelButton } from '../components/Sheet';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { Input, Textarea } from '../components/Input';
 import { OfflineError, useSave } from '../components/useSave';
 import { ExerciseDetailSheet, type ExerciseDetailEntry } from '../exercises/ExerciseDetailSheet';
@@ -188,7 +187,7 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
   );
 
   return (
-    <Dialog title={td.title} size="lg" mobileSheet dirty={draft !== null} onClose={onClose} footer={footer}>
+    <Sheet title={td.title} size="lg" detent="large" dirty={draft !== null} onClose={onClose} footer={footer}>
       <div className="flex flex-col gap-4">
         {!draft && (
           <>
@@ -289,6 +288,6 @@ export function TrainingDraftDialog({ onClose, onSaved, onOpenInBuilder, ask }: 
       {draft && viewing !== null && (
         <ExerciseDetailSheet entries={toEntries(draft)} startIndex={viewing} onClose={() => setViewing(null)} />
       )}
-    </Dialog>
+    </Sheet>
   );
 }

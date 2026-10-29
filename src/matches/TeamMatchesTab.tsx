@@ -6,7 +6,7 @@ import { FileUp, Plus, Trophy } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useContextMenu } from '../components/ContextMenu';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { GroupedList } from '../components/GroupedList';
 import { SkeletonBlock } from '../components/Skeleton';
 import { usePublishPageChrome } from '../layout/PageChrome';
@@ -227,7 +227,7 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
         />
       )}
       {creatingDate && firebaseUser && (
-        <Dialog title={l.createTitle} onClose={closeCreate} size="lg" mobileSheet guardUnsaved>
+        <Sheet title={l.createTitle} onClose={closeCreate} size="lg" detent="large" guardUnsaved>
           <MatchSetupForm
             teamId={teamId}
             defaultDate={creatingDate}
@@ -242,7 +242,7 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
               navigate(`/teams/${teamId}/matches/${id}`);
             }}
           />
-        </Dialog>
+        </Sheet>
       )}
     </div>
   );

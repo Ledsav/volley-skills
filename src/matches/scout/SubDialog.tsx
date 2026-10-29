@@ -1,5 +1,5 @@
 import { tapFlash } from '../../motion/tapFlash';
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import type { RosterEntry } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
 import { shortNames } from '../format';
@@ -21,7 +21,7 @@ export function SubDialog({ outPlayer, candidates, onSub, onCancel }: SubDialogP
       Number(b.positionCategory === outPlayer.positionCategory) - Number(a.positionCategory === outPlayer.positionCategory) || a.number - b.number,
   );
   return (
-    <Dialog title={t.scout.sub.title(outPlayer.number, outPlayer.name)} onClose={onCancel}>
+    <Sheet title={t.scout.sub.title(outPlayer.number, outPlayer.name)} onClose={onCancel}>
       {candidates.length === 0 ? (
         <p className="text-callout text-ink-2">{t.scout.sub.nobody}</p>
       ) : (
@@ -44,6 +44,6 @@ export function SubDialog({ outPlayer, candidates, onSub, onCancel }: SubDialogP
           ))}
         </div>
       )}
-    </Dialog>
+    </Sheet>
   );
 }

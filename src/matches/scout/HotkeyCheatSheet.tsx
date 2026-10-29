@@ -1,11 +1,11 @@
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import { useT } from '../../i18n/I18nProvider';
 import { HOTKEY_GROUPS, KEY_MAP } from './hotkeys';
 
 export function HotkeyCheatSheet({ onClose }: { onClose: () => void }) {
   const t = useT().scout;
   return (
-    <Dialog title={t.page.shortcuts} onClose={onClose}>
+    <Sheet title={t.page.shortcuts} onClose={onClose}>
       <div className="flex flex-col gap-4">
         {HOTKEY_GROUPS.map((group) => (
           <section key={group} aria-label={t.hotkeys.groups[group]}>
@@ -27,6 +27,6 @@ export function HotkeyCheatSheet({ onClose }: { onClose: () => void }) {
           </section>
         ))}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
-import { SheetCancelButton } from '../components/Sheet';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { Textarea } from '../components/Input';
 import { LevelPill } from '../components/LevelPill';
 import { listPlayers } from '../players/playersApi';
@@ -103,10 +102,10 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
   const expectedCount = players ? players.length - players.filter((p) => absent.has(p.id)).length : 0;
 
   return (
-    <Dialog
+    <Sheet
       title={m.title(teamName)}
       size="lg"
-      mobileSheet
+      detent="large"
       onClose={onCancel}
       footer={
         <>
@@ -182,6 +181,6 @@ export function TeamNotesDialog({ teamId, date, initialGeneral, draft, onCancel,
           </div>
         )}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

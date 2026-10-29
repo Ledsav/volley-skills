@@ -4,8 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { AI_MAX_TOKENS, DRAFT_TEMPERATURE, chatJson } from '../ai/aiClient';
 import { readAiSettings } from '../ai/aiSettings';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
-import { SheetCancelButton } from '../components/Sheet';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { FIELD_CLASS, Input, Textarea } from '../components/Input';
 import { OfflineError, useSave } from '../components/useSave';
 import { EXERCISE_CATEGORIES, type ExerciseCategory } from '../types/exercise';
@@ -164,7 +163,7 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
   );
 
   return (
-    <Dialog title={t.exerciseDialog.title} size="lg" mobileSheet dirty={drafts !== null} onClose={onClose} footer={footer}>
+    <Sheet title={t.exerciseDialog.title} size="lg" detent="large" dirty={drafts !== null} onClose={onClose} footer={footer}>
       <div className="flex flex-col gap-4">
         {!drafts && (
           <>
@@ -241,6 +240,6 @@ export function ExerciseDraftDialog({ onClose, onSaved, ask }: Props) {
 
         {drafts && <ExerciseProposalReview drafts={drafts} kept={kept} added={added} onToggleKeep={toggleKeep} onEdit={edit} />}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

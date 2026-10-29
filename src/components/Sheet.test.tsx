@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Sheet, SheetCancelButton, useSheetClose } from './Sheet';
 import { decideRelease } from './sheetRelease';
@@ -241,5 +242,183 @@ describe('Sheet', () => {
     expect(panel).toHaveAttribute('data-layout', 'dialog');
     expect(panel.style.opacity).toBe('');
     expect(screen.getByTestId('dialog-backdrop').style.opacity).toBe('');
+  });
+});
+
+describe('Sheet (desktop dialog)', () => {
+  it('renders its title and children inside a modal dialog', () => {
+    render(
+      <Sheet title="Edit contact" onClose={vi.fn()}>
+        <p>Body content</p>
+      </Sheet>
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveAccessibleName('Edit contact');
+    expect(screen.getByText('Body content')).toBeInTheDocument();
+  });
+
+  it('calls onClose when the Escape key is pressed', () => {
+    const onClose = vi.fn();
+    render(
+      <Sheet title="Edit contact" onClose={onClose}>
+        <p>Body</p>
+      </Sheet>
+    );
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onClose when the backdrop is clicked but not when the panel is clicked', () => {
+    const onClose = vi.fn();
+    render(
+      <Sheet title="Edit contact" onClose={onClose}>
+        <p>Body</p>
+      </Sheet>
+    );
+
+    fireEvent.click(screen.getByText('Body'));
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onClose when the close button is activated', () => {
+    const onClose = vi.fn();
+    render(
+      <Sheet title="Edit contact" onClose={onClose}>
+        <p>Body</p>
+      </Sheet>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps focus on an input inside it when the parent re-renders with a new onClose reference', () => {
+    function Wrapper() {
+      const [value, setValue] = useState('');
+      // Intentionally recreated on every render, like an inline handler would be.
+      const onClose = () => {};
+      return (
+        <Sheet title="Edit contact" onClose={onClose}>
+          <input aria-label="Name" value={value} onChange={(e) => setValue(e.target.value)} />
+        </Sheet>
+      );
+    }
+
+    render(<Wrapper />);
+
+    const input = screen.getByLabelText('Name');
+    input.focus();
+    fireEvent.change(input, { target: { value: 'a' } });
+
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('opens the large detent when detent is large, the content detent otherwise', () => {
+    const { rerender } = render(
+      <Sheet title="Session recording" onClose={vi.fn()} detent="large">
+        <p>Body</p>
+      </Sheet>
+    );
+
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-detent', 'large');
+
+    rerender(
+      <Sheet title="Session recording" onClose={vi.fn()}>
+        <p>Body</p>
+      </Sheet>
+    );
+
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-detent', 'content');
+  });
+
+  it('keeps Tab focus inside the dialog, wrapping at both ends', () => {
+    render(
+      <>
+        <button>Outside</button>
+        <Sheet title="Edit contact" onClose={vi.fn()}>
+          <input aria-label="First field" />
+          <button>Save</button>
+        </Sheet>
+      </>
+    );
+    const close = screen.getByRole('button', { name: 'Close' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    save.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(save).toHaveFocus();
+  });
+
+  it('returns focus to the element that opened it when it closes', () => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          {open && (
+            <Sheet title="Edit contact" onClose={() => setOpen(false)}>
+              <p>Body</p>
+            </Sheet>
+          )}
+        </>
+      );
+    }
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    fireEvent.click(opener);
+    expect(screen.getByRole('dialog')).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(opener).toHaveFocus();
+  });
+
+  it('asks before discarding unsaved changes on backdrop, Escape or close', () => {
+    const onClose = vi.fn();
+    render(
+      <Sheet title="New training" onClose={onClose} dirty>
+        <p>Body</p>
+      </Sheet>
+    );
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' }); // closes only the confirm (top layer)
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('with guardUnsaved, closes freely until something is edited, then asks', () => {
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <Sheet title="Edit skills" onClose={onClose} guardUnsaved>
+        <input aria-label="Serve" />
+      </Sheet>
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+
+    onClose.mockClear();
+    render(
+      <Sheet title="Edit skills" onClose={onClose} guardUnsaved>
+        <input aria-label="Serve" />
+      </Sheet>
+    );
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '7' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
   });
 });

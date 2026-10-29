@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '../components/Button';
 import { CodeBlock } from '../components/CodeBlock';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { Textarea } from '../components/Input';
 import { useT } from '../i18n/I18nProvider';
 import { parseIssueText } from './importMessages';
@@ -136,7 +136,7 @@ export function BulkImportDialog<TInput, TIssue = string>({
   }
 
   return (
-    <Dialog title={title} onClose={onClose} size="lg">
+    <Sheet title={title} onClose={onClose} size="lg">
       <div>
         {hint && <p className="mb-3 text-callout text-ink-2">{hint}</p>}
 
@@ -216,6 +216,6 @@ export function BulkImportDialog<TInput, TIssue = string>({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../components/Button';
-import { Dialog } from '../../components/Dialog';
+import { Sheet } from '../../components/Sheet';
 import { FIELD_CLASS } from '../../components/Input';
 import type { LiberoConfig, RoleMap, RosterEntry, Side } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
@@ -123,10 +123,10 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
     );
 
   return (
-    <Dialog
+    <Sheet
       title={t.title(setNumber)}
       onClose={onCancel}
-      mobileSheet
+      detent="large"
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onCancel}>{t.back}</Button>
@@ -265,6 +265,6 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
         ))}
       </fieldset>
       {hint && <p className="mt-3 text-callout text-ink-2">{hint}</p>}
-    </Dialog>
+    </Sheet>
   );
 }

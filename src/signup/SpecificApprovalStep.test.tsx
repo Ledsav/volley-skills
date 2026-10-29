@@ -54,7 +54,7 @@ describe('SpecificApprovalStep', () => {
     expect(group?.querySelectorAll(':scope > li > article')).toHaveLength(13);
     const headings = screen.getAllByRole('heading', { level: 3 });
     expect(headings).toHaveLength(13);
-    headings.forEach((h, i) => expect(h.textContent).toMatch(new RegExp(`^${ids[i]}\.`)));
+    headings.forEach((h, i) => expect(h.textContent).toMatch(new RegExp(`^${ids[i]}[.]`)));
     const boxes = screen.getAllByRole('checkbox');
     expect(boxes).toHaveLength(13);
     boxes.forEach((b, i) => expect(b).toHaveAccessibleName(`I specifically approve clause ${ids[i]}`));

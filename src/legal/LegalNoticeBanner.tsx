@@ -79,7 +79,9 @@ export function LegalNoticeBanner() {
         <div key={i.key} role="status"
           className="flex items-start justify-between gap-3 border-b border-separator bg-surface-2 px-4 py-2.5 text-footnote text-ink print:hidden">
           <span>{i.node}</span>
-          <button type="button" onClick={() => dismiss(i.key)} aria-label={tAll.components.dismiss} className="shrink-0 text-slate hover:text-ink">×</button>
+          <Button variant="ghost" size="icon" onClick={() => dismiss(i.key)} aria-label={tAll.components.dismiss} className="min-h-11 min-w-11 shrink-0">
+            <X size={16} aria-hidden="true" />
+          </Button>
         </div>
       ))}
     </>

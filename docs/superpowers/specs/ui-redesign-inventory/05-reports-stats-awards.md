@@ -833,6 +833,7 @@ These are not screens, but they decide what every awards screen and leaderboard 
     - Title up to 3 lines. Name and stat on one row.
     - Sponsor row at the bottom (at most 6 logos, single-colour unless "original colours").
     - No text overflows the 920 px area or enters the sponsor row.
+    **Superseded:** the canvas header and kicker are in sentence case, not uppercase (design doc §4.3, §9).
 32. **Palette rules:**
     - Text is white or `#0F172A` by contrast.
     - The accent is the colour two steps later, if its contrast is at least 3:1, otherwise the text colour.

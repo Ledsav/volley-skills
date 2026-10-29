@@ -60,7 +60,7 @@ screen can be checked against them. They describe current behaviour only; they a
 ## Facts the redesign must use (corrections to older docs)
 
 - There are **9 skills**, not 8: serve, attack, block, set, defence, reception, jump, speed, iq
-  (`SKILL_KEYS` in `src/types/player.ts`). CLAUDE.md's "8 skills" is out of date.
+  (`SKILL_KEYS` in `src/types/player.ts`). (CLAUDE.md corrected at increment 6.)
 - The calendar is **per team** (a team tab), not a top-level destination.
 - Navigation today: sidebar groups Home · Coaching (Teams, Trainings, Exercises) · Club (Skill guides,
   Members & settings) · Platform; the phone bar is Home + coaching pages + **More**. Design-system spec §7
@@ -103,3 +103,125 @@ Further decisions, 2026-10-28 (user), specified in the design doc
 11. **Club admins see every team in their club** (§4.4).
 
 The minor open questions in each document are settled in the design doc §4.6.
+
+### In full (copied from the design doc at increment 6)
+
+#### 4.2 Bug fixes (user: "fix the bugs")
+
+| # | Bug today | Fixed behaviour | Area |
+|---|---|---|---|
+| B1 | Home "Next 7 days" session rows open the team's Roster tab. | A session row opens the team Calendar tab on that session's month, with the session's view sheet open (`?tab=calendar&session=<id>`). A match row keeps opening the match page. | 02 |
+| B2 | The diagram editor asks "Leave without saving?" but saves on unmount anyway, so the copy is false. | The editor **autosaves**, like an Apple document. Leaving never asks. Each save is queued as its own commit, so saves may overlap (this replaces "one save at a time"). The pending save is flushed on leave, when the page is hidden (`visibilitychange`) and on `beforeunload`. The `pagehide` flush is best effort, because Firestore's own `pagehide` handler runs first. `beforeunload` warns only while a save is **failing**. In that case the toolbar shows "Not saved — Retry", and in-app navigation asks "Leave and lose the last changes?". **(call)**: this matches the code's real behaviour and drops the false prompt. | 06 |
+| B3 | Undo history is cleared by every autosave. | Undo/redo history survives autosave, kept per diagram in memory for the editor session and capped at today's depth. | 06 |
+| B4 | Scouting's write-error banner never clears until reload. | The banner clears when a **later** event write for this match is acknowledged by the server. "Acknowledged" means its `addEvent` promise resolved, which the code doesn't await but can observe. The banner also clears when the coach dismisses it. If writes keep being rejected (for example, a revoked permission), it stays up, because no later write succeeds. The wording stays. **(call)** "No pending writes" would clear it within milliseconds of a rejection, so that signal isn't used. | 04 |
+| B5 | A device that has been taken over is never told, and its heartbeat keeps reclaiming the lock. | The scouting page adds an `onSnapshot` on the match doc. When another device claims the lock, this device **stops its heartbeat**, disables recording and shows a sheet: "Scouting moved to another device". The sheet has **Take back** (claims again, same as today's take over) and **Leave** (goes to the match page). Events already written are unaffected. Cost: one extra listener, plus one read per heartbeat write (one every 60 s) while scouting. | 04 |
+| B6 | Set 1 defaults to "They serve" by accident of the alternation rule. | Set 1 has **no default**. The serve control shows two unselected options, and "Confirm set" stays disabled until one is chosen. Sets 2 and later keep the alternation default, and it can still be changed. **(call)**: forcing one deliberate tap on the fact that drives rotation is safer than either default. | 04 |
+| B7 | Undo on a reopened imported match offers to delete the whole import, worded as a "text batch". | Undo keeps today's order: it pops this page's write stack first, then falls back to the last event by order. The only change is that events with `source: 'import'` are **skipped** in both steps; the fallback walks back to the last non-import event. If the match holds only imported events, Undo is disabled with the hint "Imported events can't be undone". Text batches keep their confirm, with wording that names the source ("Undo text batch (N events)?"). | 04 |
+| B8 | Several dates use the UTC calendar day, so they can be off by one around midnight: Start session default (`StartSessionCard.tsx:12`), consent date and other player writes (`playersApi.ts:104,232`), and `leftClubAt` plus the retention cutoff (`players/retention.ts:28` `todayIso`, which is UTC). | All "today" dates use the device's **local** calendar date through one shared helper (`todayLocalIso()`). It replaces the three `todayIso` copies: `home/homeFeed.ts:14` and `calendar/monthGrid.ts:32` are already local, `players/retention.ts:28` is UTC. | 02, 03 |
+| B9 | People & access shows only the first 50 teams in the team checklist. | The checklist pages through all teams with **Load more**, the same pattern as the other lists, and its filter covers loaded teams. | 07 |
+| B10 | Leads panel: a dead "Grant access" path, and delete copy that refers to it. | The dead path is removed and the delete copy fixed. Delete becomes an undo (§6.2). | 07 |
+| B11 | Guide editors save without any feedback. | The success notice is shown, and the Discard-changes guard added on dirty close, matching every other editor. | 07 |
+| B12 | The player-card history overlay is not a standard dialog: no Escape, no focus trap, no phone sheet. | It becomes a standard sheet (§6.3): Escape closes it, focus is trapped and returned, and it is a bottom sheet on phones. | 03 |
+| B13 | Player-card saves other than physical tests await the server, so offline they hang forever. | Offline, every player-card save behaves like physical tests do today: it closes as soon as the write is queued, shows "Saved on this device · will sync", and the row shows a pending dot until it syncs. Online, saves still await so rule errors stay inline. **(call)** | 03 |
+
+#### 4.3 Shared outputs get the new look (user: "redesign them")
+
+This covers award cards, story slides, summary image, story video and the training PDF. Content, slide logic,
+privacy gates, sizes and export formats stay exactly as the inventory states; only the visual treatment changes.
+Specified in §9. The pixel-level tests (`drawAwardCard.test.ts`, `drawSlide.test.ts`, PDF tests) are updated where
+they assert colours or positions, and that is allowed by this entry.
+
+#### 4.4 Club admins see every team in their club (user: "they should see them")
+
+Rules already let a club admin read every team (`isClubAdmin()` on `teams/{id}` read). Only the listing changes:
+
+- `/teams`, Home and search list **all club teams** for a club admin. They use a new `listClubTeams()` in
+  `teamsApi.ts`: the same query as `listMyTeams` without the `where` clause (20 per page, `createdAt desc`, full
+  `Team`). It does **not** use `accessApi.listAllTeams()`, which pages by 50, orders by name and returns only
+  `{id, name}`. Members keep today's `adminEmails` query.
+- On `/teams`, a club admin gets a segmented filter: **Mine · All**. It defaults to **All** and remembers the last
+  choice in `vcb.teamsFilter`. "Mine" uses today's query.
+- Home for a club admin covers the same first page of teams it does today: 20 teams, with "All teams →". This keeps
+  Home's read cost bounded.
+- No rules change. A **new** rules test pins it: a club admin can list teams without a `where` clause, and a
+  member cannot. Today's tests only cover a single read (`tests/rules/teams.rules.test.ts:78`).
+
+#### 4.5 Never-built spec features are added (user: "add them")
+
+From `2026-10-14-…-home-stats-awards-design.md` §3.1:
+
+1. **Shortcuts on Home.** These are actions only, so the one-place navigation rule holds; see the memory note on
+   navigation. Shown only for sections the person can access:
+   - **New match**, with a team picker sheet when they have more than one team.
+   - **New training**, which opens the training builder.
+   - **New exercise**.
+
+   **(call)** The spec listed "Exercises" and "Trainings" as page links, which would duplicate the sidebar. Turning
+   them into *create* actions keeps each page in exactly one place.
+2. **"Plan a training" on the empty Next 7 days block**, for team admins. It opens a team picker if there is more
+   than one team, then that team's Calendar tab with the add-session sheet open.
+3. **Player count and average level on Your teams cards.** Each card makes one aggregation query:
+   `getAggregateFromServer(players, { count: count(), avg: average('avgScore') })`. That costs one read per team,
+   with no new index or rules change, because the `players` list rule already allows the team admin and club admin.
+   The average is shown as a `LevelPill`, and "—" when no player has a score. **(call)** The count is every player
+   doc on the team, former players included, as the roster lists them. Players without a `number` are counted too,
+   even though `listPlayers`' `orderBy('number')` leaves them out. That is acceptable for a summary figure.
+
+#### 4.6 Settled minor questions (call)
+
+The inventory's minor open questions are settled as follows. All of these are parity, except where noted.
+
+- The theme key stays `theme`.
+- Signed-out unknown URLs keep redirecting to login.
+- `ConfirmDialog` keeps its inert backdrop.
+- Notices stay "latest wins", except that an undo notice is never replaced by a plain one while its window is open.
+  The undo notice queues.
+- Roster sort, search and stats keep working on loaded pages.
+- The hidden "number" roster sort stays hidden.
+- Session notes stay unpersisted.
+- The viewer-only variants nobody can reach are restyled for parity, but get no new entry points.
+- Match stats stay team-admin only.
+- The identity-card level chip becomes band-coloured. This is visual only.
+- There is no physical-test editing and no per-skill notes UI.
+- Rotation definitions stay as two views, labelled differently.
+- Hidden awards keep their PNG export.
+- The "Record video" unsupported item becomes a real disabled menu item with its hint.
+- The match page load error gains Retry.
+- CSV headers keep following the UI language.
+- Exercise rows keep opening edit.
+- Diagram titles stay as stored data.
+- The training builder's button-only edits (reorder, remove and similar) now mark it dirty, so the discard guard
+  covers them. This is a behaviour change.
+- **Cancel asks "Discard changes?" when the form is dirty**, in every sheet. This is a behaviour change. Today only
+  ✕, Escape and the backdrop ask, and an explicit Cancel discards silently (`Dialog.tsx:28-29`, invariant 32 in
+  inventory 03). On phones the header Cancel replaces ✕, so leaving it unguarded would make losing work easier
+  than today. Clean forms still close at once.
+- `/admin/guides` gets `?tab=` deep links.
+- The platform shell gets "Back to app" for operators who are also members.
+- Make admin and demote stay instant, and gain an undo notice instead.
+- Guide thresholds 4/7/9 versus level bands 4/6/8 stay as they are; they are different things.
+
+#### Theme "System" option (design doc §5)
+
+- **Theme "System" option** (behaviour change, **(call)** on storage). Today the theme is only `'light' | 'dark'`
+  (`theme/theme.ts:1`) and every toggle is persisted.
+  - System means the `theme` key is absent, and choosing System removes it.
+  - `public/theme-init.js` and `applyTheme` then follow `prefers-color-scheme` live.
+  - Existing stored `light` or `dark` values are kept as explicit choices, with no migration.
+  - The key name stays frozen.
+
+### Rulings made while building (user-approved, 2026-10-29)
+
+- **Player card:** one Edit picker (Skills, Development plan, Contact & registration, Guardians) replaces the per-section Edit buttons. Delete player lives only in "⋯". A neutral "Waiting to sync" dot marks queued saves, and a rejected offline write shows one page alert.
+- **Today:** no navy band, greeting or club line. "Plan a training" shows only with trainings access.
+- **Roster on phones:** no Starting checkbox. Use the row menu, long-press, right swipe and a "Starting" chip. Desktop keeps the checkbox.
+- **Team header:** season · age group, with no Average or Record figures.
+- **Exercises:** deleting an unused exercise is an undo. If it is used in trainings, a confirm names the usage count. If the usage count cannot be read, the confirm still opens and says the count could not be determined.
+- **Diagram editor:** no Save button, a status line instead. An AI-prefilled builder starts dirty.
+- **Stats:** a "Season awards →" link, and an "Export" menu (Print/PDF plus two CSVs). Print forces light tokens.
+- **Club area:** role changes are written at once with Undo (demote self, make owner and remove keep their confirms). Guide Save sits in the toolbar.
+- **Legal review:** each of the 13 specific-approval clauses has its own checkbox. Approve stays disabled until all are ticked. Ticks reset on a language or version change and are never stored. AI settings live at `/settings?view=ai`.
+- **Shared outputs:** Night is the default palette for coaches with nothing stored, and canvas text is no longer uppercased.
+- **Scouting:** one row of six grades on phones. Substitution stays on long-press, not in the dock.
+- **Training PDF (open deviation):** it keeps Roboto until the user approves downloading Inter. `fontSafe` stays.
+

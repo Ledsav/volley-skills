@@ -987,6 +987,7 @@ User-visible output that must stay identical unless a change is stated.
    - Trainings: "Delete {businessId}?" with the calendar-label note.
    - Exercises: the usage count is fetched first; the confirm still opens when the count fails, with the "could not be
      determined" text. Deleting an exercise removes its diagrams in the same batch.
+   **Superseded:** trainings now delete with an undo (design doc §6.2). Exercises follow the ruling in the [README](README.md#rulings-made-while-building-user-approved-2026-10-29): undo when unused, a confirm naming the usage count when used.
 9. **Training creation is server-numbered.** A transaction on `counters/trainings` gives `TR-` plus a 4-digit,
    zero-padded number (longer numbers are not truncated). It is blocked offline with the specific message, never
    queued. Bulk import bumps the counter by N in one all-or-nothing transaction. `businessId` is immutable on update
@@ -1058,6 +1059,7 @@ User-visible output that must stay identical unless a change is stated.
 28. **Undo/redo.** 30-step cap. No-op actions push no frame. Undo and redo clear the selection. Stacks reset on tab
     switch, adding or deleting a diagram, and after each save. The Undo and Redo buttons are disabled when their stack
     is empty.
+    **Superseded:** undo/redo history now survives autosave (B3).
 29. **Diagram save pipeline.**
     - Autosave 3 s after the last change, a manual Save, save on unmount when dirty, and a `beforeunload` warning when
       dirty.
@@ -1066,11 +1068,13 @@ User-visible output that must stay identical unless a change is stated.
     - One batch, stamped with `updatedBy`/`updatedAt`.
     - Temp ids are swapped for real ids; the thumbnail cache is invalidated.
     - Errors are localized ("needs a title of 1–40 characters", "is invalid: {reason}", or the generic text).
+    **Superseded:** the editor autosaves with no manual Save. Saves are queued commits that may overlap, and `beforeunload` warns only while a save is failing (B2).
 30. **Limits enforced in the UI and the API:** 12 diagrams per exercise (the + button is disabled), 60 items per
     scene, title 40, role label 3, text 60, 12 line points. Scenes read from Firestore are repaired, never crash.
     Unknown item types are dropped. Player view defaults to `token` for old data.
 31. **Leaving a dirty editor** shows the in-app "Leave without saving?" confirm (never `window.confirm`). A clean
     editor leaves immediately to `/exercises`.
+    **Superseded:** leaving never asks, except "Leave and lose the last changes?" while a save is failing (B2).
 32. **Phone editor.** The court stays visible above non-modal bottom panels. The bottom toolbar has Add, Multi, Edit,
     Duplicate, Forward, Delete with the enablement rules above. Deselecting closes the Edit panel; Delete closes it
     too. Court settings sit behind a toggle on phones and are inline on desktop.

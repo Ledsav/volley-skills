@@ -1,6 +1,6 @@
 # UI redesign — design
 
-Status: **draft for approval** · Branch `feature/ui-redesign` · 2026-10-28
+Status: **built** (increments 1–6) · Branch `feature/ui-redesign` · 2026-10-28
 
 Companion documents:
 
@@ -9,9 +9,7 @@ Companion documents:
   interaction model; the inventory says what must keep working.
 - **Design system and brand:** [`docs/design/`](../../design/README.md). It holds the v2 rules, the mockups (HTML and
   PNG, light and dark), and the logo kit.
-- **Superseded by this document:** `2026-09-04-volley-skills-design-system.md`, which stays the reference until the
-  redesign merges, and §7 of that spec on navigation. When the redesign lands, CLAUDE.md's "Design system" section points
-  here and is corrected to 9 skills.
+- **Superseded by this document:** the old design-system spec (`2026-09-04-volley-skills-design-system.md`) was retired at increment 6. It is deleted and lives in git history. §7 of that spec on navigation is superseded too. CLAUDE.md's "Design system" section points to `docs/design/` and says 9 skills.
 
 Marks used below: **(user)** means the user decided it in the brainstorming session. **(call)** means I decided it and
 the user can overrule it while reading. Anything unmarked follows from those two.
@@ -80,8 +78,9 @@ should make the app feel trustworthy and effortless enough that coaches want to 
   Any new dependency needs a reason written in its plan.
 - **Free tier.** The app stays on the Spark plan with no Cloud Functions. Fetching discipline holds: bounded reads,
   limit plus cursor, and an index for every query.
-- **i18n.** All five languages (en, it, fr, de, es) get every new string. Italian must not break layouts, so design
-  for 30% longer labels.
+- **i18n.** The UI ships English and Italian catalogs (`src/i18n/en`, `src/i18n/it`); every new UI string goes in
+  both. French, German and Spanish exist only for the legal texts. Italian must not break layouts, so design for 30%
+  longer labels.
 - **Accessibility.** WCAG 2.2 AA contrast for text, 44 px touch targets, visible focus, full keyboard use on desktop,
   and screen-reader labels unchanged where tests rely on them.
 
@@ -100,7 +99,7 @@ action, physical motion, and respecting system settings.
 | # | Bug today | Fixed behaviour | Area |
 |---|---|---|---|
 | B1 | Home "Next 7 days" session rows open the team's Roster tab. | A session row opens the team Calendar tab on that session's month, with the session's view sheet open (`?tab=calendar&session=<id>`). A match row keeps opening the match page. | 02 |
-| B2 | The diagram editor asks "Leave without saving?" but saves on unmount anyway, so the copy is false. | The editor **autosaves**, like an Apple document. Leaving never asks. The pending save is flushed on leave and on `pagehide`. `beforeunload` warns only while a save is **failing**. In that case the toolbar shows "Not saved — Retry", and in-app navigation asks "Leave and lose the last changes?". **(call)**: this matches the code's real behaviour and drops the false prompt. | 06 |
+| B2 | The diagram editor asks "Leave without saving?" but saves on unmount anyway, so the copy is false. | The editor **autosaves**, like an Apple document. Leaving never asks. Each save is queued as its own commit, so saves may overlap (this replaces "one save at a time"). The pending save is flushed on leave, when the page is hidden (`visibilitychange`) and on `beforeunload`. The `pagehide` flush is best effort, because Firestore's own `pagehide` handler runs first. `beforeunload` warns only while a save is **failing**. In that case the toolbar shows "Not saved — Retry", and in-app navigation asks "Leave and lose the last changes?". **(call)**: this matches the code's real behaviour and drops the false prompt. | 06 |
 | B3 | Undo history is cleared by every autosave. | Undo/redo history survives autosave, kept per diagram in memory for the editor session and capped at today's depth. | 06 |
 | B4 | Scouting's write-error banner never clears until reload. | The banner clears when a **later** event write for this match is acknowledged by the server. "Acknowledged" means its `addEvent` promise resolved, which the code doesn't await but can observe. The banner also clears when the coach dismisses it. If writes keep being rejected (for example, a revoked permission), it stays up, because no later write succeeds. The wording stays. **(call)** "No pending writes" would clear it within milliseconds of a rejection, so that signal isn't used. | 04 |
 | B5 | A device that has been taken over is never told, and its heartbeat keeps reclaiming the lock. | The scouting page adds an `onSnapshot` on the match doc. When another device claims the lock, this device **stops its heartbeat**, disables recording and shows a sheet: "Scouting moved to another device". The sheet has **Take back** (claims again, same as today's take over) and **Leave** (goes to the match page). Events already written are unaffected. Cost: one extra listener, plus one read per heartbeat write (one every 60 s) while scouting. | 04 |
@@ -604,6 +603,9 @@ run by the user on a phone, as well as tests.
     hairline separators, and category chips as outlined pills.
   - Diagrams are vector, as today, with light colours inlined.
   - If Inter is embedded, `fontSafe` is kept anyway: a harmless safety net.
+  - **Open deviation:** the PDF still uses Roboto (pdfmake's bundled `vfs_fonts`). Embedding Inter means downloading the
+    Inter release from GitHub, which needs the user's approval, and that is still pending. Until then the PDF keeps
+    Roboto and `fontSafe`.
 
 ## 10. Testing and acceptance
 

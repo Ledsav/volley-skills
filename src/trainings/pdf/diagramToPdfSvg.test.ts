@@ -1,22 +1,35 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { PALETTE_COLORS } from '../../types/diagram';
 import { createItem, emptyScene } from '../../diagrams/sceneFactory';
 import { diagramToPdfSvg, LIGHT_TOKENS, resolveThemeColors } from './diagramToPdfSvg';
 
 describe('resolveThemeColors', () => {
   it('replaces a theme colour with its light rgb value', () => {
-    expect(resolveThemeColors('fill="rgb(var(--color-ink))"')).toBe('fill="rgb(15,23,42)"');
+    expect(resolveThemeColors('fill="rgb(var(--color-ink))"')).toBe('fill="rgb(29,29,31)"');
   });
 
   it('turns a colour with alpha into rgba', () => {
-    expect(resolveThemeColors('rgb(var(--color-blue) / 0.1)')).toBe('rgba(40,101,246,0.1)');
+    expect(resolveThemeColors('rgb(var(--color-blue) / 0.1)')).toBe('rgba(0,122,255,0.1)');
   });
 
   it('falls back to ink for an unknown token', () => {
-    expect(resolveThemeColors('rgb(var(--color-nope))')).toBe('rgb(15,23,42)');
+    expect(resolveThemeColors('rgb(var(--color-nope))')).toBe('rgb(29,29,31)');
   });
 
-  it('keeps ink in step with index.css', () => {
-    expect(LIGHT_TOKENS.ink).toEqual([15, 23, 42]);
+  it('every inlined colour matches the light theme in index.css', () => {
+    const css = readFileSync(fileURLToPath(new URL('../../index.css', import.meta.url)), 'utf8');
+    const start = css.indexOf(':root {');
+    const root = css.slice(start, css.indexOf('
+}', start));
+    const parsed = new Map<string, number[]>();
+    for (const m of root.matchAll(/--color-([a-z0-9-]+):\s*(\d+)\s+(\d+)\s+(\d+)/g)) parsed.set(m[1], [+m[2], +m[3], +m[4]]);
+    for (const [key, rgb] of Object.entries(LIGHT_TOKENS)) expect(parsed.get(key), key).toEqual(rgb);
+  });
+
+  it('covers every colour a diagram can draw', () => {
+    for (const c of [...PALETTE_COLORS, 'surface']) expect(Object.keys(LIGHT_TOKENS)).toContain(c);
   });
 });
 

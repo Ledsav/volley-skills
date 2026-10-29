@@ -41,7 +41,7 @@ export function AuthShell({
         </div>
       </section>
 
-      <div className="canvas flex min-h-dvh flex-col bg-bg px-5 pb-6 pt-[max(1rem,env(safe-area-inset-top))] min-[1100px]:border-l min-[1100px]:border-separator min-[1100px]:bg-sidebar min-[1100px]:px-7">
+      <div className="canvas flex min-h-dvh flex-col bg-sidebar px-5 pb-6 pt-[max(1rem,env(safe-area-inset-top))] min-[1100px]:border-l min-[1100px]:border-separator min-[1100px]:px-7">
         <header className="flex min-h-11 items-center gap-2">
           <BrandMark className="min-w-0 min-[1100px]:hidden" />
           <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -61,7 +61,8 @@ export function AuthShell({
             <AuthCourt variant="strip" />
           </div>
         )}
-        <main className="mx-auto flex w-full max-w-[340px] flex-1 flex-col justify-center gap-[22px] py-8">
+        {/* Under the phone court strip the form starts right away; with no strip (status screens) it centres. */}
+        <main className={`mx-auto flex w-full max-w-[340px] flex-1 flex-col gap-[22px] min-[1100px]:justify-center min-[1100px]:py-8 ${title ? 'pb-8 pt-2' : 'justify-center py-8'}`}>
           {title && <h1 className="text-large-title text-ink min-[1100px]:text-title-1">{title}</h1>}
           {children}
         </main>

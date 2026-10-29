@@ -40,11 +40,11 @@ export function AuthCourt({ variant }: { variant: 'stage' | 'strip' }) {
     );
   }
   return (
-    <div className="pointer-events-none relative -mx-5 h-[150px] overflow-hidden">
+    // A mask, not an overlay in the canvas colour, so the fade matches whatever the pane is painted with.
+    <div className="pointer-events-none relative -mx-5 h-[150px] overflow-hidden [-webkit-mask-image:linear-gradient(to_bottom,#000_45%,transparent)] [mask-image:linear-gradient(to_bottom,#000_45%,transparent)]">
       <div className="absolute left-1/2 -top-10 -ml-[75px] h-[300px] w-[150px] [transform:perspective(700px)_rotateX(60deg)_rotateZ(-24deg)]">
         {svg}
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-b from-transparent to-bg" />
     </div>
   );
 }

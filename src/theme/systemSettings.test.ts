@@ -73,6 +73,6 @@ describe('system-setting media queries', () => {
     for (const f of ['layout/AppShell.tsx', 'auth/AuthShell.tsx', 'layout/MinimalShell.tsx', 'legal/LegalDocPage.tsx']) {
       expect(readFileSync(resolve(process.cwd(), 'src', f), 'utf8'), f).toMatch(/className="[^"]*canvas[^"]*bg-bg/);
     }
-    expect(readFileSync(resolve(process.cwd(), 'src/auth/AuthShell.tsx'), 'utf8')).toMatch(/canvas[^"]*min-\[1100px\]:bg-sidebar/);
+    expect(readFileSync(resolve(process.cwd(), 'src/auth/AuthShell.tsx'), 'utf8')).toMatch(/canvas[^"]*bg-sidebar/);
   });
 });

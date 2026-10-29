@@ -574,7 +574,7 @@ export function DiagramEditorPage() {
             {undoRedo}
           </header>
           {saveError && (
-            <p role="alert" className="glass absolute right-3 top-[68px] z-10 max-w-[60%] rounded-lg px-3 py-1 text-footnote text-red-strong">
+            <p role="alert" title={saveError} className="glass absolute right-3 top-[68px] z-10 max-w-[280px] truncate rounded-lg px-3 py-1 text-footnote text-red-strong">
               {saveError}
             </p>
           )}

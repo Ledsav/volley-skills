@@ -535,7 +535,11 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   }, [exerciseId]);
 
   const save = useCallback((): Promise<void> => {
-    if (!isEditorDirty(stateRef.current)) return Promise.resolve();
+    if (!isEditorDirty(stateRef.current)) {
+      // Nothing left to lose: Retry just clears a stale error.
+      if (mountedRef.current) setSaveError(null);
+      return Promise.resolve();
+    }
     const sent = stateRef.current;
     const ops = buildSaveOps(sent);
     const committedIds = [
@@ -582,7 +586,8 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
           if (mountedRef.current) dispatch(action);
         }
         if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
-        if (mountedRef.current) {
+        // A failure that leaves nothing unsaved (everything it carried was deleted) has no error to show.
+        if (mountedRef.current && isEditorDirty(stateRef.current)) {
           setSaveError(
             err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
           );

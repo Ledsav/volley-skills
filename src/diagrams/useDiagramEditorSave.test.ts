@@ -292,5 +292,31 @@ describe('a rejected save waits for the next change or Retry (fix round 2)', () 
     act(() => result.current.dispatch({ type: 'loaded', diagrams: [] }));
     expect(result.current.dirty).toBe(false);
     expect(result.current.status).toBe('failed');
+    // Nothing is left to lose: Retry clears the error instead of doing nothing.
+    await act(() => result.current.save());
+    expect(result.current.saveError).toBeNull();
+    expect(result.current.status).toBe('saved');
+  });
+
+  it('a failure that leaves nothing unsaved does not leave a stuck error (m-1)', async () => {
+    const { result } = await dirtyEditor();
+    vi.mocked(diagramsApi.saveDiagramSet).mockImplementation(((_e: string, _o: unknown, _u: string, onQueued?: (m: Record<string, string>) => void) => {
+      onQueued?.({});
+      result.current.dispatch({ type: 'loaded', diagrams: [] });
+      return new Promise((_res, rej) => setTimeout(() => rej(Object.assign(new Error('x'), { code: 'permission-denied' })), 10));
+    }) as never);
+    let done!: Promise<void>;
+    act(() => {
+      done = result.current.save();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20);
+      await done;
+    });
+    expect(result.current.saveError).toBeNull();
+    expect(result.current.status).toBe('saved');
+    const ev = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
   });
 });

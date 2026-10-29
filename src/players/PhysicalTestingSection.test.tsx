@@ -1,10 +1,12 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PhysicalTestingSection } from './PhysicalTestingSection';
 import * as physicalTestsApi from './physicalTestsApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, testClub } from '../test/authValue';
 import type { PhysicalTest } from '../types/physicalTest';
+import { NoticeProvider } from '../components/Notice';
+import { PlayerSyncProvider } from './playerSync';
 
 vi.mock('./physicalTestsApi');
 vi.mock('../auth/AuthContext');
@@ -98,5 +100,36 @@ describe('PhysicalTestingSection', () => {
     fireEvent.click(screen.getAllByText('Add new')[0]);
 
     expect(await screen.findByLabelText('Height (cm)')).toBeInTheDocument();
+  });
+
+  it('offline, a new entry closes the sheet and dots its row until it syncs', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never })
+    );
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    vi.spyOn(physicalTestsApi, 'fetchLatestTests').mockResolvedValue({});
+    let resolve: (id: string) => void = () => undefined;
+    vi.spyOn(physicalTestsApi, 'createPhysicalTest').mockReturnValue(new Promise<string>((r) => (resolve = r)));
+
+    render(
+      <NoticeProvider>
+        <PlayerSyncProvider>
+          <PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />
+        </PlayerSyncProvider>
+      </NoticeProvider>,
+    );
+
+    await waitFor(() => expect(screen.getAllByText('No data yet').length).toBe(8));
+    fireEvent.click(screen.getAllByText('Add new')[0]);
+    fireEvent.change(await screen.findByLabelText('Date'), { target: { value: '2026-09-07' } });
+    fireEvent.change(screen.getByLabelText('Height (cm)'), { target: { value: '160' } });
+    fireEvent.change(screen.getByLabelText('Body mass (kg)'), { target: { value: '50' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(screen.queryByLabelText('Height (cm)')).not.toBeInTheDocument());
+    expect(screen.getByRole('img', { name: 'Waiting to sync' })).toBeInTheDocument();
+    await act(async () => resolve('test-1'));
+    expect(screen.queryByRole('img', { name: 'Waiting to sync' })).not.toBeInTheDocument();
   });
 });

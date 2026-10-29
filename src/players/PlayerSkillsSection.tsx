@@ -13,6 +13,8 @@ import { suggestedScore, type MatchRatings } from './matchRating';
 import { computeAvgScore, computeLevel } from './skillMath';
 import { SkillRadarChart } from './SkillRadarChart';
 import { useNotify } from '../components/Notice';
+import { useSave } from '../components/useSave';
+import { usePlayerSync } from './playerSync';
 import { formatNumber } from '../i18n/format';
 import { useLocale, useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
@@ -68,6 +70,8 @@ export function PlayerSkillsSection({
   gender = 'mixed',
 }: PlayerSkillsSectionProps) {
   const notify = useNotify();
+  const sync = usePlayerSync();
+  const { save } = useSave();
   const t = useT();
   const lb = t.labels;
   const p = t.players;
@@ -122,7 +126,10 @@ export function PlayerSkillsSection({
     const avgScore = computeAvgScore(skills);
     const level = computeLevel(avgScore);
     try {
-      await updatePlayerSkills(teamId, playerId, skills, avgScore, level);
+      const done = await save(() => updatePlayerSkills(teamId, playerId, skills, avgScore, level), {
+        onQueued: (w) => sync.queued('skills', w),
+      });
+      if (!done) return;
     } catch {
       setError(p.skills.saveFailedRange);
       return;
@@ -143,14 +150,21 @@ export function PlayerSkillsSection({
     const next = { ...player.skills, [key]: { ...player.skills[key], score } };
     const avgScore = computeAvgScore(next);
     const level = computeLevel(avgScore);
+    let queued = false;
     try {
-      await updatePlayerSkills(teamId, playerId, next, avgScore, level);
+      const done = await save(() => updatePlayerSkills(teamId, playerId, next, avgScore, level), {
+        onQueued: (w) => {
+          queued = true;
+          sync.queued('skills', w);
+        },
+      });
+      if (!done) return;
     } catch {
       setError(p.skills.saveFailed);
       return;
     }
     onPlayerUpdated({ ...player, skills: next, avgScore, level });
-    notify(p.skills.adapted(lb.playerSkill[key], score));
+    if (!queued) notify(p.skills.adapted(lb.playerSkill[key], score));
   }
 
   const previewAvg = computeAvgScore(skills);

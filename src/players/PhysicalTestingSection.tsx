@@ -10,6 +10,7 @@ import { PhysicalTestHistoryList } from './PhysicalTestHistoryList';
 import { fetchLatestTests, loadLatestTests } from './physicalTestsApi';
 import type { LatestTests } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
+import { PendingDot, usePlayerSync } from './playerSync';
 
 interface PhysicalTestingSectionProps {
   teamId: string;
@@ -25,6 +26,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
   const t = useT();
   const p = t.players.physical;
   const { firebaseUser } = useAuth();
+  const sync = usePlayerSync();
   const { growthTestsEnabled } = useClubFeatures();
   const visible = visibleTestTypes(growthTestsEnabled);
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
@@ -68,7 +70,10 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
             return (
               <li key={testType} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">{t.labels.physicalTest[testType]}</p>
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                    {t.labels.physicalTest[testType]}
+                    <PendingDot pending={sync.isPending(`test:${testType}`)} />
+                  </p>
                   <p className="text-xs text-slate">
                     {latest ? `${formatPhysicalTestSummary(latest)} — ${latest.date}` : p.noData}
                   </p>

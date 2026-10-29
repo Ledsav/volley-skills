@@ -4,6 +4,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import * as playersApi from './playersApi';
 import * as skillGuideApi from '../skillGuide/skillGuideApi';
+import { NoticeProvider } from '../components/Notice';
+import { PlayerSyncProvider } from './playerSync';
 import type { Player } from '../types/player';
 import type { MatchRatings } from './matchRating';
 
@@ -260,5 +262,38 @@ describe('match suggestions', () => {
     expect(screen.getByLabelText('Serve')).toHaveValue(8);
     expect(screen.queryByRole('button', { name: 'Use 8 for Serve' })).not.toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe('offline saves', () => {
+  const offline = () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  const renderOffline = (props: Parameters<typeof SkillsHarness>[0]) =>
+    render(
+      <NoticeProvider>
+        <PlayerSyncProvider>
+          <SkillsHarness {...props} />
+        </PlayerSyncProvider>
+      </NoticeProvider>,
+    );
+
+  it('offline, the skills sheet closes as soon as the write is queued', async () => {
+    offline();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(new Promise(() => undefined));
+    renderOffline({ player: basePlayer });
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
+    fireEvent.click(screen.getByText('Save skills'));
+    await waitFor(() => expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument());
+    expect(screen.getByText('Saved on this device · will sync')).toBeInTheDocument();
+  });
+
+  it('offline, Adapt shows the offline notice, not the adapted toast', async () => {
+    offline();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(new Promise(() => undefined));
+    const player = { ...basePlayer, skills: { ...basePlayer.skills, serve: { score: 5, notes: '', priority: false } } };
+    renderOffline({ player, ratings: { serve: { rating: 7.75, attempts: 20 } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Adapt Serve to 8' }));
+    expect(await screen.findByText('Saved on this device · will sync')).toBeInTheDocument();
+    expect(screen.queryByText(/set to 8/)).not.toBeInTheDocument();
   });
 });

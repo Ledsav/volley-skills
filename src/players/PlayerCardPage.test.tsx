@@ -1,9 +1,10 @@
 process.env.TZ = 'Europe/Rome';
 
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerCardPage } from './PlayerCardPage';
+import { NoticeProvider } from '../components/Notice';
 import * as playersApi from './playersApi';
 import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
@@ -289,7 +290,7 @@ describe('PlayerCardPage', () => {
     fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
     fireEvent.click(record);
 
-    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com'));
+    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
     expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
   });
 
@@ -409,5 +410,96 @@ describe('PlayerCardPage', () => {
     renderPlayerCard();
     const tabs = await screen.findByRole('tablist', { name: 'Player sections' });
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Skills', 'Physical', 'Plan', 'Contact']);
+  });
+});
+
+describe('PlayerCardPage offline saves', () => {
+  function deferred() {
+    let resolve: (v?: never) => void = () => undefined;
+    let reject: (e: Error) => void = () => undefined;
+    const promise = new Promise<undefined>((res, rej) => {
+      resolve = res as never;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function setup(player: Player = basePlayer) {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.mocked(matchesApi.listFinishedMatches).mockResolvedValue([]);
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(player);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    return render(
+      <NoticeProvider>
+        <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
+          <Routes>
+            <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
+          </Routes>
+        </MemoryRouter>
+      </NoticeProvider>
+    );
+  }
+
+  const panel = (name: string) => screen.getByRole('tabpanel', { name, hidden: true });
+  const dots = (el: HTMLElement) => within(el).queryAllByRole('img', { name: 'Waiting to sync', hidden: true });
+
+  async function saveSkill() {
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit skills' }));
+    fireEvent.change(await screen.findByLabelText('Serve'), { target: { value: '6' } });
+    fireEvent.click(screen.getByText('Save skills'));
+  }
+
+  it('offline, a skills save shows a pending dot on Skills until it syncs', async () => {
+    const d = deferred();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(d.promise);
+    setup();
+    await saveSkill();
+    await waitFor(() => expect(dots(panel('Skills'))).toHaveLength(1));
+    await act(async () => d.resolve());
+    expect(dots(panel('Skills'))).toHaveLength(0);
+  });
+
+  it('offline, the plan, consent, photo and left-club saves apply at once with pending dots', async () => {
+    const never = new Promise<never>(() => undefined);
+    vi.spyOn(playersApi, 'updatePlayerDevelopmentPlan').mockReturnValue(never as never);
+    vi.spyOn(playersApi, 'recordPlayerConsent').mockReturnValue(never as never);
+    vi.spyOn(playersApi, 'setPhotoConsent').mockReturnValue(never as never);
+    vi.spyOn(playersApi, 'setPlayerLeftClub').mockReturnValue(never as never);
+    setup({ ...basePlayer, consent: { given: false, date: null, confirmedBy: null } });
+
+    await openSection('Plan');
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit plan' }));
+    fireEvent.click(await screen.findByText('Save'));
+    await waitFor(() => expect(dots(panel('Plan'))).toHaveLength(1));
+
+    await openSection('Privacy');
+    fireEvent.click(await screen.findByLabelText(/guardian has consented to storing this player/i));
+    fireEvent.click(screen.getByRole('button', { name: 'Record consent' }));
+    expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/Guardian consent to use photos/));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as left the club' }));
+    expect(await screen.findByText(/due for/)).toBeInTheDocument();
+    expect(dots(panel('Privacy')).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('a queued save rejected on sync shows the sync-failed alert', async () => {
+    const d = deferred();
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(d.promise);
+    setup();
+    await saveSkill();
+    await waitFor(() => expect(dots(panel('Skills'))).toHaveLength(1));
+    await act(async () => d.reject(new Error('permission-denied')));
+    expect(dots(panel('Skills'))).toHaveLength(0);
+    expect(
+      await screen.findByText('Some changes made offline could not be saved. Reload the page to see the stored card.')
+    ).toBeInTheDocument();
   });
 });

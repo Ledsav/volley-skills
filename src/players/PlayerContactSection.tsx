@@ -2,7 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { FIELD_CLASS, Input } from '../components/Input';
+import { useSave } from '../components/useSave';
 import { updatePlayerContact } from './playersApi';
+import { usePlayerSync } from './playerSync';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Player, type PositionCategory, type ShirtSize } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
@@ -29,6 +31,8 @@ export function PlayerContactSection({
   onEditingChange,
   gender = 'mixed',
 }: PlayerContactSectionProps) {
+  const sync = usePlayerSync();
+  const { save } = useSave();
   const t = useT();
   const lb = t.labels;
   const p = t.players;
@@ -65,14 +69,19 @@ export function PlayerContactSection({
     setError(null);
     const number = Number(shirtNumber) || 0;
     try {
-      await updatePlayerContact(teamId, playerId, {
-        fullName,
-        number,
-        positionCategory,
-        shirtSize,
-        starting,
-        playerPhone,
-      });
+      const done = await save(
+        () =>
+          updatePlayerContact(teamId, playerId, {
+            fullName,
+            number,
+            positionCategory,
+            shirtSize,
+            starting,
+            playerPhone,
+          }),
+        { onQueued: (w) => sync.queued('contact', w) },
+      );
+      if (!done) return;
     } catch {
       setError(p.contact.error);
       return;

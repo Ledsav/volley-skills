@@ -11,6 +11,7 @@ import { createPhysicalTest, getLatestByType } from './physicalTestsApi';
 import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
 import { formatNumber } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
+import { usePlayerSync } from './playerSync';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -64,6 +65,7 @@ export function AddPhysicalTestDialog({
   }, [teamId, playerId, testType]);
 
   const { saving, save } = useSave();
+  const sync = usePlayerSync();
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -95,7 +97,9 @@ export function AddPhysicalTestDialog({
     const input = buildPhysicalTestInput(testType, fields, date, notes, latestBodyMassKg);
 
     try {
-      const done = await save(() => createPhysicalTest(teamId, playerId, input, recordedByUid));
+      const done = await save(() => createPhysicalTest(teamId, playerId, input, recordedByUid), {
+        onQueued: (w) => sync.queued(`test:${testType}`, w),
+      });
       if (!done) return;
     } catch {
       setError(a.saveError);

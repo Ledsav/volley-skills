@@ -2,7 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { Input, FIELD_CLASS } from '../components/Input';
+import { useSave } from '../components/useSave';
 import { updatePlayerGuardians } from './playersApi';
+import { usePlayerSync } from './playerSync';
 import type { Guardian, Player } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
 
@@ -25,6 +27,8 @@ export function GuardiansSection({
   editing,
   onEditingChange,
 }: GuardiansSectionProps) {
+  const sync = usePlayerSync();
+  const { save } = useSave();
   const t = useT();
   const p = t.players;
   const [guardians, setGuardians] = useState<Guardian[]>(player.guardians);
@@ -53,7 +57,10 @@ export function GuardiansSection({
     event.preventDefault();
     setError(null);
     try {
-      await updatePlayerGuardians(teamId, playerId, guardians);
+      const done = await save(() => updatePlayerGuardians(teamId, playerId, guardians), {
+        onQueued: (w) => sync.queued('guardians', w),
+      });
+      if (!done) return;
     } catch {
       setError(p.guardians.error);
       return;

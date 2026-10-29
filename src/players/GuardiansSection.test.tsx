@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GuardiansSection } from './GuardiansSection';
 import * as playersApi from './playersApi';
+import { NoticeProvider } from '../components/Notice';
+import { PlayerSyncProvider } from './playerSync';
 import type { Player } from '../types/player';
 
 vi.mock('./playersApi');
@@ -115,5 +117,24 @@ describe('GuardiansSection', () => {
 
     fireEvent.click(screen.getByText('Edit'));
     expect(screen.getByLabelText('Guardian phone')).toHaveValue('+352 000 000');
+  });
+});
+
+describe('offline saves', () => {
+  it('offline, the guardians sheet closes as soon as the write is queued', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.spyOn(playersApi, 'updatePlayerGuardians').mockReturnValue(new Promise(() => undefined));
+    render(
+      <NoticeProvider>
+        <PlayerSyncProvider>
+          <GuardiansHarness player={basePlayer} />
+        </PlayerSyncProvider>
+      </NoticeProvider>,
+    );
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByLabelText('Guardian phone'), { target: { value: '+352 999 999' } });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(screen.queryByLabelText('Guardian phone')).not.toBeInTheDocument());
+    expect(screen.getByText('Saved on this device · will sync')).toBeInTheDocument();
   });
 });

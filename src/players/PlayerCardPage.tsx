@@ -32,6 +32,8 @@ import { deletePlayer, getPlayer, recordPlayerConsent, setPhotoConsent, setPlaye
 import { deletionDueDate } from './retention';
 import { todayLocalIso } from '../dates/today';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
+import { useSave } from '../components/useSave';
+import { PendingDot, PlayerSyncProvider, usePlayerSync, type SyncKey } from './playerSync';
 import { PageSkeleton } from '../components/Skeleton';
 import { SectionTabs } from '../components/SectionTabs';
 import { SuggestionToggle } from './SuggestionToggle';
@@ -41,11 +43,13 @@ function Tile({
   title,
   action,
   className = '',
+  pending = false,
   children,
 }: {
   title: string;
   action?: ReactNode;
   className?: string;
+  pending?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -53,7 +57,10 @@ function Tile({
       className={`flex flex-col rounded-lg border border-border bg-surface shadow-card ${className}`.trim()}
     >
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold tracking-[-0.01em] text-ink">
+          {title}
+          <PendingDot pending={pending} />
+        </h2>
         {action}
       </header>
       <div className="flex-1 p-4">{children}</div>
@@ -65,7 +72,21 @@ type PlayerSection = 'skills' | 'matches' | 'physical' | 'plan' | 'contact' | 'p
 const SECTION_ORDER: PlayerSection[] = ['skills', 'matches', 'physical', 'plan', 'contact', 'privacy'];
 const ADMIN_SECTIONS: PlayerSection[] = ['matches', 'privacy'];
 export function PlayerCardPage() {
+  return (
+    <PlayerSyncProvider>
+      <PlayerCardContent />
+    </PlayerSyncProvider>
+  );
+}
+
+function PlayerCardContent() {
   const t = useT();
+  const sync = usePlayerSync();
+  const consentSave = useSave();
+  const photoSave = useSave();
+  const leftSave = useSave();
+  const planSave = useSave();
+  const queue = (key: SyncKey) => ({ onQueued: (w: Promise<unknown>) => sync.queued(key, w) });
   const c = t.players.card;
   const SECTION_LABEL = c.sections;
   usePageMeta({ title: c.pageTitle });
@@ -164,8 +185,10 @@ export function PlayerCardPage() {
     if (!appUser?.email) return;
     setConsentError(null);
     try {
-      const consent = await recordPlayerConsent(teamId!, playerId!, appUser.email);
-      setPlayer({ ...player!, consent });
+      const today = todayLocalIso();
+      const done = await consentSave.save(() => recordPlayerConsent(teamId!, playerId!, appUser.email!, today), queue('consent'));
+      if (!done) return;
+      setPlayer({ ...player!, consent: { given: true, date: today, confirmedBy: appUser.email! } });
     } catch {
       setConsentError(c.consentError);
     }
@@ -175,7 +198,8 @@ export function PlayerCardPage() {
     if (!appUser?.email || !player) return;
     setPhotoError(null);
     try {
-      await setPhotoConsent(teamId!, playerId!, given, appUser.email);
+      const done = await photoSave.save(() => setPhotoConsent(teamId!, playerId!, given, appUser.email!), queue('photo'));
+      if (!done) return;
       setPlayer({ ...player, photoConsent: given, photoConsentAt: given ? new Date() : null, photoConsentBy: given ? appUser.email : null });
     } catch {
       setPhotoError(c.photoError);
@@ -185,7 +209,8 @@ export function PlayerCardPage() {
   async function handleLeftClub(date: string | null) {
     setLeftError(null);
     try {
-      await setPlayerLeftClub(teamId!, playerId!, date);
+      const done = await leftSave.save(() => setPlayerLeftClub(teamId!, playerId!, date), queue('leftClub'));
+      if (!done) return;
       setPlayer({ ...player!, leftClubAt: date });
     } catch {
       setLeftError(c.leftError);
@@ -213,6 +238,11 @@ export function PlayerCardPage() {
   return (
     <div className="w-full bg-bg p-4 lg:p-6">
       <div className="flex flex-col gap-4">
+        {sync.syncFailed && (
+          <p role="alert" className="text-callout text-red-strong">
+            {c.sync.failed}
+          </p>
+        )}
         {/* Always in view: who this is and the numbers at a glance. */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="lg:col-span-4">
@@ -231,6 +261,7 @@ export function PlayerCardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Tile
               title={c.tiles.skills}
+              pending={sync.isPending('skills')}
               action={
                 <div className="flex items-center gap-1">
                   {hasSuggestions && (
@@ -291,14 +322,13 @@ export function PlayerCardPage() {
           </Tile>
         </div>
         <div role="tabpanel" aria-label={SECTION_LABEL.plan} hidden={section !== 'plan'}>
-          <Tile title={c.tiles.developmentPlan} action={editAction('plan', c.editPlan)}>
+          <Tile title={c.tiles.developmentPlan} pending={sync.isPending('plan')} action={editAction('plan', c.editPlan)}>
             <DevelopmentPlanEditor
               plan={player.developmentPlan}
-              onSave={(plan) =>
-                updatePlayerDevelopmentPlan(teamId, playerId, plan).then(() =>
-                  setPlayer({ ...player, developmentPlan: plan })
-                )
-              }
+              onSave={async (plan) => {
+                const done = await planSave.save(() => updatePlayerDevelopmentPlan(teamId, playerId, plan), queue('plan'));
+                if (done) setPlayer({ ...player, developmentPlan: plan });
+              }}
               isAdmin={isAdmin}
               editing={editingSection === 'plan'}
               onEditingChange={(v) => setEditingSection(v ? 'plan' : null)}
@@ -307,7 +337,7 @@ export function PlayerCardPage() {
         </div>
         <div role="tabpanel" aria-label={SECTION_LABEL.contact} hidden={section !== 'contact'}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Tile title={c.tiles.contact} action={editAction('contact', c.edit)}>
+            <Tile title={c.tiles.contact} pending={sync.isPending('contact')} action={editAction('contact', c.edit)}>
               <PlayerContactSection
                 teamId={teamId}
                 playerId={playerId}
@@ -319,7 +349,7 @@ export function PlayerCardPage() {
                 onEditingChange={(v) => setEditingSection(v ? 'contact' : null)}
               />
             </Tile>
-            <Tile title={c.tiles.guardians} action={editAction('guardians', c.edit)}>
+            <Tile title={c.tiles.guardians} pending={sync.isPending('guardians')} action={editAction('guardians', c.edit)}>
               <GuardiansSection
                 teamId={teamId}
                 playerId={playerId}
@@ -340,6 +370,7 @@ export function PlayerCardPage() {
                 {player.consent?.given ? (
                   <p className="mb-2 text-sm text-ink">
                     {c.consentRecorded}
+                    <PendingDot pending={sync.isPending('consent')} />
                     {player.consent.date && <span className="tabular-nums">{c.consentOn}{player.consent.date}</span>}
                     {player.consent.confirmedBy && <>{c.consentBy}{player.consent.confirmedBy}</>}.
                   </p>
@@ -383,6 +414,7 @@ export function PlayerCardPage() {
                         className="mt-1"
                       />
                       {c.photoConsent}
+                      <PendingDot pending={sync.isPending('photo')} />
                     </label>
                     {player.photoConsent === true && player.photoConsentBy && (
                       <p className="mt-1 text-caption text-slate">{c.photoRecordedBy(player.photoConsentBy)}</p>
@@ -402,6 +434,7 @@ export function PlayerCardPage() {
                     <p>
                       {c.leftBefore}<span className="tabular-nums">{player.leftClubAt}</span>{c.leftMiddle}<span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>{c.leftAfter}
                     </p>
+                    <PendingDot pending={sync.isPending('leftClub')} />
                     <Button variant="ghost" size="sm" className="mt-1" onClick={() => void handleLeftClub(null)}>
                       {c.stillInClub}
                     </Button>
@@ -416,6 +449,7 @@ export function PlayerCardPage() {
                     {c.markLeft(gender)}
                   </Button>
                 )}
+                {!player.leftClubAt && <PendingDot pending={sync.isPending('leftClub')} />}
                 {leftError && (
                   <p role="alert" className="mt-2 text-sm text-red-strong">
                     {leftError}

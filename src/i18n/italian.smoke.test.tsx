@@ -7,6 +7,7 @@ import { PlayerCardPage } from '../players/PlayerCardPage';
 import { MatchPage } from '../matches/MatchPage';
 import { TrainingBuilderDialog } from '../trainings/TrainingBuilderDialog';
 import { NoticeProvider } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
 import { I18nProvider } from './I18nProvider';
 import { en as enCat } from './en';
 import { it as itCat } from './it';
@@ -142,13 +143,15 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     render(
       <MemoryRouter initialEntries={['/teams/t1/matches/m1']}>
         <I18nProvider>
-          <Routes><Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} /></Routes>
+          <WithChrome>
+            <Routes><Route path="/teams/:teamId/matches/:matchId" element={<MatchPage />} /></Routes>
+          </WithChrome>
         </I18nProvider>
       </MemoryRouter>,
     );
     await screen.findByRole('button', { name: itCat.matches.page.reopen });
-    expectItalianAndClean([itCat.matches.page.reopen, itCat.matches.page.export, '3–1']);
-    expectNoEnglish([enCat.matches.page.reopen, enCat.matches.page.export]);
+    expectItalianAndClean([itCat.matches.page.reopen, itCat.matches.page.print, '3–1']);
+    expectNoEnglish([enCat.matches.page.reopen, enCat.matches.page.print]);
   });
 
   it('the training builder', async () => {

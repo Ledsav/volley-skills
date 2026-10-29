@@ -168,6 +168,7 @@ export const players = {
     exportError: (g: Gender) =>
       `Impossibile esportare i dati di ${agree(g, 'questo giocatore', 'questa giocatrice', 'questo/a giocatore/trice')}. Riprova.`,
     deleteButton: (g: Gender) => agree(g, 'Elimina giocatore', 'Elimina giocatrice', 'Elimina giocatore/trice'),
+    deleteMenu: (g: Gender) => agree(g, 'Elimina giocatore…', 'Elimina giocatrice…', 'Elimina giocatore/trice…'),
     deleteTitle: (name: string) => `Eliminare ${name}?`,
     deleteMessage: (g: Gender) =>
       `Elimina definitivamente la scheda ${agree(g, 'del giocatore', 'della giocatrice', 'del/della giocatore/trice')} (contatti, abilità, piano di sviluppo), i test atletici e le voci delle sessioni di test, e rimuove nome e numero dai referti delle partite passate. Non si può annullare.`,

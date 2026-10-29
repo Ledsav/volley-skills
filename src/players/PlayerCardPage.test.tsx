@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PlayerCardPage } from './PlayerCardPage';
 import { NoticeProvider } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
 import * as playersApi from './playersApi';
 import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
@@ -82,12 +83,22 @@ const basePlayer: Player = {
 
 function renderPlayerCard() {
   return render(
-    <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
-      <Routes>
-        <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
-      </Routes>
-    </MemoryRouter>
+    <NoticeProvider>
+      <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
+        <WithChrome>
+          <Routes>
+            <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
+          </Routes>
+        </WithChrome>
+      </MemoryRouter>
+    </NoticeProvider>
   );
+}
+
+/** The toolbar's Edit opens the picker; this picks one row. */
+async function pickEdit(row: string) {
+  fireEvent.click(await within(await screen.findByTestId('chrome-probe')).findByRole('button', { name: 'Edit' }));
+  fireEvent.click(await screen.findByRole('button', { name: row }));
 }
 
 /** Sections other than Skills are hidden until their tab is chosen. */
@@ -194,7 +205,7 @@ describe('PlayerCardPage', () => {
     renderPlayerCard();
     await screen.findByText('Test Player');
 
-    fireEvent.click(screen.getByText('Delete player'));
+    fireEvent.click(await screen.findByText('Delete player…'));
     fireEvent.click(screen.getByText('Yes, delete player'));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1', 'player-1'));
@@ -398,8 +409,9 @@ describe('PlayerCardPage', () => {
     expect(within(tabs).getByRole('tab', { name: 'Skills' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: 'Skills' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete player' })).not.toBeInTheDocument();
+    expect(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Delete player…' })).toBeInTheDocument();
     fireEvent.click(within(tabs).getByRole('tab', { name: 'Privacy' }));
-    expect(screen.getByRole('button', { name: 'Delete player' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete player' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Skills' })).not.toBeInTheDocument();
   });
 
@@ -410,6 +422,73 @@ describe('PlayerCardPage', () => {
     renderPlayerCard();
     const tabs = await screen.findByRole('tablist', { name: 'Player sections' });
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Skills', 'Physical', 'Plan', 'Contact']);
+  });
+
+  function asAdmin() {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+  }
+
+  it('Edit opens the section picker, and picking Guardians opens that sheet on the Contact panel', async () => {
+    asAdmin();
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    renderPlayerCard();
+
+    await pickEdit('Guardians');
+
+    expect(await screen.findByRole('dialog', { name: 'Edit guardians' })).toBeInTheDocument();
+    const tabs = screen.getByRole('tablist', { name: 'Player sections' });
+    expect(within(tabs).getByRole('tab', { name: 'Contact' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('Delete player… is in More and still confirms with focus on Cancel', async () => {
+    asAdmin();
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    const deleteSpy = vi.spyOn(playersApi, 'deletePlayer').mockResolvedValue(undefined);
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    fireEvent.click(await within(screen.getByTestId('chrome-probe')).findByRole('button', { name: 'Delete player…' }));
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('a viewer gets no toolbar actions', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+    await screen.findByText('Test Player');
+
+    await act(async () => undefined);
+    expect(within(screen.getByTestId('chrome-probe')).queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it('the level pill takes its band colour', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue({ ...basePlayer, avgScore: 6.4, level: 'Advanced' });
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+
+    expect(await screen.findByText('Advanced')).toHaveClass('bg-blue-tint');
+  });
+
+  it('links back to the team', async () => {
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockRejectedValue({ code: 'permission-denied' });
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    renderPlayerCard();
+
+    expect(await screen.findByRole('link', { name: 'Back to team' })).toHaveAttribute('href', '/teams/team-1');
   });
 });
 
@@ -440,9 +519,11 @@ describe('PlayerCardPage offline saves', () => {
     return render(
       <NoticeProvider>
         <MemoryRouter initialEntries={['/teams/team-1/players/player-1']}>
+          <WithChrome>
           <Routes>
             <Route path="/teams/:teamId/players/:playerId" element={<PlayerCardPage />} />
           </Routes>
+          </WithChrome>
         </MemoryRouter>
       </NoticeProvider>
     );
@@ -452,7 +533,7 @@ describe('PlayerCardPage offline saves', () => {
   const dots = (el: HTMLElement) => within(el).queryAllByRole('img', { name: 'Waiting to sync', hidden: true });
 
   async function saveSkill() {
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit skills' }));
+    await pickEdit('Skills');
     fireEvent.change(await screen.findByLabelText('Serve'), { target: { value: '6' } });
     fireEvent.click(screen.getByText('Save skills'));
   }
@@ -476,7 +557,7 @@ describe('PlayerCardPage offline saves', () => {
     setup({ ...basePlayer, consent: { given: false, date: null, confirmedBy: null } });
 
     await openSection('Plan');
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit plan' }));
+    await pickEdit('Development plan');
     fireEvent.click(await screen.findByText('Save'));
     await waitFor(() => expect(dots(panel('Plan'))).toHaveLength(1));
 

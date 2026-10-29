@@ -26,6 +26,9 @@ function pairs(): Pair[] {
   for (const k of ['players', 'avgSkill'] as const) {
     out.push({ place: `teams.statsRow.${k}`, en: en.teams.statsRow[k], it: itCat.teams.statsRow[k] });
   }
+  for (const k of ['skills', 'matches', 'physical', 'plan', 'contact', 'privacy'] as const) {
+    out.push({ place: `players.card.sections.${k}`, en: en.players.card.sections[k], it: itCat.players.card.sections[k] });
+  }
   for (const k of ['record', 'sideOut', 'breakPoint', 'attackEff', 'receptionPos', 'acesServeErrors', 'oppErrors'] as const) {
     out.push({ place: `teams.stats.${k}`, en: en.teams.stats[k], it: itCat.teams.stats[k] });
   }

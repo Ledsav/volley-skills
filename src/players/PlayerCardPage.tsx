@@ -1,13 +1,13 @@
 import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import { usePageMeta } from '../layout/usePageMeta';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { isTeamAdmin } from '../teams/teamAccess';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DevelopmentPlanEditor } from '../components/DevelopmentPlanEditor';
-import { EditButton } from '../components/EditButton';
 import { StatusChip } from '../components/StatusChip';
 import { listFinishedMatches } from '../matches/matchesApi';
 import { getTeam } from '../teams/teamsApi';
@@ -35,35 +35,39 @@ import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { useSave } from '../components/useSave';
 import { PendingDot, PlayerSyncProvider, usePlayerSync, type SyncKey } from './playerSync';
 import { PageSkeleton } from '../components/Skeleton';
-import { SectionTabs } from '../components/SectionTabs';
+import { SegmentedControl } from '../components/SegmentedControl';
+import { usePublishPageChrome } from '../layout/PageChrome';
+import { EditPickerSheet, type EditTarget } from './EditPickerSheet';
 import { SuggestionToggle } from './SuggestionToggle';
 import { readSuggestionPref, writeSuggestionPref } from './suggestionPref';
 
-function Tile({
+function Section({
   title,
-  action,
+  trailing,
   className = '',
   pending = false,
+  plain = false,
   children,
 }: {
   title: string;
-  action?: ReactNode;
+  trailing?: ReactNode;
   className?: string;
   pending?: boolean;
+  /** The body brings its own groups, so no card around it. */
+  plain?: boolean;
   children: ReactNode;
 }) {
+  const id = useId();
   return (
-    <section
-      className={`flex flex-col rounded-lg border border-border bg-surface shadow-card ${className}`.trim()}
-    >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold tracking-[-0.01em] text-ink">
+    <section aria-labelledby={id} className={className}>
+      <header className="flex min-h-11 items-center justify-between gap-2">
+        <h2 id={id} className="flex items-center gap-2 text-title-3 text-ink">
           {title}
           <PendingDot pending={pending} />
         </h2>
-        {action}
+        {trailing}
       </header>
-      <div className="flex-1 p-4">{children}</div>
+      <div className={plain ? '' : 'rounded-lg bg-surface p-4 shadow-card'}>{children}</div>
     </section>
   );
 }
@@ -106,7 +110,8 @@ function PlayerCardContent() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [leftError, setLeftError] = useState<string | null>(null);
   const [latestByType, setLatestByType] = useState<Partial<Record<PhysicalTestType, PhysicalTest | null>>>({});
-  const [editingSection, setEditingSection] = useState<'skills' | 'plan' | 'contact' | 'guardians' | null>(null);
+  const [editingSection, setEditingSection] = useState<EditTarget | null>(null);
+  const [picking, setPicking] = useState(false);
   const [season, setSeason] = useState<SeasonStats | null>(null);
   const [matchStatsError, setMatchStatsError] = useState(false);
 
@@ -155,6 +160,18 @@ function PlayerCardContent() {
   const hasSuggestions = isAdmin && !!ratings && Object.values(ratings).some((r) => r?.rating != null);
   const [section, setSection] = useState<PlayerSection>('skills');
   const sections = SECTION_ORDER.filter((id) => isAdmin || !ADMIN_SECTIONS.includes(id)).map((id) => ({ id, label: SECTION_LABEL[id] }));
+
+  // Nothing is published while loading, not found or errored.
+  usePublishPageChrome(
+    {
+      title: player?.fullName,
+      mainAction: isAdmin ? { label: c.edit, icon: Pencil, onSelect: () => setPicking(true) } : undefined,
+      more: isAdmin
+        ? [{ kind: 'action', label: c.deleteMenu(gender), danger: true, icon: <Trash2 size={16} />, onSelect: () => setShowDeleteConfirm(true) }]
+        : [],
+    },
+    !!player && !notFound && !error,
+  );
 
   if (notFound) {
     return <NotFoundState title={c.notFoundTitle(gender)} message={c.notFoundMessage(gender)} backTo={`/teams/${teamId}`} backLabel={c.backToTeam} />;
@@ -232,43 +249,42 @@ function PlayerCardContent() {
   }
 
   const next = nextObjective(player.developmentPlan);
-  const editAction = (section: typeof editingSection, label: string) =>
-    isAdmin ? <EditButton label={label} onClick={() => setEditingSection(section)} /> : undefined;
+
+  function pickEdit(target: EditTarget) {
+    setPicking(false);
+    setEditingSection(target);
+    setSection(target === 'guardians' ? 'contact' : target);
+  }
 
   return (
     <div className="w-full bg-bg p-4 lg:p-6">
-      <div className="flex flex-col gap-4">
+      <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
         {sync.syncFailed && (
           <p role="alert" className="text-callout text-red-strong">
             {c.sync.failed}
           </p>
         )}
+        <Link to={`/teams/${teamId}`} className="inline-flex min-h-11 items-center gap-1 self-start text-callout text-ink-2 hover:text-ink">
+          <ChevronLeft size={18} aria-hidden="true" />
+          {c.backToTeam}
+        </Link>
         {/* Always in view: who this is and the numbers at a glance. */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <PlayerIdentityCard player={player} gender={gender} />
-          </div>
-          <div className="lg:col-span-8">
-            <PlayerKpiTiles player={player} latestByType={latestByType} />
-          </div>
-        </div>
+        <PlayerIdentityCard player={player} gender={gender} />
+        <PlayerKpiTiles player={player} latestByType={latestByType} />
 
-        <SectionTabs label={c.sectionsLabel} tabs={sections} active={section} onChange={setSection} />
+        <SegmentedControl semantics="tabs" label={c.sectionsLabel} options={sections} value={section} onChange={setSection} className="md:self-start" />
 
         {/* Every section stays mounted (hidden when inactive): switching never
             refetches, and Physical keeps feeding the KPI tiles above. */}
         <div role="tabpanel" aria-label={SECTION_LABEL.skills} hidden={section !== 'skills'}>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Tile
+            <Section
               title={c.tiles.skills}
               pending={sync.isPending('skills')}
-              action={
-                <div className="flex items-center gap-1">
-                  {hasSuggestions && (
-                    <SuggestionToggle on={showSuggestions} onChange={(on) => { setShowSuggestions(on); writeSuggestionPref(on); }} />
-                  )}
-                  {editAction('skills', c.editSkills)}
-                </div>
+              trailing={
+                hasSuggestions ? (
+                  <SuggestionToggle on={showSuggestions} onChange={(on) => { setShowSuggestions(on); writeSuggestionPref(on); }} />
+                ) : undefined
               }
               className="lg:col-span-2"
             >
@@ -284,8 +300,8 @@ function PlayerCardContent() {
                 editing={editingSection === 'skills'}
                 onEditingChange={(v) => setEditingSection(v ? 'skills' : null)}
               />
-            </Tile>
-            <Tile title={c.tiles.nextObjective}>
+            </Section>
+            <Section title={c.tiles.nextObjective}>
               {next ? (
                 <div>
                   <p className="font-medium text-ink">{next.objective}</p>
@@ -300,18 +316,18 @@ function PlayerCardContent() {
               ) : (
                 <p className="text-sm text-slate">{c.noOpenObjectives}</p>
               )}
-            </Tile>
+            </Section>
           </div>
         </div>
         {isAdmin && (
           <div role="tabpanel" aria-label={SECTION_LABEL.matches} hidden={section !== 'matches'}>
-          <Tile title={c.tiles.matchStats}>
-            <PlayerMatchStatsSection gender={gender} teamId={teamId} season={season} error={matchStatsError} />
-          </Tile>
-        </div>
+            <Section title={c.tiles.matchStats}>
+              <PlayerMatchStatsSection gender={gender} teamId={teamId} season={season} error={matchStatsError} />
+            </Section>
+          </div>
         )}
         <div role="tabpanel" aria-label={SECTION_LABEL.physical} hidden={section !== 'physical'}>
-          <Tile title={c.tiles.physicalTesting}>
+          <Section title={c.tiles.physicalTesting}>
             <PhysicalTestingSection
               teamId={teamId}
               playerId={playerId}
@@ -319,10 +335,10 @@ function PlayerCardContent() {
               storedLatest={player.latestTests}
               onLatestLoaded={handleLatestLoaded}
             />
-          </Tile>
+          </Section>
         </div>
         <div role="tabpanel" aria-label={SECTION_LABEL.plan} hidden={section !== 'plan'}>
-          <Tile title={c.tiles.developmentPlan} pending={sync.isPending('plan')} action={editAction('plan', c.editPlan)}>
+          <Section title={c.tiles.developmentPlan} pending={sync.isPending('plan')}>
             <DevelopmentPlanEditor
               plan={player.developmentPlan}
               onSave={async (plan) => {
@@ -333,11 +349,11 @@ function PlayerCardContent() {
               editing={editingSection === 'plan'}
               onEditingChange={(v) => setEditingSection(v ? 'plan' : null)}
             />
-          </Tile>
+          </Section>
         </div>
         <div role="tabpanel" aria-label={SECTION_LABEL.contact} hidden={section !== 'contact'}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Tile title={c.tiles.contact} pending={sync.isPending('contact')} action={editAction('contact', c.edit)}>
+            <Section title={c.tiles.contact} pending={sync.isPending('contact')}>
               <PlayerContactSection
                 teamId={teamId}
                 playerId={playerId}
@@ -348,8 +364,8 @@ function PlayerCardContent() {
                 editing={editingSection === 'contact'}
                 onEditingChange={(v) => setEditingSection(v ? 'contact' : null)}
               />
-            </Tile>
-            <Tile title={c.tiles.guardians} pending={sync.isPending('guardians')} action={editAction('guardians', c.edit)}>
+            </Section>
+            <Section title={c.tiles.guardians} pending={sync.isPending('guardians')}>
               <GuardiansSection
                 teamId={teamId}
                 playerId={playerId}
@@ -359,122 +375,119 @@ function PlayerCardContent() {
                 editing={editingSection === 'guardians'}
                 onEditingChange={(v) => setEditingSection(v ? 'guardians' : null)}
               />
-            </Tile>
+            </Section>
           </div>
         </div>
         {isAdmin && (
           <div role="tabpanel" aria-label={SECTION_LABEL.privacy} hidden={section !== 'privacy'}>
-          <div className="max-w-xl">
-            <Tile title={c.tiles.privacy}>
-              <div className="flex h-full flex-col">
-                {player.consent?.given ? (
-                  <p className="mb-2 text-sm text-ink">
-                    {c.consentRecorded}
-                    <PendingDot pending={sync.isPending('consent')} />
-                    {player.consent.date && <span className="tabular-nums">{c.consentOn}{player.consent.date}</span>}
-                    {player.consent.confirmedBy && <>{c.consentBy}{player.consent.confirmedBy}</>}.
-                  </p>
-                ) : (
-                  <div className="mb-3 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink">
-                    <p className="font-medium">{c.consentMissing}</p>
-                    <label className="mt-2 flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={consentChecked}
-                        onChange={(e) => setConsentChecked(e.target.checked)}
-                        className="mt-1"
-                      />
-                      {t.players.shared.consent(gender)}
-                    </label>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="mt-2"
-                      disabled={!consentChecked}
-                      onClick={() => void handleRecordConsent()}
-                    >
-                      {c.recordConsent}
-                    </Button>
-                    {consentError && (
-                      <p role="alert" className="mt-2 text-sm text-red-strong">
-                        {consentError}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {(ageFromDob(player.dob ?? '') ?? 0) >= 18 ? (
-                  <p className="mb-3 text-sm text-slate">{c.adultPhotos}</p>
-                ) : (
-                  <div className="mb-3 text-sm text-ink">
-                    <label className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={player.photoConsent === true}
-                        onChange={(e) => void handlePhotoConsent(e.target.checked)}
-                        className="mt-1"
-                      />
-                      {c.photoConsent}
-                      <PendingDot pending={sync.isPending('photo')} />
-                    </label>
-                    {player.photoConsent === true && player.photoConsentBy && (
-                      <p className="mt-1 text-caption text-slate">{c.photoRecordedBy(player.photoConsentBy)}</p>
-                    )}
-                    {photoError && (
-                      <p role="alert" className="mt-2 text-sm text-red-strong">
-                        {photoError}
-                      </p>
-                    )}
-                  </div>
-                )}
-                <p className="text-sm text-slate">
-                  {c.exportInfo(gender)}
-                </p>
-                {player.leftClubAt ? (
-                  <div className="mt-3 text-sm text-ink">
+            <Section title={c.tiles.privacy} className="max-w-[720px]" plain>
+              <div className="flex flex-col gap-4 text-callout text-ink">
+                <div className="rounded-lg bg-surface p-4 shadow-card">
+                  {player.consent?.given ? (
                     <p>
-                      {c.leftBefore}<span className="tabular-nums">{player.leftClubAt}</span>{c.leftMiddle}<span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>{c.leftAfter}
+                      {c.consentRecorded}
+                      <PendingDot pending={sync.isPending('consent')} />
+                      {player.consent.date && <span className="tabular-nums">{c.consentOn}{player.consent.date}</span>}
+                      {player.consent.confirmedBy && <>{c.consentBy}{player.consent.confirmedBy}</>}.
                     </p>
-                    <PendingDot pending={sync.isPending('leftClub')} />
-                    <Button variant="ghost" size="sm" className="mt-1" onClick={() => void handleLeftClub(null)}>
-                      {c.stillInClub}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-3 self-start"
-                    onClick={() => void handleLeftClub(todayLocalIso())}
-                  >
-                    {c.markLeft(gender)}
-                  </Button>
-                )}
-                {!player.leftClubAt && <PendingDot pending={sync.isPending('leftClub')} />}
-                {leftError && (
-                  <p role="alert" className="mt-2 text-sm text-red-strong">
-                    {leftError}
-                  </p>
-                )}
-                <div className="mt-auto flex flex-col gap-2 pt-3">
-                  <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+                  ) : (
+                    <div className="rounded-lg bg-orange-tint p-3">
+                      <p className="text-headline">{c.consentMissing}</p>
+                      <label className="mt-2 flex min-h-11 items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={consentChecked}
+                          onChange={(e) => setConsentChecked(e.target.checked)}
+                          className="mt-1"
+                        />
+                        {t.players.shared.consent(gender)}
+                      </label>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mt-2"
+                        disabled={!consentChecked}
+                        onClick={() => void handleRecordConsent()}
+                      >
+                        {c.recordConsent}
+                      </Button>
+                      {consentError && (
+                        <p role="alert" className="mt-2 text-red-strong">
+                          {consentError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="rounded-lg bg-surface p-4 shadow-card">
+                  {(ageFromDob(player.dob ?? '') ?? 0) >= 18 ? (
+                    <p className="text-ink-2">{c.adultPhotos}</p>
+                  ) : (
+                    <div>
+                      <label className="flex min-h-11 items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={player.photoConsent === true}
+                          onChange={(e) => void handlePhotoConsent(e.target.checked)}
+                          className="mt-1"
+                        />
+                        {c.photoConsent}
+                        <PendingDot pending={sync.isPending('photo')} />
+                      </label>
+                      {player.photoConsent === true && player.photoConsentBy && (
+                        <p className="mt-1 text-caption text-ink-2">{c.photoRecordedBy(player.photoConsentBy)}</p>
+                      )}
+                      {photoError && (
+                        <p role="alert" className="mt-2 text-red-strong">
+                          {photoError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="rounded-lg bg-surface p-4 shadow-card">
+                  {player.leftClubAt ? (
+                    <div>
+                      <p>
+                        {c.leftBefore}<span className="tabular-nums">{player.leftClubAt}</span>{c.leftMiddle}<span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>{c.leftAfter}
+                      </p>
+                      <PendingDot pending={sync.isPending('leftClub')} />
+                      <Button variant="ghost" size="sm" className="mt-1" onClick={() => void handleLeftClub(null)}>
+                        {c.stillInClub}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => void handleLeftClub(todayLocalIso())}>
+                        {c.markLeft(gender)}
+                      </Button>
+                      <PendingDot pending={sync.isPending('leftClub')} />
+                    </div>
+                  )}
+                  {leftError && (
+                    <p role="alert" className="mt-2 text-red-strong">
+                      {leftError}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg bg-surface p-4 shadow-card">
+                  <p className="text-ink-2">{c.exportInfo(gender)}</p>
+                  <Button variant="secondary" size="sm" className="mt-3" onClick={() => void handleExport()}>
                     {c.exportButton}
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
-                    {c.deleteButton(gender)}
-                  </Button>
+                  {exportError && (
+                    <p role="alert" className="mt-3 text-red-strong">
+                      {exportError}
+                    </p>
+                  )}
                 </div>
-                {exportError && (
-                  <p role="alert" className="mt-3 text-sm text-red-strong">
-                    {exportError}
-                  </p>
-                )}
               </div>
-            </Tile>
+            </Section>
           </div>
-        </div>
         )}
       </div>
 
+      {picking && <EditPickerSheet onPick={pickEdit} onClose={() => setPicking(false)} />}
       {showDeleteConfirm && (
         <ConfirmDialog
           title={c.deleteTitle(player.fullName)}

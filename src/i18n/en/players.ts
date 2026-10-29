@@ -165,6 +165,7 @@ export const players = {
     exportButton: 'Export data (JSON)',
     exportError: sameForAll("Could not export this player's data. Please try again."),
     deleteButton: sameForAll('Delete player'),
+    deleteMenu: sameForAll('Delete player…'),
     deleteTitle: (name: string) => `Delete ${name}?`,
     deleteMessage: sameForAll(
       "This will permanently delete this player's card (contact info, skills, development plan), their physical tests and testing-session entries, and remove their name and number from past match reports. This cannot be undone."

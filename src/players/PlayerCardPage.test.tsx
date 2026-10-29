@@ -448,6 +448,21 @@ describe('PlayerCardPage', () => {
     expect(within(tabs).getByRole('tab', { name: 'Contact' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('closing an edit sheet opened from the Edit picker returns focus to the toolbar Edit', async () => {
+    asAdmin();
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    renderPlayerCard();
+
+    const edit = await within(await screen.findByTestId('chrome-probe')).findByRole('button', { name: 'Edit' });
+    edit.focus();
+    await pickEdit('Skills');
+    const dialog = await screen.findByRole('dialog', { name: 'Edit skills' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit skills' })).not.toBeInTheDocument());
+    expect(edit).toHaveFocus();
+  });
+
   it('Delete player… is in More and still confirms with focus on Cancel', async () => {
     asAdmin();
     vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);

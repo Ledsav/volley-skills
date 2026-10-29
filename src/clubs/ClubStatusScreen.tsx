@@ -54,11 +54,11 @@ export function ClubStatusScreen({ kind }: { kind: ClubStatusKind }) {
             {accepted && (
               <p className="mt-3 text-footnote">
                 {s.accepted}{' '}
-                <Link to={`/legal/terms?v=${accepted.terms}`} className="text-ink underline tabular-nums">
+                <Link to={`/legal/terms?v=${accepted.terms}`} className="text-ink underline">
                   {s.termsOfService(accepted.terms)}
                 </Link>
                 {s.and}
-                <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-ink underline tabular-nums">
+                <Link to={`/legal/dpa?v=${accepted.dpa}`} className="text-ink underline">
                   {s.dpa(accepted.dpa)}
                 </Link>
               </p>

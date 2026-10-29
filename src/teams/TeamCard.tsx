@@ -80,7 +80,7 @@ export function TeamCard({ team, layout, withMenu = false }: TeamCardProps) {
         </span>
         <span className="flex min-w-0 flex-1 flex-col py-2 md:py-0">
           <span className="truncate text-headline text-ink">{team.name}</span>
-          <span className="truncate text-footnote tabular-nums text-ink-2">
+          <span className="truncate text-footnote text-ink-2">
             {team.ageGroup} · {t.list.season(team.season)}
           </span>
           {summary.status === 'pending' && <SkeletonBlock className="mt-1 h-4 w-24" />}

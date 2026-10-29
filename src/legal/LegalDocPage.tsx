@@ -85,7 +85,7 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
           <>
             <LegalLangSwitcher lang={lang} onChange={changeLang} />
             {(VERSIONED.includes(doc) || requestedVersion) && (
-              <p className="mt-3 text-footnote text-ink-2 tabular-nums">
+              <p className="mt-3 text-footnote text-ink-2">
                 {inForceSince ? t.legal.page.versionInForce(version, formatDate(inForceSince, locale)) : t.legal.page.version(version)}
               </p>
             )}

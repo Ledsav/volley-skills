@@ -154,10 +154,10 @@ export function SignupPage() {
               <FieldError id="signup-person-error" message={errors.person ? t.shared.nameRequired : undefined} />
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="signup-authority" className="flex min-h-11 items-start gap-2 text-body text-ink">
+              <label htmlFor="signup-authority" className="flex min-h-11 items-start gap-3 text-body text-ink">
                 <input id="signup-authority" type="checkbox" checked={authority} onChange={(e) => setAuthority(e.target.checked)}
                   aria-invalid={errors.authority ? true : undefined} aria-describedby={describe('authority')}
-                  className="mt-1 h-4 w-4 accent-ink" />
+                  className="mt-0.5 h-5 w-5 accent-ink" />
                 <span>{t.shared.authority}</span>
               </label>
               <FieldError id="signup-authority-error" message={errors.authority ? t.shared.authorityRequired : undefined} />

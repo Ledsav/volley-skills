@@ -111,4 +111,26 @@ describe('PageChrome', () => {
     expect(second).toHaveBeenCalledTimes(1);
     expect(first).not.toHaveBeenCalled();
   });
+
+  it('a disabled publisher releases its own chrome and leaves another publisher\'s alone', () => {
+    function Switchable({ enabled, label }: { enabled: boolean; label: string }) {
+      usePublishPageChrome({ title: label, mainAction: { label, onSelect: () => {} } }, enabled);
+      return null;
+    }
+    const tree = (aOn: boolean, bOn: boolean) => (
+      <PageChromeProvider>
+        <Probe />
+        <Switchable enabled={aOn} label="A" />
+        <Switchable enabled={bOn} label="B" />
+      </PageChromeProvider>
+    );
+    const { rerender } = render(tree(true, false));
+    expect(read()).toEqual({ title: 'A', action: 'A', more: 0 });
+    // B takes over; A, now disabled, must not clear B's chrome.
+    rerender(tree(false, true));
+    expect(read()).toEqual({ title: 'B', action: 'B', more: 0 });
+    // Disabled publisher that owns the chrome releases it.
+    rerender(tree(false, false));
+    expect(read()).toEqual({ title: null, action: null, more: 0 });
+  });
 });

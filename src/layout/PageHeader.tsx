@@ -16,6 +16,8 @@ interface PageHeaderProps {
   more?: MenuItem[];
   /** Toolbar title when `title` is not a plain string. */
   chromeTitle?: string;
+  /** False when another component on the page publishes the toolbar instead (default true). */
+  publishChrome?: boolean;
   className?: string;
 }
 
@@ -25,8 +27,8 @@ interface PageHeaderProps {
  * A <div>, not <header>: the print stylesheet hides every <header> (app chrome),
  * and the page title must still print.
  */
-export function PageHeader({ title, eyebrow, description, actions, mainAction, more, chromeTitle, className = 'mb-6' }: PageHeaderProps) {
-  usePublishPageChrome({ title: chromeTitle ?? (typeof title === 'string' ? title : null), mainAction, more });
+export function PageHeader({ title, eyebrow, description, actions, mainAction, more, chromeTitle, publishChrome = true, className = 'mb-6' }: PageHeaderProps) {
+  usePublishPageChrome({ title: chromeTitle ?? (typeof title === 'string' ? title : null), mainAction, more }, publishChrome);
   return (
     <div data-page-header className={`flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${className}`.trim()}>
       <div className="min-w-0">

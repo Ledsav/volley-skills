@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 import { NoticeProvider } from '../components/Notice';
+import { PageChromeProvider, usePageChromeState } from '../layout/PageChrome';
 
 const flag = vi.hoisted(() => ({ italian: false }));
 vi.mock('../i18n/locales', async (orig) => {
@@ -41,6 +42,11 @@ const team: Team = {
   createdBy: 'coach-uid',
   createdAt: null,
 };
+
+function ChromeSummary() {
+  const c = usePageChromeState();
+  return <div data-testid="chrome">{JSON.stringify({ title: c.title, action: c.mainAction?.label ?? null, more: c.more.map((m) => (m.kind === 'divider' ? '-' : m.label)) })}</div>;
+}
 
 function LocationProbe() {
   const l = useLocation();
@@ -300,5 +306,32 @@ describe('TeamPage', () => {
     renderTeamPage();
     await screen.findByRole('tab', { name: 'Roster' });
     expect(screen.queryByRole('tab', { name: 'Stats' })).toBeNull();
+  });
+
+  it('the Matches tab owns the toolbar; other tabs show the team title', async () => {
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    const read = () => JSON.parse(screen.getByTestId('chrome').textContent ?? '{}');
+    render(
+      <MemoryRouter initialEntries={['/teams/team-1']}>
+        <NoticeProvider>
+          <PageChromeProvider>
+            <ChromeSummary />
+            <Routes>
+              <Route path="/teams/:teamId" element={<TeamPage />} />
+            </Routes>
+          </PageChromeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
+    );
+    await screen.findByRole('heading', { name: 'U17 Boys' });
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: null, more: [] }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Matches' }));
+    await waitFor(() => expect(read().action).toBe('New match'));
+    expect(read().title).toBe('U17 Boys');
+    expect(read().more).toEqual(['Import from DataVolley (.dvw)', 'Season awards']);
+    await screen.findByText('No matches yet.');
+    fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: null, more: [] }));
   });
 });

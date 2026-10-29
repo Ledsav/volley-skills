@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { MenuList } from './MenuList';
 
 export type MenuItem =
-  | { kind: 'action'; label: string; onSelect: () => void; icon?: ReactNode; danger?: boolean; hint?: ReactNode }
+  | { kind: 'action'; label: string; onSelect: () => void; icon?: ReactNode; danger?: boolean; hint?: ReactNode; disabled?: boolean }
   | { kind: 'check'; label: string; checked: boolean; onSelect: () => void; hint?: ReactNode }
   | { kind: 'divider' };
 

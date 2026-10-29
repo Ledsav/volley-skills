@@ -57,6 +57,7 @@ export function MenuList({ id, label, items, onClose, className = '', style }: M
       {items.map((item, i) => {
         if (item.kind === 'divider') return <div key={i} role="separator" className="my-1 h-px bg-separator" />;
         const run = () => {
+          if (item.kind === 'action' && item.disabled) return;
           onClose(true);
           item.onSelect();
         };
@@ -77,8 +78,9 @@ export function MenuList({ id, label, items, onClose, className = '', style }: M
             type="button"
             role="menuitem"
             tabIndex={-1}
+            aria-disabled={item.disabled ? 'true' : undefined}
             onClick={run}
-            className={`${ITEM_CLASS} ${item.danger ? 'text-red-strong' : ''}`}
+            className={`${ITEM_CLASS} ${item.disabled ? 'text-ink-3' : item.danger ? 'text-red-strong' : ''}`}
           >
             {item.icon && (
               <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden="true">

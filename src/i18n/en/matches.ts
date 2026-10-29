@@ -27,6 +27,8 @@ export const matches = {
     createTitle: 'New match',
     createSubmit: 'Create match',
     createError: 'A new match could not be saved. Check your connection.',
+    rowMenu: (opponent: string) => `Actions for vs ${opponent}`,
+    menu: { open: 'Open', scout: 'Scout', report: 'Report', delete: 'Delete…' },
   },
   page: {
     title: (opponent: string) => `vs ${opponent}`,
@@ -41,6 +43,7 @@ export const matches = {
     reopenError: 'Could not reopen the match. Please try again.',
     deleteError: 'Could not delete the match. Please try again.',
     delete: 'Delete match',
+    deleteMenu: 'Delete match…',
     saveFirst: 'Save the setup first.',
     startScouting: 'Start scouting',
     saveSetup: 'Save setup',

@@ -13,7 +13,7 @@ function ChromeProbe() {
       )}
       {s.more.map((m, i) =>
         m.kind === 'action' ? (
-          <button key={i} onClick={m.onSelect}>
+          <button key={i} disabled={m.disabled} onClick={m.onSelect}>
             {m.label}
           </button>
         ) : null

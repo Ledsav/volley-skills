@@ -113,6 +113,7 @@ export function TeamPage() {
       <PageHeader
         title={team.name}
         description={team.description ? <span className="print:hidden">{team.description}</span> : undefined}
+        publishChrome={activeTab !== 'matches'}
         className="mb-4"
       />
 
@@ -165,7 +166,7 @@ export function TeamPage() {
           />
         )}
         {activeTab === 'matches' && (
-          <TeamMatchesTab teamId={teamId} teamName={team.name} gender={gender} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} />
+          <TeamMatchesTab teamId={teamId} teamName={team.name} gender={gender} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} admin={admin} />
         )}
         {activeTab === 'stats' && admin && (
           <Suspense fallback={<p className="text-slate">{t.teams.shared.loadingStats}</p>}>

@@ -27,6 +27,8 @@ export const matches = {
     createTitle: 'Nuova partita',
     createSubmit: 'Crea partita',
     createError: 'Impossibile salvare la nuova partita. Controlla la connessione.',
+    rowMenu: (opponent: string) => `Azioni per vs ${opponent}`,
+    menu: { open: 'Apri', scout: 'Scouting', report: 'Report', delete: 'Elimina…' },
   },
   page: {
     title: (opponent: string) => `contro ${opponent}`,
@@ -41,6 +43,7 @@ export const matches = {
     reopenError: 'Impossibile riaprire la partita. Riprova.',
     deleteError: 'Impossibile eliminare la partita. Riprova.',
     delete: 'Elimina partita',
+    deleteMenu: 'Elimina partita…',
     saveFirst: 'Salva prima la configurazione.',
     startScouting: 'Avvia scouting',
     saveSetup: 'Salva configurazione',

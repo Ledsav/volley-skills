@@ -56,4 +56,20 @@ describe('Menu', () => {
     fireEvent.pointerDown(screen.getByText('Outside'));
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
+
+  it('a disabled item is announced and does nothing', () => {
+    const onSelect = vi.fn();
+    render(<Menu label="More" trigger="More" items={[{ kind: 'action', label: 'Import', onSelect, disabled: true }, { kind: 'action', label: 'Other', onSelect: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    const item = screen.getByRole('menuitem', { name: 'Import' });
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    expect(item.className).toContain('text-ink-3');
+    fireEvent.click(item);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu', { name: 'More' })).toBeInTheDocument();
+    // Still reachable with the arrow keys.
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowUp' });
+    expect(item).toHaveFocus();
+  });
 });

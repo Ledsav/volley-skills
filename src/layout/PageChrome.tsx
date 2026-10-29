@@ -35,7 +35,9 @@ function sameMore(a: MenuItem[], b: MenuItem[]): boolean {
     if (y.kind === 'divider') return false;
     return (
       x.label === y.label &&
-      (x.kind === 'check' ? x.checked === (y as typeof x).checked : (x.danger ?? false) === ((y as typeof x).danger ?? false))
+      (x.kind === 'check'
+        ? x.checked === (y as typeof x).checked
+        : (x.danger ?? false) === ((y as typeof x).danger ?? false) && (x.disabled ?? false) === ((y as typeof x).disabled ?? false))
     );
   });
 }
@@ -92,7 +94,7 @@ export function usePageChromeState(): PageChromeState {
  * Without a provider this is a no-op, so PageHeader works standalone in tests.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider
-export function usePublishPageChrome(state: Partial<PageChromeState>): void {
+export function usePublishPageChrome(state: Partial<PageChromeState>, enabled = true): void {
   const publisher = useContext(PublisherContext);
   const { title = null, mainAction = null, more } = state;
   const latest = useRef({ mainAction, more });
@@ -102,6 +104,11 @@ export function usePublishPageChrome(state: Partial<PageChromeState>): void {
 
   useEffect(() => {
     if (!publisher) return;
+    if (!enabled) {
+      // Another publisher owns the toolbar now; release only clears chrome this one still owns.
+      publisher.release(me.current);
+      return;
+    }
     const action = latest.current.mainAction;
     publisher.publish(me.current, {
       title,

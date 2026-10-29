@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, focusHeading]);
 
   return (
-    <div className="min-h-screen bg-bg xl:flex">
+    <div className="canvas min-h-screen bg-bg xl:flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink focus:shadow-pop">
         {t.appShell.skipToContent}
       </a>

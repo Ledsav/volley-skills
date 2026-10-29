@@ -21,7 +21,7 @@ function Frame({ title, actions, children }: { title: string; actions?: ReactNod
     </>
   );
   return (
-    <div className="flex min-h-screen flex-col bg-bg text-ink">
+    <div className="canvas flex min-h-screen flex-col bg-bg text-ink">
       <header className="glass sticky top-0 z-30 shadow-[inset_0_-1px_0_rgb(var(--color-separator))] print:hidden">
         <div className="mx-auto flex w-full max-w-screen-xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">

@@ -66,4 +66,13 @@ describe('system-setting media queries', () => {
   it('forced colors keep a visible focus outline', () => {
     expect(mediaBlock('forced-colors: active')).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px solid CanvasText/);
   });
+
+  it('opaque root containers carry .canvas, which eases and is instant with reduced motion', () => {
+    expect(css).toMatch(/\.canvas\s*\{[^}]*transition:\s*background-color 200ms ease/);
+    expect(mediaBlock('prefers-reduced-motion: reduce')).toMatch(/\.canvas\s*\{[^}]*transition:\s*none/);
+    for (const f of ['layout/AppShell.tsx', 'auth/AuthShell.tsx', 'layout/MinimalShell.tsx', 'legal/LegalDocPage.tsx']) {
+      expect(readFileSync(resolve(process.cwd(), 'src', f), 'utf8'), f).toMatch(/className="[^"]*canvas[^"]*bg-bg/);
+    }
+    expect(readFileSync(resolve(process.cwd(), 'src/auth/AuthShell.tsx'), 'utf8')).toMatch(/canvas[^"]*min-\[1100px\]:bg-sidebar/);
+  });
 });

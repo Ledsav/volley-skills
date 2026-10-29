@@ -180,7 +180,11 @@
 }
 .menu-pop { animation: menu-pop 160ms var(--ease-out); }
 
+/* Opaque root containers that paint their own canvas colour, so the theme switch eases (§6.7). */
+.canvas { transition: background-color 200ms ease, color 200ms ease; }
+
 @media (prefers-reduced-motion: reduce) {
+  .canvas { transition: none; }
   .menu-pop { animation: menu-fade 160ms linear; }
   .pressable { transition: none; }
   .pressable:active { transform: none; }

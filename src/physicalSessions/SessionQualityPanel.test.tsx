@@ -304,6 +304,7 @@ describe('SessionQualityPanel', () => {
     expect(screen.getByText('GB')).toBeInTheDocument();
     expect(screen.getAllByText('Giulia Bianchi').length).toBeGreaterThan(0);
     expect(screen.getByText('#9')).toBeInTheDocument();
-    expect(screen.getByLabelText('New attempt (cm)')).toHaveClass('text-stat');
+    // FIELD_CLASS sets sm:text-body, which would win from 640px up unless the stat size is repeated at sm.
+    expect(screen.getByLabelText('New attempt (cm)')).toHaveClass('text-stat', 'sm:text-stat');
   });
 });

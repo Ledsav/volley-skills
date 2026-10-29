@@ -163,7 +163,7 @@ export function SessionQualityPanel({
               <label htmlFor="height" className="mb-1 block text-footnote text-ink-2">{s.height}</label>
               <Input
                 id="height"
-                className="text-stat tabular-nums text-center h-16 w-full"
+                className="text-stat sm:text-stat tabular-nums text-center h-16 w-full"
                 type="number"
                 inputMode="decimal"
                 step="any"
@@ -176,7 +176,7 @@ export function SessionQualityPanel({
               <label htmlFor="body-mass" className="mb-1 block text-footnote text-ink-2">{s.bodyMass}</label>
               <Input
                 id="body-mass"
-                className="text-stat tabular-nums text-center h-16 w-full"
+                className="text-stat sm:text-stat tabular-nums text-center h-16 w-full"
                 type="number"
                 inputMode="decimal"
                 step="any"
@@ -193,7 +193,7 @@ export function SessionQualityPanel({
             <label htmlFor="standing-reach" className="mb-1 block text-footnote text-ink-2">{s.standingReach}</label>
             <Input
               id="standing-reach"
-              className="text-stat tabular-nums text-center h-16 w-full"
+              className="text-stat sm:text-stat tabular-nums text-center h-16 w-full"
               type="number"
               inputMode="decimal"
               step="any"
@@ -213,7 +213,7 @@ export function SessionQualityPanel({
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="mb-2 h-16 w-full text-center text-stat tabular-nums"
+                className="mb-2 h-16 w-full text-center text-stat sm:text-stat tabular-nums"
                 value={fields.rightFirstSeconds}
                 onChange={(e) => setFields({ ...fields, rightFirstSeconds: e.target.value })}
                 onBlur={() => persist(fields)}
@@ -227,7 +227,7 @@ export function SessionQualityPanel({
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="mb-2 h-16 w-full text-center text-stat tabular-nums"
+                className="mb-2 h-16 w-full text-center text-stat sm:text-stat tabular-nums"
                 value={fields.leftFirstSeconds}
                 onChange={(e) => setFields({ ...fields, leftFirstSeconds: e.target.value })}
                 onBlur={() => persist(fields)}
@@ -270,7 +270,7 @@ export function SessionQualityPanel({
                   <label htmlFor="strength-weight" className="mb-1 block text-footnote text-ink-2">{s.weight}</label>
                   <Input
                     id="strength-weight"
-                    className="text-stat tabular-nums text-center h-16 w-full"
+                    className="text-stat sm:text-stat tabular-nums text-center h-16 w-full"
                     type="number"
                     inputMode="decimal"
                     step="any"
@@ -298,7 +298,7 @@ export function SessionQualityPanel({
                   <label htmlFor="strength-reps" className="mb-1 block text-footnote text-ink-2">{s.reps}</label>
                   <Input
                     id="strength-reps"
-                    className="text-stat tabular-nums text-center h-16 w-full"
+                    className="text-stat sm:text-stat tabular-nums text-center h-16 w-full"
                     type="number"
                     inputMode="numeric"
                     value={fields.reps}
@@ -341,7 +341,7 @@ export function SessionQualityPanel({
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="text-stat tabular-nums text-center h-16 min-w-0 flex-1"
+                className="text-stat sm:text-stat tabular-nums text-center h-16 min-w-0 flex-1"
                 value={newAttempt}
                 onChange={(e) => setNewAttempt(e.target.value)}
               />

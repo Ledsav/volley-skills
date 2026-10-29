@@ -46,7 +46,7 @@ export function AttemptsInput({ name, label, values, onChange, minCount, maxCoun
               value={Number.isNaN(value) ? '' : value}
               onChange={(e) => updateAt(index, e.target.value)}
               required
-              className={stat ? 'w-full text-center text-stat tabular-nums' : 'w-full'}
+              className={stat ? 'w-full text-center text-stat sm:text-stat tabular-nums' : 'w-full'}
             />
           </div>
         ))}

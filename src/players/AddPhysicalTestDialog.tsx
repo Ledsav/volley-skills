@@ -28,7 +28,7 @@ interface AddPhysicalTestDialogProps {
   latest?: PhysicalTest | null;
 }
 
-const STAT_INPUT = 'w-full text-center text-stat tabular-nums';
+const STAT_INPUT = 'w-full text-center text-stat sm:text-stat tabular-nums';
 
 export function AddPhysicalTestDialog({
   teamId,

@@ -294,4 +294,11 @@ describe('AddPhysicalTestDialog', () => {
     expect(screen.getByText('Giulia Bianchi')).toBeInTheDocument();
     expect(screen.getByText('#9 · 1.79 s')).toBeInTheDocument();
   });
+
+  it('keeps the stat size from 640px up (FIELD_CLASS sm:text-body must not win)', () => {
+    render(
+      <AddPhysicalTestDialog teamId="team-1" playerId="player-1" testType="growth" recordedByUid="coach-uid" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    expect(screen.getByLabelText('Height (cm)')).toHaveClass('text-stat', 'sm:text-stat');
+  });
 });

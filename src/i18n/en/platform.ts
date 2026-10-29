@@ -1,5 +1,6 @@
 export const platform = {
   pageTitle: 'Platform',
+  backToApp: 'Back to app',
   sectionsLabel: 'Platform sections',
   tabs: { clubs: 'Clubs', leads: 'Leads' },
   actions: {

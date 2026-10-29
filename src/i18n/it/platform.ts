@@ -2,6 +2,7 @@ import type { Catalog } from '../catalog';
 
 export const platform = {
   pageTitle: 'Piattaforma',
+  backToApp: "Torna all'app",
   sectionsLabel: 'Sezioni della piattaforma',
   tabs: { clubs: 'Club', leads: 'Contatti' },
   actions: {

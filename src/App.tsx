@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense } from 'react';
 import { ScoutRoot } from './matches/scout/ScoutRoot';
 import { AwardsRoot } from './awards/AwardsRoot';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
@@ -11,7 +11,7 @@ import { SignupPage } from './signup/SignupPage';
 import { SignCompletePage } from './signup/SignCompletePage';
 import { RequireClubAdmin } from './auth/RequireClubAdmin';
 import { RequirePlatformAdmin } from './auth/RequirePlatformAdmin';
-import { MinimalShell } from './layout/MinimalShell';
+import { PlatformShell } from './platform/PlatformShell';
 import { PlatformPage } from './platform/PlatformPage';
 import { RequireSection } from './auth/RequireSection';
 import { AppShell } from './layout/AppShell';
@@ -50,11 +50,6 @@ function LazyFallback({ what }: { what: 'editor' | 'scouting' | 'awards' }) {
   const message = <div className="p-6 text-ink-2">{t.layout.lazyLoading[what]}</div>;
   if (what === 'scouting') return <ScoutRoot>{message}</ScoutRoot>;
   return what === 'awards' ? <AwardsRoot>{message}</AwardsRoot> : message;
-}
-
-function PlatformShell({ children }: { children: ReactNode }) {
-  const t = useT();
-  return <MinimalShell title={t.layout.nav.platform}>{children}</MinimalShell>;
 }
 
 function AuthenticatedLayout() {

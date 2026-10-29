@@ -166,6 +166,51 @@ describe('PeopleTab', () => {
     expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
   });
 
+  it('below lg, a failed grant save shows inside the open person sheet', async () => {
+    vi.mocked(useMediaQuery).mockReturnValue(true);
+    vi.mocked(accessApi.saveGrants).mockRejectedValue(new Error('denied'));
+    renderTab();
+    await openPerson('coach@example.com');
+    const dialog = await screen.findByRole('dialog', { name: 'coach@example.com' });
+    fireEvent.click(await within(dialog).findByRole('checkbox', { name: 'U17' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not save');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+  });
+
+  it('below lg, a failed role change and a refused undo show inside the person sheet', async () => {
+    vi.mocked(useMediaQuery).mockReturnValue(true);
+    renderTab();
+    await openPerson('coach@example.com');
+    const dialog = await screen.findByRole('dialog', { name: 'coach@example.com' });
+    vi.mocked(membersApi.setMemberRole).mockRejectedValueOnce(new Error('denied'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Make admin' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not change the role. Please try again.');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Make admin' }));
+    await screen.findByText('coach@example.com is now an admin');
+    vi.mocked(membersApi.setMemberRole).mockRejectedValueOnce(new Error('denied'));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not change the role. Please try again.');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+  });
+
+  it('from lg, the same errors stay inline in the side panel', async () => {
+    vi.mocked(accessApi.saveGrants).mockRejectedValue(new Error('denied'));
+    renderTab();
+    await openPerson('coach@example.com');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'U17' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('a failed first load stops the skeleton', async () => {
+    vi.mocked(membersApi.listMembers).mockRejectedValue(new Error('denied'));
+    renderTab();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load people');
+    await waitFor(() => expect(document.querySelectorAll('[data-skeleton-block]').length).toBe(0));
+  });
+
   it('right-click on the owner offers Make member disabled with the reason', async () => {
     renderTab();
     fireEvent.contextMenu(await screen.findByRole('button', { name: /owner@example.com/ }), { clientX: 10, clientY: 10 });

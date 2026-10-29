@@ -57,6 +57,20 @@ describe('ClubActionDialog', () => {
     expect(reasonBox()).toHaveAttribute('maxlength', '300');
   });
 
+  it('Cancel after typing a reason asks to discard', () => {
+    const { onClose } = open('deactivate');
+    fireEvent.change(reasonBox(), { target: { value: 'Unpaid' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('Cancel without edits closes at once', () => {
+    const { onClose } = open('deactivate');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('End contract prefills now+30 and +30 days, and refuses a retrieval date under 30 days after effectiveAt inline', () => {
     open('endContract');
     const d = defaultTerminationDates(NOW);

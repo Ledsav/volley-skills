@@ -30,10 +30,10 @@ export function GuidesPage() {
         className="mb-6 max-w-md"
       />
       {/* Both stay mounted so an unsaved edit survives a tab switch. */}
-      <div role="tabpanel" hidden={tab !== 'skills'}>
+      <div role="tabpanel" aria-label={t.skillGuide} hidden={tab !== 'skills'}>
         <SkillGuideEditor active={tab === 'skills'} />
       </div>
-      <div role="tabpanel" hidden={tab !== 'physical'}>
+      <div role="tabpanel" aria-label={t.physicalTestGuide} hidden={tab !== 'physical'}>
         <PhysicalTestGuideEditor active={tab === 'physical'} />
       </div>
     </div>

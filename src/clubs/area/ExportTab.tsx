@@ -10,11 +10,11 @@ import { useT } from '../../i18n/I18nProvider';
 /** The club's self-service data export (spec §7.2): one ZIP, built in the browser. */
 export function ExportTab() {
   const notify = useNotify();
-  const e = useT().clubs.export;
+  const t = useT();
+  const e = t.clubs.export;
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const running = progress !== null;
-  const pageTitle = useT().clubs.area.pageTitle;
 
   async function run() {
     setError(null);
@@ -34,7 +34,7 @@ export function ExportTab() {
   }
 
   usePublishPageChrome({
-    title: pageTitle,
+    title: t.clubs.area.pageTitle,
     mainAction: { label: e.download, icon: Download, onSelect: () => void run(), disabled: running },
   });
 

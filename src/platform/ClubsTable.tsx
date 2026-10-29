@@ -73,6 +73,7 @@ export function ClubsTable() {
 
   useEffect(() => {
     setLoaded(false);
+    setClubs([]);
     void load(status, null);
   }, [status, load]);
 

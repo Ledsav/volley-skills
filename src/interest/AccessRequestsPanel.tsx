@@ -177,11 +177,11 @@ export function AccessRequestsPanel() {
       message: t.deleted(signup.name),
       commit: async () => {
         await deleteInterestSignup(signup.id);
+        notifySignupsChanged();
         if (!mounted.current) return;
         setSignups((current) => current.filter((s) => s.id !== signup.id));
         unhide(signup.id);
         if (!signup.reviewed) setPending((n) => Math.max(0, n - 1));
-        notifySignupsChanged();
       },
       onUndo: () => unhide(signup.id),
       onCommitError: () => {

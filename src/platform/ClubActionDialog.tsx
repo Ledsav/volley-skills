@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { Button } from '../components/Button';
-import { Sheet } from '../components/Sheet';
+import { Sheet, SheetCancelButton } from '../components/Sheet';
 import { Input, Textarea } from '../components/Input';
 import { useNotify } from '../components/Notice';
 import type { Club } from '../types/club';
@@ -98,10 +98,10 @@ export function ClubActionDialog({ club, action, operatorEmail, onClose, onChang
   }
 
   return (
-    <Sheet title={d.title(action.label, club.name)} onClose={onClose}
+    <Sheet title={d.title(action.label, club.name)} onClose={onClose} guardUnsaved
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{t.common.cancel}</Button>
+          <SheetCancelButton />
           <Button variant={action.kind === 'activate' || action.kind === 'reinstate' ? 'primary' : 'destructive'}
             disabled={!canConfirm} onClick={() => void confirm()}>
             {action.label}

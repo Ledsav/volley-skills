@@ -65,6 +65,6 @@ describe('ExportTab', () => {
       'Export failed: Missing or insufficient permissions. Nothing was downloaded.',
     );
     expect(download).not.toHaveBeenCalled();
-    expect(button()).not.toBeDisabled();
+    await waitFor(() => expect(button()).not.toBeDisabled());
   });
 });

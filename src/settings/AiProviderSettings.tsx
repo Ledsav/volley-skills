@@ -4,7 +4,9 @@ import { AlertTriangle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import type { Catalog } from '../i18n/catalog';
 import { useT } from '../i18n/I18nProvider';
 import { Button } from '../components/Button';
-import { FIELD_CLASS, Input } from '../components/Input';
+import { Field, FieldLabel, Input } from '../components/Input';
+import { Select } from '../components/Select';
+import { SwitchRow } from '../components/Switch';
 import { useNotify } from '../components/Notice';
 import { AiError, testConnection } from '../ai/aiClient';
 import {
@@ -66,12 +68,11 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 rounded-lg bg-surface p-4 shadow-card md:grid-cols-2">
-        <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
-          {t.provider}
-          <select
+      <div className="flex flex-col gap-4 rounded-lg bg-surface p-4 shadow-card">
+        <Field label={t.provider}>
+          <Select
             aria-label={t.providerAria}
-            className={`${FIELD_CLASS} min-h-11`}
+            className={INPUT_CLASS}
             value={s.provider}
             onChange={(e) => {
               const provider = e.target.value as AiProvider;
@@ -83,11 +84,10 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
             {(Object.keys(AI_PROVIDERS) as AiProvider[]).map((id) => (
               <option key={id} value={id}>{ait.providers[id].label}</option>
             ))}
-          </select>
-        </label>
-        <div className="flex flex-col gap-1">
-          <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
-            {t.model}
+          </Select>
+        </Field>
+        <div className="flex flex-col">
+          <Field label={t.model}>
             <Input
               aria-label={t.model}
               className={INPUT_CLASS}
@@ -95,86 +95,95 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
               value={s.model}
               onChange={(e) => update({ ...s, model: e.target.value })}
             />
-          </label>
+          </Field>
           {s.provider === 'openrouter' && (
             <a
               href="https://openrouter.ai/models?max_price=0"
               target="_blank"
               rel="noopener noreferrer"
-              className={EXT_LINK_CLASS}
+              className={`${EXT_LINK_CLASS} mt-1.5 self-start`}
             >
               {t.freeModels}
             </a>
           )}
         </div>
         {preset.editableUrl && (
-          <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
-            {t.baseUrl}
+          <Field label={t.baseUrl}>
             <Input
               aria-label={t.baseUrl}
               className={INPUT_CLASS}
               value={s.baseUrl}
               onChange={(e) => update({ ...s, baseUrl: e.target.value })}
             />
-          </label>
+          </Field>
         )}
         {preset.needsKey && (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor={keyId} className="text-footnote font-medium text-ink-2">
-                {t.apiKey}
-              </label>
-              {preset.keyUrl && (
-                <a href={preset.keyUrl} target="_blank" rel="noopener noreferrer" className={EXT_LINK_CLASS}>
-                  {t.getKey}
-                </a>
-              )}
+          <>
+            <div className="flex flex-col">
+              <div className="flex items-baseline justify-between gap-2">
+                <FieldLabel htmlFor={keyId}>{t.apiKey}</FieldLabel>
+                {preset.keyUrl && (
+                  <a href={preset.keyUrl} target="_blank" rel="noopener noreferrer" className={EXT_LINK_CLASS}>
+                    {t.getKey}
+                  </a>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id={keyId}
+                  aria-label={t.apiKey}
+                  className={`${INPUT_CLASS} pr-11`}
+                  type={showKey ? 'text' : 'password'}
+                  autoComplete="off"
+                  value={s.apiKey}
+                  onChange={(e) => update({ ...s, apiKey: e.target.value })}
+                />
+                <button
+                  type="button"
+                  aria-label={showKey ? t.hideKey : t.showKey}
+                  aria-pressed={showKey}
+                  onClick={() => setShowKey((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-2 hover:text-ink"
+                >
+                  {showKey ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
+              </div>
             </div>
-            <div className="relative">
-              <Input
-                id={keyId}
-                aria-label={t.apiKey}
-                className={`${INPUT_CLASS} pr-11`}
-                type={showKey ? 'text' : 'password'}
-                autoComplete="off"
-                value={s.apiKey}
-                onChange={(e) => update({ ...s, apiKey: e.target.value })}
-              />
-              <button
-                type="button"
-                aria-label={showKey ? t.hideKey : t.showKey}
-                aria-pressed={showKey}
-                onClick={() => setShowKey((v) => !v)}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-2 hover:text-ink"
-              >
-                {showKey ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-              </button>
-            </div>
-            <label className="flex min-h-11 items-center gap-2 text-body text-ink">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-ink"
-                checked={s.rememberKey}
-                onChange={(e) => update({ ...s, rememberKey: e.target.checked })}
-              />
-              {t.remember}
-            </label>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!s.apiKey}
-              onClick={() => {
-                setS(forgetAiKey(s));
-                setStatus(null);
-                notify(t.keyRemoved);
-              }}
-            >
-              {t.forgetKey}
-            </Button>
-          </div>
+            <SwitchRow
+              label={t.remember}
+              checked={s.rememberKey}
+              onChange={(rememberKey) => update({ ...s, rememberKey })}
+            />
+          </>
         )}
       </div>
-      <div className="flex flex-col gap-2 px-4 text-footnote text-ink-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="secondary" size="sm" onClick={() => void runTest()} disabled={testing}>
+          {t.test}
+        </Button>
+        {preset.needsKey && (
+          <Button
+            variant="dangerGhost"
+            size="sm"
+            disabled={!s.apiKey}
+            onClick={() => {
+              setS(forgetAiKey(s));
+              setStatus(null);
+              notify(t.keyRemoved);
+            }}
+          >
+            {t.forgetKey}
+          </Button>
+        )}
+        {status && (
+          <p role="status" className={`flex basis-full items-center gap-1.5 text-callout sm:basis-auto ${statusColor}`}>
+            {status.kind === 'ok' && <CheckCircle2 size={16} aria-hidden="true" />}
+            {status.kind === 'error' && <AlertTriangle size={16} aria-hidden="true" />}
+            {status.text}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 text-footnote text-ink-2">
         <p>{ait.providers[s.provider].note}</p>
         {preset.needsKey && <p>{t.dpa}</p>}
         <p>{t.ownKey}</p>
@@ -185,18 +194,6 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           </Link>
         </p>
         <p aria-live="polite">{saved ? t.saved : ''}</p>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 px-4">
-        <Button variant="secondary" size="sm" onClick={() => void runTest()} disabled={testing}>
-          {t.test}
-        </Button>
-        {status && (
-          <p role="status" className={`flex items-center gap-1.5 text-callout ${statusColor}`}>
-            {status.kind === 'ok' && <CheckCircle2 size={16} aria-hidden="true" />}
-            {status.kind === 'error' && <AlertTriangle size={16} aria-hidden="true" />}
-            {status.text}
-          </p>
-        )}
       </div>
     </div>
   );

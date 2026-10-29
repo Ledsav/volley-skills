@@ -38,4 +38,13 @@ describe('PaletteEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete palette' }));
     expect(onDelete).toHaveBeenCalled();
   });
+
+  it('Cancel after editing asks to discard', () => {
+    const onCancel = vi.fn();
+    render(<PaletteEditor initial={null} onSave={vi.fn()} onCancel={onCancel} />);
+    fireEvent.change(screen.getByLabelText('Palette name'), { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Discard changes?');
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

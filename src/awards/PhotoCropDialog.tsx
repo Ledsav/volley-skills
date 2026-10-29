@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { Dialog } from '../components/Dialog';
-import { Button } from '../components/Button';
+import { Sheet } from '../components/Sheet';
 import { useT } from '../i18n/I18nProvider';
 import { cropRect, loadImageFile, renderCrop, type Crop } from './photo';
 
@@ -62,29 +61,26 @@ export function PhotoCropDialog({ open, file, onCancel, onDone }: { open: boolea
   }
 
   if (!open) return null;
+  const use = () => { if (bitmap) onDone(renderCrop(bitmap, crop)); };
   return (
-    <Dialog onClose={onCancel} title={t.title}>
-      <p className="mb-3 text-sm text-slate">{t.note}</p>
-      {error && <p role="alert" className="mb-3 text-red-strong">{error}</p>}
+    <Sheet title={t.title} detent="large" onClose={onCancel} confirm={{ label: t.use, onConfirm: use, disabled: !bitmap }}>
+      <p className="mb-3 text-footnote text-ink-2">{t.note}</p>
+      {error && <p role="alert" className="mb-3 text-callout text-red-strong">{error}</p>}
       {bitmap && (
         <>
           <canvas
             ref={canvasRef} width={PREVIEW} height={PREVIEW}
-            className="mx-auto block touch-none cursor-grab rounded-full bg-bg"
+            className="mx-auto block touch-none cursor-grab rounded-full bg-surface-2"
             onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={() => (drag.current = null)}
             aria-label={t.dragAria}
           />
-          <label className="mt-3 block text-sm text-slate">
+          <label className="mt-3 block text-callout text-ink-2">
             {t.zoom}
-            <input type="range" min={1} max={4} step={0.05} value={crop.zoom} className="ml-2 w-48 align-middle"
+            <input type="range" min={1} max={4} step={0.05} value={crop.zoom} className="ml-2 w-48 align-middle accent-[rgb(var(--color-ink))]"
               onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })} />
           </label>
         </>
       )}
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>{t.cancel}</Button>
-        <Button variant="primary" disabled={!bitmap} onClick={() => bitmap && onDone(renderCrop(bitmap, crop))}>{t.use}</Button>
-      </div>
-    </Dialog>
+    </Sheet>
   );
 }

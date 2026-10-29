@@ -206,6 +206,7 @@ describe('AwardsPrepare', () => {
   });
 
   it('Preview shows each card with its PNG, hidden awards included', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     const model = (key: string) => ({ key, awardTitle: key, name: 'Ana L.', number: 7, statLine: null, footer: '', teamName: 'U17', clubName: '', note: '' });
     const p = setup({ awards: [award({}), award({ key: 'mvp', title: 'MVP', hidden: true })], cardFor: (a) => model(a.key) });
     fireEvent.click(screen.getByRole('tab', { name: 'Preview' }));

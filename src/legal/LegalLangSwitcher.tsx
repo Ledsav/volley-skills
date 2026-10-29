@@ -1,3 +1,4 @@
+import { ScrollStrip } from '../components/ScrollStrip';
 import { useT } from '../i18n/I18nProvider';
 import { LEGAL_LANGS, type LegalLang } from './versions';
 
@@ -8,7 +9,8 @@ const LABELS: Record<LegalLang, string> = {
 export function LegalLangSwitcher({ lang, onChange }: { lang: LegalLang; onChange: (lang: LegalLang) => void }) {
   const t = useT();
   return (
-    <div role="group" aria-label={t.legal.langSwitcher} className="flex flex-wrap gap-2">
+    // One row on every width: on a phone it scrolls sideways (edge fade) instead of wrapping one chip onto a second line.
+    <ScrollStrip role="group" aria-label={t.legal.langSwitcher} className="flex gap-2">
       {LEGAL_LANGS.map((l) => (
         <button
           key={l}
@@ -16,13 +18,13 @@ export function LegalLangSwitcher({ lang, onChange }: { lang: LegalLang; onChang
           lang={l}
           aria-pressed={l === lang}
           onClick={() => onChange(l)}
-          className={`min-h-11 rounded-full px-3.5 text-callout focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+          className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 text-callout focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
             l === lang ? 'bg-ink font-semibold text-on-ink' : 'bg-surface-2 text-ink hover:bg-surface-3'
           }`}
         >
           {LABELS[l]}
         </button>
       ))}
-    </div>
+    </ScrollStrip>
   );
 }

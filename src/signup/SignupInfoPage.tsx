@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AuthShell } from '../auth/AuthShell';
+import { buttonClassName } from '../components/Button';
 import { usePageMeta } from '../layout/usePageMeta';
 import { useT } from '../i18n/I18nProvider';
 
@@ -25,7 +26,7 @@ export function SignupInfoPage() {
       </p>
       <Link
         to="/signup/club"
-        className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-ink text-on-ink font-semibold hover:bg-ink/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        className={`${buttonClassName('primary')} min-h-12 w-full`}
       >
         {t.info.start}
       </Link>

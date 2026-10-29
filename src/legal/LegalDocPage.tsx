@@ -10,7 +10,7 @@ import { LegalLinks } from './LegalLinks';
 import { LegalMarkdown } from './LegalMarkdown';
 import { legalText, rawLegalText } from './legalDocs';
 import {
-  CURRENT_DOC_VERSION, LEGAL_LANGS, defaultLegalLang, inForce,
+  CURRENT_DOC_VERSION, LEGAL_LANGS, inForce,
   type LegalDocId, type LegalLang, type VersionedDoc,
 } from './versions';
 
@@ -34,9 +34,12 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
   const [params, setParams] = useSearchParams();
   const requestedVersion = params.get('v');
   const langParam = params.get('lang');
+  // The text opens in the app's language, so the page chrome and the document agree; the chips offer the others.
   const lang: LegalLang = (LEGAL_LANGS as readonly string[]).includes(langParam ?? '')
     ? (langParam as LegalLang)
-    : defaultLegalLang(typeof navigator === 'undefined' ? undefined : navigator.language);
+    : (LEGAL_LANGS as readonly string[]).includes(locale)
+      ? (locale as LegalLang)
+      : 'en';
 
   let version: string | null = null;
   let inForceSince: string | null = null;

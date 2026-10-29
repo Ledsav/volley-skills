@@ -3,7 +3,8 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/Button';
-import { FIELD_CLASS, Input } from '../components/Input';
+import { FieldLabel, Input } from '../components/Input';
+import { Select } from '../components/Select';
 import { StatusLayout } from '../components/StatusLayout';
 import { AuthShell } from '../auth/AuthShell';
 import { submitInterestSignup } from './interestApi';
@@ -59,9 +60,9 @@ export function RequestAccessPage() {
     <AuthShell title={tr.heading} navAction={{ to: '/login', label: tr.signIn }} legalLinks>
       <p className="text-body text-ink-2">{tr.intro}</p>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="name" className="mb-1.5 block text-footnote font-medium text-ink-2">
+        <FieldLabel htmlFor="name">
           {tr.name}
-        </label>
+        </FieldLabel>
         <Input
           id="name"
           value={name}
@@ -71,9 +72,9 @@ export function RequestAccessPage() {
           className="mb-4 w-full"
         />
 
-        <label htmlFor="email" className="mb-1.5 block text-footnote font-medium text-ink-2">
+        <FieldLabel htmlFor="email">
           {tr.email}
-        </label>
+        </FieldLabel>
         <Input
           id="email"
           type="email"
@@ -84,21 +85,21 @@ export function RequestAccessPage() {
           className="mb-4 w-full"
         />
 
-        <label htmlFor="role" className="mb-1.5 block text-footnote font-medium text-ink-2">
+        <FieldLabel htmlFor="role">
           {tr.iAm}
-        </label>
-        <select
+        </FieldLabel>
+        <Select
           id="role"
           value={role}
           onChange={(e) => setRole(e.target.value as InterestSignupRole)}
-          className={`${FIELD_CLASS} mb-4 w-full`}
+          className="mb-4 w-full"
         >
           {ROLE_KEYS.map((key) => (
             <option key={key} value={key}>
               {t.roles[key]}
             </option>
           ))}
-        </select>
+        </Select>
 
         <p className="mb-4 text-footnote text-ink-2">
           {tr.privacyBefore}

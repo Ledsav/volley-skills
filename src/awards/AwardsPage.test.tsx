@@ -234,6 +234,23 @@ describe('AwardsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Awards not found' })).toBeInTheDocument();
   });
 
+  it('every awards state renders on the forced-dark root and leaves the page theme alone', async () => {
+    vi.mocked(teamsApi.getTeam).mockResolvedValue({ ...team, adminEmails: ['other@x.be'] });
+    const first = renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('heading', { name: 'Awards not found' });
+    const root = first.container.querySelector<HTMLElement>('[data-awards-root]')!;
+    expect(root).toHaveClass('dark');
+    expect(root.style.colorScheme).toBe('dark');
+    first.unmount();
+    vi.mocked(teamsApi.getTeam).mockResolvedValue(team);
+    const second = renderAt('/teams/t1/awards', 'season');
+    await screen.findByRole('region', { name: 'Best attacker' });
+    const ready = second.container.querySelector<HTMLElement>('[data-awards-root]')!;
+    expect(ready).toHaveClass('dark');
+    expect(ready.style.colorScheme).toBe('dark');
+    expect(document.documentElement).not.toHaveClass('dark');
+  });
+
   it('Present switches to the ceremony and Escape returns', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
     renderAt('/teams/t1/awards', 'season');

@@ -13,7 +13,8 @@ import type { Match } from '../types/match';
 import type { Team } from '../types/team';
 import { AwardsPrepare } from './AwardsPrepare';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
+import { AwardsRoot } from './AwardsRoot';
 import { recordStory, videoExtension, videoSupported } from './exportVideo';
 import { markShareWarned, needsShareWarning } from './shareWarning';
 import { AwardsPresent } from './AwardsPresent';
@@ -327,25 +328,27 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     if (files.length) await shareOrDownload(files, heading);
   }
 
-  if (load.state === 'loading') return <p className="p-6 text-slate">{ta.loading}</p>;
-  if (load.state === 'notFound') return <NotFoundState title={ta.notFoundTitle} message={ta.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={ta.backToTeam} />;
-  if (load.state === 'notFinished') return <NotFoundState title={ta.titleMatch} message={ta.notFinishedMessage} backTo={`/teams/${teamId}/matches/${matchId}`} backLabel={ta.backToMatch} />;
+  if (load.state === 'loading') return <AwardsRoot><p role="status" className="p-6 text-callout text-ink-2">{ta.loading}</p></AwardsRoot>;
+  if (load.state === 'notFound') return <AwardsRoot><NotFoundState title={ta.notFoundTitle} message={ta.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={ta.backToTeam} /></AwardsRoot>;
+  if (load.state === 'notFinished') return <AwardsRoot><NotFoundState title={ta.titleMatch} message={ta.notFinishedMessage} backTo={`/teams/${teamId}/matches/${matchId}`} backLabel={ta.backToMatch} /></AwardsRoot>;
   if (load.state === 'error') {
     return (
-      <div className="p-6">
-        <p role="alert" className="text-red-strong">{ta.loadError}</p>
-        <Button variant="secondary" className="mt-3" onClick={() => { setLoad({ state: 'loading' }); setAttempt((n) => n + 1); }}>{ta.tryAgain}</Button>
-      </div>
+      <AwardsRoot>
+        <div className="mx-auto max-w-md p-6 text-center">
+          <p role="alert" className="text-callout text-red-strong">{ta.loadError}</p>
+          <Button variant="secondary" className="mt-3" onClick={() => { setLoad({ state: 'loading' }); setAttempt((n) => n + 1); }}>{ta.tryAgain}</Button>
+        </div>
+      </AwardsRoot>
     );
   }
   if (!ready) return null;
 
   if (mode === 'present') {
-    return <AwardsPresent slides={slides} deps={deps} onExit={() => setMode('prepare')} />;
+    return <AwardsRoot><AwardsPresent slides={slides} deps={deps} onExit={() => setMode('prepare')} /></AwardsRoot>;
   }
 
   return (
-    <>
+    <AwardsRoot>
     <AwardsPrepare
       heading={heading}
       photoAllowed={(k) => allowed.has(k)}
@@ -425,26 +428,26 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
       onClose={() => navigate(scope === 'season' ? `/teams/${teamId}?tab=stats` : `/teams/${teamId}/matches/${matchId}`)}
     />
     {recording && !recording.video && (
-      <Dialog title={ta.recordingTitle} onClose={() => recording.ctrl.abort()}
+      <Sheet title={ta.recordingTitle} onClose={() => recording.ctrl.abort()}
         footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>{t.common.cancel}</Button>}>
-        <p className="text-sm text-slate">{ta.recordingBody}</p>
-        <progress className="mt-3 w-full" max={1} value={recording.progress} aria-label={ta.recordingProgress} />
-      </Dialog>
+        <p className="text-callout text-ink-2">{ta.recordingBody}</p>
+        <progress className="mt-3 h-2 w-full accent-[rgb(var(--color-ink))]" max={1} value={recording.progress} aria-label={ta.recordingProgress} />
+      </Sheet>
     )}
     {recording?.video && (
-      <Dialog title={ta.videoReadyTitle} onClose={() => setRecording(null)}
+      <Sheet title={ta.videoReadyTitle} onClose={() => setRecording(null)}
         footer={
-          <div className="flex justify-end gap-2">
+          <>
             <Button variant="ghost" onClick={() => setRecording(null)}>{t.common.close}</Button>
             <Button variant="primary" onClick={() => {
               const file = recording.video!;
               setRecording(null);
               void shareOrDownload([file], heading).catch(() => setNotice(ta.shareVideoError));
             }}>{ta.shareVideo}</Button>
-          </div>
+          </>
         }>
-        <p className="text-sm text-slate">{ta.videoReadyBody}</p>
-      </Dialog>
+        <p className="text-callout text-ink-2">{ta.videoReadyBody}</p>
+      </Sheet>
     )}
     {pendingShare && (
       <ConfirmDialog
@@ -455,6 +458,6 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
         onConfirm={() => { markShareWarned(); const run = pendingShare; setPendingShare(null); run(); }}
       />
     )}
-    </>
+    </AwardsRoot>
   );
 }

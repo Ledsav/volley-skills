@@ -12,11 +12,14 @@ import { useT } from '../../i18n/I18nProvider';
 
 const fmt = (d: Date) => formatDateValue(d, 'long');
 
+const ROW = 'relative flex min-h-[52px] flex-col justify-center gap-0.5 px-4 py-3 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden';
+const LINK = 'text-callout text-ink underline underline-offset-2';
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate">{label}</dt>
-      <dd className="mt-0.5 text-sm text-ink">{children}</dd>
+    <div className={ROW}>
+      <dt className="text-caption text-ink-2">{label}</dt>
+      <dd className="flex flex-col gap-0.5 text-callout text-ink">{children}</dd>
     </div>
   );
 }
@@ -49,46 +52,48 @@ export function ContractTab() {
   }
 
   return (
-    <section className="flex max-w-xl flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-card">
-      <dl className="flex flex-col gap-4">
+    <section className="flex max-w-xl flex-col gap-6">
+      <dl className="overflow-hidden rounded-lg bg-surface shadow-card">
         <Row label={c.status}>
-          <span className="font-medium">{t.status[club.status]}</span>
+          <span className="text-headline">{t.status[club.status]}</span>
           {club.status === 'suspended' && club.statusReason && (
-            <p className="mt-1 text-slate">{club.statusReason}</p>
+            <p className="text-footnote text-ink-2 tabular-nums">{club.statusReason}</p>
           )}
-          {effective && <p className="mt-1 text-slate">{c.fullUseUntil(fmt(effective))}</p>}
-          {retrieval && <p className="mt-1 text-slate">{c.exportUntil(fmt(retrieval))}</p>}
+          {effective && <p className="text-footnote text-ink-2 tabular-nums">{c.fullUseUntil(fmt(effective))}</p>}
+          {retrieval && <p className="text-footnote text-ink-2 tabular-nums">{c.exportUntil(fmt(retrieval))}</p>}
         </Row>
         <Row label={c.acceptedTerms}>
-          {legal
-            ? c.acceptedSummary(legal.versionKey, legal.acceptedAt ? fmt(legal.acceptedAt.toDate()) : null, legal.acceptedBy)
-            : c.notAccepted}
-          <span className="mt-1 flex flex-wrap gap-x-4">
+          <span className="text-callout tabular-nums">
+            {legal
+              ? c.acceptedSummary(legal.versionKey, legal.acceptedAt ? fmt(legal.acceptedAt.toDate()) : null, legal.acceptedBy)
+              : c.notAccepted}
+          </span>
+          <span className="flex flex-wrap gap-x-4">
             {accepted && (
               <>
-                <Link className="text-blue-strong underline" to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>{c.terms}</Link>
-                <Link className="text-blue-strong underline" to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>{c.dpa}</Link>
+                <Link className={LINK} to={`/legal/terms?v=${encodeURIComponent(accepted.terms)}`}>{c.terms}</Link>
+                <Link className={LINK} to={`/legal/dpa?v=${encodeURIComponent(accepted.dpa)}`}>{c.dpa}</Link>
               </>
             )}
-            <Link className="text-blue-strong underline" to="/legal/subprocessors">{c.subprocessors}</Link>
+            <Link className={LINK} to="/legal/subprocessors">{c.subprocessors}</Link>
           </span>
         </Row>
       </dl>
 
       {requestedAt && (
-        <p className="text-sm text-ink">
+        <p className="px-4 text-footnote text-ink-2 tabular-nums">
           {c.requestedOn(fmt(requestedAt), termination.requestedBy ?? '')}
         </p>
       )}
       {canEnd && (
-        <div>
-          <Button variant="destructive" onClick={() => setConfirming(true)}>{c.endOurContract}</Button>
+        <div className="overflow-hidden rounded-lg bg-surface shadow-card">
+          <Button variant="destructive" className="min-h-[52px] w-full rounded-none" onClick={() => setConfirming(true)}>{c.endOurContract}</Button>
         </div>
       )}
       {OPERATOR_CONTACT_EMAIL && (
-        <p className="text-sm text-slate">
+        <p className="px-4 text-footnote text-ink-2">
           {c.questionsPrefix}
-          <a className="text-blue-strong underline" href={`mailto:${OPERATOR_CONTACT_EMAIL}`}>{OPERATOR_CONTACT_EMAIL}</a>{c.questionsSuffix}
+          <a className="text-ink underline underline-offset-2" href={`mailto:${OPERATOR_CONTACT_EMAIL}`}>{OPERATOR_CONTACT_EMAIL}</a>{c.questionsSuffix}
         </p>
       )}
       {confirming && (

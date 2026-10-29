@@ -13,6 +13,26 @@ const LOCALES: { id: ClubLocale; label: string }[] = [
   { id: 'it', label: 'Italiano' },
 ];
 
+const GROUP = 'overflow-hidden rounded-lg bg-surface shadow-card';
+// A row of at least 52px with a hairline above it, inset like ListRow.
+const ROW = 'relative min-h-[52px] px-4 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden';
+
+function CheckRow({ id, title, description, checked, disabled, onChange }: {
+  id: string; title: string; description: string; checked: boolean; disabled: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className={`${ROW} flex items-center gap-3 py-2`}>
+      <span className="flex min-w-0 flex-1 flex-col">
+        {/* The label's overlay makes the whole row the tap target, while the name stays the title only. */}
+        <label htmlFor={id} className="cursor-pointer text-headline text-ink after:absolute after:inset-0">{title}</label>
+        <span id={`${id}-description`} className="text-footnote text-ink-2">{description}</span>
+      </span>
+      <input id={id} type="checkbox" checked={checked} disabled={disabled} aria-describedby={`${id}-description`}
+        onChange={(e) => onChange(e.target.checked)} className="h-5 w-5 shrink-0 accent-[rgb(var(--color-ink))]" />
+    </div>
+  );
+}
+
 export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
   const { club } = useAuth();
   const notify = useNotify();
@@ -62,61 +82,41 @@ export function ProfileTab({ restricted = false }: { restricted?: boolean }) {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} noValidate
-      className="flex max-w-xl flex-col gap-4 rounded-lg border border-border bg-surface p-4 shadow-card">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="club-name" className="text-sm font-medium text-ink">{p.nameLabel}</label>
-        <Input id="club-name" value={name} disabled={restricted} onChange={(e) => setName(e.target.value)}
-          aria-invalid={!!nameError} aria-describedby={nameError ? 'club-name-error' : undefined} />
-        {nameError && <p id="club-name-error" role="alert" className="text-sm text-red-strong">{nameError}</p>}
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="club-country" className="text-sm font-medium text-ink">{p.country}</label>
-        <select id="club-country" value={country} disabled={restricted} onChange={(e) => setCountry(e.target.value)}
-          className={`${FIELD_CLASS} w-full`}>
-          {!CLUB_COUNTRY_CODES.includes(country) && <option value={country}>{country}</option>}
-          {countries.map((c) => <option key={c} value={c}>{regionNames.of(c) ?? c}</option>)}
-        </select>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="club-locale" className="text-sm font-medium text-ink">{t.settings.languageLabel}</label>
-        <select id="club-locale" value={locale} disabled={restricted}
-          onChange={(e) => setLocale(e.target.value as ClubLocale)} className={`${FIELD_CLASS} w-full`}>
-          {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en' || l.id === club.locale).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-        </select>
-      </div>
-
-      <div className="flex items-start gap-3">
-        <input id="club-ai" type="checkbox" checked={aiEnabled} disabled={restricted}
-          onChange={(e) => setAiEnabled(e.target.checked)} className="mt-1" />
-        <div>
-          <label htmlFor="club-ai" className="text-sm font-medium text-ink">{p.aiTitle}</label>
-          <p className="text-sm text-slate">
-            {p.aiDescription}
-          </p>
+    <form onSubmit={(e) => void submit(e)} noValidate className="flex max-w-xl flex-col gap-6">
+      <div className={GROUP}>
+        <div className={`${ROW} flex flex-col gap-1 py-2`}>
+          <label htmlFor="club-name" className="text-callout text-ink-2">{p.nameLabel}</label>
+          <Input id="club-name" value={name} disabled={restricted} onChange={(e) => setName(e.target.value)}
+            aria-invalid={!!nameError} aria-describedby={nameError ? 'club-name-error' : undefined} />
+          {nameError && <p id="club-name-error" role="alert" className="text-footnote text-red-strong">{nameError}</p>}
+        </div>
+        <div className={`${ROW} flex flex-col gap-1 py-2`}>
+          <label htmlFor="club-country" className="text-callout text-ink-2">{p.country}</label>
+          <select id="club-country" value={country} disabled={restricted} onChange={(e) => setCountry(e.target.value)}
+            className={`${FIELD_CLASS} w-full`}>
+            {!CLUB_COUNTRY_CODES.includes(country) && <option value={country}>{country}</option>}
+            {countries.map((c) => <option key={c} value={c}>{regionNames.of(c) ?? c}</option>)}
+          </select>
+        </div>
+        <div className={`${ROW} flex flex-col gap-1 py-2`}>
+          <label htmlFor="club-locale" className="text-callout text-ink-2">{t.settings.languageLabel}</label>
+          <select id="club-locale" value={locale} disabled={restricted}
+            onChange={(e) => setLocale(e.target.value as ClubLocale)} className={`${FIELD_CLASS} w-full`}>
+            {LOCALES.filter((l) => ITALIAN_ENABLED || l.id === 'en' || l.id === club.locale).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+          </select>
         </div>
       </div>
 
-      <div className="flex items-start gap-3">
-        <input id="club-growth" type="checkbox" checked={growthTestsEnabled} disabled={restricted}
-          onChange={(e) => setGrowthTestsEnabled(e.target.checked)} className="mt-1" />
-        <div>
-          <label htmlFor="club-growth" className="text-sm font-medium text-ink">{p.growthTitle}</label>
-          <p className="text-sm text-slate">
-            {p.growthDescription}
-          </p>
-        </div>
+      <div className={GROUP}>
+        <CheckRow id="club-ai" title={p.aiTitle} description={p.aiDescription} checked={aiEnabled}
+          disabled={restricted} onChange={setAiEnabled} />
+        <CheckRow id="club-growth" title={p.growthTitle} description={p.growthDescription}
+          checked={growthTestsEnabled} disabled={restricted} onChange={setGrowthTestsEnabled} />
       </div>
 
-      <div className="flex items-start gap-3">
-        <input id="club-reference" type="checkbox" checked={referenceOptOut} disabled={restricted}
-          onChange={(e) => setReferenceOptOut(e.target.checked)} className="mt-1" />
-        <div>
-          <label htmlFor="club-reference" className="text-sm font-medium text-ink">{p.referenceTitle}</label>
-          <p className="text-sm text-slate">{p.referenceDescription}</p>
-        </div>
+      <div className={GROUP}>
+        <CheckRow id="club-reference" title={p.referenceTitle} description={p.referenceDescription}
+          checked={referenceOptOut} disabled={restricted} onChange={setReferenceOptOut} />
       </div>
 
       {error && <p role="alert" className="text-red-strong">{error}</p>}

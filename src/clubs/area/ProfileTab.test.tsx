@@ -38,6 +38,15 @@ describe('ProfileTab', () => {
     expect(notify).toHaveBeenCalledWith('Club details saved');
   });
 
+  it('saves on Enter in the club name field', async () => {
+    render(<ProfileTab />);
+    fireEvent.submit(screen.getByLabelText('Club name').closest('form')!);
+    await waitFor(() => expect(clubAdminApi.updateClubProfile).toHaveBeenCalledTimes(1));
+    expect(clubAdminApi.updateClubProfile).toHaveBeenCalledWith({
+      name: 'Test Club', country: 'BE', locale: 'it', aiEnabled: false, referenceOptOut: false, growthTestsEnabled: true,
+    });
+  });
+
   it('offers Italiano only to a club that already stores it while Italian is off', () => {
     render(<ProfileTab />);
     expect(screen.getByRole('option', { name: 'Italiano' })).toBeInTheDocument();

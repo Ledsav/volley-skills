@@ -43,11 +43,11 @@ export function searchTokens(name, extra) {
       for (let n = MIN_PREFIX; n <= max; n++) out.add(word.slice(0, n));
     }
   };
-  addPrefixes(name);
   if (extra) {
     addPrefixes(extra);
     const whole = normalize(extra).replace(/#/g, '').trim();
     if (whole.length >= MIN_PREFIX) out.add(whole);
   }
+  addPrefixes(name);
   return [...out].slice(0, MAX_TOKENS);
 }

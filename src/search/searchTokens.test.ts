@@ -25,6 +25,18 @@ describe('searchTokens', () => {
     expect(t).toContain('tr-0042');
   });
 
+  it('puts businessId tokens first', () => {
+    expect(searchTokens('Attacco', 'TR-0042').slice(0, 3)).toEqual(['tr', '00', '004']);
+  });
+
+  it('keeps businessId tokens under the cap for a long name', () => {
+    const name = Array.from({ length: 30 }, (_, i) => `parola${String.fromCharCode(97 + (i % 26))}${i}xyz`).join(' ');
+    const t = searchTokens(name, 'TR-0042');
+    expect(t).toHaveLength(120);
+    expect(t).toContain('tr-0042');
+    expect(t).toContain('0042');
+  });
+
   it('dedupes and caps at 120', () => {
     const letters = 'abcdefghijklmnopqrstuvwxyz';
     const name = Array.from({ length: 30 }, (_, i) =>

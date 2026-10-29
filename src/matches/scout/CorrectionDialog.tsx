@@ -40,24 +40,24 @@ export function CorrectionDialog({ score, serving, rotation, onSave, onCancel }:
         </div>
       }
     >
-      <p className="mb-3 text-sm text-slate">{t.scout.correction.note}</p>
+      <p className="mb-3 text-callout text-ink-2">{t.scout.correction.note}</p>
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.correction.us}
           <Input type="number" min={0} className="tabular-nums" value={us} onChange={(e) => setUs(Number(e.target.value))} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.correction.them}
           <Input type="number" min={0} className="tabular-nums" value={them} onChange={(e) => setThem(Number(e.target.value))} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.correction.serving}
           <select className={FIELD_CLASS} value={srv} onChange={(e) => setSrv(e.target.value as Side)}>
             <option value="us">{t.scout.correction.us}</option>
             <option value="them">{t.scout.correction.them}</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.correction.rotation}
           <select className={FIELD_CLASS} value={rot} onChange={(e) => setRot(Number(e.target.value))}>
             {[1, 2, 3, 4, 5, 6].map((r) => (

@@ -21,17 +21,17 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
   const t = stats.team;
 
   return (
-    <section aria-label={sc.aria} className="rounded-lg border border-border bg-surface p-3">
+    <section aria-label={sc.aria} className="rounded-lg bg-surface p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-semibold text-ink">{sc.title}</h2>
-        <div className="flex gap-1">
+        <div className="inline-flex gap-0.5 rounded-md bg-surface-2 p-0.5">
           {(['set', 'match'] as const).map((s) => (
             <button
               key={s}
               type="button"
               aria-pressed={scope === s}
               onClick={() => setScope(s)}
-              className={`min-h-11 rounded-md px-3 text-sm ${scope === s ? 'bg-navy text-white' : 'text-slate hover:bg-bg'}`}
+              className={`min-h-11 rounded-sm px-3 text-callout ${scope === s ? 'bg-surface-3 font-medium text-ink' : 'text-ink-2'}`}
             >
               {s === 'set' ? sc.thisSet : sc.match}
             </button>
@@ -40,7 +40,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
       </div>
 
       {alerts.length > 0 && (
-        <div role="alert" className="mb-2 space-y-1 rounded-md bg-red/10 p-2 text-sm font-medium text-red-strong">
+        <div role="alert" className="mb-2 space-y-1 rounded-md bg-red-tint p-2 text-callout font-medium text-red-strong">
           {alerts.map((a) =>
             a.kind === 'playerErrors' ? (
               <p key={a.playerId} className="flex items-center gap-1.5">
@@ -57,9 +57,9 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm tabular-nums">
+        <table className="w-full text-callout tabular-nums">
           <thead>
-            <tr className="text-left text-xs uppercase text-slate">
+            <tr className="text-left text-caption text-ink-2">
               <th scope="col" className="py-1 pr-2 font-medium">{sc.player}</th>
               <th scope="col" className="px-2 font-medium">{lb.skill.S}</th>
               <th scope="col" className="px-2 font-medium">{sc.recPlus}</th>
@@ -78,7 +78,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
               const open = openId === p.playerId;
               return (
                 <Fragment key={p.playerId}>
-                  <tr className="border-t border-border">
+                  <tr className="border-t border-separator">
                     <td className="py-1 pr-2 text-ink">
                       <button
                         type="button"
@@ -86,7 +86,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
                         onClick={() => setOpenId(open ? null : p.playerId)}
                         className="min-h-11 text-left"
                       >
-                        {playerLabel(entry)} <span className="text-slate">{entry?.name}</span>
+                        {playerLabel(entry)} <span className="text-ink-2">{entry?.name}</span>
                       </button>
                     </td>
                     <td className="px-2">{s ? `${s.attempts} · ${s.grades['#']}# ${s.grades['=']}=` : '—'}</td>
@@ -99,7 +99,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
                     <td className="px-2">{p.skills.B ? `${p.skills.B.grades['#']}#` : '—'}</td>
                     <td className="px-2">
                       <span className="text-green-strong">{p.points}</span> / <span className={weakClass(isManyErrors(p.errors))}>{p.errors}</span>
-                      <div aria-hidden="true" data-testid={`trend-${p.playerId}`} className="mt-1 flex h-2 w-20 overflow-hidden rounded-full bg-border">
+                      <div aria-hidden="true" data-testid={`trend-${p.playerId}`} className="mt-1 flex h-2 w-20 overflow-hidden rounded-full bg-surface-3">
                         {total > 0 && (
                           <>
                             <div className="bg-green" style={{ width: `${(p.points / total) * 100}%` }} />
@@ -111,7 +111,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
                   </tr>
                   {open && (
                     <tr>
-                      <td colSpan={6} className="pb-2 pl-2 text-xs text-slate">
+                      <td colSpan={6} className="pb-2 pl-2 text-caption text-ink-2">
                         <ul className="space-y-0.5">
                           {SKILLS.map((k) => {
                             const st = p.skills[k];
@@ -134,7 +134,7 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
         </table>
       </div>
 
-      <p className="mt-2 text-xs text-slate">
+      <p className="mt-2 text-caption text-ink-2">
         {sc.footer(
           fmtPct(t.sideOut.total ? t.sideOut.won / t.sideOut.total : null),
           fmtPct(t.breakPoint.total ? t.breakPoint.won / t.breakPoint.total : null),

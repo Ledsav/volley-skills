@@ -753,6 +753,15 @@ describe('ScoutPage', () => {
       expect(within(screen.getByRole('region', { name: 'Match events' })).getByRole('button', { name: /^Point us/ })).toBeInTheDocument();
     });
 
+    it('phone views are a segmented control at the top of the content', async () => {
+      renderPage([setStart]);
+      const list = await screen.findByRole('tablist', { name: 'Scouting views' });
+      const tabs = within(list).getAllByRole('tab');
+      expect(tabs.map((t) => t.textContent)).toEqual(['Court', 'Live', 'Timeline', 'Text']);
+      expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+      expect(list.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('hides the Text tab when the club has AI off', async () => {
       mockClub.aiEnabled = false;
       renderPage([setStart]);

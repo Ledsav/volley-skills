@@ -6,8 +6,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { useClubFeatures } from '../../clubs/useClubFeatures';
 import { getT, useT } from '../../i18n/I18nProvider';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { Button } from '../../components/Button';
-import { Tab } from '../../components/Tab';
+import { SegmentedControl } from '../../components/SegmentedControl';
+import { tapFlash } from '../../motion/tapFlash';
 import { useMediaQuery } from '../../components/useMediaQuery';
 import type { ActionEvent, EventSource, Grade, Match, MatchEvent, MatchEventPayload, PointReason, RoleMap, Side, Skill, UsageProfile } from '../../types/match';
 import { getDeviceId, isLockedByOther } from '../deviceLock';
@@ -540,7 +540,7 @@ export function ScoutPage() {
   ];
 
   const courtColumn = (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-full flex-col gap-3">
       {!quickScore && (
         <>
           <CourtGrid
@@ -576,7 +576,7 @@ export function ScoutPage() {
           onGrade={(skill, grade) => gradeAction(panelPlayer.playerId, skill, grade)}
         />
       )}
-      {!state.inSet && <p className="py-2 text-center text-sm text-slate">{sp.startToRecord}</p>}
+      {!state.inSet && <p className="py-2 text-center text-callout text-ink-2">{sp.startToRecord}</p>}
     </div>
   );
 
@@ -643,18 +643,25 @@ export function ScoutPage() {
           <div className="flex min-w-0 flex-col gap-4">
             {textPanel}
             {!textVisible && live}
-            <div className="max-h-[50vh] overflow-y-auto">{timeline}</div>
+            <div className="max-h-[50vh] overflow-y-auto rounded-lg">{timeline}</div>
           </div>
         </main>
       ) : (
         <>
-          <div role="tablist" aria-label={sp.views} className="flex gap-4 border-b border-border bg-surface px-4">
-            <Tab active={phoneTab === 'court'} onClick={() => setPhoneTab('court')}>{sp.tabCourt}</Tab>
-            <Tab active={phoneTab === 'live'} onClick={() => setPhoneTab('live')}>{sp.tabLive}</Tab>
-            <Tab active={phoneTab === 'timeline'} onClick={() => setPhoneTab('timeline')}>{sp.tabTimeline}</Tab>
-            {aiEnabled && <Tab active={phoneTab === 'text'} onClick={() => setPhoneTab('text')}>{sp.tabText}</Tab>}
-          </div>
-          <main className="min-h-0 flex-1 overflow-y-auto p-3">
+          <SegmentedControl
+            semantics="tabs"
+            label={sp.views}
+            options={[
+              { id: 'court', label: sp.tabCourt },
+              { id: 'live', label: sp.tabLive },
+              { id: 'timeline', label: sp.tabTimeline },
+              ...(aiEnabled ? [{ id: 'text' as const, label: sp.tabText }] : []),
+            ]}
+            value={phoneTab}
+            onChange={setPhoneTab}
+            className="mx-3 mt-2 shrink-0"
+          />
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
             {phoneTab === 'court' && courtColumn}
             {phoneTab === 'live' && live}
             {phoneTab === 'timeline' && timeline}
@@ -731,17 +738,32 @@ export function ScoutPage() {
       )}
 
       {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
-        <div role="dialog" aria-label={sp.setPoint} className="fixed inset-x-3 top-24 z-40 rounded-lg border border-border bg-surface p-4 shadow-pop">
-          <p className="mb-3 font-semibold text-ink">
+        <div
+          role="dialog"
+          aria-label={sp.setPoint}
+          className="fixed inset-x-3 top-28 z-40 rounded-xl bg-surface p-4 shadow-pop md:inset-x-auto md:left-1/2 md:w-[420px] md:-translate-x-1/2"
+        >
+          <p className="mb-3 text-headline text-ink">
             {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}
           </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onPointerDown={(e) => tapFlash(e.currentTarget)}
+              onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}
+              className="min-h-14 rounded-md bg-surface-2 px-4 text-headline text-ink"
+            >
               {sp.notYet}
-            </Button>
-            <Button variant="primary" aria-label={sp.confirmSet} onClick={confirmSet}>
+            </button>
+            <button
+              type="button"
+              aria-label={sp.confirmSet}
+              onPointerDown={(e) => tapFlash(e.currentTarget)}
+              onClick={confirmSet}
+              className="min-h-14 rounded-md bg-ink px-4 text-headline text-on-ink"
+            >
               {sp.confirmSet}
-            </Button>
+            </button>
           </div>
         </div>
       )}

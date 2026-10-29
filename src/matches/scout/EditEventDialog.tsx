@@ -33,7 +33,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
       }
     >
       <div className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.editEvent.player}
           <select className={FIELD_CLASS} value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
             {roster.map((r) => (
@@ -41,7 +41,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.editEvent.fundamental}
           <select className={FIELD_CLASS} value={skill} onChange={(e) => setSkill(e.target.value as Skill)}>
             {SKILLS.map((s) => (
@@ -49,7 +49,7 @@ export function EditEventDialog({ event, roster, onSave, onCancel }: EditEventDi
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-callout font-medium text-ink">
           {t.scout.editEvent.grade}
           <select className={FIELD_CLASS} value={effectiveGrade} onChange={(e) => setGrade(e.target.value as Grade)}>
             {grades.map((g) => (

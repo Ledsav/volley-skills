@@ -140,14 +140,14 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
         </div>
       }
     >
-      <div role="group" aria-label={t.modeGroup} className="mb-3 inline-flex rounded-md border border-border p-0.5">
+      <div role="group" aria-label={t.modeGroup} className="mb-3 inline-flex gap-0.5 rounded-md bg-surface-2 p-0.5">
         {([['role', t.byRole], ['manual', t.manual]] as const).map(([value, label]) => (
           <button
             key={value}
             type="button"
             aria-pressed={mode === value}
             onClick={() => switchMode(value)}
-            className={`min-h-11 rounded-sm px-4 text-sm font-medium ${mode === value ? 'bg-blue-strong text-on-ink' : 'text-ink hover:bg-bg'}`}
+            className={`min-h-11 rounded-sm px-4 text-callout font-medium ${mode === value ? 'bg-surface-3 text-ink' : 'text-ink-2'}`}
           >
             {label}
           </button>
@@ -158,7 +158,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
         <>
           <div className="grid grid-cols-2 gap-2">
             {SLOT_FIELDS.map(({ key }) => (
-              <label key={key} className="flex flex-col gap-1 text-xs font-medium text-slate">
+              <label key={key} className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
                 {slotLabel(key)}
                 <select
                   aria-label={slotLabel(key)}
@@ -176,7 +176,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
               </label>
             ))}
           </div>
-          <label className="mt-3 flex flex-col gap-1 text-xs font-medium text-slate">
+          <label className="mt-3 flex flex-col gap-1 text-footnote font-medium text-ink-2">
             {t.setterStartsIn}
             <select
               aria-label={t.setterStartsIn}
@@ -189,7 +189,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
               ))}
             </select>
           </label>
-          <div role="group" aria-label={t.preview} className="mt-3 rounded-md border-2 border-orange-strong bg-orange/10 p-2">
+          <div role="group" aria-label={t.preview} className="mt-3 rounded-md bg-bg p-2">
             <div className="mb-2 h-1 rounded-full bg-ink" aria-hidden="true" />
             <div className="grid grid-cols-3 gap-1">
               {PREVIEW_ZONES.map((zone) => {
@@ -197,19 +197,19 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
                 const role = entry ? slotRoles[entry.playerId] : null;
                 const was = entry ? roles[entry.playerId] : null;
                 return (
-                  <div key={zone} className="flex min-h-12 min-w-0 flex-col items-center justify-center rounded-sm bg-surface px-1 text-xs">
-                    <span className="text-[11px] text-slate">P{zone + 1}</span>
+                  <div key={zone} className="flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md bg-surface px-1 text-xs">
+                    <span className="text-[11px] text-ink-2">P{zone + 1}</span>
                     {entry ? (
                       <>
                         <span className="max-w-full truncate text-ink">
                           <span className="font-bold">{names.get(entry.playerId)}</span> <span className="tabular-nums">#{entry.number}</span>
                         </span>
-                        <span className={role !== was ? 'font-medium text-blue-strong' : 'text-slate'}>
+                        <span className={role !== was ? 'font-semibold text-ink' : 'text-ink-2'}>
                           {role}{role !== was && was ? t.was(was) : ''}
                         </span>
                       </>
                     ) : (
-                      <span className="text-slate">—</span>
+                      <span className="text-ink-2">—</span>
                     )}
                   </div>
                 );
@@ -219,10 +219,10 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
         </>
       ) : (
         <>
-          <p className="mb-3 text-sm text-slate">{t.manualHint}</p>
+          <p className="mb-3 text-callout text-ink-2">{t.manualHint}</p>
           <div className="grid grid-cols-3 gap-2">
             {PREVIEW_ZONES.map((zone) => (
-              <label key={zone} className="flex flex-col gap-1 text-xs font-medium text-slate">
+              <label key={zone} className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
                 P{zone + 1}
                 <select
                   aria-label={t.position(zone + 1)}
@@ -241,7 +241,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
             ))}
           </div>
           {warnings.length > 0 && (
-            <ul aria-label={t.warnings} className="mt-3 list-disc pl-5 text-sm text-orange-strong">
+            <ul aria-label={t.warnings} className="mt-3 list-disc pl-5 text-callout text-orange-strong">
               {warnings.map((w) => (
                 <li key={w.code === 'expected' ? `${w.code}-${w.role}` : w.code}>{lineup51Message(w, tr)}</li>
               ))}
@@ -250,16 +250,21 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
         </>
       )}
 
-      <fieldset className="mt-4 flex gap-4">
-        <legend className="mb-1 text-sm font-medium text-ink">{t.firstServe}</legend>
+      <fieldset className="mt-4 grid grid-cols-2 gap-2">
+        <legend className="mb-1 text-callout font-medium text-ink">{t.firstServe}</legend>
         {(['us', 'them'] as const).map((side) => (
-          <label key={side} className="flex min-h-11 items-center gap-2 text-sm text-ink">
-            <input type="radio" name="serving" checked={serving === side} onChange={() => setServing(side)} />
+          <label
+            key={side}
+            className={`relative flex min-h-14 cursor-pointer items-center justify-center rounded-md px-3 text-center text-callout font-medium text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus ${
+              serving === side ? 'bg-surface-3 ring-2 ring-ink' : 'bg-surface-2'
+            }`}
+          >
+            <input type="radio" name="serving" className="sr-only" checked={serving === side} onChange={() => setServing(side)} />
             {side === 'us' ? t.weServe : t.theyServe}
           </label>
         ))}
       </fieldset>
-      {hint && <p className="mt-3 text-sm text-ink-2">{hint}</p>}
+      {hint && <p className="mt-3 text-callout text-ink-2">{hint}</p>}
     </Dialog>
   );
 }

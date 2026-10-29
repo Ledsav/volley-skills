@@ -1,3 +1,4 @@
+import { tapFlash } from '../../motion/tapFlash';
 import { Dialog } from '../../components/Dialog';
 import type { RosterEntry } from '../../types/match';
 import { useT } from '../../i18n/I18nProvider';
@@ -22,7 +23,7 @@ export function SubDialog({ outPlayer, candidates, onSub, onCancel }: SubDialogP
   return (
     <Dialog title={t.scout.sub.title(outPlayer.number, outPlayer.name)} onClose={onCancel}>
       {candidates.length === 0 ? (
-        <p className="text-sm text-slate">{t.scout.sub.nobody}</p>
+        <p className="text-callout text-ink-2">{t.scout.sub.nobody}</p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {sorted.map((c) => (
@@ -30,12 +31,13 @@ export function SubDialog({ outPlayer, candidates, onSub, onCancel }: SubDialogP
               key={c.playerId}
               type="button"
               aria-label={t.scout.sub.bringOn(c.number, c.name)}
+              onPointerDown={(e) => tapFlash(e.currentTarget)}
               onClick={() => onSub(c.playerId)}
-              className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-md border border-border bg-surface px-1 text-ink hover:bg-blue/10"
+              className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-md bg-surface-2 px-1 text-ink"
             >
-              <span className="max-w-full truncate text-base font-bold leading-tight">{names.get(c.playerId)}</span>
+              <span className="max-w-full truncate text-headline">{names.get(c.playerId)}</span>
               <span className="flex items-center gap-1.5">
-                <span className="text-sm font-bold tabular-nums leading-none">#{c.number}</span>
+                <span className="text-callout tabular-nums leading-none text-ink-2">#{c.number}</span>
                 <RoleChip role={c.positionCategory} />
               </span>
             </button>

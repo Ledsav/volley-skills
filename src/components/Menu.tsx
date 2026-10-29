@@ -17,6 +17,8 @@ interface MenuProps {
   align?: 'start' | 'end';
   placement?: 'down' | 'up';
   disabled?: boolean;
+  /** `solid` over busy content such as the scouting court. */
+  material?: 'glass' | 'solid';
 }
 
 /**
@@ -24,7 +26,7 @@ interface MenuProps {
  * arrow keys move between items, Escape or a click outside closes and returns
  * focus to the trigger, choosing an item runs it and closes.
  */
-export function Menu({ label, trigger, items, triggerClassName = '', align = 'end', placement = 'down', disabled = false }: MenuProps) {
+export function Menu({ label, trigger, items, triggerClassName = '', align = 'end', placement = 'down', disabled = false, material }: MenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -65,6 +67,7 @@ export function Menu({ label, trigger, items, triggerClassName = '', align = 'en
           label={label}
           items={items}
           onClose={close}
+          material={material}
           className={`absolute z-40 ${align === 'end' ? 'right-0' : 'left-0'} ${
             placement === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}

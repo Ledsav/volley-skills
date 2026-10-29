@@ -21,7 +21,7 @@ export function PlatformPage() {
     <div className="w-full p-4 sm:p-6 lg:p-8">
       <PageHeader title={t.pageTitle} />
       <SegmentedControl semantics="tabs" label={t.sectionsLabel} options={TABS} value={active}
-        onChange={(id) => setParams({ tab: id }, { replace: true })} className="mb-6 w-full sm:w-auto" />
+        onChange={(id) => setParams({ tab: id }, { replace: true })} className="mb-6 w-full sm:w-fit" />
       <div role="tabpanel" aria-label={TABS.find((x) => x.id === active)?.label}>
         {active === 'clubs' && <ClubsTable />}
         {active === 'leads' && <AccessRequestsPanel />}

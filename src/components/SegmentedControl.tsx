@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useReducedMotion } from '../motion/useReducedMotion';
+import { useEdgeFade } from './useEdgeFade';
 
 interface SegmentedControlProps<T extends string> {
   label: string;
@@ -11,7 +12,11 @@ interface SegmentedControlProps<T extends string> {
   className?: string;
 }
 
-/** iOS-style segmented control: a sliding thumb on a scrollable track that never wraps its labels. */
+/**
+ * iOS-style segmented control: a sliding thumb on a scrollable track that never wraps its labels. It is as wide as
+ * its labels (design system: intrinsic); a caller's `w-full` stretches it and the segments share the width. When it
+ * is wider than its parent it scrolls, with a fade on the edge that hides tabs.
+ */
 export function SegmentedControl<T extends string>({
   label,
   options,
@@ -29,6 +34,7 @@ export function SegmentedControl<T extends string>({
   // Stable across parents that build `options` inline on every render.
   const signature = options.map((o) => `${o.id}\u001f${o.label}`).join('|');
   const hasValue = options.some((o) => o.id === value);
+  useEdgeFade(trackRef, [signature]);
 
   useLayoutEffect(() => {
     const el = optionRefs.current.get(value);
@@ -72,7 +78,7 @@ export function SegmentedControl<T extends string>({
       ref={trackRef}
       role={isTabs ? 'tablist' : 'radiogroup'}
       aria-label={label}
-      className={`relative flex overflow-x-auto whitespace-nowrap rounded-[10px] bg-surface-2 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`.trim()}
+      className={`scroll-strip relative inline-flex max-w-full overflow-x-auto whitespace-nowrap rounded-[10px] bg-surface-2 p-0.5 align-top ${className}`.trim()}
     >
       {thumb && (
         <span
@@ -98,8 +104,9 @@ export function SegmentedControl<T extends string>({
             tabIndex={selected || (!hasValue && i === 0) ? 0 : -1}
             onClick={() => onChange(o.id)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`relative z-10 min-h-11 flex-1 shrink-0 cursor-pointer rounded-[8px] px-3 text-callout font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-              selected ? 'text-ink' : 'text-ink-2'
+            // Unselected labels are ink at 75%: ink-2 drops under AA on the canvas-shade track.
+            className={`relative z-10 min-h-11 flex-auto shrink-0 cursor-pointer rounded-[8px] px-3 text-callout font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+              selected ? 'text-ink' : 'text-ink/75'
             }`}
           >
             {o.label}

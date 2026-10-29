@@ -152,15 +152,15 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
       <fieldset className={GROUP}>
         <legend className={LEGEND}>{m.details}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
             {m.date}
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
-          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
             {m.opponent}
             <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
           </label>
-          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
             {m.competition}
             <select className={FIELD_CLASS} value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
               <option value="league">{t.labels.competition.league}</option>
@@ -169,7 +169,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
               <option value="tournament">{t.labels.competition.tournament}</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+          <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
             {m.venue}
             <select className={FIELD_CLASS} value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
               <option value="home">{t.matches.shared.home}</option>

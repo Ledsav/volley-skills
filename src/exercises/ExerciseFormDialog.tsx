@@ -114,7 +114,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
       confirm={{ label: saving ? f.saving : t.common.save, form: FORM_ID, disabled: saving }}
     >
       <form id={FORM_ID} onSubmit={handleSubmit} aria-label={exercise ? f.editTitle : f.newTitle}>
-        <label htmlFor="exercise-name" className="mb-1 block text-callout font-medium text-ink">
+        <label htmlFor="exercise-name" className="mb-1.5 block text-footnote text-ink-2">
           {f.name}
         </label>
         <Input
@@ -128,7 +128,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           {f.nameHint(exerciseNameExample(), exerciseFocusLabels().join(', '))}
         </p>
 
-        <label htmlFor="exercise-category" className="mb-1 mt-4 block text-callout font-medium text-ink">
+        <label htmlFor="exercise-category" className="mb-1.5 mt-4 block text-footnote text-ink-2">
           {f.category}
         </label>
         <select
@@ -144,7 +144,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           ))}
         </select>
 
-        <label htmlFor="exercise-min-players" className="mb-1 mt-4 block text-callout font-medium text-ink">
+        <label htmlFor="exercise-min-players" className="mb-1.5 mt-4 block text-footnote text-ink-2">
           {f.minPlayers}
         </label>
         <Input
@@ -162,7 +162,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           {f.minPlayersHint}
         </p>
 
-        <label htmlFor="exercise-description" className="mb-1 mt-4 block text-callout font-medium text-ink">
+        <label htmlFor="exercise-description" className="mb-1.5 mt-4 block text-footnote text-ink-2">
           {f.description}
         </label>
         <Textarea

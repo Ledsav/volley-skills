@@ -46,7 +46,7 @@ export function StatusLayout({
         </h1>
       )}
       {children && <div className="text-body text-ink-2 [overflow-wrap:anywhere]">{children}</div>}
-      {actions && <div className="mt-2 flex w-full flex-col gap-2">{actions}</div>}
+      {actions && <div className="mt-2 flex w-full max-w-[280px] flex-col gap-2">{actions}</div>}
     </div>
   );
 }

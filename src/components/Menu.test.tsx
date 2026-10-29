@@ -72,4 +72,23 @@ describe('Menu', () => {
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowUp' });
     expect(item).toHaveFocus();
   });
+
+  it('lines labels up: with a check item, every row keeps the leading column', () => {
+    fireEvent.click(renderMenu());
+    for (const name of ['Print / PDF', 'Quick score', 'Sign out']) {
+      const row = screen.getByRole(name === 'Quick score' ? 'menuitemcheckbox' : 'menuitem', { name });
+      expect(row.firstElementChild).toHaveClass('w-4');
+    }
+  });
+
+  it('is glass by default and solid on request (over the scouting court)', () => {
+    const { unmount } = render(<Menu label="Tools" trigger="Tools" items={[{ kind: 'action', label: 'Exit', onSelect: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tools' }));
+    expect(screen.getByRole('menu')).toHaveClass('glass');
+    unmount();
+    render(<Menu label="Tools" trigger="Tools" material="solid" items={[{ kind: 'action', label: 'Exit', onSelect: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tools' }));
+    expect(screen.getByRole('menu')).toHaveClass('bg-surface');
+    expect(screen.getByRole('menu')).not.toHaveClass('glass');
+  });
 });

@@ -1,6 +1,7 @@
 import type { RosterEntry } from '../../types/match';
 import { tapFlash } from '../../motion/tapFlash';
 import { useT } from '../../i18n/I18nProvider';
+import { ScrollStrip } from '../../components/ScrollStrip';
 
 interface BenchStripProps {
   players: RosterEntry[];
@@ -14,7 +15,7 @@ export function BenchStrip({ players, names, onSelect, disabled = false }: Bench
   const t = useT();
   if (players.length === 0) return null;
   return (
-    <div className="flex items-center gap-2 overflow-x-auto py-1" aria-label={t.scout.bench}>
+    <ScrollStrip className="flex items-center gap-2 py-1" aria-label={t.scout.bench}>
       <span className="text-caption text-ink-2">{t.scout.bench}</span>
       {players.map((p) => (
         <button
@@ -32,6 +33,6 @@ export function BenchStrip({ players, names, onSelect, disabled = false }: Bench
           <span className="text-caption tabular-nums text-ink-2">#{p.number}</span>
         </button>
       ))}
-    </div>
+    </ScrollStrip>
   );
 }

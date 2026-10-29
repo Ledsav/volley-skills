@@ -13,11 +13,15 @@ interface MenuListProps {
   onClose: (refocus: boolean) => void;
   className?: string;
   style?: CSSProperties;
+  /** `solid` over busy content (the scouting court), where glass lets lines show through the labels. */
+  material?: 'glass' | 'solid';
 }
 
 /** The glass surface, items and keyboard model shared by Menu and context menus. */
-export function MenuList({ id, label, items, onClose, className = '', style }: MenuListProps) {
+export function MenuList({ id, label, items, onClose, className = '', style, material = 'glass' }: MenuListProps) {
   const listRef = useRef<HTMLDivElement>(null);
+  // With any check item, every row reserves the 16px leading column so the labels line up.
+  const leadingColumn = items.some((item) => item.kind === 'check');
 
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
@@ -52,7 +56,7 @@ export function MenuList({ id, label, items, onClose, className = '', style }: M
       aria-label={label}
       onKeyDown={onKeyDown}
       style={style}
-      className={`menu-pop glass glass-pop min-w-52 rounded-[14px] p-1 text-ink ${className}`.trim()}
+      className={`menu-pop ${material === 'solid' ? 'bg-surface shadow-pop' : 'glass glass-pop'} min-w-52 rounded-[14px] p-1 text-ink ${className}`.trim()}
     >
       {items.map((item, i) => {
         if (item.kind === 'divider') return <div key={i} role="separator" className="my-1 h-px bg-separator" />;
@@ -82,7 +86,7 @@ export function MenuList({ id, label, items, onClose, className = '', style }: M
             onClick={run}
             className={`${ITEM_CLASS} ${item.disabled ? 'text-ink-3' : item.danger ? 'text-red-strong' : ''}`}
           >
-            {item.icon && (
+            {(item.icon || leadingColumn) && (
               <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden="true">
                 {item.icon}
               </span>

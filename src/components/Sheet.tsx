@@ -236,7 +236,12 @@ export function Sheet(props: SheetProps) {
   );
 
   const body = (
-    <div ref={bodyRef} onChange={markEdited} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 [scrollbar-gutter:stable] md:px-6">
+    // The body's gutter is --page-gutter, so full-bleed strips inside (FilterChips) line up with the sheet edge.
+    <div
+      ref={bodyRef}
+      onChange={markEdited}
+      className="scroll-quiet min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--page-gutter)] py-5 [--page-gutter:1rem] [scrollbar-gutter:stable] md:[--page-gutter:1.5rem]"
+    >
       <div ref={innerRef}>{children}</div>
     </div>
   );

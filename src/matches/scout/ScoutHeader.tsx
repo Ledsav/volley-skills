@@ -62,7 +62,7 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
         <span data-testid="live-tag" className="hidden shrink-0 rounded-full bg-red-tint px-2.5 py-0.5 text-caption text-red-strong md:inline-flex">
           {t.live(state.set || 1)}
         </span>
-        <Menu label={t.tools} trigger={<MoreHorizontal size={20} aria-hidden="true" />} triggerClassName={`${CONTROL} w-11 shrink-0`} items={tools} />
+        <Menu label={t.tools} trigger={<MoreHorizontal size={20} aria-hidden="true" />} triggerClassName={`${CONTROL} w-11 shrink-0`} items={tools} material="solid" />
       </div>
 
       <div className="relative mx-auto h-14 w-full px-3 md:max-w-3xl sm:px-4 md:[@media(min-height:561px)]:h-[4.5rem]">

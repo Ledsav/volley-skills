@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { OfflineError, useSave } from '../components/useSave';
 import { FilterChips, ToggleChip } from '../components/Chip';
 import { Sheet } from '../components/Sheet';
-import { Input, Textarea } from '../components/Input';
+import { FIELD_LABEL_CLASS, Input, Textarea } from '../components/Input';
 import { parseOptionalInt } from '../components/parseOptionalInt';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { ExerciseDetailSheet } from '../exercises/ExerciseDetailSheet';
@@ -321,7 +321,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
     );
   }
 
-  const fieldLabel = 'mb-1 block text-callout font-medium text-ink';
+  const fieldLabel = FIELD_LABEL_CLASS;
   const hint = 'mt-1 text-footnote text-ink-2';
 
   return (

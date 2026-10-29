@@ -101,7 +101,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
       </header>
 
       <div className="mx-auto w-full max-w-[880px] px-4 pb-16 sm:px-6">
-        <SegmentedControl semantics="tabs" label={ta.steps.label} options={stepOptions} value={step} onChange={setStep} className="mt-2 w-full sm:w-auto" />
+        <SegmentedControl semantics="tabs" label={ta.steps.label} options={stepOptions} value={step} onChange={setStep} className="mt-2 w-full sm:w-fit" />
         {noWinners && <p className="mt-4 text-callout text-ink-2">{ta.noWinners}</p>}
         {props.notice && <p role="alert" className="mt-4 text-callout text-red-strong">{props.notice}</p>}
 

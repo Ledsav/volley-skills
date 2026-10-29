@@ -63,7 +63,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
         options={[{ id: 'all', label: rp.all }, ...setNumbers.map((n) => ({ id: String(n), label: rp.setN(n) }))]}
         value={String(set)}
         onChange={(id) => setSet(id === 'all' ? 'all' : Number(id))}
-        className="w-full sm:w-auto print:hidden"
+        className="w-full sm:w-fit print:hidden"
       />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">

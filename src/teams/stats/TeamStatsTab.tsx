@@ -149,7 +149,7 @@ export default function TeamStatsTab({ team }: { team: Team }) {
       <div className="flex flex-wrap items-center gap-2 print:hidden">
         <SegmentedControl
           label={t.range}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-fit"
           options={[
             { id: 'season', label: t.wholeSeason }, { id: 'last5', label: t.last5 },
             { id: 'last10', label: t.last10 }, { id: 'dates', label: t.dates },

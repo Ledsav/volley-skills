@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import { listDiagrams } from '../diagrams/diagramsApi';
 import { sceneAsDiagram } from '../diagrams/sceneFactory';
@@ -106,11 +106,12 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
   const next = index < total - 1 ? entries[index + 1] : null;
 
   return (
-    <Dialog
+    <Sheet
+      variant="view"
       title={entry.name ?? d.deleted}
       onClose={onClose}
       size="lg"
-      mobileSheet
+      detent="large"
       footer={
         total > 1 ? (
           <div className="grid w-full grid-cols-2 gap-3">
@@ -139,51 +140,51 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-footnote text-ink-2">
           {total > 1 && (
-            <span className="font-medium tabular-nums text-slate">
+            <span className="font-medium tabular-nums text-ink-2">
               {d.position(index + 1, total)}
             </span>
           )}
           {entry.category && (
-            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">
+            <span className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">
               {lb.exerciseCategory[entry.category]}
             </span>
           )}
           {isTrainingStep && (
-            <span className="inline-flex items-center gap-1 rounded-sm bg-bg px-1.5 py-0.5 text-xs font-medium tabular-nums text-ink">
-              <Clock className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-2.5 text-caption tabular-nums text-ink-2">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
               {d.minutes(entry.durationMinutes ?? 0, startMinute, startMinute + (entry.durationMinutes ?? 0))}
             </span>
           )}
           {entry.minPlayers !== undefined && (
-            <span className="inline-flex items-center gap-1 rounded-sm bg-bg px-1.5 py-0.5 text-xs font-medium tabular-nums text-ink">
-              <Users className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-2.5 text-caption tabular-nums text-ink-2">
+              <Users className="h-3.5 w-3.5" aria-hidden="true" />
               {d.minPlayers(entry.minPlayers)}
             </span>
           )}
         </div>
 
         {!entry.name ? (
-          <p className="text-sm text-red-strong">{d.wasDeleted}</p>
+          <p className="text-callout text-red-strong">{d.wasDeleted}</p>
         ) : (
           <>
             <section aria-label={d.diagrams}>
               {diagrams === undefined && (
-                <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-bg text-sm text-slate">
+                <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-surface-2 text-callout text-ink-2">
                   {d.loadingDiagrams}
                 </div>
               )}
-              {diagrams === 'error' && <p className="text-sm text-red-strong">{d.diagramsError}</p>}
+              {diagrams === 'error' && <p className="text-callout text-red-strong">{d.diagramsError}</p>}
               {Array.isArray(diagrams) && diagrams.length === 0 && (
-                <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-slate">
+                <p className="rounded-lg bg-surface-2 p-4 text-center text-callout text-ink-2">
                   {d.noDiagrams}
                 </p>
               )}
               {currentDiagram && (
                 <figure>
                   <div
-                    className="mx-auto aspect-square w-full max-w-[min(100%,70vh)] touch-pan-y overflow-hidden rounded-lg border border-border bg-surface"
+                    className="mx-auto aspect-square w-full max-w-[min(100%,70vh)] touch-pan-y overflow-hidden rounded-lg bg-surface-2"
                     onTouchStart={(e) => {
                       touchStartX.current = e.touches[0]?.clientX ?? null;
                     }}
@@ -199,25 +200,25 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
                     <DiagramSvg scene={currentDiagram.scene} />
                   </div>
                   <figcaption className="mt-2 flex items-center justify-between gap-2">
-                    <span className="min-w-0 truncate text-sm font-medium text-ink">{currentDiagram.title}</span>
+                    <span className="min-w-0 truncate text-callout font-medium text-ink">{currentDiagram.title}</span>
                     {diagramList.length > 1 && (
                       <span className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
                           aria-label={t.diagrams.nav.previous}
                           onClick={() => stepDiagram(-1)}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                         >
                           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
                         </button>
-                        <span className="text-xs tabular-nums text-slate">
+                        <span className="text-footnote tabular-nums text-ink-2">
                           {diagramIndex + 1} / {diagramList.length}
                         </span>
                         <button
                           type="button"
                           aria-label={t.diagrams.nav.next}
                           onClick={() => stepDiagram(1)}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                         >
                           <ChevronRight className="h-5 w-5" aria-hidden="true" />
                         </button>
@@ -229,14 +230,14 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
             </section>
 
             <section aria-label={d.description}>
-              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate">{d.description}</h3>
-              <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">
-                {entry.description || <span className="text-slate">{d.noDescription}</span>}
+              <h3 className="mb-1 text-title-3 text-ink">{d.description}</h3>
+              <p className="whitespace-pre-wrap text-body text-ink">
+                {entry.description || <span className="text-ink-2">{d.noDescription}</span>}
               </p>
             </section>
           </>
         )}
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

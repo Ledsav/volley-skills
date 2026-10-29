@@ -202,4 +202,25 @@ describe('TrainingViewSheet', () => {
       expect(screen.getByRole('button', { name: 'Edit team notes' })).toBeInTheDocument();
     });
   });
+
+  it('reads as a view on phones: Done, no Cancel', () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('max-width: 767px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      render(<TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    } finally {
+      // @ts-expect-error restore jsdom's absence of matchMedia
+      delete window.matchMedia;
+    }
+  });
 });

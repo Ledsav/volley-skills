@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Clock, FileDown, Pencil, Play, Share2, TriangleAlert, Users } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { useNotify } from '../components/Notice';
 import { shareOrDownload } from '../export/shareFile';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
@@ -105,10 +105,11 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
   const exerciseCount = training.exercises.length;
 
   return (
-    <Dialog
+    <Sheet
+      variant="view"
       title={`${training.businessId} · ${training.name}`}
       size="lg"
-      mobileSheet
+      detent="large"
       onClose={onClose}
       footer={
         <>
@@ -145,18 +146,18 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-footnote text-ink-2">
           {training.ageGroupTarget && (
-            <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">
+            <span className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">
               {training.ageGroupTarget}
             </span>
           )}
-          <span className="inline-flex items-center gap-1 tabular-nums text-slate">
+          <span className="inline-flex items-center gap-1 tabular-nums text-ink-2">
             <Clock className="h-4 w-4" aria-hidden="true" />
             {v.summary(exerciseCount, totalMinutes)}
           </span>
           {training.suggestedPlayers !== undefined && (
-            <span className="inline-flex items-center gap-1 tabular-nums text-slate">
+            <span className="inline-flex items-center gap-1 tabular-nums text-ink-2">
               <Users className="h-4 w-4" aria-hidden="true" />
               {v.players(training.suggestedPlayers)}
             </span>
@@ -164,9 +165,9 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
         </div>
 
         {training.targets && training.targets.length > 0 && (
-          <ul aria-label={v.targets} className="-mt-2 flex flex-wrap gap-1.5">
+          <ul aria-label={v.targets} className="-mt-2 flex flex-wrap gap-2">
             {training.targets.map((target) => (
-              <li key={target} className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-ink">
+              <li key={target} className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">
                 {lb.exerciseCategory[target]}
               </li>
             ))}
@@ -174,17 +175,17 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
         )}
 
         {training.description && (
-          <p className="whitespace-pre-wrap text-base leading-relaxed text-ink">{training.description}</p>
+          <p className="whitespace-pre-wrap text-body text-ink">{training.description}</p>
         )}
 
         {loadFailed && (
-          <p role="alert" className="text-sm text-red-strong">
+          <p role="alert" className="text-callout text-red-strong">
             {v.loadError}
           </p>
         )}
 
         {pdfError && (
-          <p role="alert" className="text-sm text-red-strong">
+          <p role="alert" className="text-callout text-red-strong">
             {pdfError}
           </p>
         )}
@@ -193,7 +194,7 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
           <button
             type="button"
             onClick={() => setAskingNotes(true)}
-            className="self-start rounded-sm text-sm font-medium text-blue-strong hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="inline-flex min-h-11 items-center self-start rounded-sm text-callout font-medium text-ink underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             {v.editTeamNotes}
           </button>
@@ -204,33 +205,36 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
           {pdf === 'building' ? v.pdfStatusBuilding : pdf instanceof File ? v.pdfStatusReady : ''}
         </p>
 
-        {!entries && !loadFailed && <p className="text-sm text-slate">{v.loadingExercises}</p>}
+        {!entries && !loadFailed && <p className="text-callout text-ink-2">{v.loadingExercises}</p>}
 
         {entries && (
-          <ol aria-label={v.plan} className="divide-y divide-border rounded-md border border-border">
-            {entries.length === 0 && <li className="p-3 text-sm text-slate">{v.noExercises}</li>}
+          <ol aria-label={v.plan} className="rounded-lg bg-surface-2">
+            {entries.length === 0 && <li className="p-3 text-callout text-ink-2">{v.noExercises}</li>}
             {entries.map((entry, i) => {
               const start = entries.slice(0, i).reduce((sum, e) => sum + (e.durationMinutes ?? 0), 0);
               const end = start + (entry.durationMinutes ?? 0);
               return (
-                <li key={`${entry.exerciseId}-${i}`}>
+                <li
+                  key={`${entry.exerciseId}-${i}`}
+                  className="relative before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden"
+                >
                   <button
                     type="button"
                     onClick={() => setViewing(i)}
                     aria-label={v.viewExercise(i + 1, entry.name)}
-                    className="flex w-full items-center gap-3 p-3 text-left hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue"
+                    className="flex min-h-[60px] w-full items-center gap-3 px-3 py-2 text-left active:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
                   >
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold tabular-nums text-white">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3 text-caption font-semibold tabular-nums text-ink">
                       {i + 1}
                     </span>
                     <DiagramThumbnail
                       exerciseId={entry.exerciseId}
                       interactive={false}
-                      className="aspect-square w-16 shrink-0 overflow-hidden rounded-sm border border-border bg-surface"
+                      className="aspect-square w-16 shrink-0 overflow-hidden rounded-sm bg-surface"
                     />
                     <span className="min-w-0 flex-1">
                       <span
-                        className={`block truncate text-sm font-medium ${entry.name ? 'text-ink' : 'text-red-strong'}`}
+                        className={`block truncate text-headline ${entry.name ? 'text-ink' : 'text-red-strong'}`}
                       >
                         {entry.name ?? (
                           <span className="inline-flex items-center gap-1">
@@ -239,12 +243,12 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs tabular-nums text-slate">
+                      <span className="mt-0.5 block truncate text-footnote tabular-nums text-ink-2">
                         {entry.category ? `${lb.exerciseCategory[entry.category]} · ` : ''}
                         {v.exerciseTiming(entry.durationMinutes ?? 0, start, end)}
                       </span>
                     </span>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-slate" aria-hidden="true" />
+                    <ChevronRight className="h-5 w-5 shrink-0 text-ink-3" aria-hidden="true" />
                   </button>
                 </li>
               );
@@ -271,6 +275,6 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
       {viewing !== null && entries && (
         <ExerciseDetailSheet entries={entries} startIndex={viewing} onClose={() => setViewing(null)} />
       )}
-    </Dialog>
+    </Sheet>
   );
 }

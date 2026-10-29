@@ -114,6 +114,7 @@ describe('GuardiansSection', () => {
     fireEvent.click(screen.getByText('Edit'));
     fireEvent.change(screen.getByLabelText('Guardian phone'), { target: { value: '+352 999 999' } });
     fireEvent.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
     fireEvent.click(screen.getByText('Edit'));
     expect(screen.getByLabelText('Guardian phone')).toHaveValue('+352 000 000');

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Target } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
 import { InfoTooltip } from '../components/InfoTooltip';
 import { Input } from '../components/Input';
+import { Sheet } from '../components/Sheet';
 import { SkillMeter } from '../components/SkillMeter';
 import { getSkillGuide } from '../skillGuide/skillGuideApi';
 import type { SkillGuideEntry } from '../types/skillGuide';
@@ -78,14 +78,14 @@ export function PlayerSkillsSection({
   const { locale } = useLocale();
   // Italian skill names are longer ("Lettura del gioco"), so their label column is wider.
   const listGridClass = locale === 'it' ? 'grid-cols-[9.5rem_1fr_2rem_4.5rem]' : 'grid-cols-[6.5rem_1fr_2rem_4.5rem]';
-  const editGridClass =
-    locale === 'it' ? 'grid-cols-[9rem_5rem] sm:grid-cols-[9rem_5rem_1fr_auto]' : 'grid-cols-[7rem_5rem] sm:grid-cols-[7rem_5rem_1fr_auto]';
   const matchLine = (rating: { rating: number | null; attempts: number }): string =>
     rating.rating === null
       ? p.skills.matchNoData(rating.attempts)
       : p.skills.matchRated(formatNumber(rating.rating, 1), rating.attempts);
   const [skills, setSkills] = useState<Skills>(player.skills);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [guide, setGuide] = useState<Record<string, SkillGuideEntry>>({});
 
   // Follows the catalog: with no saved guide the fallback is in the active language, and the Italian
@@ -122,6 +122,18 @@ export function PlayerSkillsSection({
   }
 
   async function handleSave() {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await doSave();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function doSave() {
     setError(null);
     const avgScore = computeAvgScore(skills);
     const level = computeLevel(avgScore);
@@ -233,23 +245,29 @@ export function PlayerSkillsSection({
       </div>
 
       {editing && isAdmin && (
-        <Dialog title={p.skills.editTitle} onClose={() => onEditingChange(false)} guardUnsaved>
+        <Sheet
+          title={p.skills.editTitle}
+          detent="large"
+          onClose={() => onEditingChange(false)}
+          guardUnsaved
+          confirm={{ label: p.skills.saveSkills, onConfirm: () => void handleSave(), disabled: saving }}
+        >
           <div aria-label={p.skills.editTitle}>
             <p className="mb-4 text-callout text-ink-2">
               {p.skills.average} <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
               ({previewLevel ? lb.level[previewLevel](gender) : p.shared.noScores})
             </p>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col">
               {SKILL_ORDER.map((key) => {
                 const rating = ratings?.[key];
                 const value = rating?.rating ?? null;
                 return (
                   <div
                     key={key}
-                    className={`grid ${editGridClass} items-center gap-x-4 gap-y-2 border-b border-separator pb-4 last:border-b-0 last:pb-0`}
+                    className="flex flex-col gap-2 border-b border-separator py-4 first:pt-0 last:border-b-0 last:pb-0"
                   >
                     <span className="flex items-center gap-1">
-                      <label htmlFor={`skill-${key}`} className="text-sm font-medium text-ink">
+                      <label htmlFor={`skill-${key}`} className="text-headline text-ink">
                         {lb.playerSkill[key]}
                       </label>
                       {guide[key] && (
@@ -258,29 +276,31 @@ export function PlayerSkillsSection({
                         </InfoTooltip>
                       )}
                     </span>
-                    <Input
-                      id={`skill-${key}`}
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={skills[key].score ?? ''}
-                      onChange={(e) => updateScore(key, e.target.value)}
-                      className="w-20"
-                    />
-                    <div className="col-span-2 sm:col-span-1">
-                      <SkillMeter score={skills[key].score} />
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id={`skill-${key}`}
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={skills[key].score ?? ''}
+                        onChange={(e) => updateScore(key, e.target.value)}
+                        className="w-20 tabular-nums"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <SkillMeter score={skills[key].score} />
+                      </div>
                     </div>
-                    <label className="col-span-2 flex items-center gap-2 text-sm text-ink-2 sm:col-span-1">
+                    <label className="flex min-h-11 items-center gap-2 text-callout text-ink-2">
                       <input
                         type="checkbox"
                         checked={skills[key].priority}
                         onChange={(e) => updatePriority(key, e.target.checked)}
-                        className="h-4 w-4 rounded-sm border-separator text-blue-strong focus:outline-none focus:ring-2 focus:ring-blue"
+                        className="h-4 w-4 rounded-sm border-separator accent-[rgb(var(--color-ink))] focus:outline-none focus:ring-2 focus:ring-focus"
                       />
                       {p.skills.focusArea}
                     </label>
                     {suggestionFor(rating, skills[key].score) !== null && rating && value !== null && (
-                      <div className="col-span-2 flex items-center gap-2 text-xs tabular-nums text-ink-2 sm:col-span-4">
+                      <div className="flex items-center gap-2 text-footnote tabular-nums text-ink-2">
                         <div className="w-40" title={matchLine(rating)}>
                           <SkillMeter score={skills[key].score} suggested={suggestedScore(value)} />
                         </div>
@@ -300,21 +320,13 @@ export function PlayerSkillsSection({
                 );
               })}
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => onEditingChange(false)}>
-                {t.common.cancel}
-              </Button>
-              <Button variant="primary" onClick={() => void handleSave()}>
-                {p.skills.saveSkills}
-              </Button>
-            </div>
             {error && (
               <p role="alert" className="mt-3 text-sm text-red-strong">
                 {error}
               </p>
             )}
           </div>
-        </Dialog>
+        </Sheet>
       )}
     </div>
   );

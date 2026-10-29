@@ -136,6 +136,37 @@ describe('PlayerSkillsSection', () => {
     expect(onPlayerUpdated).toHaveBeenCalledWith(expect.objectContaining({ avgScore: 7, level: 'Advanced' }));
   });
 
+  it('Cancel on an edited skills sheet asks to discard; a clean Cancel closes at once', () => {
+    render(<SkillsHarness player={basePlayer} />);
+
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText('Discard changes?')).toBeInTheDocument();
+    expect(screen.getByLabelText('Serve')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument();
+  });
+
+  it('a second Save while saving writes once', async () => {
+    let finish: () => void = () => {};
+    vi.spyOn(playersApi, 'updatePlayerSkills').mockReturnValue(new Promise<void>((resolve) => (finish = resolve)));
+    render(<SkillsHarness player={basePlayer} />);
+
+    fireEvent.click(screen.getByText('Edit skills'));
+    fireEvent.change(screen.getByLabelText('Serve'), { target: { value: '6' } });
+    const save = screen.getByRole('button', { name: 'Save skills' });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    expect(playersApi.updatePlayerSkills).toHaveBeenCalledTimes(1);
+    finish();
+    await waitFor(() => expect(screen.queryByLabelText('Serve')).not.toBeInTheDocument());
+  });
+
   it('shows an error message when the save is rejected', async () => {
     vi.spyOn(playersApi, 'updatePlayerSkills').mockRejectedValue({ code: 'permission-denied' });
     const onPlayerUpdated = vi.fn();

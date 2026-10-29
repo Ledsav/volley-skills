@@ -1,7 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { FIELD_CLASS, Input } from '../components/Input';
+import { Sheet } from '../components/Sheet';
 import { useSave } from '../components/useSave';
 import { updatePlayerContact } from './playersApi';
 import { usePlayerSync } from './playerSync';
@@ -43,6 +42,8 @@ export function PlayerContactSection({
   const [starting, setStarting] = useState(player.starting);
   const [playerPhone, setPlayerPhone] = useState(player.playerPhone);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (editing) {
@@ -66,6 +67,18 @@ export function PlayerContactSection({
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await doSave();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function doSave() {
     setError(null);
     const number = Number(shirtNumber) || 0;
     try {
@@ -92,31 +105,48 @@ export function PlayerContactSection({
 
   return (
     <div className="flex h-full flex-col">
-      <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm [&>dd]:break-words">
-        <dt className="text-slate">{p.shared.number}</dt>
-        <dd className="font-medium tabular-nums text-ink">{player.number ? `#${player.number}` : '—'}</dd>
-        <dt className="text-slate">{p.shared.position}</dt>
-        <dd className="font-medium text-ink">
-          {lb.position[player.positionCategory](gender)}
-          {player.starting && (
-            <span className="ml-2 inline-flex items-center rounded-sm bg-green/10 px-1.5 py-0.5 text-xs font-medium text-green-strong">
-              {p.shared.starting}
-            </span>
-          )}
-        </dd>
-        <dt className="text-slate">{p.shared.shirtSize}</dt>
-        <dd className="font-medium text-ink">{player.shirtSize || '—'}</dd>
-        <dt className="text-slate">{p.shared.phone}</dt>
-        <dd className="font-medium text-ink">{player.playerPhone || '—'}</dd>
-        <dt className="text-slate">{p.shared.license}</dt>
-        <dd className="font-medium tabular-nums text-ink">{player.licenseNumber || '—'}</dd>
-        <dt className="text-slate">{p.shared.nationality}</dt>
-        <dd className="font-medium text-ink">{player.nationality || '—'}</dd>
+      <dl className="divide-y divide-separator text-body">
+        <div className="flex min-h-11 items-center justify-between gap-4 py-2">
+          <dt className="text-ink-2">{p.shared.number}</dt>
+          <dd className="text-right tabular-nums text-ink">{player.number ? `#${player.number}` : '—'}</dd>
+        </div>
+        <div className="flex min-h-11 items-center justify-between gap-4 py-2">
+          <dt className="text-ink-2">{p.shared.position}</dt>
+          <dd className="text-right text-ink">
+            {lb.position[player.positionCategory](gender)}
+            {player.starting && (
+              <span className="ml-2 inline-flex items-center rounded-sm bg-green-tint px-1.5 py-0.5 text-footnote font-medium text-green-strong">
+                {p.shared.starting}
+              </span>
+            )}
+          </dd>
+        </div>
+        <div className="flex min-h-11 items-center justify-between gap-4 py-2">
+          <dt className="text-ink-2">{p.shared.shirtSize}</dt>
+          <dd className="text-right tabular-nums text-ink">{player.shirtSize || '—'}</dd>
+        </div>
+        <div className="flex min-h-11 items-center justify-between gap-4 py-2">
+          <dt className="text-ink-2">{p.shared.phone}</dt>
+          <dd className="break-words text-right tabular-nums text-ink">{player.playerPhone || '—'}</dd>
+        </div>
+        <div className="flex min-h-11 items-center justify-between gap-4 py-2">
+          <dt className="text-ink-2">{p.shared.license}</dt>
+          <dd className="text-right tabular-nums text-ink">{player.licenseNumber || '—'}</dd>
+        </div>
+        <div className="flex min-h-11 items-center justify-between gap-4 py-2">
+          <dt className="text-ink-2">{p.shared.nationality}</dt>
+          <dd className="text-right text-ink">{player.nationality || '—'}</dd>
+        </div>
       </dl>
 
       {editing && isAdmin && (
-        <Dialog title={p.contact.dialogTitle} onClose={() => onEditingChange(false)} guardUnsaved>
-          <form onSubmit={handleSave} aria-label={p.contact.formLabel}>
+        <Sheet
+          title={p.contact.dialogTitle}
+          onClose={() => onEditingChange(false)}
+          guardUnsaved
+          confirm={{ label: t.common.save, form: 'player-contact-form', disabled: saving }}
+        >
+          <form id="player-contact-form" onSubmit={handleSave} aria-label={p.contact.formLabel}>
             <label htmlFor="player-name" className="mb-1 block text-sm font-medium text-ink">
               {p.contact.name}
             </label>
@@ -185,24 +215,16 @@ export function PlayerContactSection({
               id="player-phone"
               value={playerPhone}
               onChange={(e) => setPlayerPhone(e.target.value)}
-              className="mb-4 w-full"
+              className="mb-3 w-full"
             />
 
-            <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => onEditingChange(false)}>
-                {t.common.cancel}
-              </Button>
-              <Button variant="primary" type="submit">
-                {t.common.save}
-              </Button>
-            </div>
             {error && (
               <p role="alert" className="mt-3 text-sm text-red-strong">
                 {error}
               </p>
             )}
           </form>
-        </Dialog>
+        </Sheet>
       )}
     </div>
   );

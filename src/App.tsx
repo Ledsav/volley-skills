@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { ScoutRoot } from './matches/scout/ScoutRoot';
 import { AwardsRoot } from './awards/AwardsRoot';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
@@ -32,6 +32,7 @@ import { MorePage } from './layout/MorePage';
 import { ClubAreaPage } from './clubs/area/ClubAreaPage';
 import { RequestAccessPage } from './interest/RequestAccessPage';
 import { NotFoundPage } from './layout/NotFoundPage';
+import { RouteErrorBoundary, RouteLoadError } from './layout/RouteErrorBoundary';
 import { HomePage } from './home/HomePage';
 import { MatchPage } from './matches/MatchPage';
 
@@ -42,15 +43,41 @@ const DiagramEditorPage = lazy(() =>
 // Dev-only: the guard is a build-time constant, so production bundles drop the gallery entirely.
 const UiGallery = import.meta.env.DEV ? lazy(() => import('./dev/UiGallery')) : null;
 const DiagramEditorPreview = import.meta.env.DEV ? lazy(() => import('./dev/DiagramEditorPreview')) : null;
+const ShellPreview = import.meta.env.DEV ? lazy(() => import('./dev/ShellPreview')) : null;
 
 const AwardsPage = lazy(() => import('./awards/AwardsPage'));
 const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
 
-function LazyFallback({ what }: { what: 'editor' | 'scouting' | 'awards' }) {
+type LazyWhat = 'editor' | 'scouting' | 'awards';
+
+/** Scouting and awards paint their own (dark) canvas; the loading and error screens sit on it too. */
+function LazyFrame({ what, children }: { what: LazyWhat; children: ReactNode }) {
+  if (what === 'scouting') return <ScoutRoot>{children}</ScoutRoot>;
+  return what === 'awards' ? <AwardsRoot>{children}</AwardsRoot> : <>{children}</>;
+}
+
+/** A lazily loaded full-screen route: a loading line while its code downloads, an error screen if that fails. */
+function LazyRoute({ what, children }: { what: LazyWhat; children: ReactNode }) {
   const t = useT();
-  const message = <div className="p-6 text-ink-2">{t.layout.lazyLoading[what]}</div>;
-  if (what === 'scouting') return <ScoutRoot>{message}</ScoutRoot>;
-  return what === 'awards' ? <AwardsRoot>{message}</AwardsRoot> : message;
+  return (
+    <RouteErrorBoundary
+      fallback={
+        <LazyFrame what={what}>
+          <RouteLoadError />
+        </LazyFrame>
+      }
+    >
+      <Suspense
+        fallback={
+          <LazyFrame what={what}>
+            <div className="p-6 text-ink-2">{t.layout.lazyLoading[what]}</div>
+          </LazyFrame>
+        }
+      >
+        {children}
+      </Suspense>
+    </RouteErrorBoundary>
+  );
 }
 
 function AuthenticatedLayout() {
@@ -103,6 +130,17 @@ export function App() {
                 element={
                   <Suspense fallback={null}>
                     <DiagramEditorPreview />
+                  </Suspense>
+                }
+              />
+            )}
+            {import.meta.env.DEV && ShellPreview && (
+              // Dev-only and not behind sign-in: the shell and shared controls over static content, for screenshots.
+              <Route
+                path="/dev/preview/shell"
+                element={
+                  <Suspense fallback={null}>
+                    <ShellPreview />
                   </Suspense>
                 }
               />
@@ -169,9 +207,9 @@ export function App() {
               element={
                 <RequireAuth>
                   <RequireSection section="exercises">
-                    <Suspense fallback={<LazyFallback what="editor" />}>
+                    <LazyRoute what="editor">
                       <DiagramEditorPage />
-                    </Suspense>
+                    </LazyRoute>
                   </RequireSection>
                 </RequireAuth>
               }
@@ -180,9 +218,9 @@ export function App() {
               path="/teams/:teamId/matches/:matchId/scout"
               element={
                 <RequireAuth>
-                  <Suspense fallback={<LazyFallback what="scouting" />}>
+                  <LazyRoute what="scouting">
                     <ScoutPage />
-                  </Suspense>
+                  </LazyRoute>
                 </RequireAuth>
               }
             />
@@ -190,9 +228,9 @@ export function App() {
               path="/teams/:teamId/awards"
               element={
                 <RequireAuth>
-                  <Suspense fallback={<LazyFallback what="awards" />}>
+                  <LazyRoute what="awards">
                     <AwardsPage scope="season" />
-                  </Suspense>
+                  </LazyRoute>
                 </RequireAuth>
               }
             />
@@ -200,9 +238,9 @@ export function App() {
               path="/teams/:teamId/matches/:matchId/awards"
               element={
                 <RequireAuth>
-                  <Suspense fallback={<LazyFallback what="awards" />}>
+                  <LazyRoute what="awards">
                     <AwardsPage scope="match" />
-                  </Suspense>
+                  </LazyRoute>
                 </RequireAuth>
               }
             />

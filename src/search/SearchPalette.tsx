@@ -293,7 +293,7 @@ export function SearchPalette({ onClose }: Props) {
           const shown = visible(g);
           return (
             <div key={g.id} role="presentation" className="pb-1">
-              <div role="presentation" className="px-3 pb-1 pt-2 text-caption font-medium uppercase tracking-wide text-ink-3">
+              <div role="presentation" className="px-3 pb-1 pt-2 text-caption text-ink-2">
                 {g.label}
               </div>
               {shown.map((item: Entry) => {
@@ -314,7 +314,7 @@ export function SearchPalette({ onClose }: Props) {
                     {Icon && <Icon size={18} className="shrink-0 text-ink-3" aria-hidden="true" />}
                     <span className="min-w-0 flex-1">
                       <span className={`block truncate text-body ${item.more ? 'text-ink-2' : 'text-ink'}`}>{item.label}</span>
-                      {item.sublabel && <span className="block truncate text-footnote text-ink-3">{item.sublabel}</span>}
+                      {item.sublabel && <span className="block truncate text-footnote text-ink-2">{item.sublabel}</span>}
                     </span>
                     {item.more && <ChevronDown size={16} className="shrink-0 text-ink-3" aria-hidden="true" />}
                     {item.pick && <ChevronRight size={16} className="shrink-0 text-ink-3" aria-hidden="true" />}
@@ -332,7 +332,7 @@ export function SearchPalette({ onClose }: Props) {
         })}
       </div>
       {offline && q && !picking && (canExercises || canTrainings) && (
-        <p role="note" className="border-t border-separator px-4 py-2 text-footnote text-ink-3">
+        <p role="note" className="border-t border-separator px-4 py-2 text-footnote text-ink-2">
           {t.offlineNote}
         </p>
       )}

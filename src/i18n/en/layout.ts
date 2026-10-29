@@ -17,6 +17,11 @@ export const layout = {
     scouting: 'Loading scouting…',
     awards: 'Loading awards…',
   },
+  lazyError: {
+    title: "This page didn't load",
+    body: 'The app may have been updated, or the connection dropped. Reload to try again.',
+    reload: 'Reload',
+  },
   appShell: {
     droppedClub: 'You no longer have access to your previous club.',
     skipToContent: 'Skip to content',

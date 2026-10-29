@@ -222,3 +222,75 @@ describe('useDiagramEditor save pipeline (B2)', () => {
     expect(result.current.status).toBe('saved');
   });
 });
+
+describe('a rejected save waits for the next change or Retry (fix round 2)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(diagramsApi.saveDiagramSet).mockReset();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const rejecting = (code: string) => (_e: string, _o: unknown, _u: string, onQueued?: (m: Record<string, string>) => void) => {
+    onQueued?.({});
+    return Promise.reject(Object.assign(new Error(code), { code }));
+  };
+
+  async function failedEditor(code = 'permission-denied') {
+    vi.mocked(diagramsApi.saveDiagramSet).mockImplementation(rejecting(code) as never);
+    const hook = await dirtyEditor();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3100);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+    return hook;
+  }
+
+  it.each(['permission-denied', 'not-found'])('a %s rejection makes exactly one attempt over 15 s idle', async (code) => {
+    const { result } = await failedEditor(code);
+    expect(result.current.status).toBe('failed');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe('failed');
+  });
+
+  it('keeps warning on leave while failed', async () => {
+    await failedEditor();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    const ev = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
+  it('an edit after the failure makes one new attempt', async () => {
+    const { result } = await failedEditor();
+    act(() => result.current.dispatch({ type: 'addItem', item: { ...createItem('cone', { x: 3, y: 3 }), id: 'y' } }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3100);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
+  });
+
+  it('Retry makes one attempt', async () => {
+    const { result } = await failedEditor();
+    await act(() => result.current.save());
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
+  });
+
+  it('is never saved while an error is set', async () => {
+    vi.mocked(diagramsApi.saveDiagramSet).mockImplementation(rejecting('permission-denied') as never);
+    const { result } = await dirtyEditor();
+    await act(() => result.current.save());
+    expect(result.current.saveError).not.toBeNull();
+    act(() => result.current.dispatch({ type: 'loaded', diagrams: [] }));
+    expect(result.current.dirty).toBe(false);
+    expect(result.current.status).toBe('failed');
+  });
+});

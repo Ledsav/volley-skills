@@ -506,6 +506,7 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   idsRef.current = { exerciseId, uid };
   const mountedRef = useRef(true);
   const pending = useRef(0);
+  const skipAutosave = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -576,6 +577,8 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
         if (queuedMap) {
           const action: EditorAction = { type: 'saveFailed', idMap: queuedMap, sent: snapshot };
           stateRef.current = diagramReducer(stateRef.current, action);
+          // The revert makes the state dirty again; that must not re-arm autosave.
+          skipAutosave.current = true;
           if (mountedRef.current) dispatch(action);
         }
         if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
@@ -595,16 +598,23 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
   const flush = save;
 
   const dirty = isEditorDirty(state);
-  const status: EditorSaveStatus = saveError && dirty ? 'failed' : saving || dirty ? 'saving' : 'saved';
+  const status: EditorSaveStatus = saveError ? 'failed' : saving || dirty ? 'saving' : 'saved';
 
   // Autosave 3 s after the last change.
   useEffect(() => {
+    if (skipAutosave.current) {
+      // A rejected save waits for the next real change or Retry.
+      skipAutosave.current = false;
+      return;
+    }
     if (!dirty) return;
     const timer = window.setTimeout(() => void save(), 3000);
     return () => window.clearTimeout(timer);
   }, [state, dirty, save]);
 
-  // Flush when the page goes away or hides, and when the editor unmounts.
+  // Flush when the page hides and when the editor unmounts. The pagehide flush is best effort:
+  // Firestore's own pagehide handler runs first, so visibilitychange (hidden) and beforeunload
+  // cover most real closes.
   useEffect(() => {
     mountedRef.current = true;
     const onHide = () => void flush();

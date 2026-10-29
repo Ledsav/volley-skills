@@ -29,6 +29,18 @@ describe('useSave', () => {
     expect(result.current.saving).toBe(false);
   });
 
+  it('offline, hands the queued write to onQueued', async () => {
+    setOnline(false);
+    const written = new Promise<void>(() => undefined);
+    const write = vi.fn(() => written);
+    const onQueued = vi.fn();
+    const { result } = renderHook(() => useSave());
+    await act(async () => {
+      expect(await result.current.save(write, { onQueued })).toBe(true);
+    });
+    expect(onQueued).toHaveBeenCalledWith(written);
+  });
+
   it('rethrows a failed write and allows another try', async () => {
     const { result } = renderHook(() => useSave());
     await act(async () => {

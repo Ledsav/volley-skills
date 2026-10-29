@@ -114,6 +114,11 @@ export const players = {
     loadError: 'Could not load this player.',
     loading: 'Loading player...',
     sectionsLabel: 'Player sections',
+    sync: {
+      savedOffline: 'Saved on this device · will sync',
+      waiting: 'Waiting to sync',
+      failed: 'Some changes made offline could not be saved. Reload the page to see the stored card.',
+    },
     sections: {
       skills: 'Skills',
       matches: 'Matches',

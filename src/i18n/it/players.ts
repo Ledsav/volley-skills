@@ -117,6 +117,11 @@ export const players = {
     loadError: 'Impossibile caricare questa scheda.',
     loading: 'Caricamento scheda...',
     sectionsLabel: 'Sezioni della scheda',
+    sync: {
+      savedOffline: 'Salvato su questo dispositivo · si sincronizzerà',
+      waiting: 'In attesa di sincronizzazione',
+      failed: 'Alcune modifiche fatte offline non sono state salvate. Ricarica la pagina per vedere la scheda salvata.',
+    },
     sections: {
       skills: 'Abilità',
       matches: 'Partite',

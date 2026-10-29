@@ -16,6 +16,8 @@ interface SaveOptions {
    * `OfflineError` instead of hanging.
    */
   offline?: 'queue' | 'block';
+  /** Offline `queue` only: receives the write's promise before `save` resolves, to track when it syncs or is rejected. */
+  onQueued?: (written: Promise<unknown>) => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export function useSave() {
       const pending = write();
       if (offline) {
         pending.catch(() => undefined);
+        options.onQueued?.(pending);
         return true;
       }
       await pending;

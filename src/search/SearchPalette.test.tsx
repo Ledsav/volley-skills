@@ -286,7 +286,7 @@ describe('SearchPalette', () => {
       mocks.access = { isClubAdmin: false, sections: { exercises: true, trainings: false, guides: false } };
       const { input } = setup();
       type(input, 'pass');
-      expect(mocks.serverCalls.at(-1)).toEqual({ q: 'pass', enabled: { exercises: true, trainings: false } });
+      expect(mocks.serverCalls[mocks.serverCalls.length - 1]).toEqual({ q: 'pass', enabled: { exercises: true, trainings: false } });
     });
 
     it('show more is a keyboard-reachable option', () => {

@@ -97,9 +97,8 @@ function useGroup<T>(
     setSlot({ ...EMPTY, loading: true });
     const timer = setTimeout(() => run(null, id), DEBOUNCE_MS);
     return () => {
+      // The next run (or a switch-off) bumps the request id, so anything still in flight becomes stale.
       clearTimeout(timer);
-      // Whatever is in flight for this query is now stale.
-      reqId.current++;
     };
   }, [active, token, run]);
 

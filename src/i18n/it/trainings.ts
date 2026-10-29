@@ -33,7 +33,9 @@ export const trainings = {
     draftWithAi: 'Bozza con IA',
     newTraining: 'Nuovo allenamento',
     ageGroup: 'Fascia d’età',
-    businessId: 'ID',
+    allAgeGroups: 'Tutte',
+    search: 'Cerca allenamenti',
+    searchPlaceholder: 'Cerca per nome o ID (TR-0007)',
     none: 'Nessun allenamento trovato.',
     summary: (age: string, exerciseCount: number, minutes: number) =>
       `${age} · ${exercisesCount(exerciseCount)} · ${minutes} min`,

@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, GripVertical, Tra
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
+import { useMediaQuery } from '../components/useMediaQuery';
 import { OfflineError, useSave } from '../components/useSave';
 import { FilterChips, ToggleChip } from '../components/Chip';
 import { Sheet } from '../components/Sheet';
@@ -210,6 +211,13 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
   const showSuggested = targets.length > 0 && pickerCategory === '';
 
   const { saving, save } = useSave();
+  // A wide screen keeps the exercise library open beside the plan (mockup); a phone opens it below on demand.
+  const wide = useMediaQuery('(min-width: 1024px)', false);
+  const libraryOpen = pickerOpen || wide;
+  useEffect(() => {
+    if (wide && !pickerOpen) openPicker();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wide]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -344,7 +352,6 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           onChange={(e) => setName(e.target.value)}
           placeholder={trainingNameExample()}
           aria-describedby="training-name-hint"
-          className="w-full !text-title-3 !font-semibold"
         />
         <p id="training-name-hint" className={hint}>
           {trainingNameHint()}
@@ -407,7 +414,8 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
           rows={3}
         />
 
-        <div className="mt-6">
+        <div className={`mt-6 ${wide ? 'grid grid-cols-[minmax(0,1fr)_17rem] items-start gap-4' : ''}`}>
+          <div className="min-w-0">
           <div className="mb-2 flex items-baseline justify-between gap-3">
             <span className="text-title-3 text-ink">{m.exercises}</span>
             <span className="text-callout tabular-nums text-ink-2">{m.summary(rows.length, totalMinutes)}</span>
@@ -513,14 +521,23 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
               );
             })}
           </ul>
+          </div>
 
-          {pickerOpen ? (
-            <div className="mt-3 rounded-lg bg-surface-2 p-3">
-              <div className="mb-2 flex items-center justify-between">
+          {libraryOpen ? (
+            <div
+              className={
+                wide
+                  ? 'scroll-quiet sticky top-0 max-h-[60vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-2 p-3'
+                  : 'mt-3 rounded-lg bg-surface-2 p-3'
+              }
+            >
+              <div className="mb-2 flex min-h-11 items-center justify-between">
                 <p className="text-headline text-ink">{m.pickExercise}</p>
-                <Button variant="ghost" onClick={() => setPickerOpen(false)} className="min-h-11">
-                  {m.done}
-                </Button>
+                {!wide && (
+                  <Button variant="ghost" onClick={() => setPickerOpen(false)} className="min-h-11">
+                    {m.done}
+                  </Button>
+                )}
               </div>
 
               <FilterChips

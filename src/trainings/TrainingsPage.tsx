@@ -8,6 +8,8 @@ import { BulkImportDialog } from '../bulkImport/BulkImportDialog';
 import { Button } from '../components/Button';
 import { SkeletonBlock } from '../components/Skeleton';
 import { Input } from '../components/Input';
+import { FilterChips } from '../components/Chip';
+import { normalize } from '../search/searchTokens';
 import { useDebouncedValue } from '../components/useDebouncedValue';
 import { Plus, Sparkles } from 'lucide-react';
 import { useTakePendingAction } from '../search/pendingAction';
@@ -38,6 +40,7 @@ import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
 import { trainingImportIssueText } from './trainingsImportMessages';
 import { PageContainer } from '../layout/PageContainer';
+import { asBusinessId } from './businessId';
 
 type TeamContext = { teamId: string; date: string; notes: string };
 
@@ -64,13 +67,16 @@ export function TrainingsPage() {
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [ageGroup, setAgeGroup] = useState('');
-  const [businessId, setBusinessId] = useState(() => searchParams.get('businessId') ?? '');
+  // The age groups seen in the library so far: the chips offered above the list.
+  const [ageGroups, setAgeGroups] = useState<string[]>([]);
+  const [search, setSearch] = useState(() => searchParams.get('businessId') ?? '');
   // Opened from a team's calendar session (?team=…&session=…): open that training with its team context, once.
   const sessionLink = useRef({ teamId: searchParams.get('team'), sessionId: searchParams.get('session'), opened: false });
-  // Free-text filters: debounce so a query fires once the user stops typing,
-  // not on every keystroke.
-  const debouncedAgeGroup = useDebouncedValue(ageGroup, 350);
-  const debouncedBusinessId = useDebouncedValue(businessId, 350);
+  // A search that reads as a business ID is one exact lookup, debounced so it fires once the user stops typing;
+  // any other text filters the loaded list by name as you type.
+  const debouncedSearch = useDebouncedValue(search, 350);
+  const idQuery = asBusinessId(debouncedSearch);
+  const nameNeedle = asBusinessId(search) ? '' : normalize(search.trim());
   // Opening a training shows the read-only plan ('view'); editing from there
   // returns to the plan on cancel.
   const [dialog, setDialog] = useState<
@@ -84,9 +90,17 @@ export function TrainingsPage() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function rememberAgeGroups(list: Training[]) {
+    setAgeGroups((current) => {
+      const next = new Set(current);
+      for (const x of list) if (x.ageGroupTarget.trim()) next.add(x.ageGroupTarget.trim());
+      return next.size === current.length ? current : [...next].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    });
+  }
+
   async function load() {
-    if (debouncedBusinessId.trim()) {
-      const found = await findTrainingByBusinessId(debouncedBusinessId.trim());
+    if (idQuery) {
+      const found = await findTrainingByBusinessId(idQuery);
       setTrainings(found ? [found] : []);
       const link = sessionLink.current;
       if (found && link.teamId && link.sessionId && !link.opened) {
@@ -101,10 +115,8 @@ export function TrainingsPage() {
       setLoaded(true);
       return;
     }
-    const page = await listTrainings(
-      null,
-      debouncedAgeGroup.trim() ? { ageGroupTarget: debouncedAgeGroup.trim() } : {}
-    );
+    const page = await listTrainings(null, ageGroup ? { ageGroupTarget: ageGroup } : {});
+    rememberAgeGroups(page.trainings);
     setTrainings(page.trainings);
     setLastDoc(page.lastDoc);
     setHasMore(page.hasMore);
@@ -113,10 +125,8 @@ export function TrainingsPage() {
 
   async function loadMore() {
     if (!lastDoc) return;
-    const page = await listTrainings(
-      lastDoc,
-      debouncedAgeGroup.trim() ? { ageGroupTarget: debouncedAgeGroup.trim() } : {}
-    );
+    const page = await listTrainings(lastDoc, ageGroup ? { ageGroupTarget: ageGroup } : {});
+    rememberAgeGroups(page.trainings);
     setTrainings((current) => [...current, ...page.trainings]);
     setLastDoc(page.lastDoc);
     setHasMore(page.hasMore);
@@ -127,7 +137,7 @@ export function TrainingsPage() {
     setLoaded(false);
     load().catch(() => setError(p.loadError));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedAgeGroup, debouncedBusinessId]);
+  }, [ageGroup, idQuery]);
 
   // Opened from a search result (?training=<id>): load it once, open its plan, drop the param.
   const trainingParam = searchParams.get('training');
@@ -182,7 +192,9 @@ export function TrainingsPage() {
     });
   }
 
-  const visible = trainings.filter((x) => !hidden.has(x.id));
+  const visible = trainings.filter(
+    (x) => !hidden.has(x.id) && (!nameNeedle || normalize(`${x.name} ${x.businessId}`).includes(nameNeedle)),
+  );
 
   const moreItems: MenuItem[] = [
     { kind: 'action', label: p.import, onSelect: () => setShowImport(true) },
@@ -198,30 +210,23 @@ export function TrainingsPage() {
         className="mb-4"
       />
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="w-full sm:w-auto">
-          <label htmlFor="filter-age" className="mb-1 block text-footnote text-ink-2">
-            {p.ageGroup}
-          </label>
-          <Input
-            id="filter-age"
+      <div className="mb-4 flex flex-col gap-3">
+        <Input
+          type="search"
+          aria-label={p.search}
+          placeholder={p.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:max-w-sm"
+        />
+        {ageGroups.length > 0 && !idQuery && (
+          <FilterChips
+            label={p.ageGroup}
+            options={[{ id: '', label: p.allAgeGroups }, ...ageGroups.map((g) => ({ id: g, label: g }))]}
             value={ageGroup}
-            onChange={(e) => setAgeGroup(e.target.value)}
-            className="w-full sm:w-40"
+            onChange={setAgeGroup}
           />
-        </div>
-        <div className="w-full sm:w-auto">
-          <label htmlFor="filter-bid" className="mb-1 block text-footnote text-ink-2">
-            {p.businessId}
-          </label>
-          <Input
-            id="filter-bid"
-            value={businessId}
-            onChange={(e) => setBusinessId(e.target.value)}
-            placeholder="TR-0007"
-            className="w-full sm:w-40"
-          />
-        </div>
+        )}
       </div>
 
       {error && (

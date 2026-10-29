@@ -122,12 +122,10 @@ describe('TrainingsPage', () => {
     // the page's actions live in the shell toolbar, not in a content row
     expect(heading.closest('[data-page-header]')?.querySelector('button')).toBeNull();
 
-    // filters wrap instead of overflowing a phone screen; fields are full-width there
-    const ageField = screen.getByLabelText('Age group');
-    expect(ageField.className).toContain('w-full');
-    expect(ageField.className).toContain('sm:w-40');
-    const filterRow = ageField.closest('div')?.parentElement as HTMLElement;
-    expect(filterRow.className).toContain('flex-wrap');
+    // one search field, full width on a phone and capped from sm
+    const search = screen.getByLabelText('Search trainings');
+    expect(search.className).toContain('w-full');
+    expect(search.className).toContain('sm:max-w-sm');
   });
 
   it('lists trainings in a grouped list', async () => {
@@ -142,10 +140,24 @@ describe('TrainingsPage', () => {
     await screen.findByText('Passing circuit');
     vi.useFakeTimers();
 
-    fireEvent.change(screen.getByLabelText('Business ID'), { target: { value: 'TR-0007' } });
+    fireEvent.change(screen.getByLabelText('Search trainings'), { target: { value: 'tr-7' } });
     await flushDebounce();
 
     expect(trainingsApi.findTrainingByBusinessId).toHaveBeenCalledWith('TR-0007');
+  });
+
+  it('filters the loaded list by name without a new query', async () => {
+    const other = { ...training, id: 't-2', businessId: 'TR-0008', name: 'Serve circuit' };
+    vi.mocked(trainingsApi.listTrainings).mockResolvedValue({ trainings: [training, other], lastDoc: null, hasMore: false });
+    renderPage();
+    await screen.findByText('Serve circuit');
+    vi.mocked(trainingsApi.listTrainings).mockClear();
+
+    fireEvent.change(screen.getByLabelText('Search trainings'), { target: { value: 'serve' } });
+
+    expect(screen.getByText('Serve circuit')).toBeInTheDocument();
+    expect(screen.queryByText('Passing circuit')).not.toBeInTheDocument();
+    expect(trainingsApi.findTrainingByBusinessId).not.toHaveBeenCalled();
   });
 
   it('seeds the business-id filter from the ?businessId= query param', async () => {
@@ -153,7 +165,7 @@ describe('TrainingsPage', () => {
 
     await waitFor(() => expect(trainingsApi.findTrainingByBusinessId).toHaveBeenCalledWith('TR-0007'));
     expect(await screen.findByText('Passing circuit')).toBeInTheDocument();
-    expect((screen.getByLabelText('Business ID') as HTMLInputElement).value).toBe('TR-0007');
+    expect((screen.getByLabelText('Search trainings') as HTMLInputElement).value).toBe('TR-0007');
   });
 
   it('surfaces an alert and hides the empty state when the list query fails', async () => {
@@ -288,22 +300,17 @@ describe('TrainingsPage', () => {
     expect(screen.getByRole('dialog', { name: /Import trainings/ })).toBeInTheDocument();
   });
 
-  it('debounces the age-group filter so typing does not query on every keystroke', async () => {
+  it("offers the library's age groups as chips; a chip runs the age-group query", async () => {
     renderPage();
     await screen.findByText('Passing circuit');
     vi.mocked(trainingsApi.listTrainings).mockClear();
-    vi.useFakeTimers();
 
-    const field = screen.getByLabelText('Age group');
-    fireEvent.change(field, { target: { value: 'U' } });
-    fireEvent.change(field, { target: { value: 'U1' } });
-    fireEvent.change(field, { target: { value: 'U17' } });
+    const chips = screen.getByRole('group', { name: 'Age group' });
+    fireEvent.click(within(chips).getByRole('button', { name: 'U17' }));
 
-    expect(trainingsApi.listTrainings).not.toHaveBeenCalled();
-
-    await flushDebounce();
+    await waitFor(() => expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' }));
     expect(trainingsApi.listTrainings).toHaveBeenCalledTimes(1);
-    expect(trainingsApi.listTrainings).toHaveBeenCalledWith(null, { ageGroupTarget: 'U17' });
+    expect(within(chips).getByRole('button', { name: 'U17' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('more menu holds import and AI draft', async () => {

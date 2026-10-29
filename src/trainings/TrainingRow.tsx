@@ -33,7 +33,7 @@ export function TrainingRow({
   const { targetProps, menu } = useContextMenu({ label, items });
 
   return (
-    <li className="relative before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden">
+    <li className="relative before:absolute before:left-4 before:right-0 before:top-0 before:z-10 before:h-px before:bg-separator first:before:hidden">
       <SwipeRow trailing={[{ label: p.delete, tone: 'destructive', undoable: true, onAction: onDelete }]}>
         <>
           <div

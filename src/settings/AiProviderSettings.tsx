@@ -4,7 +4,6 @@ import { AlertTriangle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import type { Catalog } from '../i18n/catalog';
 import { useT } from '../i18n/I18nProvider';
 import { Button } from '../components/Button';
-import { SettingsSection } from './SettingsSection';
 import { FIELD_CLASS, Input } from '../components/Input';
 import { useNotify } from '../components/Notice';
 import { AiError, testConnection } from '../ai/aiClient';
@@ -25,7 +24,7 @@ function errorText(e: AiError, provider: AiProvider, t: Catalog['settings']['ai'
 }
 
 const INPUT_CLASS = 'w-full min-h-11';
-const EXT_LINK_CLASS = 'text-sm text-blue-strong hover:underline';
+const EXT_LINK_CLASS = 'text-callout text-ink underline';
 
 type Status = { kind: 'testing' | 'ok' | 'error'; text: string };
 
@@ -63,12 +62,12 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
   }
 
   const statusColor =
-    status?.kind === 'ok' ? 'text-green-strong' : status?.kind === 'error' ? 'text-red-strong' : 'text-slate';
+    status?.kind === 'ok' ? 'text-green-strong' : status?.kind === 'error' ? 'text-red-strong' : 'text-ink-2';
 
   return (
-    <SettingsSection title={t.title} description={t.description}>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-4 rounded-lg bg-surface p-4 shadow-card md:grid-cols-2">
+        <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
           {t.provider}
           <select
             aria-label={t.providerAria}
@@ -87,7 +86,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           </select>
         </label>
         <div className="flex flex-col gap-1">
-          <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+          <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
             {t.model}
             <Input
               aria-label={t.model}
@@ -109,7 +108,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           )}
         </div>
         {preset.editableUrl && (
-          <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+          <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
             {t.baseUrl}
             <Input
               aria-label={t.baseUrl}
@@ -122,7 +121,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
         {preset.needsKey && (
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
-              <label htmlFor={keyId} className="text-sm font-medium text-ink">
+              <label htmlFor={keyId} className="text-footnote font-medium text-ink-2">
                 {t.apiKey}
               </label>
               {preset.keyUrl && (
@@ -146,12 +145,12 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
                 aria-label={showKey ? t.hideKey : t.showKey}
                 aria-pressed={showKey}
                 onClick={() => setShowKey((v) => !v)}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate hover:text-ink"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-2 hover:text-ink"
               >
                 {showKey ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
             </div>
-            <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
+            <label className="flex min-h-11 items-center gap-2 text-body text-ink">
               <input
                 type="checkbox"
                 className="h-4 w-4"
@@ -175,36 +174,30 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
           </div>
         )}
       </div>
-      <p className="text-xs text-slate">{ait.providers[s.provider].note}</p>
-      {preset.needsKey && (
-        <p className="text-xs text-slate">
-          {t.dpa}
+      <div className="flex flex-col gap-2 px-4 text-footnote text-ink-2">
+        <p>{ait.providers[s.provider].note}</p>
+        {preset.needsKey && <p>{t.dpa}</p>}
+        <p>{t.ownKey}</p>
+        <p>
+          {t.privacy}{' '}
+          <Link to="/privacy" className="text-ink underline">
+            {t.whatsSent}
+          </Link>
         </p>
-      )}
-      <p className="text-xs text-slate">
-        {t.ownKey}
-      </p>
-      <p className="text-xs text-slate">
-        {t.privacy}{' '}
-        <Link to="/privacy" className="text-blue-strong hover:underline">
-          {t.whatsSent}
-        </Link>
-      </p>
-      <p aria-live="polite" className="text-xs text-slate">
-        {saved ? t.saved : ''}
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
+        <p aria-live="polite">{saved ? t.saved : ''}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 px-4">
         <Button variant="secondary" size="sm" onClick={() => void runTest()} disabled={testing}>
           {t.test}
         </Button>
         {status && (
-          <p role="status" className={`flex items-center gap-1.5 text-sm ${statusColor}`}>
+          <p role="status" className={`flex items-center gap-1.5 text-callout ${statusColor}`}>
             {status.kind === 'ok' && <CheckCircle2 size={16} aria-hidden="true" />}
             {status.kind === 'error' && <AlertTriangle size={16} aria-hidden="true" />}
             {status.text}
           </p>
         )}
       </div>
-    </SettingsSection>
+    </div>
   );
 }

@@ -133,7 +133,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
           <Button
             variant="primary"
             disabled={!!error || serving === null}
-            onClick={() => onStart(lineup, serving as Side, Object.fromEntries(roster.map((r) => [r.playerId, setRoles[r.playerId] ?? r.positionCategory])))}
+            onClick={() => serving !== null && onStart(lineup, serving, Object.fromEntries(roster.map((r) => [r.playerId, setRoles[r.playerId] ?? r.positionCategory])))}
           >
             {t.start}
           </Button>

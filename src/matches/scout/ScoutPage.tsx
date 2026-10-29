@@ -305,10 +305,10 @@ export function ScoutPage() {
 
   function undo() {
     if (!events || events.length === 0 || takenOver) return;
-    setReasonPrompt(null);
     const target = undoTarget(events, writtenRef.current);
     writtenRef.current = target.stack;
     if (target.kind === 'none' || target.kind === 'importOnly') return;
+    setReasonPrompt(null);
     const ids = target.ids;
     if (target.kind === 'batch') setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);

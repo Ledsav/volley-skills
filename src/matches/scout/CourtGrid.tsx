@@ -46,13 +46,15 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
 
   useEffect(() => clear, []);
 
-  // Card hierarchy: name first, then jersey number and role side by side; the zone belongs to the court, so it stays quiet.
+  // Tile hierarchy, the same spot on every tile so the eye learns it: role badge then jersey number on the
+  // first line, the name (the largest text) under them; markers (auto, form) top right; the court zone
+  // belongs to the court, so it stays a quiet label in the bottom-right corner.
   const tile = (zone: number) => {
     const id = court[zone];
     const entry = id ? roster.get(id) : undefined;
     const serves = servingUs && zone === 0;
     const zoneLabel = (muted: string) => (
-      <span className={`absolute ${compact ? 'bottom-1 right-1.5' : 'left-1.5 top-1'} flex items-center gap-1 text-[11px] font-medium leading-4 ${muted}`}>
+      <span className={`absolute bottom-1 right-1.5 flex items-center gap-1 text-[11px] font-medium leading-4 ${muted}`}>
         P{zone + 1}
         {serves && <Volleyball size={12} aria-hidden="true" />}
       </span>
@@ -95,7 +97,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
         onClick={() => {
           if (!disabled && !longPressed.current) onSelect(id);
         }}
-        className={`relative flex ${compact ? 'min-h-14' : 'min-h-[72px] md:min-h-20'} min-w-0 select-none flex-col items-start justify-center ${compact ? 'gap-0' : 'gap-1'} rounded-md px-2.5 ${compact ? 'py-1' : 'pb-1.5 pt-5'} text-left text-ink disabled:opacity-60 ${
+        className={`relative flex ${compact ? 'min-h-14' : 'min-h-[72px] md:min-h-20'} min-w-0 select-none flex-col items-start justify-center ${compact ? 'gap-0.5' : 'gap-1 md:gap-1.5'} rounded-md ${compact ? 'px-2 py-1' : 'px-2.5 py-2 md:px-4'} text-left text-ink disabled:opacity-60 ${
           isSelected ? 'bg-surface-3 ring-2 ring-ink' : isLibero ? 'bg-orange-tint' : 'bg-surface'
         } ${isServer && !isSelected ? 'ring-2 ring-inset ring-surface-3' : ''}`}
       >
@@ -110,14 +112,21 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
             <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${f === 'bad' ? 'bg-red' : 'bg-green'}`} />
           )}
         </span>
-        <span className="max-w-full truncate text-left text-headline">{names.get(id) ?? entry.name}</span>
-        <span className="flex items-center gap-1.5 text-ink-2">
-          <span className="text-callout tabular-nums leading-none">#{entry.number}</span>
+        <span className={`flex max-w-full items-center ${compact ? 'gap-1.5' : 'gap-2'}`}>
           <RoleChip
+            variant="badge"
+            selected={isSelected}
             role={isLibero ? 'L' : (roles?.[id] ?? entry.positionCategory)}
             label={isLibero ? t.scout.court.liberoTile[liberos.find((l) => l.playerId === id)?.mode ?? 'always'] : undefined}
             libero={isLibero}
           />
+          <span className={`font-bold tabular-nums leading-none text-ink ${compact ? 'text-callout' : 'text-headline md:text-title-3 xl:text-title-2'}`}>
+            #{entry.number}
+          </span>
+        </span>
+        {/* The name never wraps into the badge line: one line, truncated, clear of the zone label. */}
+        <span className={`max-w-full truncate pr-5 text-left ${compact ? 'text-headline' : 'text-title-3 md:text-title-2 xl:text-title-1'}`}>
+          {names.get(id) ?? entry.name}
         </span>
       </button>
     );

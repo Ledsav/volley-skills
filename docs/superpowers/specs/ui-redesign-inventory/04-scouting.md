@@ -309,13 +309,13 @@ Used in two places: the create dialog (§1, submit label "Create match") and the
   - A dashed attack line.
   - The back row: **P5 P6 P1**.
   - The court is framed with an orange border on an orange tint.
-- **Tile content.** Name first, then number and role.
-  - At the top left, the zone label "P{n}". The P1 tile also shows a volleyball icon while **we serve**.
+- **Tile content.** The same spot on every tile, for recognition at a glance: role badge and number first, then the name as the largest text; the zone stays quiet.
+  - In the bottom-right corner, the quiet zone label "P{n}". The P1 tile also shows a volleyball icon while **we serve**.
   - At the top right:
     - An "auto" badge when the selection came from auto-select.
     - A form dot: red when the player has 3 or more errors this set; green when points − errors ≥ 3 this set (`playerForm`).
-  - The middle: the short name (first name; plus the surname initial when two first names clash; the full name if that still clashes), bold, base/lg size.
-  - The bottom: "#number" bold, then `RoleChip`, which shows the per-set role (falls back to the roster role).
+  - The first line: `RoleChip` as a badge (24 px, bold, `surface-3`; inverted to ink on the selected tile), which shows the per-set role (falls back to the roster role), then "#number" bold and tabular (title-2 from xl).
+  - The second line: the short name (first name; plus the surname initial when two first names clash; the full name if that still clashes), the largest text on the tile (title-3, title-2 from md, title-1 from xl; headline on compact tiles), one line, truncated.
   - The active libero tile has an orange border and tint. Its chip shows "L·rec" (receiving mode), "L·def" (serving mode) or "L" (always).
   - The selected tile is filled blue with white text and a ring.
   - Tile aria-label: "#7 Ana" or "#1 Lara, libero"; `aria-pressed` reflects the selection.

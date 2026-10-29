@@ -18,6 +18,7 @@ import {
   bulkCreateTrainings,
   deleteTraining,
   findTrainingByBusinessId,
+  getTraining,
   listTrainings,
   resolveExerciseNames,
 } from './trainingsApi';
@@ -42,7 +43,7 @@ export function TrainingsPage() {
   const t = useT();
   const p = t.trainings.page;
   usePageMeta({ title: p.title });
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { firebaseUser } = useAuth();
   const { aiEnabled } = useClubFeatures();
   const [showImport, setShowImport] = useState(false);
@@ -117,6 +118,25 @@ export function TrainingsPage() {
     load().catch(() => setError(p.loadError));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedAgeGroup, debouncedBusinessId]);
+
+  // Opened from a search result (?training=<id>): load it once, open its plan, drop the param.
+  const trainingParam = searchParams.get('training');
+  useEffect(() => {
+    if (!trainingParam) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('training');
+        return next;
+      },
+      { replace: true },
+    );
+    getTraining(trainingParam)
+      .then((found) => {
+        if (found) setDialog({ mode: 'view', training: found });
+      })
+      .catch(() => {});
+  }, [trainingParam, setSearchParams]);
 
   async function confirmDelete() {
     if (!pendingDelete) return;

@@ -1,6 +1,7 @@
 import { usePageMeta } from '../layout/usePageMeta';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Sparkles } from 'lucide-react';
 import { useTakePendingAction } from '../search/pendingAction';
 import type { MenuItem } from '../components/Menu';
@@ -13,7 +14,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DiagramThumbnail } from '../diagrams/DiagramThumbnail';
 import { EXERCISE_CATEGORIES, type Exercise, type ExerciseCategory } from '../types/exercise';
 import { ExerciseFormDialog } from './ExerciseFormDialog';
-import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, listExercises } from './exercisesApi';
+import { bulkCreateExercises, countTrainingsUsingExercise, deleteExercise, getExercise, listExercises } from './exercisesApi';
 import { EXERCISE_IMPORT_EXAMPLE, validateExerciseRows } from './exercisesImport';
 import { exerciseImportIssueText } from './exercisesImportMessages';
 import { useNotify } from '../components/Notice';
@@ -67,6 +68,26 @@ export function ExercisesPage() {
     loadFirstPage().catch(() => setError(p.loadError));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
+
+  // Opened from a search result (?exercise=<id>): load it once, open its sheet, drop the param.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const exerciseParam = searchParams.get('exercise');
+  useEffect(() => {
+    if (!exerciseParam) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('exercise');
+        return next;
+      },
+      { replace: true },
+    );
+    getExercise(exerciseParam)
+      .then((found) => {
+        if (found) setDialog({ mode: 'edit', exercise: found });
+      })
+      .catch(() => {});
+  }, [exerciseParam, setSearchParams]);
 
   async function askDelete(exercise: Exercise) {
     setDeleteError(null);

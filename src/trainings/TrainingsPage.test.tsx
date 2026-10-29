@@ -78,6 +78,13 @@ describe('TrainingsPage', () => {
   // and don't depend on the debounce delay.
   const flushDebounce = () => act(() => vi.runOnlyPendingTimersAsync());
 
+  it('opens the training from ?training=', async () => {
+    vi.mocked(trainingsApi.getTraining).mockResolvedValue(training);
+    renderPage('/trainings?training=t-1');
+    expect(await screen.findByText('view-stub')).toBeInTheDocument();
+    expect(trainingsApi.getTraining).toHaveBeenCalledWith('t-1');
+  });
+
   it('lists trainings from the paginated query by default', async () => {
     renderPage();
     expect(await screen.findByText('Passing circuit')).toBeInTheDocument();

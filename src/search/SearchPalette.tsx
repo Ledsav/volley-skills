@@ -12,6 +12,7 @@ import { withPendingAction } from './pendingAction';
 import { pushRecent, readRecents, searchKey, type Recent } from './recents';
 import type { SearchGroupId, SearchItem } from './types';
 import { useSearchData } from './useSearchData';
+import { useServerSearch, type ServerGroupState } from './useServerSearch';
 
 const GROUP_CAP = 5;
 
@@ -22,6 +23,8 @@ interface ViewGroup {
   items: SearchItem[];
   /** Placeholder rows while the group's data is still loading. */
   skeleton: boolean;
+  /** Exercises and trainings come from the server: no cap, they end with "Show more" instead. */
+  server?: ServerGroupState;
 }
 
 type Entry = SearchItem & { more?: true };
@@ -46,6 +49,10 @@ export function SearchPalette({ onClose }: Props) {
   const q = query.trim();
 
   const data = useSearchData({ opened: true, typed: q.length > 0 });
+  const canExercises = !!access?.sections.exercises;
+  const canTrainings = !!access?.sections.trainings;
+  // No query is sent for a section the person lacks (the rules would reject it), nor while picking a team.
+  const server = useServerSearch(picking ? '' : q, { exercises: canExercises, trainings: canTrainings });
   const recentsKey = searchKey(activeClubId, appUser?.email);
   const recents = useMemo<Recent[]>(() => (activeClubId ? readRecents(recentsKey) : []), [activeClubId, recentsKey]);
 
@@ -59,7 +66,9 @@ export function SearchPalette({ onClose }: Props) {
   const recentIdsFor = (group: SearchGroupId) =>
     recents.filter((r) => r.group === group).map((r) => r.id.slice(group.length + 1));
 
-  const anyLoading = data.loading.teams || data.loading.players || data.loading.matches;
+  const offline = server.offline;
+  const anyLoading =
+    data.loading.teams || data.loading.players || data.loading.matches || server.exercises.loading || server.trainings.loading;
 
   const { groups, noResults } = useMemo(() => {
     const label = (id: keyof typeof t.groups) => t.groups[id];
@@ -93,17 +102,28 @@ export function SearchPalette({ onClose }: Props) {
       const matched = ranked(id, items);
       if (matched.length > 0 || loading) out.push({ id, label: label(name), items: matched, skeleton: loading && matched.length === 0 });
     }
+    const serverDefs: [SearchGroupId, keyof typeof t.groups, ServerGroupState][] = [
+      ['exercises', 'exercises', server.exercises],
+      ['trainings', 'trainings', server.trainings],
+    ];
+    for (const [id, name, s] of serverDefs) {
+      if (s.items.length > 0 || s.loading) out.push({ id, label: label(name), items: s.items, skeleton: s.loading && s.items.length === 0, server: s });
+    }
     if (out.length === 0) {
       return { groups: actions.length > 0 ? [{ id: 'actions' as const, label: label('actions'), items: actions, skeleton: false }] : [], noResults: true };
     }
     return { groups: out, noResults: false };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, picking, data, goto, actions, recents]);
+  }, [q, picking, data, server, goto, actions, recents]);
 
-  const isCapped = (g: ViewGroup) => !picking && !expanded.has(g.id) && g.items.length > GROUP_CAP;
+  const isCapped = (g: ViewGroup) => !g.server && !picking && !expanded.has(g.id) && g.items.length > GROUP_CAP;
   // A capped group ends with a "Show all N" row that is a real option, so keyboard users can reach it.
   const visible = (g: ViewGroup): Entry[] =>
-    isCapped(g)
+    g.server
+      ? g.server.hasMore
+        ? [...g.items, { id: `more:${g.id}`, group: g.id, label: t.showMore, more: true }]
+        : g.items
+      : isCapped(g)
       ? [...g.items.slice(0, GROUP_CAP), { id: `more:${g.id}`, group: g.id, label: t.showAll(g.items.length), more: true }]
       : g.items;
   const flat = groups.flatMap((g) => visible(g));
@@ -140,6 +160,11 @@ export function SearchPalette({ onClose }: Props) {
 
   function choose(item: Entry) {
     if (item.more) {
+      const serverGroup = groups.find((g) => g.id === item.group)?.server;
+      if (serverGroup) {
+        serverGroup.showMore();
+        return;
+      }
       setExpanded(new Set([...expanded, item.group]));
       return;
     }
@@ -300,6 +325,11 @@ export function SearchPalette({ onClose }: Props) {
           );
         })}
       </div>
+      {offline && q && !picking && (canExercises || canTrainings) && (
+        <p role="note" className="border-t border-separator px-4 py-2 text-footnote text-ink-3">
+          {t.offlineNote}
+        </p>
+      )}
       <div aria-live="polite" role="status" className="sr-only">
         {q ? announce : ''}
       </div>

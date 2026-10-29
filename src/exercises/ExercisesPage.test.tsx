@@ -57,6 +57,21 @@ describe('ExercisesPage', () => {
     vi.mocked(exercisesApi.listExercises).mockResolvedValue({ exercises: [exercise], lastDoc: null, hasMore: false });
   });
 
+  it('opens the exercise from ?exercise=', async () => {
+    vi.mocked(exercisesApi.getExercise).mockResolvedValue(exercise);
+    renderPage(['/exercises?exercise=ex-1']);
+    expect(await screen.findByText('form-dialog-stub')).toBeInTheDocument();
+    expect(exercisesApi.getExercise).toHaveBeenCalledWith('ex-1');
+  });
+
+  it('shows nothing for an unknown ?exercise= id', async () => {
+    vi.mocked(exercisesApi.getExercise).mockResolvedValue(null);
+    renderPage(['/exercises?exercise=nope']);
+    await screen.findByText('Pepper');
+    await waitFor(() => expect(exercisesApi.getExercise).toHaveBeenCalled());
+    expect(screen.queryByText('form-dialog-stub')).not.toBeInTheDocument();
+  });
+
   it('hides Draft with AI when the club has AI off', async () => {
     clubOver.aiEnabled = false;
     renderPage();

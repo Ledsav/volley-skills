@@ -8,8 +8,15 @@ import type { SearchItem } from './types';
 
 const admin: Access = { isClubAdmin: true, sections: { exercises: true, trainings: true, guides: true } };
 
+const idleGroup = () => ({ items: [] as SearchItem[], loading: false, hasMore: false, showMore: () => {} });
 const mocks = vi.hoisted(() => ({
   access: null as unknown,
+  serverCalls: [] as { q: string; enabled: { exercises: boolean; trainings: boolean } }[],
+  server: null as unknown as {
+    exercises: { items: SearchItem[]; loading: boolean; hasMore: boolean; showMore: () => void };
+    trainings: { items: SearchItem[]; loading: boolean; hasMore: boolean; showMore: () => void };
+    offline: boolean;
+  },
   data: {
     teams: [] as SearchItem[],
     players: [] as SearchItem[],
@@ -21,6 +28,12 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ access: mocks.access ?? admin, isPlatformAdmin: false, activeClubId: 'c1', appUser: { email: 'me@x.org' } }),
 }));
 vi.mock('./useSearchData', () => ({ useSearchData: () => mocks.data }));
+vi.mock('./useServerSearch', () => ({
+  useServerSearch: (q: string, enabled: { exercises: boolean; trainings: boolean }) => {
+    mocks.serverCalls.push({ q, enabled });
+    return mocks.server;
+  },
+}));
 
 const teams: SearchItem[] = [{ id: 't1', group: 'teams', label: 'Falcons U17', sublabel: 'U17 · 2026-27', to: '/teams/t1' }];
 const player = (n: number): SearchItem => ({ id: `t1/p${n}`, group: 'players', label: `Anna Falcone ${n}`, sublabel: 'Falcons U17', to: `/teams/t1/players/p${n}` });
@@ -46,6 +59,8 @@ const activeLabel = (input: HTMLElement) => document.getElementById(input.getAtt
 
 beforeEach(() => {
   mocks.access = null;
+  mocks.serverCalls = [];
+  mocks.server = { exercises: idleGroup(), trainings: idleGroup(), offline: false };
   sessionStorage.clear();
   mocks.data = { teams, players: [], matches: [], loading: { teams: false, players: false, matches: false } };
 });
@@ -231,5 +246,69 @@ describe('SearchPalette', () => {
     expect(playersGroup.querySelectorAll('[data-skeleton-block]')).toHaveLength(2);
     expect(within(playersGroup).queryByRole('option')).toBeNull();
     expect(screen.queryByText(/No results/)).toBeNull();
+  });
+
+  describe('server groups', () => {
+    const exercise = (n: number): SearchItem => ({ id: `e${n}`, group: 'exercises', label: `Passaggio ${n}`, sublabel: 'Attack', to: `/exercises?exercise=e${n}` });
+    const training: SearchItem = { id: 'tr1', group: 'trainings', label: 'Sessione', sublabel: 'TR-0001', to: '/trainings?training=tr1' };
+
+    it('shows exercises and trainings groups after matches', () => {
+      mocks.data.players = [player(1)];
+      mocks.server.exercises = { ...idleGroup(), items: [exercise(1)] };
+      mocks.server.trainings = { ...idleGroup(), items: [training] };
+      const { input } = setup();
+      type(input, 'anna');
+      const headings = screen.getAllByText(/^(Players|Exercises|Trainings)$/).map((h) => h.textContent);
+      expect(headings).toEqual(['Players', 'Exercises', 'Trainings']);
+      fireEvent.click(screen.getByRole('option', { name: /Passaggio 1/ }));
+      expect(screen.getByTestId('where').textContent).toContain('/exercises?exercise=e1');
+    });
+
+    it('sends no query for a section the person lacks', () => {
+      mocks.access = { isClubAdmin: false, sections: { exercises: true, trainings: false, guides: false } };
+      const { input } = setup();
+      type(input, 'pass');
+      expect(mocks.serverCalls.at(-1)).toEqual({ q: 'pass', enabled: { exercises: true, trainings: false } });
+    });
+
+    it('show more is a keyboard-reachable option', () => {
+      const showMore = vi.fn();
+      mocks.server.exercises = { items: [exercise(1), exercise(2)], loading: false, hasMore: true, showMore };
+      const { input } = setup();
+      type(input, 'pass');
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+      for (let i = 0; i < 2; i++) fireEvent.keyDown(input, { key: 'ArrowDown' });
+      expect(activeLabel(input)).toBe('Show more');
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(showMore).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the offline note', () => {
+      mocks.server.offline = true;
+      const { input } = setup();
+      expect(screen.queryByRole('note')).toBeNull();
+      type(input, 'pass');
+      expect(screen.getByRole('note')).toHaveTextContent('Exercises and trainings need a connection');
+    });
+
+    it('does not flash no results while server groups load', () => {
+      mocks.server.exercises = { ...idleGroup(), loading: true };
+      const { input } = setup();
+      type(input, 'zzz');
+      expect(screen.queryByText(/No results/)).toBeNull();
+      const group = screen.getByText('Exercises').parentElement as HTMLElement;
+      expect(group.querySelectorAll('[data-skeleton-block]')).toHaveLength(2);
+    });
+
+    it('counts server matches in the live announcement', () => {
+      vi.useFakeTimers();
+      mocks.server.exercises = { ...idleGroup(), items: [exercise(1), exercise(2)] };
+      const { input } = setup();
+      type(input, 'pass');
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent('2 results');
+    });
   });
 });

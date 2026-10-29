@@ -10,6 +10,8 @@ export const search = {
     teams: 'Teams',
     players: 'Players',
     matches: 'Matches',
+    exercises: 'Exercises',
+    trainings: 'Trainings',
   },
   actions: {
     newTeam: 'New team',
@@ -22,6 +24,8 @@ export const search = {
   chooseTeam: 'Choose a team',
   noResults: (q: string) => `No results for ‘${q}’`,
   showAll: (n: number) => `Show all ${n}`,
+  showMore: 'Show more',
+  offlineNote: 'Exercises and trainings need a connection',
   results: (n: number) => `${n} ${plural('en', n, { one: 'result', other: 'results' })}`,
   loading: 'Loading…',
   versus: (opponent: string) => `vs ${opponent}`,

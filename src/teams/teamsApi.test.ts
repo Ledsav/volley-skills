@@ -205,7 +205,7 @@ describe('teamsApi', () => {
     mockGetAggregate.mockResolvedValue({ data: () => ({ count: 14, avg: 6.43 }) });
     const summary = await getTeamSummary('t1');
     expect(mockAverage).toHaveBeenCalledWith('avgScore');
-    expect(mockCollection.mock.calls.at(-1)?.slice(-3)).toEqual(['teams', 't1', 'players']);
+    expect((mockCollection.mock.calls as unknown[][]).slice(-1)[0].slice(-3)).toEqual(['teams', 't1', 'players']);
     expect(summary).toEqual({ players: 14, avgScore: 6.43 });
   });
 

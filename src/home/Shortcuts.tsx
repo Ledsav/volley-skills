@@ -12,6 +12,7 @@ import { TeamPickerSheet } from './TeamPickerSheet';
  * Starts a team-scoped create action from Today: one team goes straight there,
  * several ask which team first (the picker is returned as `picker`; render it once).
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTeamAction(teams: Team[], action: 'new-match' | 'new-session'): { start: () => void; picker: ReactNode } {
   const navigate = useNavigate();
   const t = useT().home;

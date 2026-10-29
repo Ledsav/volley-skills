@@ -121,7 +121,8 @@ node scripts/migrate/2026-10-search-tokens.mjs --all-clubs --emulator         # 
 The palette's Exercises and Trainings groups query `searchTokens` (prefixes of each name
 word, plus the `businessId` for trainings). New and edited docs get them from the app;
 this fills in the existing ones. It writes `searchTokens` only, and only on docs where it
-is missing or differs, so a second run writes 0.
+is missing or differs, so a second run writes 0. A doc deleted mid-run can stop that club's
+run; run it again, it resumes because the backfill is idempotent.
 
 Cost: one read per exercise and training, one write per changed doc (Spark allows 50,000
 reads and 20,000 writes a day). It prints counts per club, never content. Run the dry run first.

@@ -15,7 +15,7 @@ export function GuidesPage() {
   const tab: GuideTab = params.get('tab') === 'physical' ? 'physical' : 'skills';
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       {/* The active editor publishes the toolbar (title and Save), not the header. */}
       <PageHeader title={t.title} publishChrome={false} />
       <SegmentedControl

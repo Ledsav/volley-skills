@@ -142,7 +142,7 @@ export function MatchPage() {
         : undefined;
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <Link to={`/teams/${teamId}`} className="mb-3 inline-flex min-h-11 items-center gap-1 text-callout text-ink-2 hover:text-ink print:hidden">
         <ChevronLeft size={16} aria-hidden="true" /> {p.backToTeam}
       </Link>

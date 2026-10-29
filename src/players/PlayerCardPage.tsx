@@ -259,7 +259,7 @@ function PlayerCardContent() {
   }
 
   return (
-    <div className="w-full bg-bg p-4 lg:p-6">
+    <div className="w-full p-4 lg:p-6">
       <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
         {sync.syncFailed && (
           <p role="alert" className="text-callout text-red-strong">

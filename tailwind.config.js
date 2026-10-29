@@ -9,7 +9,6 @@ export default {
       // repaint automatically when the `dark` class toggles, and opacity
       // modifiers like bg-blue/10 keep working.
       colors: {
-        navy: 'rgb(var(--color-navy) / <alpha-value>)',
         blue: {
           DEFAULT: 'rgb(var(--color-blue) / <alpha-value>)',
           strong: 'rgb(var(--color-blue-strong) / <alpha-value>)',
@@ -36,9 +35,6 @@ export default {
         separator: 'rgb(var(--color-separator) / <alpha-value>)',
         focus: 'rgb(var(--color-focus) / <alpha-value>)',
         sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',
-        // Legacy aliases, removed in increment 6.
-        slate: 'rgb(var(--color-slate) / <alpha-value>)',
-        border: 'rgb(var(--color-border) / <alpha-value>)',
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
@@ -63,9 +59,6 @@ export default {
         stat: ['2.5rem', { lineHeight: '2.75rem', letterSpacing: '-0.03em', fontWeight: '700' }],
         score: ['var(--fs-score)', { lineHeight: 'var(--lh-score)', letterSpacing: '-0.04em', fontWeight: '700' }],
         display: ['2.75rem', { lineHeight: '2.875rem', letterSpacing: '-0.035em', fontWeight: '700' }],
-        // Legacy roles, removed in increment 6.
-        title: ['1.375rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
-        section: ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
       },
       borderRadius: { sm: '8px', md: '12px', lg: '16px', xl: '22px' },
       boxShadow: {

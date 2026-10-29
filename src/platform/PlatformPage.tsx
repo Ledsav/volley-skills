@@ -18,7 +18,7 @@ export function PlatformPage() {
   const active = TABS.find((t) => t.id === params.get('tab'))?.id ?? 'clubs';
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <PageHeader title={t.pageTitle} />
       <SegmentedControl semantics="tabs" label={t.sectionsLabel} options={TABS} value={active}
         onChange={(id) => setParams({ tab: id }, { replace: true })} className="mb-6 w-full sm:w-auto" />

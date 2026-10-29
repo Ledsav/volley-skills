@@ -43,7 +43,7 @@ function Frame({ title, actions, children }: { title: string; actions?: ReactNod
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-screen-xl min-w-0 flex-1 bg-bg">
+      <main className="canvas mx-auto w-full max-w-screen-xl min-w-0 flex-1 bg-bg">
         {children}
       </main>
       {unsyncedDialog}

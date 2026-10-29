@@ -136,7 +136,7 @@ export function TeamPage() {
       : undefined;
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       {/* Title and tabs sit on the canvas; each tab brings its own cards (no card-in-card). */}
       <PageHeader
         title={team.name}

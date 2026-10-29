@@ -85,7 +85,7 @@ export function Sidebar({
   );
 
   return (
-    <div className={`flex h-full min-h-0 flex-col border-r border-separator p-3 ${variant === 'solid' ? 'bg-sidebar' : ''}`}>
+    <div className={`flex h-full min-h-0 flex-col border-r border-separator p-3 ${variant === 'solid' ? 'canvas bg-sidebar' : ''}`}>
       {/* The logo moves out in Plan 6; the home link stays reachable for assistive tech. */}
       <NavLink to="/" aria-label={t.appShell.homeLabel} onClick={() => onNavigate?.('/')} className="sr-only focus:not-sr-only focus:rounded-md focus:bg-surface focus:px-2 focus:py-1 focus:shadow-pop focus:outline-none focus:ring-2 focus:ring-focus">
         {t.appShell.homeLabel}

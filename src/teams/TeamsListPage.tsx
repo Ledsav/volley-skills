@@ -89,7 +89,7 @@ export function TeamsListPage() {
   const emptyText = !isClubAdmin ? l.noneAssigned : effective === 'mine' ? l.noneMine : l.none;
 
   return (
-    <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <PageHeader
         title={l.title}
         mainAction={isClubAdmin ? { label: l.create, icon: Plus, onSelect: () => setShowCreate(true) } : undefined}

@@ -9,7 +9,7 @@
      These live in browser shadow DOM and ignore `color`, so without this they render light on the dark surface. */
   color-scheme: light;
 
-  --color-navy: 35 86 168; /* legacy alias, unchanged until increment 6 */
+  --color-navy: 35 86 168; /* kept: stored diagram item colours resolve to it (tokenColor) */
   --color-bg: 245 245 247; /* #F5F5F7 */
   --color-surface: 255 255 255; /* #FFFFFF */
   --color-surface-2: 242 242 247; /* #F2F2F7 */
@@ -22,9 +22,6 @@
   --color-focus: 0 113 227; /* #0071E3 */
   --color-segment-thumb: 255 255 255;
   --color-sidebar: 255 255 255;
-  /* Legacy aliases (removed in increment 6) */
-  --color-slate: 110 110 115;
-  --color-border: 222 222 224;
 
   --color-red: 255 59 48; /* #FF3B30 */
   --color-red-strong: 205 0 20; /* #CD0014 - spec #D70015 darkened one step for AA on the 14% tint */
@@ -66,8 +63,6 @@
   --color-focus: 64 156 255; /* #409CFF */
   --color-segment-thumb: 99 99 102;
   --color-sidebar: 13 13 15; /* #0D0D0F */
-  --color-slate: 161 161 166;
-  --color-border: 55 55 58;
 
   --color-red: 255 69 58; /* #FF453A */
   --color-red-strong: 255 105 97; /* #FF6961 */
@@ -213,8 +208,6 @@
     --color-focus: 0 113 227;
     --color-segment-thumb: 255 255 255;
     --color-sidebar: 255 255 255;
-    --color-slate: 110 110 115;
-    --color-border: 222 222 224;
     --color-red: 255 59 48;
     --color-red-strong: 205 0 20;
     --color-orange: 255 149 0;

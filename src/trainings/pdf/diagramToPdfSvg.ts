@@ -14,8 +14,6 @@ export const LIGHT_TOKENS: Record<string, [number, number, number]> = {
   'ink-2': [110, 110, 115],
   'ink-3': [142, 142, 147],
   separator: [222, 222, 224],
-  slate: [110, 110, 115],
-  border: [222, 222, 224],
   red: [255, 59, 48],
   'red-strong': [205, 0, 20],
   orange: [255, 149, 0],

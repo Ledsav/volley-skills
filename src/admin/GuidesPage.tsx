@@ -16,7 +16,7 @@ export function GuidesPage() {
   const tab: GuideTab = params.get('tab') === 'physical' ? 'physical' : 'skills';
 
   return (
-    <PageContainer>
+    <PageContainer width="form">
       {/* The active editor publishes the toolbar (title and Save), not the header. */}
       <PageHeader title={t.title} publishChrome={false} />
       <SegmentedControl
@@ -28,7 +28,7 @@ export function GuidesPage() {
         ]}
         value={tab}
         onChange={(id) => setParams({ tab: id }, { replace: true })}
-        className="mb-6 max-w-md"
+        className="mb-6"
       />
       {/* Both stay mounted so an unsaved edit survives a tab switch. */}
       <div role="tabpanel" aria-label={t.skillGuide} hidden={tab !== 'skills'}>

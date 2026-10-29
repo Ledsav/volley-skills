@@ -106,8 +106,8 @@ describe('SkillGuideEditor', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument());
   });
 
-  it('disables Save until the guide has loaded', async () => {
-    let resolveLoad: (v: { skills: never[]; updatedBy: string; updatedAt: null }) => void = () => {};
+  it('disables Save until the guide has loaded and something changed, even for a guide never saved', async () => {
+    let resolveLoad: (v: { skills: (typeof SERVE)[]; updatedBy: string; updatedAt: null }) => void = () => {};
     vi.mocked(skillGuideApi.getSkillGuide).mockReturnValue(
       new Promise((resolve) => {
         resolveLoad = resolve as typeof resolveLoad;
@@ -115,8 +115,11 @@ describe('SkillGuideEditor', () => {
     );
     renderEditor();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    resolveLoad({ skills: [], updatedBy: '', updatedAt: null });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled());
+    resolveLoad({ skills: [SERVE], updatedBy: '', updatedAt: null });
+    await screen.findByRole('button', { name: /Serve/ });
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await editServe();
+    expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
   });
 
   it('Save is disabled for a stored guide until something changes', async () => {

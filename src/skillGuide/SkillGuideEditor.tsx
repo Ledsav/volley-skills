@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { GroupedList, ListRow } from '../components/GroupedList';
 import { SkeletonBlock } from '../components/Skeleton';
 import { useGuideEditor } from '../admin/useGuideEditor';
@@ -56,12 +57,15 @@ export function SkillGuideEditor({ active = true }: { active?: boolean }) {
             subtitle={skill.howToEvaluate}
             onClick={() => setOpenKey(skill.key)}
             trailing={
-              guide.isEdited(skill.key) ? (
-                <>
-                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-ink" />
-                  <span className="sr-only">{g.unsaved}</span>
-                </>
-              ) : undefined
+              <span className="flex items-center gap-2">
+                {guide.isEdited(skill.key) && (
+                  <>
+                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-ink" />
+                    <span className="sr-only">{g.unsaved}</span>
+                  </>
+                )}
+                <ChevronRight size={18} aria-hidden="true" className="text-ink-3" />
+              </span>
             }
           />
         ))}

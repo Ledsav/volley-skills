@@ -7,7 +7,8 @@ import { usePublishPageChrome } from '../layout/PageChrome';
 
 /**
  * The draft behind a guide editor: loads the guide, keeps the edits as a draft against the last loaded or
- * saved baseline, publishes Save to the toolbar (only while `active`), and warns before the tab unloads.
+ * saved baseline, publishes Save to the toolbar (only while `active`; enabled only with edits to save, so a guide
+ * never saved and one saved look the same), and warns before the tab unloads.
  * The write is the whole guide in one call, exactly as before.
  */
 export function useGuideEditor<T extends { key: string }>(o: {
@@ -35,7 +36,6 @@ export function useGuideEditor<T extends { key: string }>(o: {
   latest.current = o;
   const [baseline, setBaseline] = useState<T[]>([]);
   const [draft, setDraft] = useState<T[]>([]);
-  const [stored, setStored] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -58,7 +58,6 @@ export function useGuideEditor<T extends { key: string }>(o: {
         if (cancelled) return;
         setBaseline(r.items);
         setDraft(r.items);
-        setStored(r.stored);
         setLoaded(true);
         setLoadError(null);
       })
@@ -88,7 +87,6 @@ export function useGuideEditor<T extends { key: string }>(o: {
     try {
       await latest.current.save(draft, firebaseUser.uid);
       setBaseline(draft);
-      setStored(true);
       notify(latest.current.messages.saved);
     } catch {
       setSaveError(latest.current.messages.saveError);
@@ -103,7 +101,7 @@ export function useGuideEditor<T extends { key: string }>(o: {
       title: t.title,
       mainAction: loadError
         ? undefined
-        : { label: common.save, icon: Save, onSelect: () => void save(), disabled: !loaded || saving || !(dirty || !stored) },
+        : { label: common.save, icon: Save, onSelect: () => void save(), disabled: !loaded || saving || !dirty },
     },
     o.active
   );

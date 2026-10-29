@@ -11,6 +11,7 @@ import * as teamsApi from '../teams/teamsApi';
 import * as physicalTestsApi from './physicalTestsApi';
 import * as footprintApi from './playerFootprintApi';
 import { useAuth } from '../auth/AuthContext';
+import { todayLocalIso } from '../dates/today';
 import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
@@ -301,7 +302,7 @@ describe('PlayerCardPage', () => {
     fireEvent.click(screen.getByLabelText(/guardian has consented to storing this player's data/i));
     fireEvent.click(record);
 
-    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
+    await waitFor(() => expect(recordSpy).toHaveBeenCalledWith('team-1', 'player-1', 'coach@example.com', todayLocalIso()));
     expect(await screen.findByText(/Guardian consent recorded/)).toBeInTheDocument();
   });
 
@@ -550,7 +551,10 @@ describe('PlayerCardPage offline saves', () => {
   async function saveSkill() {
     await pickEdit('Skills');
     fireEvent.change(await screen.findByLabelText('Serve'), { target: { value: '6' } });
-    fireEvent.click(screen.getByText('Save skills'));
+    // The queued write is registered after the click's microtasks, so keep them inside act.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save skills'));
+    });
   }
 
   it('offline, a skills save shows a pending dot on Skills until it syncs', async () => {
@@ -559,7 +563,9 @@ describe('PlayerCardPage offline saves', () => {
     setup();
     await saveSkill();
     await waitFor(() => expect(dots(panel('Skills'))).toHaveLength(1));
-    await act(async () => d.resolve());
+    await act(async () => {
+      d.resolve();
+    });
     expect(dots(panel('Skills'))).toHaveLength(0);
   });
 
@@ -592,7 +598,9 @@ describe('PlayerCardPage offline saves', () => {
     setup();
     await saveSkill();
     await waitFor(() => expect(dots(panel('Skills'))).toHaveLength(1));
-    await act(async () => d.reject(new Error('permission-denied')));
+    await act(async () => {
+      d.reject(new Error('permission-denied'));
+    });
     expect(dots(panel('Skills'))).toHaveLength(0);
     expect(
       await screen.findByText('Some changes made offline could not be saved. Reload the page to see the stored card.')

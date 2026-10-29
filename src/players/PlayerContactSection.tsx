@@ -203,7 +203,7 @@ export function PlayerContactSection({
               ))}
             </select>
 
-            <label className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">
+            <label className="mb-3 flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
               <input type="checkbox" checked={starting} onChange={(e) => setStarting(e.target.checked)} />
               {p.contact.startingPlayer}
             </label>

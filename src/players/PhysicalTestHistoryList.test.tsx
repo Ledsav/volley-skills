@@ -116,6 +116,25 @@ describe('PhysicalTestHistoryList', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
+  it('a failed refresh after a successful delete does not report a failed delete', async () => {
+    vi.spyOn(physicalTestsApi, 'listHistoryByType')
+      .mockResolvedValueOnce({ tests: [makeEntry('test-1', '2026-08-01')], lastDoc: null })
+      .mockRejectedValueOnce(new Error('offline'));
+    const del = vi.spyOn(physicalTestsApi, 'deletePhysicalTest').mockResolvedValue(undefined);
+
+    renderList();
+
+    fireEvent.click(await screen.findByText(/2026-08-01/));
+    fireEvent.click(screen.getByText('Delete entry'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(UNDO_MS);
+    });
+
+    expect(del).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText(/2026-08-01 —/)).not.toBeInTheDocument();
+  });
+
   it('Undo restores the row and never deletes', async () => {
     vi.spyOn(physicalTestsApi, 'listHistoryByType').mockResolvedValue({ tests: [makeEntry('test-1', '2026-08-01')], lastDoc: null });
     const del = vi.spyOn(physicalTestsApi, 'deletePhysicalTest').mockResolvedValue(undefined);

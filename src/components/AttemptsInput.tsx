@@ -32,7 +32,7 @@ export function AttemptsInput({ name, label, values, onChange, minCount, maxCoun
   const stat = size === 'stat';
   return (
     <div>
-      <div data-testid="attempts-grid" className={stat ? 'mb-3 grid grid-cols-3 gap-2' : undefined}>
+      <div data-testid="attempts-grid" className={stat ? 'mb-3 grid grid-cols-2 gap-2 min-[400px]:grid-cols-3' : undefined}>
         {values.map((value, index) => (
           <div key={index} className={stat ? 'min-w-0' : 'mb-3'}>
             <label htmlFor={`${name}-attempt-${index}`} className={stat ? 'mb-1 block text-footnote text-ink-2' : 'mb-1 block text-sm font-medium text-ink'}>

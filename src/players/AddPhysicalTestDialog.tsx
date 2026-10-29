@@ -220,7 +220,7 @@ export function AddPhysicalTestDialog({
               />
             </div>
             <AttemptsInput
-            size="stat"
+              size="stat"
               name="approach-touch"
               label={a.touchAttemptCm}
               values={touchAttempts}
@@ -328,7 +328,7 @@ export function AddPhysicalTestDialog({
                   <Input
                     id="strength-weight"
                     type="number"
-                inputMode="decimal"
+                    inputMode="decimal"
                     step="any"
                     value={weightKg}
                     onChange={(e) => setWeightKg(e.target.value)}

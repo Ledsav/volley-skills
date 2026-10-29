@@ -252,7 +252,7 @@ export function PlayerSkillsSection({
           guardUnsaved
           confirm={{ label: p.skills.saveSkills, onConfirm: () => void handleSave(), disabled: saving }}
         >
-          <div aria-label={p.skills.editTitle}>
+          <div>
             <p className="mb-4 text-callout text-ink-2">
               {p.skills.average} <span className="font-semibold tabular-nums text-ink">{previewAvg != null ? formatNumber(previewAvg, 1) : '—'}</span>{' '}
               ({previewLevel ? lb.level[previewLevel](gender) : p.shared.noScores})
@@ -309,7 +309,9 @@ export function PlayerSkillsSection({
                           size="sm"
                           aria-label={p.skills.useAria(lb.playerSkill[key], suggestedScore(value))}
                           onClick={() => updateScore(key, String(suggestedScore(value)))}
-                          className="!min-h-0 gap-0.5 !px-1.5 !py-0.5 text-xs"
+                          className={`min-h-11 gap-0.5 rounded-full !px-3 text-footnote tabular-nums ${
+                            suggestedScore(value) > (skills[key].score ?? 0) ? 'bg-green-tint text-green-strong' : 'bg-orange-tint text-orange-strong'
+                          }`}
                         >
                           {suggestedScore(value) > (skills[key].score ?? 0) ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : <ArrowDown className="h-3 w-3" aria-hidden="true" />}
                           {suggestedScore(value)}

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InfoTooltip } from './InfoTooltip';
 
 function mockPhone() {
@@ -66,5 +66,33 @@ describe('InfoTooltip', () => {
     expect(dialog).toHaveTextContent('Jump serve with pace.');
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     await act(async () => undefined);
+  });
+
+  it('a tooltip pinned from the keyboard closes when Tab leaves the trigger', () => {
+    render(
+      <InfoTooltip label="Serve scoring guide">
+        <p>Jump serve with pace.</p>
+      </InfoTooltip>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Serve scoring guide' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    fireEvent.keyDown(trigger, { key: 'Tab' });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('Escape closes the tooltip and does not reach a layer listening on window', () => {
+    const onWindowKey = vi.fn();
+    window.addEventListener('keydown', onWindowKey);
+    render(
+      <InfoTooltip label="Serve scoring guide">
+        <p>Jump serve with pace.</p>
+      </InfoTooltip>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Serve scoring guide' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(onWindowKey).not.toHaveBeenCalled();
+    window.removeEventListener('keydown', onWindowKey);
   });
 });

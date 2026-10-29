@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PlayerIdentityCard } from './PlayerIdentityCard';
 import type { Player } from '../types/player';
@@ -47,7 +47,9 @@ describe('PlayerIdentityCard', () => {
     expect(screen.getByText('AR')).toBeInTheDocument();
     expect(screen.getByText(/#7/)).toBeInTheDocument();
     expect(screen.getByText(/Outside/)).toBeInTheDocument();
-    expect(screen.getByText('U17 A')).toBeInTheDocument();
+    // The team is both the header footnote and a registration fact.
+    expect(screen.getAllByText('U17 A')).toHaveLength(2);
+    expect(within(screen.getByText('Team').closest('div')!).getByText('U17 A')).toBeInTheDocument();
     expect(screen.getByText('2026-27')).toBeInTheDocument();
     expect(screen.getByText('J-000123')).toBeInTheDocument();
   });

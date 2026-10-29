@@ -164,7 +164,6 @@ export const players = {
     leftError: 'Could not update membership. Please try again.',
     exportButton: 'Export data (JSON)',
     exportError: sameForAll("Could not export this player's data. Please try again."),
-    deleteButton: sameForAll('Delete player'),
     deleteMenu: sameForAll('Delete player…'),
     deleteTitle: (name: string) => `Delete ${name}?`,
     deleteMessage: sameForAll(

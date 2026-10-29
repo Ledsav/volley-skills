@@ -18,9 +18,9 @@ interface PhysicalTestingSectionProps {
   isAdmin: boolean;
   /** `player.latestTests` from the already-loaded player doc. */
   storedLatest?: LatestTests;
-  /** Notified after each successful load so a parent dashboard can derive summary stats. */
   /** Identity for the add-test sheet. */
   player?: { fullName: string; number: number };
+  /** Notified after each successful load so a parent dashboard can derive summary stats. */
   onLatestLoaded?: (latestByType: Partial<Record<PhysicalTestType, PhysicalTest | null>>) => void;
 }
 

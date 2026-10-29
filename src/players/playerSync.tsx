@@ -71,9 +71,9 @@ export function usePlayerSync(): PlayerSync {
   return useContext(PlayerSyncContext);
 }
 
-export function PendingDot({ pending }: { pending: boolean }) {
+export function PendingDot({ pending, className = '' }: { pending: boolean; className?: string }) {
   const t = useT();
   if (!pending) return null;
   const waiting = t.players.card.sync.waiting;
-  return <span role="img" aria-label={waiting} title={waiting} className="inline-block h-2 w-2 shrink-0 rounded-full bg-ink-2" />;
+  return <span role="img" aria-label={waiting} title={waiting} className={`inline-block h-2 w-2 shrink-0 rounded-full bg-ink-2 ${className}`.trim()} />;
 }

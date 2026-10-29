@@ -47,7 +47,11 @@ export function InfoTooltip({ label, children }: InfoTooltipProps) {
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape') {
+        // One Escape dismisses only the tooltip, not a sheet it sits in.
+        e.stopPropagation();
+        close();
+      }
     };
     const onPointerDown = (e: PointerEvent) => {
       if (!triggerRef.current?.contains(e.target as Node)) close();
@@ -90,6 +94,13 @@ export function InfoTooltip({ label, children }: InfoTooltipProps) {
         aria-describedby={open ? id : undefined}
         onFocus={reveal}
         onBlur={conceal}
+        onKeyDown={(e) => {
+          // Tabbing away from a tooltip pinned by keyboard closes it; a pointer pin survives a stray blur.
+          if (e.key === 'Tab') {
+            pinned.current = false;
+            setOpen(false);
+          }
+        }}
         onClick={onClick}
         className="relative inline-flex h-4 w-4 items-center justify-center rounded-full text-ink-2 transition-colors before:absolute before:-inset-3.5 hover:text-ink focus:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
@@ -114,11 +125,13 @@ export function InfoTooltip({ label, children }: InfoTooltipProps) {
           </div>,
           document.body
         )}
-      {sheet && (
-        <Sheet title={label} onClose={() => setSheet(false)}>
-          <div className="text-footnote text-ink">{children}</div>
-        </Sheet>
-      )}
+      {sheet &&
+        createPortal(
+          <Sheet title={label} onClose={() => setSheet(false)}>
+            <div className="text-footnote text-ink">{children}</div>
+          </Sheet>,
+          document.body
+        )}
     </span>
   );
 }

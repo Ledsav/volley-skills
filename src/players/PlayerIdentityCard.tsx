@@ -40,6 +40,7 @@ export function PlayerIdentityCard({ player, gender = 'mixed' }: PlayerIdentityC
             {lb.position[player.positionCategory](gender)}
             {player.starting && ` · ${p.shared.starting}`}
           </p>
+          <p className="text-footnote text-ink-2">{player.teamName}</p>
         </div>
         <div className="flex shrink-0 flex-col items-center gap-1 md:items-end">
           <span className="text-title-2 tabular-nums text-ink">{hasScores ? formatNumber(player.avgScore!, 1) : '—'}</span>

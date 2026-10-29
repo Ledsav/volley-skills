@@ -161,8 +161,13 @@ export function PhysicalTestHistoryList({ teamId, playerId, testType, isAdmin, o
       message: h.deletedNotice(test.date),
       commit: async () => {
         await deletePhysicalTest(teamId, playerId, test.id);
-        onDeleted?.();
-        if (mounted.current) await Promise.all([loadFirstPage(), loadSeries()]);
+        // The entry is gone; a failed refresh must not be reported as a failed delete.
+        try {
+          onDeleted?.();
+          if (mounted.current) await Promise.all([loadFirstPage(), loadSeries()]);
+        } catch {
+          /* the next open reloads */
+        }
       },
       onUndo: () => {
         if (mounted.current) setHiddenId(test.id, false);

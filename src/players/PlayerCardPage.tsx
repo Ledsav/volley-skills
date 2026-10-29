@@ -76,9 +76,11 @@ type PlayerSection = 'skills' | 'matches' | 'physical' | 'plan' | 'contact' | 'p
 const SECTION_ORDER: PlayerSection[] = ['skills', 'matches', 'physical', 'plan', 'contact', 'privacy'];
 const ADMIN_SECTIONS: PlayerSection[] = ['matches', 'privacy'];
 export function PlayerCardPage() {
+  const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
+  // Keyed by player, so pending dots, sync errors and edit state never carry over to another player.
   return (
-    <PlayerSyncProvider>
-      <PlayerCardContent />
+    <PlayerSyncProvider key={`${teamId}/${playerId}`}>
+      <PlayerCardContent key={`${teamId}/${playerId}`} />
     </PlayerSyncProvider>
   );
 }
@@ -387,7 +389,7 @@ function PlayerCardContent() {
                   {player.consent?.given ? (
                     <p>
                       {c.consentRecorded}
-                      <PendingDot pending={sync.isPending('consent')} />
+                      <PendingDot pending={sync.isPending('consent')} className="ml-1.5 align-middle" />
                       {player.consent.date && <span className="tabular-nums">{c.consentOn}{player.consent.date}</span>}
                       {player.consent.confirmedBy && <>{c.consentBy}{player.consent.confirmedBy}</>}.
                     </p>
@@ -451,8 +453,8 @@ function PlayerCardContent() {
                     <div>
                       <p>
                         {c.leftBefore}<span className="tabular-nums">{player.leftClubAt}</span>{c.leftMiddle}<span className="tabular-nums">{deletionDueDate(player.leftClubAt)}</span>{c.leftAfter}
+                        <PendingDot pending={sync.isPending('leftClub')} className="ml-1.5 align-middle" />
                       </p>
-                      <PendingDot pending={sync.isPending('leftClub')} />
                       <Button variant="ghost" size="sm" className="mt-1" onClick={() => void handleLeftClub(null)}>
                         {c.stillInClub}
                       </Button>

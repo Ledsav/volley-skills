@@ -41,3 +41,120 @@ describe('useDiagramEditor save failures', () => {
     expect(logged).not.toHaveBeenCalled();
   });
 });
+
+describe('useDiagramEditor save pipeline (B2)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(diagramsApi.saveDiagramSet).mockReset();
+    vi.mocked(diagramsApi.saveDiagramSet).mockResolvedValue({ idMap: {} });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('autosaves 3 s after the last change, once', async () => {
+    await dirtyEditor();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2900);
+    });
+    expect(diagramsApi.saveDiagramSet).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('pagehide flushes a pending change at once', async () => {
+    await dirtyEditor();
+    await act(async () => {
+      window.dispatchEvent(new Event('pagehide'));
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('a hidden page flushes too', async () => {
+    await dirtyEditor();
+    const spy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    spy.mockRestore();
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('beforeunload warns only while a save is failing', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await dirtyEditor();
+    const before = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(before);
+    expect(before.defaultPrevented).toBe(false);
+    vi.mocked(diagramsApi.saveDiagramSet).mockRejectedValue(new Error('x'));
+    await act(() => result.current.save());
+    const after = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(after);
+    expect(after.defaultPrevented).toBe(true);
+  });
+
+  it('status is saving while dirty, failed after a rejected save, saved after a success', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = await dirtyEditor();
+    expect(result.current.status).toBe('saving');
+    vi.mocked(diagramsApi.saveDiagramSet).mockRejectedValueOnce(new Error('x'));
+    await act(() => result.current.save());
+    expect(result.current.status).toBe('failed');
+    await act(() => result.current.save());
+    expect(result.current.status).toBe('saved');
+  });
+
+  it('unmount during an in-flight save writes the later edits under the real ids', async () => {
+    let resolveFirst!: (v: { idMap: Record<string, string> }) => void;
+    vi.mocked(diagramsApi.saveDiagramSet)
+      .mockImplementationOnce(() => new Promise((res) => { resolveFirst = res; }))
+      .mockResolvedValue({ idMap: {} });
+    vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([
+      { id: 'd1', title: 'Setup', order: 0, scene: emptyScene('full'), updatedBy: 'u', updatedAt: null },
+    ]);
+    const { result, unmount } = renderHook(() => useDiagramEditor('ex-1', 'uid'));
+    await waitFor(() => expect(result.current.activeDiagram).not.toBeNull());
+    act(() => result.current.dispatch({ type: 'addDiagram' }));
+    const t = result.current.state.activeDiagramId as string;
+    let flushed!: Promise<void>;
+    act(() => {
+      flushed = result.current.flush();
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+    act(() => result.current.dispatch({ type: 'addItem', item: { ...createItem('cone', { x: 1, y: 1 }), id: 'x' } }));
+    unmount();
+    await act(async () => {
+      resolveFirst({ idMap: { [t]: 'real-2' } });
+      await flushed;
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
+    const ops = vi.mocked(diagramsApi.saveDiagramSet).mock.calls[1][1];
+    expect(ops.creates).toEqual([]);
+    expect(ops.updates).toHaveLength(1);
+    expect(ops.updates[0].id).toBe('real-2');
+    expect(ops.updates[0].scene.items.map((i) => i.id)).toEqual(['x']);
+  });
+
+  it('an undo after a save is autosaved', async () => {
+    const { result } = await dirtyEditor();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3100);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
+    act(() => result.current.dispatch({ type: 'undo' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3100);
+    });
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
+    const ops = vi.mocked(diagramsApi.saveDiagramSet).mock.calls[1][1];
+    expect(ops.updates[0].scene.items).toHaveLength(0);
+  });
+});

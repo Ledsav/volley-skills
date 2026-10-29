@@ -58,7 +58,13 @@ export type EditorAction =
   | { type: 'toggleZones' }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'saved'; idMap: Record<string, string>; committedIds: string[] };
+  | {
+      type: 'saved';
+      idMap: Record<string, string>;
+      committedIds: string[];
+      /** Committed ids (pre-remap) edited while the save was in flight: they stay dirty. */
+      redirtyIds?: string[];
+    };
 
 export const initialEditorState: EditorState = {
   diagrams: [],
@@ -403,6 +409,7 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       state.dirtyIds.forEach((id) => {
         if (!wasCommitted(id)) dirtyIds.add(id);
       });
+      (action.redirtyIds ?? []).forEach((id) => dirtyIds.add(action.idMap[id] ?? id));
       return {
         ...state,
         diagrams,
@@ -431,13 +438,23 @@ export function buildSaveOps(state: EditorState): DiagramSaveOps {
   };
 }
 
+
+export type EditorSaveStatus = 'saved' | 'saving' | 'failed';
+
 export function useDiagramEditor(exerciseId: string, uid: string) {
   const [state, dispatch] = useReducer(diagramReducer, initialEditorState);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
+
+  // Latest values for the save pipeline, which must keep working after unmount.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const idsRef = useRef({ exerciseId, uid });
+  idsRef.current = { exerciseId, uid };
+  const mountedRef = useRef(true);
+  const inFlight = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -465,36 +482,97 @@ export function useDiagramEditor(exerciseId: string, uid: string) {
     };
   }, [exerciseId]);
 
-  const save = useCallback(async () => {
-    // In-flight guard: never let a second save overlap the first. If the state
-    // is still dirty after this one resolves, the 3s autosave picks it up.
-    if (savingRef.current) return;
-    savingRef.current = true;
-    setSaveError(null);
-    setSaving(true);
-    try {
-      const ops = buildSaveOps(state);
-      const committedIds = [
-        ...ops.creates.map((c) => c.tempId),
-        ...ops.updates.map((u) => u.id),
-        ...ops.deletes,
-      ];
-      const { idMap } = await saveDiagramSet(exerciseId, ops, uid);
-      dispatch({ type: 'saved', idMap, committedIds });
-      invalidateDiagramThumbnail(exerciseId);
-    } catch (err) {
-      if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
-      setSaveError(
-        err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
-      );
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
-  }, [state, exerciseId, uid]);
+  const save = useCallback((): Promise<void> => {
+    // One save at a time (invariant 29): a second call joins the running one.
+    if (inFlight.current) return inFlight.current;
+    if (!isEditorDirty(stateRef.current)) return Promise.resolve();
+    const run = (async () => {
+      if (mountedRef.current) {
+        setSaveError(null);
+        setSaving(true);
+      }
+      try {
+        const sent = stateRef.current;
+        const ops = buildSaveOps(sent);
+        const committedIds = [
+          ...ops.creates.map((c) => c.tempId),
+          ...ops.updates.map((u) => u.id),
+          ...ops.deletes,
+        ];
+        const { idMap } = await saveDiagramSet(idsRef.current.exerciseId, ops, idsRef.current.uid);
+        // Edits made while the save was in flight must stay dirty.
+        const redirtyIds = sent.diagrams
+          .filter((d) => committedIds.includes(d.id))
+          .filter((d) => {
+            const now = stateRef.current.diagrams.find((x) => x.id === d.id);
+            return !!now && (now.scene !== d.scene || now.title !== d.title || now.order !== d.order);
+          })
+          .map((d) => d.id);
+        const action: EditorAction = { type: 'saved', idMap, committedIds, redirtyIds };
+        stateRef.current = diagramReducer(stateRef.current, action);
+        if (mountedRef.current) dispatch(action);
+        invalidateDiagramThumbnail(idsRef.current.exerciseId);
+      } catch (err) {
+        if (!(err instanceof DiagramSaveError)) console.error('Diagram save failed', (err as { code?: string } | null)?.code ?? '', err);
+        if (mountedRef.current) {
+          setSaveError(
+            err instanceof DiagramSaveError ? diagramSaveErrorText(err.issue, getT()) : getT().diagrams.saveError.generic,
+          );
+        }
+      } finally {
+        inFlight.current = null;
+        if (mountedRef.current) setSaving(false);
+      }
+    })();
+    inFlight.current = run;
+    return run;
+  }, []);
+
+  const flush = useCallback(async (): Promise<void> => {
+    const running = inFlight.current;
+    if (running) await running.catch(() => {});
+    if (isEditorDirty(stateRef.current)) await save();
+  }, [save]);
+
+  const dirty = isEditorDirty(state);
+  const status: EditorSaveStatus = saveError && dirty ? 'failed' : saving || dirty ? 'saving' : 'saved';
+
+  // Autosave 3 s after the last change.
+  useEffect(() => {
+    if (!dirty) return;
+    const timer = window.setTimeout(() => void save(), 3000);
+    return () => window.clearTimeout(timer);
+  }, [state, dirty, save]);
+
+  // Flush when the page goes away or hides, and when the editor unmounts.
+  useEffect(() => {
+    mountedRef.current = true;
+    const onHide = () => void flush();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') void flush();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+      mountedRef.current = false;
+      void flush();
+    };
+  }, [flush]);
+
+  // Warn about leaving only while a save is failing.
+  useEffect(() => {
+    if (status !== 'failed') return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [status]);
 
   const activeDiagram = state.diagrams.find((d) => d.id === state.activeDiagramId) ?? null;
-  const dirty = state.dirtyIds.size > 0 || state.deletedIds.length > 0;
 
-  return { state, activeDiagram, dispatch, save, saving, dirty, loadError, notFound, saveError };
+  return { state, activeDiagram, dispatch, save, flush, status, saving, dirty, loadError, notFound, saveError };
 }

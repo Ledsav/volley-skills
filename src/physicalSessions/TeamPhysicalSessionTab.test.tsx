@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { WithChrome } from '../test/chromeProbe';
 import { TeamPhysicalSessionTab } from './TeamPhysicalSessionTab';
 import * as testingSessionsApi from './testingSessionsApi';
 import * as playersApi from '../players/playersApi';
@@ -11,8 +12,11 @@ vi.mock('./testingSessionsApi');
 vi.mock('../players/playersApi');
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ firebaseUser: { uid: 'coach-uid' } }) }));
 vi.mock('./StartSessionCard', () => ({
-  StartSessionCard: ({ onStarted }: { onStarted: (id: string) => void }) => (
-    <button onClick={() => onStarted('session-new')}>Start new session</button>
+  StartSessionCard: ({ onStarted, starting }: { onStarted: (id: string) => void; starting?: boolean }) => (
+    <>
+      <button onClick={() => onStarted('session-new')}>Start new session</button>
+      {starting && <div>start-sheet-open</div>}
+    </>
   ),
 }));
 vi.mock('./LiveSessionView', () => ({
@@ -158,5 +162,29 @@ describe('TeamPhysicalSessionTab', () => {
     expect(roster).toHaveTextContent('Player 0');
     expect(roster).toHaveTextContent('Player 25');
     expect(roster).not.toHaveTextContent('Gone Player');
+  });
+
+  it('New testing session in the toolbar opens the start sheet', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [], lastDoc: null, hasMore: false });
+    render(
+      <WithChrome>
+        <TeamPhysicalSessionTab teamId="team-1" team={buildTeam({})} onTeamChanged={vi.fn()} />
+      </WithChrome>
+    );
+    expect(screen.queryByText('start-sheet-open')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'New testing session' }));
+    expect(screen.getByText('start-sheet-open')).toBeInTheDocument();
+  });
+
+  it('an active session publishes no main action', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: ONE_PLAYER, lastDoc: null, hasMore: false });
+    vi.spyOn(testingSessionsApi, 'getSession').mockResolvedValue({ id: 's-1', date: '2026-10-20', status: 'open' } as never);
+    render(
+      <WithChrome>
+        <TeamPhysicalSessionTab teamId="team-1" team={buildTeam({ activeTestingSessionId: 's-1' })} onTeamChanged={vi.fn()} />
+      </WithChrome>
+    );
+    await screen.findByText('Live: s-1');
+    expect(screen.queryByRole('button', { name: 'New testing session' })).not.toBeInTheDocument();
   });
 });

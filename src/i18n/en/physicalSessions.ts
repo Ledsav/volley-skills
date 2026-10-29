@@ -67,6 +67,7 @@ export const physicalSessions = {
     couldNotConfirmSaved: 'Could not confirm this was saved — check the player card before recording it again.',
   },
   start: {
+    newSession: 'New testing session',
     date: 'Date',
     startNew: 'Start new session',
     pastSessions: 'Past sessions',

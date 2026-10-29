@@ -390,6 +390,8 @@ describe('TeamPage', () => {
     await screen.findByText('No matches yet.');
     fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
     await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: 'New session', more: [] }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Physical testing' }));
+    await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: 'New testing session', more: [] }));
     fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     await waitFor(() => expect(read()).toEqual({ title: 'U17 Boys', action: null, more: [] }));
   });

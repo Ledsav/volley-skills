@@ -38,7 +38,7 @@ const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
 type TeamTab = 'roster' | 'calendar' | 'matches' | 'stats' | 'plan' | 'physical' | 'settings';
 // Tabs that publish their own toolbar chrome while active; the page header stays quiet then.
-const OWN_CHROME = new Set<TeamTab>(['matches', 'calendar']);
+const OWN_CHROME = new Set<TeamTab>(['matches', 'calendar', 'physical']);
 const TEAM_TABS: TeamTab[] = ['roster', 'calendar', 'matches', 'stats', 'plan', 'physical', 'settings'];
 // Earlier tab ids, so old links and bookmarks still land on the right tab.
 const LEGACY_TAB: Record<string, TeamTab> = { overview: 'roster', physicalSession: 'physical' };

@@ -66,6 +66,7 @@ export const physicalSessions = {
     couldNotConfirmSaved: 'Non è stato possibile confermare il salvataggio: controlla la scheda del giocatore prima di registrare di nuovo il test.',
   },
   start: {
+    newSession: 'Nuova sessione di test',
     date: 'Data',
     startNew: 'Avvia nuova sessione',
     pastSessions: 'Sessioni passate',

@@ -3,6 +3,8 @@ import { useAuth } from '../auth/AuthContext';
 import { useT } from '../i18n/I18nProvider';
 import { getSession } from './testingSessionsApi';
 import { listPlayers } from '../players/playersApi';
+import { Plus } from 'lucide-react';
+import { usePublishPageChrome } from '../layout/PageChrome';
 import { StartSessionCard } from './StartSessionCard';
 import { LiveSessionView } from './LiveSessionView';
 import type { Team } from '../types/team';
@@ -22,6 +24,8 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [playersError, setPlayersError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const p = useT().physicalSessions;
 
   useEffect(() => {
     if (!team.activeTestingSessionId) {
@@ -54,6 +58,12 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
     };
   }, [teamId, s.loadRoster]);
 
+  const showingStart = !!players && !playersError && !error && !team.activeTestingSessionId;
+  usePublishPageChrome({
+    title: team.name,
+    mainAction: showingStart ? { label: p.start.newSession, icon: Plus, onSelect: () => setStarting(true) } : undefined,
+  });
+
   if (!firebaseUser) return null;
 
   if (playersError) {
@@ -61,7 +71,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }
 
   if (!players) {
-    return <p className="text-sm text-slate">{s.loadingRoster}</p>;
+    return <p className="text-sm text-ink-2">{s.loadingRoster}</p>;
   }
 
   if (error) {
@@ -84,14 +94,19 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
   }
 
   if (team.activeTestingSessionId) {
-    return <p className="text-sm text-slate">{s.loadingSession}</p>;
+    return <p className="text-sm text-ink-2">{s.loadingSession}</p>;
   }
 
   return (
     <StartSessionCard
       teamId={teamId}
       creatorUid={firebaseUser.uid}
-      onStarted={(sessionId) => onTeamChanged({ ...team, activeTestingSessionId: sessionId })}
+      starting={starting}
+      onCloseStart={() => setStarting(false)}
+      onStarted={(sessionId) => {
+        setStarting(false);
+        onTeamChanged({ ...team, activeTestingSessionId: sessionId });
+      }}
     />
   );
 }

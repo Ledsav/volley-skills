@@ -1,25 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Button } from '../components/Button';
+import { ChevronRight } from 'lucide-react';
 import { Input } from '../components/Input';
+import { Sheet } from '../components/Sheet';
+import { GroupedList, ListRow } from '../components/GroupedList';
 import { startSession, listPastSessions, SessionAlreadyOpenError } from './testingSessionsApi';
 import type { TestingSession } from '../types/testingSession';
-import { ChevronRight } from 'lucide-react';
 import { PastSessionDialog } from './PastSessionDialog';
 import { useNotify } from '../components/Notice';
 import { useT } from '../i18n/I18nProvider';
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayLocalIso } from '../dates/today';
 
 interface StartSessionCardProps {
   teamId: string;
   creatorUid: string;
   onStarted: (sessionId: string) => void;
+  /** The start sheet is open (the tab's "New testing session" action). */
+  starting?: boolean;
+  onCloseStart?: () => void;
 }
 
-export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSessionCardProps) {
-  const [date, setDate] = useState(todayIso());
+export function StartSessionCard({ teamId, creatorUid, onStarted, starting = false, onCloseStart }: StartSessionCardProps) {
+  const [date, setDate] = useState(todayLocalIso);
+  const [busy, setBusy] = useState(false);
   const [pastSessions, setPastSessions] = useState<TestingSession[]>([]);
   const [viewing, setViewing] = useState<TestingSession | null>(null);
   const notify = useNotify();
@@ -34,44 +36,51 @@ export function StartSessionCard({ teamId, creatorUid, onStarted }: StartSession
       .catch(() => setLoadError(s.start.loadError));
   }, [teamId, s.start.loadError]);
 
+  // A fresh sheet starts from today's local date again, with no stale error.
+  useEffect(() => {
+    if (starting) {
+      setDate(todayLocalIso());
+      setError(null);
+    }
+  }, [starting]);
+
   async function handleStart() {
     setError(null);
+    setBusy(true);
     try {
       const id = await startSession(teamId, date, creatorUid);
       onStarted(id);
     } catch (err) {
       setError(err instanceof SessionAlreadyOpenError ? s.start.alreadyOpen : s.start.couldNotStart);
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
     <div>
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4">
-        <label htmlFor="session-date" className="mb-1 block text-sm font-medium text-ink">{s.start.date}</label>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Input id="session-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full sm:w-48" />
-          <Button variant="primary" onClick={() => void handleStart()} className="w-full sm:w-auto">{s.start.startNew}</Button>
-        </div>
-        {error && <p role="alert" className="mt-3 text-sm text-red-strong">{error}</p>}
-      </div>
+      {starting && (
+        <Sheet
+          title={s.start.newSession}
+          onClose={() => onCloseStart?.()}
+          confirm={{ label: s.start.startNew, onConfirm: () => void handleStart(), disabled: busy }}
+        >
+          <label htmlFor="session-date" className="mb-1 block text-footnote text-ink-2">{s.start.date}</label>
+          <Input id="session-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full tabular-nums" />
+          {error && <p role="alert" className="mt-3 text-footnote text-red-strong">{error}</p>}
+        </Sheet>
+      )}
 
-      <h3 className="mb-2 text-sm font-semibold text-ink">{s.start.pastSessions}</h3>
-      {loadError && <p role="alert" className="text-sm text-red-strong">{loadError}</p>}
-      {!loadError && pastSessions.length === 0 && <p className="text-sm text-slate">{s.start.noSessions}</p>}
-      <ul className="divide-y divide-border rounded-md border border-border">
-        {pastSessions.map((p) => (
-          <li key={p.id}>
-            <button
-              type="button"
-              onClick={() => setViewing(p)}
-              className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue"
-            >
-              <span className="tabular-nums">{p.date}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate" aria-hidden="true" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <h2 className="mb-2 text-title-3 text-ink">{s.start.pastSessions}</h2>
+      {loadError && <p role="alert" className="text-footnote text-red-strong">{loadError}</p>}
+      {!loadError && pastSessions.length === 0 && <p className="text-footnote text-ink-2">{s.start.noSessions}</p>}
+      {pastSessions.length > 0 && (
+        <GroupedList>
+          {pastSessions.map((p) => (
+            <ListRow key={p.id} title={<span className="tabular-nums">{p.date}</span>} onClick={() => setViewing(p)} trailing={<ChevronRight size={18} aria-hidden="true" className="text-ink-3" />} />
+          ))}
+        </GroupedList>
+      )}
 
       {viewing && (
         <PastSessionDialog

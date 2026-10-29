@@ -76,7 +76,7 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-slate">
+        <p className="text-footnote text-ink-2">
           {s.live.started} <span className="whitespace-nowrap tabular-nums">{session.date}</span>
         </p>
         <div className="flex shrink-0 items-center gap-1">
@@ -89,9 +89,9 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
         </div>
       </div>
 
-      {loadError && <p role="alert" className="mb-3 text-sm text-red-strong">{loadError}</p>}
+      {loadError && <p role="alert" className="mb-3 text-footnote text-red-strong">{loadError}</p>}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start">
         <PlayerRosterPicker players={players} entries={entries} selectedPlayerId={selectedPlayerId} onSelect={setSelectedPlayerId} />
         {selectedPlayerId && (
           <QualityTileGrid
@@ -100,6 +100,7 @@ export function LiveSessionView({ teamId, session, players, recordedByUid, onSes
             sessionDate={session.date}
             playerId={selectedPlayerId}
             playerName={players.find((p) => p.id === selectedPlayerId)?.fullName ?? ''}
+            playerNumber={players.find((p) => p.id === selectedPlayerId)?.number}
             entriesByPlayerAndType={entriesByPlayerAndType}
             recordedByUid={recordedByUid}
           />

@@ -33,13 +33,13 @@ export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelec
   }
 
   if (players.length === 0) {
-    return <p className="text-sm text-slate">{s.empty}</p>;
+    return <p className="text-footnote text-ink-2">{s.empty}</p>;
   }
 
   const filtered = players.filter((p) => p.fullName.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="w-full sm:w-64 sm:shrink-0">
+    <div className="w-full md:w-64 md:shrink-0">
       <label htmlFor="roster-search" className="sr-only">{s.search}</label>
       <Input
         id="roster-search"
@@ -50,24 +50,24 @@ export function PlayerRosterPicker({ players, entries, selectedPlayerId, onSelec
         onChange={(e) => setSearch(e.target.value)}
         className="mb-2 w-full"
       />
-      <ul aria-label={s.playersAria} className="max-h-80 divide-y divide-border overflow-y-auto rounded-md border border-border sm:max-h-[32rem]">
-        {filtered.length === 0 && <li className="px-3 py-2 text-sm text-slate">{s.noMatch}</li>}
+      <ul aria-label={s.playersAria} className="max-h-80 overflow-y-auto rounded-lg bg-surface shadow-card md:max-h-[32rem]">
+        {filtered.length === 0 && <li className="px-4 py-3 text-footnote text-ink-2">{s.noMatch}</li>}
         {filtered.map((player) => {
           const count = completedCountByPlayer.get(player.id) ?? 0;
           const selected = selectedPlayerId === player.id;
           return (
-            <li key={player.id}>
+            <li key={player.id} className="border-t border-separator first:border-t-0">
               <button
                 type="button"
                 aria-pressed={selected}
                 onClick={() => onSelect(player.id)}
-                className={`flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left ${
-                  selected ? 'bg-blue/10' : 'hover:bg-blue/5'
+                className={`flex min-h-[52px] w-full items-center gap-3 px-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus ${
+                  selected ? 'bg-surface-3' : 'active:bg-surface-3'
                 }`}
               >
-                {player.number > 0 && <span className="w-7 shrink-0 tabular-nums text-sm text-slate">#{player.number}</span>}
-                <span className="min-w-0 flex-1 truncate text-sm text-ink">{player.fullName}</span>
-                <span className="shrink-0 tabular-nums text-xs text-slate">
+                {player.number > 0 && <span className="w-8 shrink-0 text-footnote tabular-nums text-ink-2">#{player.number}</span>}
+                <span className="min-w-0 flex-1 truncate text-headline text-ink">{player.fullName}</span>
+                <span className="shrink-0 text-footnote tabular-nums text-ink-2">
                   {count}/{testCount}
                 </span>
               </button>

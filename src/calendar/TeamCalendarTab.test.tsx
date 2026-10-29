@@ -232,7 +232,7 @@ describe('TeamCalendarTab', () => {
       await waitFor(() =>
         expect(calendarApi.listCalendarSessions).toHaveBeenCalledWith('team-1', '2026-11-01', '2026-11-30')
       );
-      expect(screen.getByText('November 2026')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'November 2026' })).toBeInTheDocument();
     });
 
     it('a link to a missing session is dropped quietly', async () => {
@@ -303,6 +303,7 @@ describe('TeamCalendarTab', () => {
       expect(screen.getByRole('button', { name: 'Today, Tuesday 15 September' })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByText('No trainings scheduled.')).toBeInTheDocument();
 
+      fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Thursday 10 September, 1 training' }));
 
       expect(screen.getByText('Passing circuit')).toBeInTheDocument();
@@ -316,20 +317,51 @@ describe('TeamCalendarTab', () => {
           <TeamCalendarTab teamId="team-1" />
         </MemoryRouter>
       );
+      fireEvent.click(await screen.findByRole('button', { name: 'Previous week' }));
       fireEvent.click(await screen.findByRole('button', { name: /Saturday 12 September/ }));
       expect(screen.getByRole('link', { name: 'vs Rivals 3–1' }).className).toContain('min-h-11');
     });
 
     it('opens the assign dialog for the selected day', async () => {
+      renderTab();
+      fireEvent.click(await screen.findByRole('button', { name: 'Sunday 20 September' }));
+      fireEvent.click(within(screen.getByTestId('chrome-probe')).getByRole('button', { name: 'New session' }));
+
+      expect(screen.getByText('assign-stub')).toBeInTheDocument();
+    });
+
+    it("Next week from the month's last week moves to the next month", async () => {
+      vi.setSystemTime(new Date('2026-09-29T12:00:00Z'));
+      renderTab();
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalledWith('team-1', '2026-09-01', '2026-09-30'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next week' }));
+      await waitFor(() =>
+        expect(calendarApi.listCalendarSessions).toHaveBeenLastCalledWith('team-1', '2026-10-01', '2026-10-31')
+      );
+      expect(screen.getByRole('button', { name: 'Tuesday 6 October' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('Previous week from the first week moves to the previous month', async () => {
+      vi.setSystemTime(new Date('2026-09-02T12:00:00Z'));
+      renderTab();
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalledWith('team-1', '2026-09-01', '2026-09-30'));
+      fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
+      await waitFor(() =>
+        expect(calendarApi.listCalendarSessions).toHaveBeenLastCalledWith('team-1', '2026-08-01', '2026-08-31')
+      );
+      expect(screen.getByRole('button', { name: 'Wednesday 26 August' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('the week strip shows only the selected week', async () => {
       render(
         <MemoryRouter>
           <TeamCalendarTab teamId="team-1" />
         </MemoryRouter>
       );
-      fireEvent.click(await screen.findByRole('button', { name: 'Sunday 20 September' }));
-      fireEvent.click(screen.getByLabelText('Add training on 2026-09-20'));
-
-      expect(screen.getByText('assign-stub')).toBeInTheDocument();
+      await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: /Thursday 10 September/ })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
+      expect(screen.getByRole('button', { name: /Thursday 10 September/ })).toBeInTheDocument();
     });
   });
 

@@ -7,6 +7,8 @@ export const calendar = {
     loadError: 'Could not load calendar sessions. Please refresh the page.',
     removeError: 'Could not remove the session. Please try again.',
     previousMonth: 'Previous month',
+    previousWeek: 'Previous week',
+    nextWeek: 'Next week',
     nextMonth: 'Next month',
     newSession: 'New session',
     openTraining: 'Open training',
@@ -18,9 +20,7 @@ export const calendar = {
     removeSession: (businessId: string, date: string) => `Remove ${businessId} on ${date}`,
     addTrainingOn: (date: string) => `Add training on ${date}`,
     addMatchOn: (date: string) => `Add match on ${date}`,
-    add: 'Add',
     match: 'Match',
-    addTraining: 'Add training',
     dayLabel: (isToday: boolean, day: string, count: number) =>
       `${isToday ? 'Today, ' : ''}${day}${
         count ? `, ${count} ${plural('en', count, { one: 'training', other: 'trainings' })}` : ''

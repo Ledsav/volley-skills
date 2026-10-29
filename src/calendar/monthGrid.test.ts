@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addMonths, buildMonthGrid, formatDayLabel, formatMonthLabel, monthRange, todayIso } from './monthGrid';
+import { addMonths, buildMonthGrid, shiftDate, formatDayLabel, formatMonthLabel, monthRange, todayIso } from './monthGrid';
 
 describe('monthGrid', () => {
   it('builds a Monday-first grid for September 2026 with adjacent-month padding', () => {
@@ -42,5 +42,10 @@ describe('monthGrid', () => {
       vi.setSystemTime(new Date(2026, 8, 5, 23, 30, 0));
       expect(todayIso()).toBe('2026-09-05');
     });
+  });
+
+  it('shiftDate crosses month and year ends', () => {
+    expect(shiftDate('2026-09-28', 7)).toBe('2026-10-05');
+    expect(shiftDate('2027-01-03', -7)).toBe('2026-12-27');
   });
 });

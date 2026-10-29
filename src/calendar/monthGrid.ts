@@ -1,7 +1,7 @@
 import { todayLocalIso } from '../dates/today';
 import { formatMonth, monthNames, weekdayNames } from '../i18n/format';
 
-function iso(d: Date): string {
+function isoOf(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(
     d.getUTCDate()
   ).padStart(2, '0')}`;
@@ -10,7 +10,7 @@ function iso(d: Date): string {
 export function monthRange(year: number, month: number): { start: string; end: string } {
   const start = new Date(Date.UTC(year, month, 1));
   const end = new Date(Date.UTC(year, month + 1, 0));
-  return { start: iso(start), end: iso(end) };
+  return { start: isoOf(start), end: isoOf(end) };
 }
 
 export function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
@@ -45,9 +45,16 @@ export function buildMonthGrid(year: number, month: number): { date: string; inM
     const week: { date: string; inMonth: boolean }[] = [];
     for (let d = 0; d < 7; d++) {
       const cell = new Date(Date.UTC(year, month, 1 - mondayOffset + w * 7 + d));
-      week.push({ date: iso(cell), inMonth: cell.getUTCMonth() === month });
+      week.push({ date: isoOf(cell), inMonth: cell.getUTCMonth() === month });
     }
     grid.push(week);
   }
   return grid;
+}
+
+/** Moves an ISO date by whole days (UTC arithmetic, like the grid). */
+export function shiftDate(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return isoOf(d);
 }

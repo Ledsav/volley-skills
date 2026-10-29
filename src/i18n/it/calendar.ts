@@ -8,6 +8,8 @@ export const calendar = {
     loadError: 'Impossibile caricare le sessioni del calendario. Aggiorna la pagina.',
     removeError: 'Impossibile rimuovere la sessione. Riprova.',
     previousMonth: 'Mese precedente',
+    previousWeek: 'Settimana precedente',
+    nextWeek: 'Settimana successiva',
     nextMonth: 'Mese successivo',
     newSession: 'Nuova sessione',
     openTraining: 'Apri allenamento',
@@ -19,9 +21,7 @@ export const calendar = {
     removeSession: (businessId: string, date: string) => `Rimuovi ${businessId} del ${date}`,
     addTrainingOn: (date: string) => `Aggiungi allenamento il ${date}`,
     addMatchOn: (date: string) => `Aggiungi partita il ${date}`,
-    add: 'Aggiungi',
     match: 'Partita',
-    addTraining: 'Aggiungi allenamento',
     dayLabel: (isToday: boolean, day: string, count: number) =>
       `${isToday ? 'Oggi, ' : ''}${day}${
         count ? `, ${count} ${plural('it', count, { one: 'allenamento', other: 'allenamenti' })}` : ''

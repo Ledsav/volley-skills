@@ -26,7 +26,7 @@ export function words(s) {
 }
 
 /**
- * Prefixes (2–12 chars) of each word, then the whole normalised `extra`.
+ * `extra` (a businessId) prefixes and whole value first, then the name's word prefixes (2–12 chars).
  * `#` is dropped from tokens. Deduped, capped at MAX_TOKENS.
  * @param {string} name
  * @param {string} [extra] a training's businessId

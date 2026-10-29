@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { focusPageHeading } from './focusPageHeading';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useSignOut } from '../auth/useSignOut';
@@ -38,22 +39,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   // over, and when the viewport shrinks to a phone (its toolbar button is hidden there).
   useEffect(() => setNavOpen(false), [pathname, isDesktop, isTabletUp]);
 
-  const focusPageHeading = useCallback(() => {
-    const heading = mainRef.current?.querySelector<HTMLElement>('h1');
-    if (heading) {
-      if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
-      heading.focus({ preventScroll: true });
-    } else {
-      mainRef.current?.focus({ preventScroll: true });
-    }
-  }, []);
+  const focusHeading = useCallback(() => focusPageHeading(mainRef.current), []);
 
   // Move focus into the new page on route change (not on the initial load).
   useEffect(() => {
     if (prevPathname.current === pathname) return;
     prevPathname.current = pathname;
-    focusPageHeading();
-  }, [pathname, focusPageHeading]);
+    focusHeading();
+  }, [pathname, focusHeading]);
 
   return (
     <div className="min-h-screen bg-bg xl:flex">
@@ -88,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         pendingSignups={pendingSignups}
         // The pathname will not change, so the route-change effect never runs: focus the page heading here.
         onNavigate={(to) => {
-          if (to === pathname) focusPageHeading();
+          if (to === pathname) focusHeading();
         }}
       />
       <TabBar pendingSignups={pendingSignups} />

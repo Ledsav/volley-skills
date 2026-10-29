@@ -93,7 +93,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
         onClick={() => {
           if (!disabled && !longPressed.current) onSelect(id);
         }}
-        className={`relative flex min-h-[72px] min-w-0 select-none flex-col items-center justify-center gap-1 rounded-md px-1 pb-1.5 pt-5 text-ink disabled:opacity-60 md:min-h-20 ${
+        className={`relative flex min-h-[72px] min-w-0 select-none flex-col items-start justify-center gap-1 rounded-md px-2.5 pb-1.5 pt-5 text-left text-ink disabled:opacity-60 md:min-h-20 ${
           isSelected ? 'bg-surface-3 ring-2 ring-ink' : isLibero ? 'bg-orange-tint' : 'bg-surface'
         } ${isServer && !isSelected ? 'ring-2 ring-inset ring-surface-3' : ''}`}
       >
@@ -108,7 +108,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
             <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${f === 'bad' ? 'bg-red' : 'bg-green'}`} />
           )}
         </span>
-        <span className="max-w-full truncate text-headline">{names.get(id) ?? entry.name}</span>
+        <span className="max-w-full truncate text-left text-headline">{names.get(id) ?? entry.name}</span>
         <span className="flex items-center gap-1.5 text-ink-2">
           <span className="text-callout tabular-nums leading-none">#{entry.number}</span>
           <RoleChip

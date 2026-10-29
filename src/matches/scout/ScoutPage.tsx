@@ -643,7 +643,7 @@ export function ScoutPage() {
       />
       {stripProps && <StatusStrip {...stripProps} />}
       {isDesktop ? (
-        <main className="grid min-h-0 flex-1 grid-cols-[minmax(320px,440px)_1fr] gap-4 overflow-y-auto p-4">
+        <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.4fr)_360px] gap-4 overflow-y-auto p-4">
           {courtColumn}
           <div className="flex min-w-0 flex-col gap-4">
             {textPanel}

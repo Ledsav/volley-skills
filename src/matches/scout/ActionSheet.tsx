@@ -68,7 +68,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
         {validGrades(skill).map((g) => (
           <button
             key={g}

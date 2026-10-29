@@ -180,6 +180,14 @@ describe('ScoutPage', () => {
     expect(prompt).toHaveClass('top-32', 'md:top-36');
   });
 
+  it('shows the Live tag from md and gives the court the main desktop column', async () => {
+    renderPage([setStart]);
+    const tag = await screen.findByTestId('live-tag');
+    expect(tag).toHaveTextContent('Live · Set 1');
+    expect(tag).toHaveClass('hidden', 'md:inline-flex');
+    expect(screen.getByRole('main')).toHaveClass('grid-cols-[minmax(0,1.4fr)_360px]');
+  });
+
   it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
     renderPage([setStart]);
     const dock = await screen.findByRole('region', { name: 'Match events' });

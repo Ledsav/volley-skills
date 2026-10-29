@@ -72,6 +72,7 @@ export const physicalSessions = {
     startNew: 'Start new session',
     pastSessions: 'Past sessions',
     noSessions: 'No sessions yet.',
+    noSessionsBody: 'Test the whole team in one session: each player’s results go to their card.',
     loadError: 'Could not load past sessions.',
     couldNotStart: 'Could not start the session. Please try again.',
     alreadyOpen: 'A testing session is already open for this team.',

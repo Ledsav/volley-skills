@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Sheet } from '../components/Sheet';
-import { FIELD_CLASS, Input, Textarea } from '../components/Input';
+import { FIELD_CLASS, FIELD_LABEL_CLASS, Input, Textarea } from '../components/Input';
 import { useSave } from '../components/useSave';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
@@ -13,7 +13,7 @@ interface CreateTeamDialogProps {
   onCreated: () => void;
 }
 
-const labelClass = 'mb-1 block text-footnote font-medium text-ink-2';
+const labelClass = FIELD_LABEL_CLASS;
 const fieldClass = 'mb-4';
 
 export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) {

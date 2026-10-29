@@ -13,17 +13,24 @@ import { usePublishPageChrome } from '../layout/PageChrome';
 import { useAuth } from '../auth/AuthContext';
 import type { Match, MatchStatus } from '../types/match';
 import { getT, useT } from '../i18n/I18nProvider';
+import { formatDate } from '../i18n/format';
 import { todayIso } from '../calendar/monthGrid';
 import { createMatch, deleteMatch, listMatches } from './matchesApi';
 import { DvwImportDialog } from './dvw/DvwImportDialog';
 import { MatchSetupForm } from './MatchSetupForm';
 import { useTakePendingAction } from '../search/pendingAction';
+import { TabEmptyState } from '../teams/TabEmptyState';
 
-const STATUS_CLASS: Record<MatchStatus, string> = {
+// Only the states that need attention get a chip; a finished match is the normal case and shows its score.
+const STATUS_CLASS: Partial<Record<MatchStatus, string>> = {
   setup: 'bg-surface-3 text-ink-2',
   live: 'bg-green-tint text-green-strong',
-  finished: 'bg-surface-3 text-ink-2',
 };
+
+/** "Thu 29 Oct" this year, "29 Oct 2025" otherwise. Never wraps (the raw ISO date broke at its hyphens). */
+function matchDate(iso: string): string {
+  return iso.slice(0, 4) === todayIso().slice(0, 4) ? formatDate(iso, 'weekday') : formatDate(iso, 'short');
+}
 
 interface TeamMatchesTabProps {
   teamId: string;
@@ -58,23 +65,31 @@ function MatchRow({ match: m, teamId, onDelete }: MatchRowProps) {
   return (
     <li
       {...targetProps}
-      className="relative flex min-h-[52px] items-center gap-3 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden"
+      className="relative flex min-h-[60px] items-center before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden"
     >
+      {/* Two lines (opponent, then date and state) so the opponent keeps the width; the score sits in a fixed
+          tabular column so it lines up from row to row. */}
       <Link
         to={page}
-        className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus active:bg-surface-3"
+        className="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus active:bg-surface-3"
       >
-        <span className="w-20 shrink-0 text-footnote tabular-nums text-ink-2">{m.date}</span>
-        <span className="min-w-0 flex-1 truncate text-headline text-ink">{m.opponent}</span>
-        <span className="text-title-3 tabular-nums text-ink">
-          {m.result.setsUs}–{m.result.setsThem}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-headline text-ink">{m.opponent}</span>
+          <span className="flex min-w-0 items-center gap-2 text-footnote text-ink-2">
+            <span className="whitespace-nowrap tabular-nums">{matchDate(m.date)}</span>
+            {STATUS_CLASS[m.status] && (
+              <span className={`shrink-0 rounded-full px-2 text-caption ${STATUS_CLASS[m.status]}`}>{t.labels.matchStatus[m.status]}</span>
+            )}
+          </span>
         </span>
-        <span className={`rounded-full px-2 py-0.5 text-caption ${STATUS_CLASS[m.status]}`}>{t.labels.matchStatus[m.status]}</span>
+        <span className="w-12 shrink-0 whitespace-nowrap text-right text-title-3 tabular-nums text-ink">
+          {m.status === 'setup' ? <span className="text-ink-3">—</span> : `${m.result.setsUs}–${m.result.setsThem}`}
+        </span>
       </Link>
       {m.status === 'live' && (
         <Link
           to={`${page}/scout`}
-          className="mr-2 inline-flex min-h-11 shrink-0 items-center rounded-md px-3 text-callout font-semibold text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="-ml-2 mr-2 inline-flex min-h-11 shrink-0 items-center rounded-md px-3 text-callout font-semibold text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           {l.resume}
         </Link>
@@ -166,7 +181,11 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
           ))}
         </div>
       ) : matches.length === 0 && !error ? (
-        <p className="rounded-lg border border-dashed border-separator px-4 py-6 text-center text-callout text-ink-2">{l.none}</p>
+        <TabEmptyState
+          icon={Trophy}
+          title={l.none}
+          action={<Button variant="primary" onClick={() => setCreatingDate(todayIso())}>{l.newMatch}</Button>}
+        />
       ) : (
         <GroupedList>
           {matches.map((m) => (

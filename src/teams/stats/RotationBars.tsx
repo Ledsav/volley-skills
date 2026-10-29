@@ -10,12 +10,12 @@ export function RotationBars({ rotations, best, weakest }: { rotations: Record<n
           const v = rotations[r] ?? { won: 0, lost: 0 };
           return (
             <li key={r} className="flex items-center gap-2 text-callout">
-              <span className="w-6 text-ink-2 tabular-nums">{t.rotationShort(r)}</span>
+              <span className="w-8 shrink-0 whitespace-nowrap text-ink-2 tabular-nums">{t.rotationShort(r)}</span>
               <span className="flex h-4 flex-1 overflow-hidden rounded-sm bg-surface-2 [print-color-adjust:exact]" aria-label={t.rotationBar(r, v.won, v.lost)} role="img">
                 <span className="bg-green" style={{ width: `${(v.won / max) * 100}%` }} />
                 <span className="bg-red" style={{ width: `${(v.lost / max) * 100}%` }} />
               </span>
-              <span className="w-14 text-right text-ink tabular-nums">{v.won}–{v.lost}</span>
+              <span className="w-20 shrink-0 whitespace-nowrap text-right text-ink tabular-nums">{v.won}–{v.lost}</span>
             </li>
           );
         })}

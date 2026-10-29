@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useContextMenu } from '../components/ContextMenu';
 import { FIELD_CLASS } from '../components/Input';
+import { Select } from '../components/Select';
 import { GroupedList } from '../components/GroupedList';
 import { LevelPill } from '../components/LevelPill';
 import type { MenuItem } from '../components/Menu';
@@ -15,7 +16,7 @@ import { ageFromDob } from '../players/age';
 import { filterRoster, positionGroupKey, sortRoster, type RosterSort } from '../players/rosterSort';
 import { stickyTop } from '../layout/chromeMetrics';
 import type { Level, Player, PositionCategory } from '../types/player';
-import { formatNumber } from '../i18n/format';
+import { formatDate, formatNumber } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
 
@@ -54,7 +55,7 @@ function BornCell({ dob }: { dob: string }) {
   if (age === null) return <>—</>;
   return (
     <>
-      <span className="tabular-nums">{dob}</span>
+      <span className="tabular-nums" title={dob}>{formatDate(dob, 'short')}</span>
       <span className="text-ink-2"> · {t.age(age)}</span>
     </>
   );
@@ -92,13 +93,37 @@ function useRowActions({ teamId, player, onToggleStarting, onRemove }: RowProps)
   return useContextMenu({ label: tr.rowMenu(player.fullName), items });
 }
 
+/** The row's ⋯ button: opens the same menu as long-press and right-click (a portal, so no list clip cuts it off). */
+function RowMenuButton({ name, isOpen, closeMenu, open }: { name: string; isOpen: boolean; closeMenu: () => void; open: (e: MouseEvent<HTMLButtonElement>) => void }) {
+  const tr = useT().teams.roster;
+  const openAtPress = useRef<boolean | null>(null);
+  return (
+    <button
+      type="button"
+      aria-label={tr.rowMenu(name)}
+      aria-haspopup="menu"
+      aria-expanded={isOpen}
+      onPointerDown={() => (openAtPress.current = isOpen)}
+      onClick={(e) => {
+        // A press outside the menu already closed it, so a kebab press while open must stay closed.
+        const wasOpen = openAtPress.current ?? isOpen;
+        openAtPress.current = null;
+        if (wasOpen) closeMenu();
+        else open(e);
+      }}
+      className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    >
+      <MoreHorizontal size={20} aria-hidden="true" />
+    </button>
+  );
+}
+
 /** A phone / tablet row: grouped list item with swipe (right: Starting, left: Remove), kebab and long-press menu. */
 function RosterPhoneRow(props: RowProps) {
   const { teamId, player, gender, onToggleStarting, onRemove } = props;
   const t = useT();
   const tr = t.teams.roster;
   const { targetProps, menu, isOpen, closeMenu } = useRowActions(props);
-  const openAtPress = useRef<boolean | null>(null);
   const age = ageFromDob(player.dob ?? '');
   const subtitle = [
     t.labels.position[player.positionCategory](gender),
@@ -120,7 +145,7 @@ function RosterPhoneRow(props: RowProps) {
         trailing={[{ label: tr.removeMenu, tone: 'destructive', undoable: false, onAction: () => onRemove(player) }]}
       >
         {/* Name budget at 360px (list 328px): 328 - 16 (pl-4) - 8 (two gap-1) - 44 (kebab) - 92 (widest pill, Italian) - 46 (avatar 36 + gap 10) = 122px. */}
-        <div className="relative flex min-h-[52px] items-center gap-1 pl-4 pr-0 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator group-first:before:hidden">
+        <div className="relative flex min-h-[52px] items-center gap-1 pl-4 pr-0 before:absolute before:left-[62px] before:right-0 before:top-0 before:h-px before:bg-separator group-first:before:hidden">
           <Link
             to={`/teams/${teamId}/players/${player.id}`}
             className="flex min-w-0 flex-1 items-center gap-2.5 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -150,24 +175,7 @@ function RosterPhoneRow(props: RowProps) {
               <AvgSkillBar avgScore={player.avgScore} level={player.level} />
             </span>
           </span>
-          {/* Opens the context menu (a portal), so the grouped list's rounded clip never cuts it off. */}
-          <button
-            type="button"
-            aria-label={tr.rowMenu(player.fullName)}
-            aria-haspopup="menu"
-            aria-expanded={isOpen}
-            onPointerDown={() => (openAtPress.current = isOpen)}
-            onClick={(e) => {
-              // A press outside the menu already closed it, so a kebab press while open must stay closed.
-              const wasOpen = openAtPress.current ?? isOpen;
-              openAtPress.current = null;
-              if (wasOpen) closeMenu();
-              else targetProps.onContextMenu?.(e);
-            }}
-            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          >
-            <MoreHorizontal size={20} aria-hidden="true" />
-          </button>
+          <RowMenuButton name={player.fullName} isOpen={isOpen} closeMenu={closeMenu} open={(e) => targetProps.onContextMenu?.(e)} />
         </div>
       </SwipeRow>
       {menu}
@@ -175,20 +183,21 @@ function RosterPhoneRow(props: RowProps) {
   );
 }
 
-/** A desktop table row; keeps the Starting checkbox, and right-click offers the same actions. */
+/** A desktop table row: the Starter checkbox, then the facts; Remove lives in the row's ⋯ menu (and right-click). */
 function RosterTableRow(props: RowProps) {
-  const { teamId, player, gender, onToggleStarting, onRemove } = props;
+  const { teamId, player, gender, onToggleStarting } = props;
   const t = useT();
   const tr = t.teams.roster;
-  const { targetProps, menu } = useRowActions(props);
+  const { targetProps, menu, isOpen, closeMenu } = useRowActions(props);
   return (
     <tr {...targetProps} className="h-[52px] min-h-[52px] hover:bg-surface-2">
-      <td className="px-3 py-2">
-        <label className="inline-flex items-center">
+      <td className="px-3 py-1 text-center">
+        <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center">
           <span className="sr-only">{tr.startingFor(player.fullName)}</span>
           <input type="checkbox" checked={player.starting} onChange={(e) => onToggleStarting(player, e.target.checked)} />
         </label>
       </td>
+      <td className="w-12 px-3 py-2 text-right text-callout tabular-nums text-ink-2">{player.number ?? '—'}</td>
       <td className="px-3 py-2">
         <Link to={`/teams/${teamId}/players/${player.id}`} className="text-headline text-ink hover:underline">
           {player.fullName}
@@ -209,10 +218,8 @@ function RosterTableRow(props: RowProps) {
       <td className="px-3 py-2">
         <LevelPill level={player.level} gender={gender} />
       </td>
-      <td className="px-3 py-2 text-right">
-        <Button variant="dangerGhost" size="sm" onClick={() => onRemove(player)} aria-label={tr.removeAria(player.fullName)}>
-          {tr.remove}
-        </Button>
+      <td className="w-14 py-1 pl-1 pr-2 text-right">
+        <RowMenuButton name={player.fullName} isOpen={isOpen} closeMenu={closeMenu} open={(e) => targetProps.onContextMenu?.(e)} />
         {menu}
       </td>
     </tr>
@@ -347,18 +354,18 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
         </label>
         <label className="flex items-center gap-2 text-callout text-ink-2 xl:hidden">
           {tr.sort}
-          <select
+          <Select
             aria-label={tr.sortAria}
             value={sort}
             onChange={(e) => setSort(e.target.value as RosterSort)}
-            className={`${FIELD_CLASS} px-2`}
+            className="w-auto"
           >
             {SORT_VALUES.map((value) => (
               <option key={value} value={value}>
                 {{ lineup: tr.sortLineup, position: tr.sortPosition, skill: tr.sortSkill, birthdate: tr.sortBirthdate }[value]}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
 
@@ -401,10 +408,14 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th scope="col" aria-sort={ariaSort('lineup')} className={TH_CLASS} style={TH_STYLE}>
-                <button type="button" onClick={() => setSort('lineup')} className={SORT_BUTTON_CLASS}>
+              <th scope="col" aria-sort={ariaSort('lineup')} className={`${TH_CLASS} rounded-tl-lg text-center`} style={TH_STYLE}>
+                <button type="button" onClick={() => setSort('lineup')} title={tr.startColHint} className={SORT_BUTTON_CLASS}>
                   {tr.startCol}
                 </button>
+              </th>
+              <th scope="col" className={`${TH_CLASS} text-right`} style={TH_STYLE}>
+                <span aria-hidden="true">#</span>
+                <span className="sr-only">{tr.numberCol}</span>
               </th>
               <th scope="col" className={TH_CLASS} style={TH_STYLE}>
                 {tr.nameCol}
@@ -427,7 +438,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
               <th scope="col" className={TH_CLASS} style={TH_STYLE}>
                 {tr.level}
               </th>
-              <th scope="col" className={`${TH_CLASS} text-right`} style={TH_STYLE}>
+              <th scope="col" className={`${TH_CLASS} rounded-tr-lg text-right`} style={TH_STYLE}>
                 <span className="sr-only">{tr.actions}</span>
               </th>
             </tr>
@@ -436,7 +447,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
             groups.map((group) => (
               <tbody key={group.key} className="divide-y divide-separator">
                 <tr>
-                  <th scope="rowgroup" colSpan={7} className="bg-surface-2 px-3 py-2 text-left text-caption text-ink-2">
+                  <th scope="rowgroup" colSpan={8} className="bg-surface-2 px-3 py-2 text-left text-caption text-ink-2">
                     {tr.positionGroup[group.key](gender)}
                   </th>
                 </tr>

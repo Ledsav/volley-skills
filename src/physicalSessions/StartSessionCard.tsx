@@ -1,5 +1,8 @@
+import { formatDate } from '../i18n/format';
+import { TabEmptyState } from '../teams/TabEmptyState';
 import { useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Timer } from 'lucide-react';
+import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Sheet } from '../components/Sheet';
 import { GroupedList, ListRow } from '../components/GroupedList';
@@ -14,12 +17,14 @@ interface StartSessionCardProps {
   teamId: string;
   creatorUid: string;
   onStarted: (sessionId: string) => void;
+  /** Opens the start sheet (the empty state's action). */
+  onRequestStart?: () => void;
   /** The start sheet is open (the tab's "New testing session" action). */
   starting?: boolean;
   onCloseStart?: () => void;
 }
 
-export function StartSessionCard({ teamId, creatorUid, onStarted, starting = false, onCloseStart }: StartSessionCardProps) {
+export function StartSessionCard({ teamId, creatorUid, onStarted, starting = false, onCloseStart, onRequestStart }: StartSessionCardProps) {
   const [date, setDate] = useState(todayLocalIso);
   const [busy, setBusy] = useState(false);
   const [pastSessions, setPastSessions] = useState<TestingSession[]>([]);
@@ -71,13 +76,21 @@ export function StartSessionCard({ teamId, creatorUid, onStarted, starting = fal
         </Sheet>
       )}
 
-      <h2 className="mb-2 text-title-3 text-ink">{s.start.pastSessions}</h2>
       {loadError && <p role="alert" className="text-footnote text-red-strong">{loadError}</p>}
-      {!loadError && pastSessions.length === 0 && <p className="text-footnote text-ink-2">{s.start.noSessions}</p>}
+      {!loadError && pastSessions.length === 0 && (
+        <div className="rounded-lg bg-surface shadow-card">
+          <TabEmptyState
+            icon={Timer}
+            title={s.start.noSessions}
+            body={s.start.noSessionsBody}
+            action={onRequestStart && <Button variant="primary" onClick={onRequestStart}>{s.start.newSession}</Button>}
+          />
+        </div>
+      )}
       {pastSessions.length > 0 && (
-        <GroupedList>
+        <GroupedList header={s.start.pastSessions}>
           {pastSessions.map((p) => (
-            <ListRow key={p.id} title={<span className="tabular-nums">{p.date}</span>} onClick={() => setViewing(p)} trailing={<ChevronRight size={18} aria-hidden="true" className="text-ink-3" />} />
+            <ListRow key={p.id} title={<span className="tabular-nums" title={p.date}>{formatDate(p.date, 'short')}</span>} onClick={() => setViewing(p)} trailing={<ChevronRight size={18} aria-hidden="true" className="text-ink-3" />} />
           ))}
         </GroupedList>
       )}

@@ -22,7 +22,7 @@ describe('StartSessionCard', () => {
 
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
 
-    await waitFor(() => expect(screen.getByText('2026-09-10')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('10 Sep 2026')).toBeInTheDocument());
   });
 
   it('starts a new session with the chosen date and notifies the parent', async () => {
@@ -60,7 +60,7 @@ describe('StartSessionCard', () => {
       { id: 'session-old', date: '2026-09-10', status: 'closed', createdBy: 'coach-uid', createdAt: null, closedAt: null },
     ]);
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: /2026-09-10/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /10 Sep 2026/ }));
     expect(screen.getByRole('dialog')).toHaveTextContent('results for 2026-09-10');
   });
 
@@ -69,9 +69,9 @@ describe('StartSessionCard', () => {
       { id: 'session-old', date: '2026-09-10', status: 'closed', createdBy: 'coach-uid', createdAt: null, closedAt: null },
     ]);
     render(<StartSessionCard teamId="team-1" creatorUid="coach-uid" onStarted={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: /2026-09-10/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /10 Sep 2026/ }));
     fireEvent.click(screen.getByRole('button', { name: 'delete-stub' }));
-    expect(screen.queryByRole('button', { name: /2026-09-10/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /10 Sep 2026/ })).not.toBeInTheDocument();
     expect(screen.getByText('No sessions yet.')).toBeInTheDocument();
   });
 });

@@ -10,11 +10,12 @@ import type { Team } from '../types/team';
 import { getTeamSummary, type TeamSummary } from './teamsApi';
 import { teamGender } from './teamGender';
 
-/** Up to two letters from a team name, for the card monogram. */
-function teamMonogram(name: string): string {
+/** A short team name whole ("U17"), else up to two letters, for the card monogram. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function teamMonogram(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return '?';
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  if (words.length === 1) return (words[0].length <= 3 ? words[0] : words[0].slice(0, 2)).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
@@ -61,11 +62,11 @@ export function TeamCard({ team, layout, withMenu = false }: TeamCardProps) {
 
   const responsive = layout === 'responsive';
   const surface = responsive
-    ? 'relative min-h-[52px] gap-3 px-4 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden md:min-h-0 md:rounded-lg md:bg-surface md:p-4 md:shadow-card md:before:hidden md:pressable'
+    ? 'relative min-h-[52px] gap-3 px-4 before:absolute before:left-[68px] before:right-0 before:top-0 before:h-px before:bg-separator group-first:before:hidden md:min-h-0 md:rounded-lg md:bg-surface md:p-4 md:shadow-card md:before:hidden md:pressable'
     : 'rounded-lg bg-surface p-4 shadow-card pressable';
 
   return (
-    <li className={responsive ? 'md:contents' : undefined}>
+    <li className={responsive ? 'group md:contents' : undefined}>
       <Link
         to={path}
         {...(withMenu ? targetProps : undefined)}

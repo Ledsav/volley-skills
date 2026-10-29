@@ -103,6 +103,7 @@ export function TeamPhysicalSessionTab({ teamId, team, onTeamChanged }: TeamPhys
       creatorUid={firebaseUser.uid}
       starting={starting}
       onCloseStart={() => setStarting(false)}
+      onRequestStart={() => setStarting(true)}
       onStarted={(sessionId) => {
         setStarting(false);
         onTeamChanged({ ...team, activeTestingSessionId: sessionId });

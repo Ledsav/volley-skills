@@ -163,7 +163,7 @@ describe('TeamRosterTable', () => {
     const startingSpy = vi.spyOn(playersApi, 'setPlayerStarting').mockResolvedValue(undefined);
     renderRoster();
     await screen.findAllByText('Test Player');
-    fireEvent.click(screen.getByRole('button', { name: 'Actions for Test Player' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Test Player' })[0]);
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Set as starting' }));
     await waitFor(() => expect(startingSpy).toHaveBeenCalledWith('team-1', 'p1', true));
     expect(within((await screen.findAllByTestId('roster-mobile-card'))[0]).getByText('Starting')).toBeInTheDocument();
@@ -191,7 +191,7 @@ describe('TeamRosterTable', () => {
     const deleteSpy = vi.spyOn(playersApi, 'deletePlayer').mockResolvedValue(undefined);
     renderRoster();
     await screen.findAllByText('Test Player');
-    fireEvent.click(screen.getByRole('button', { name: 'Actions for Test Player' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Test Player' })[0]);
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove…' }));
     expect(await screen.findByText('Yes, remove player')).toBeInTheDocument();
     expect(deleteSpy).not.toHaveBeenCalled();
@@ -249,7 +249,8 @@ describe('TeamRosterTable', () => {
     );
 
     await screen.findAllByText('Test Player');
-    fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Remove Test Player' }));
+    fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Actions for Test Player' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove…' }));
     fireEvent.click(screen.getByText('Yes, remove player'));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('team-1', 'player-1'));
@@ -258,7 +259,7 @@ describe('TeamRosterTable', () => {
     expect(onPlayersChange).toHaveBeenLastCalledWith([expect.objectContaining({ id: 'player-2' })]);
   });
 
-  it('keeps the Remove control outside the player-card link so it never navigates', async () => {
+  it('keeps the row menu (with Remove) outside the player-card link so it never navigates', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [makePlayer('player-1', 1, 'Test Player')],
       lastDoc: null,
@@ -272,7 +273,9 @@ describe('TeamRosterTable', () => {
     );
 
     await screen.findAllByText('Test Player');
-    for (const button of screen.getAllByRole('button', { name: 'Remove Test Player' })) {
+    const buttons = screen.getAllByRole('button', { name: 'Actions for Test Player' });
+    expect(buttons).toHaveLength(2); // phone row and desktop row
+    for (const button of buttons) {
       expect(button.closest('a')).toBeNull();
     }
   });
@@ -292,7 +295,8 @@ describe('TeamRosterTable', () => {
     );
 
     await screen.findAllByText('Test Player');
-    fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Remove Test Player' }));
+    fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Actions for Test Player' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove…' }));
     fireEvent.click(screen.getByText('Yes, remove player'));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not remove/i);
@@ -341,8 +345,8 @@ describe('TeamRosterTable', () => {
     await screen.findAllByText('Older Player');
     const table = within(screen.getByRole('table'));
     expect(table.getByText('Born')).toBeInTheDocument();
-    expect(table.getByText('2008-01-01')).toBeInTheDocument();
-    expect(table.getByText('2012-01-01')).toBeInTheDocument();
+    expect(table.getByText('1 Jan 2008')).toBeInTheDocument();
+    expect(table.getByText('1 Jan 2012')).toBeInTheDocument();
     expect(table.getByText(`· ${ageFromDob('2008-01-01')}y`)).toBeInTheDocument();
     expect(table.getByText(`· ${ageFromDob('2012-01-01')}y`)).toBeInTheDocument();
 
@@ -574,7 +578,7 @@ describe('TeamRosterTable', () => {
       });
       renderRoster();
       await screen.findAllByText('Test Player');
-      const kebab = screen.getByRole('button', { name: 'Actions for Test Player' });
+      const kebab = screen.getAllByRole('button', { name: 'Actions for Test Player' })[0];
       expect(kebab).toHaveAttribute('aria-expanded', 'false');
       fireEvent.click(kebab);
       expect(await screen.findByRole('menu')).toBeInTheDocument();
@@ -592,7 +596,7 @@ describe('TeamRosterTable', () => {
       });
       renderRoster();
       await screen.findAllByText('Test Player');
-      const kebab = screen.getByRole('button', { name: 'Actions for Test Player' });
+      const kebab = screen.getAllByRole('button', { name: 'Actions for Test Player' })[0];
       fireEvent.click(kebab);
       await screen.findByRole('menu');
       // a real press: pointerdown reaches the document first and closes the menu, then click arrives

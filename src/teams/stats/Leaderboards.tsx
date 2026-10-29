@@ -5,6 +5,7 @@ import { BAND_BAR_CLASS, barFraction, leaderBand } from './leaderBars';
 import type { TeamPlayerRow } from './teamSeason';
 import { useT } from '../../i18n/I18nProvider';
 import type { Gender } from '../../i18n/catalog';
+import type { Level } from '../../types/player';
 
 const label = (p: Person) => `${p.number !== null ? `#${p.number} ` : ''}${p.name}`;
 
@@ -13,7 +14,9 @@ export function Leaderboards({ teamId, rankings, people, gender = 'mixed', playe
   const lb = t.labels;
   const person = (id: string) => people.get(id) ?? UNKNOWN_PERSON(id);
   const ratingsById = new Map(players.map((p) => [p.playerId, p.ratings]));
+  const levels: Level[] = ['Beginner', 'Developing', 'Advanced', 'Elite'];
   return (
+    <div>
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {rankings.map((r) => {
         const titleId = `lb-${r.id}`;
@@ -30,12 +33,13 @@ export function Leaderboards({ teamId, rankings, people, gender = 'mixed', playe
                   return (
                     <li key={x.playerId} className="px-4 [&:not(:first-child)>div]:border-t [&>div]:border-separator">
                       <div className="min-h-[52px] py-2">
-                        <div className="flex items-baseline gap-2">
-                          <span className="w-5 text-footnote text-ink-2 tabular-nums">{x.rank}.</span>
-                          <span className="flex-1 truncate text-headline">
+                        {/* The value wraps under the name when the card is narrow, so names are never cut. */}
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="w-5 shrink-0 text-footnote text-ink-2 tabular-nums">{x.rank}.</span>
+                          <span className="min-w-0 flex-1 basis-32 break-words text-headline">
                             {p.current ? <Link to={`/teams/${teamId}/players/${p.playerId}`} className="text-ink hover:underline">{label(p)}</Link> : <span className="text-ink">{label(p)}</span>}
                           </span>
-                          <span className="text-callout text-ink-2 tabular-nums">{x.display}{x.attempts !== null ? ` · ${t.teams.stats.attempts(x.attempts)}` : ''}</span>
+                          <span className="ml-auto whitespace-nowrap text-callout text-ink-2 tabular-nums">{x.display}{x.attempts !== null ? ` · ${t.teams.stats.attempts(x.attempts)}` : ''}</span>
                         </div>
                         <div aria-hidden="true" className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2 [print-color-adjust:exact]">
                           <div
@@ -56,6 +60,17 @@ export function Leaderboards({ teamId, rankings, people, gender = 'mixed', playe
           </section>
         );
       })}
+    </div>
+    {/* Bars take the level band of the player's season rating in that skill (design spec 8.5); say so. */}
+    <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 text-footnote text-ink-2">
+      <span>{t.teams.stats.barLegend}</span>
+      {levels.map((level) => (
+        <span key={level} className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className={`h-2 w-2 rounded-full ${BAND_BAR_CLASS[level]}`} />
+          {lb.level[level](gender)}
+        </span>
+      ))}
+    </p>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Team } from '../types/team';
-import { TeamCard } from './TeamCard';
+import { TeamCard, teamMonogram } from './TeamCard';
 import * as teamsApi from './teamsApi';
 
 vi.mock('./teamsApi');
@@ -50,5 +50,13 @@ describe('TeamCard', () => {
     fireEvent.contextMenu(screen.getByRole('link'));
     expect(await screen.findByRole('menuitem', { name: 'Open' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Open in new tab' })).toBeInTheDocument();
+  });
+});
+
+describe('teamMonogram', () => {
+  it('keeps a short one-word name whole and takes initials otherwise', () => {
+    expect(teamMonogram('U17')).toBe('U17');
+    expect(teamMonogram('Seniors')).toBe('SE');
+    expect(teamMonogram('Men 1')).toBe('M1');
   });
 });

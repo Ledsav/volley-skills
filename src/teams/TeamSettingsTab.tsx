@@ -75,15 +75,16 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    // Forms stay at reading width (design system: forms ≤ 720 px).
+    <div className="flex max-w-[720px] flex-col gap-4">
         <form onSubmit={handleSaveInfo} className="rounded-lg bg-surface p-4 shadow-card">
           <h2 className="mb-3 text-title-3 text-ink">{t.teams.settings.infoTitle}</h2>
           <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
+            <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
               {t.teams.settings.teamName}
               <Input value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
-            <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
+            <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
               {t.teams.gender.label}
               <select
                 className={`${FIELD_CLASS} w-full`}
@@ -101,13 +102,13 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
+            <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
               {t.teams.settings.description}
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full resize-none" />
             </label>
-            <div className="flex flex-col gap-1 text-footnote font-medium text-ink-2">
+            <div className="flex flex-col gap-1.5 text-footnote text-ink-2">
               <label htmlFor="team-info-notes">{t.teams.settings.notes}</label>
-              <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+              <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} className="w-full resize-none" />
               <HealthHint id="team-info-notes-hint" />
             </div>
           </div>

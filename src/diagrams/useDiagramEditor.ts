@@ -28,6 +28,8 @@ export interface EditorState {
   deletedIds: string[];
   undo: Scene[];
   redo: Scene[];
+  /** Stashed undo/redo stacks of the inactive diagrams, by diagram id. */
+  history: Record<string, { undo: Scene[]; redo: Scene[] }>;
 }
 
 export type EditorAction =
@@ -67,7 +69,27 @@ export const initialEditorState: EditorState = {
   deletedIds: [],
   undo: [],
   redo: [],
+  history: {},
 };
+
+export function isEditorDirty(state: EditorState): boolean {
+  return state.dirtyIds.size > 0 || state.deletedIds.length > 0;
+}
+
+/** History with the active diagram's stacks stashed under its id. */
+function stashActive(state: EditorState): EditorState['history'] {
+  const id = state.activeDiagramId;
+  if (!id || (state.undo.length === 0 && state.redo.length === 0)) return state.history;
+  return { ...state.history, [id]: { undo: state.undo, redo: state.redo } };
+}
+
+/** Load `id`'s stacks out of `history` (empty when none), removing its key. */
+function takeHistory(history: EditorState['history'], id: string | null) {
+  const found = id ? history[id] : undefined;
+  const rest = { ...history };
+  if (id) delete rest[id];
+  return { history: rest, undo: found?.undo ?? [], redo: found?.redo ?? [] };
+}
 
 /** Set the selection to `ids`, keeping the derived single-select field in sync. */
 function withSelection(state: EditorState, ids: string[]): EditorState {
@@ -135,15 +157,16 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
       const sorted = [...action.diagrams].sort((a, b) => a.order - b.order);
       return { ...initialEditorState, diagrams: sorted, activeDiagramId: sorted[0]?.id ?? null };
     }
-    case 'selectDiagram':
+    case 'selectDiagram': {
+      if (action.id === state.activeDiagramId) return withSelection(state, []);
       return {
         ...state,
         activeDiagramId: action.id,
         selectedIds: [],
         selectedItemId: null,
-        undo: [],
-        redo: [],
+        ...takeHistory(stashActive(state), action.id),
       };
+    }
     case 'addDiagram': {
       if (state.diagrams.length >= SCENE_LIMITS.diagramsPerExercise) return state;
       const n = state.diagrams.length;
@@ -162,6 +185,7 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
         selectedIds: [],
         selectedItemId: null,
         dirtyIds: new Set(state.dirtyIds).add(id),
+        history: stashActive(state),
         undo: [],
         redo: [],
       };
@@ -198,17 +222,22 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
           if (d.order !== k) dirtyIds.add(d.id);
           return { ...d, order: k };
         });
+      const wasActive = state.activeDiagramId === action.id;
+      const newActive = wasActive ? diagrams[0]?.id ?? null : state.activeDiagramId;
+      const dropped = { ...state.history };
+      delete dropped[action.id];
+      const stacks = wasActive
+        ? takeHistory(dropped, newActive)
+        : { history: dropped, undo: state.undo, redo: state.redo };
       return {
         ...state,
         diagrams,
         dirtyIds,
         deletedIds: target.persisted ? [...state.deletedIds, action.id] : state.deletedIds,
-        activeDiagramId:
-          state.activeDiagramId === action.id ? diagrams[0]?.id ?? null : state.activeDiagramId,
+        activeDiagramId: newActive,
         selectedIds: [],
         selectedItemId: null,
-        undo: [],
-        redo: [],
+        ...stacks,
       };
     }
     case 'selectItem':
@@ -382,8 +411,9 @@ export function diagramReducer(state: EditorState, action: EditorAction): Editor
           : null,
         dirtyIds,
         deletedIds: state.deletedIds.filter((id) => !committed.has(id)),
-        undo: [],
-        redo: [],
+        history: Object.fromEntries(
+          Object.entries(state.history).map(([id, h]) => [action.idMap[id] ?? id, h]),
+        ),
       };
     }
   }

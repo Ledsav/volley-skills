@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPage } from './TeamPage';
@@ -43,6 +43,6 @@ describe('TeamPage Stats fallback', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Loading team stats…')).toBeInTheDocument();
-    expect(screen.getByTestId('title')).toHaveTextContent('U17 Boys');
+    await waitFor(() => expect(screen.getByTestId('title')).toHaveTextContent('U17 Boys'));
   });
 });

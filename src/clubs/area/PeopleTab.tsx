@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
+import { GroupedList, ListRow } from '../../components/GroupedList';
+import { SkeletonBlock } from '../../components/Skeleton';
+import { TeamGrantList } from './TeamGrantList';
+import { useTeamPages } from './useTeamPages';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { FIELD_CLASS, Input } from '../../components/Input';
 import { SECTION_KEYS, type SectionKey } from '../../auth/access';
 import { useAuth } from '../../auth/AuthContext';
 import {
-  emptyGrantSet, listAllTeams, listGrantHolders, saveGrants,
-  type GrantHolder, type GrantSet, type TeamRow,
+  emptyGrantSet, listGrantHolders, saveGrants,
+  type GrantHolder, type GrantSet,
 } from '../../access/accessApi';
 import { addMember, canChangeRole, listMembers, removeFromClub, setMemberRole } from '../../access/membersApi';
 import { transferOwnership } from '../clubAdminApi';
@@ -29,7 +33,8 @@ export function PeopleTab() {
   const p = t.clubs.people;
   const ownerEmail = (club?.ownerEmail ?? '').toLowerCase();
   const myEmail = appUser?.email ?? '';
-  const [teams, setTeams] = useState<TeamRow[]>([]);
+  const teamPages = useTeamPages();
+  const [loaded, setLoaded] = useState(false);
   const [holders, setHolders] = useState<GrantHolder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -42,12 +47,10 @@ export function PeopleTab() {
 
   async function reload() {
     try {
-      const [{ teams: allTeams }, allHolders, allMembers] = await Promise.all([
-        listAllTeams(), listGrantHolders(), listMembers(),
-      ]);
-      setTeams(allTeams);
+      const [allHolders, allMembers] = await Promise.all([listGrantHolders(), listMembers()]);
       setHolders(allHolders);
       setMembers(allMembers);
+      setLoaded(true);
       return allHolders;
     } catch {
       setError(p.loadFailed);
@@ -157,13 +160,15 @@ export function PeopleTab() {
 
   return (
     <div>
-      {error && !confirm && <p role="alert" className="mb-4 text-red-strong">{error}</p>}
+      {(error ?? (teamPages.error === 'load' ? p.loadFailed : null)) && !confirm && (
+        <p role="alert" className="mb-4 text-red-strong">{error ?? p.loadFailed}</p>
+      )}
       <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-        <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
-          <div className="mb-3 flex flex-col gap-2">
-            <label htmlFor="new-person" className="text-sm font-medium text-ink">{p.addByEmail}</label>
+        <div className="rounded-lg bg-surface p-4 shadow-card">
+          <div className="mb-4 flex flex-col gap-2">
+            <label htmlFor="new-person" className="text-footnote text-ink-2">{p.addByEmail}</label>
             <Input id="new-person" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <label htmlFor="new-role" className="text-sm font-medium text-ink">{p.role}</label>
+            <label htmlFor="new-role" className="text-footnote text-ink-2">{p.role}</label>
             <select id="new-role" value={newRole} onChange={(e) => setNewRole(e.target.value as MemberRole)}
               className={`${FIELD_CLASS} w-full`}>
               <option value="member">{p.member}</option>
@@ -173,63 +178,55 @@ export function PeopleTab() {
               {p.addPerson}
             </Button>
           </div>
-          <p className="mb-2 text-sm font-medium text-ink">{p.people}</p>
-          <ul className="divide-y divide-border">
-            {members.map((x) => (
-              <li key={x.email}>
-                <button type="button" onClick={() => select(x.email)} title={x.email}
-                  aria-current={selected === x.email}
-                  className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                    selected === x.email ? 'bg-blue/10 font-semibold text-blue-strong' : 'text-ink hover:bg-bg'
-                  }`}>
-                  <span className="min-w-0 flex-1 truncate">{x.email}</span>
-                  {x.email === ownerEmail && (
-                    <span className="rounded-full bg-navy px-2 py-0.5 text-xs font-medium text-white">{p.owner}</span>
-                  )}
-                  <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-slate">
-                    {x.role === 'admin' ? p.admin : p.member}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <GroupedList header={p.people}>
+            {!loaded
+              ? [0, 1, 2, 3].map((i) => (
+                <li key={i} className="flex min-h-[52px] items-center px-4"><SkeletonBlock className="h-4 w-40" /></li>
+              ))
+              : members.map((x) => (
+                <ListRow key={x.email} title={x.email} rowProps={{ title: x.email }}
+                  selected={selected === x.email} onClick={() => select(x.email)}
+                  trailing={(
+                    <span className="flex items-center gap-1">
+                      {x.email === ownerEmail && (
+                        <span className="rounded-full bg-ink px-2 text-caption text-on-ink">{p.owner}</span>
+                      )}
+                      <span className="rounded-full bg-surface-3 px-2 text-caption text-ink-2">
+                        {x.role === 'admin' ? p.admin : p.member}
+                      </span>
+                    </span>
+                  )} />
+              ))}
+          </GroupedList>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-4 shadow-card">
+        <div className="rounded-lg bg-surface p-4 shadow-card">
           {!target || !rules ? (
-            <p className="text-sm text-slate">{p.selectPerson}</p>
+            <p className="text-callout text-ink-2">{p.selectPerson}</p>
           ) : (
             <>
-              <h2 className="mb-4 break-all text-lg font-semibold text-ink">{target.email}</h2>
+              <h2 className="mb-4 break-all text-title-3 text-ink">{target.email}</h2>
 
               {target.role === 'admin' ? (
-                <p className="mb-4 text-sm text-slate">{p.adminsFullAccess}</p>
+                <p className="mb-4 text-callout text-ink-2">{p.adminsFullAccess}</p>
               ) : (
                 <>
                   <fieldset className="mb-4">
-                    <legend className="mb-2 text-sm font-medium text-ink">{p.sectionsLegend}</legend>
-                    <div className="flex flex-col gap-2">
+                    <legend className="mb-2 text-footnote text-ink-2">{p.sectionsLegend}</legend>
+                    <div className="flex flex-col">
                       {SECTION_KEYS.map((s) => (
-                        <label key={s} className="flex items-center gap-2 text-sm text-ink">
-                          <input type="checkbox" aria-label={p.sections[s]}
+                        <label key={s} className="flex min-h-[52px] items-center gap-3 text-body text-ink">
+                          <input type="checkbox" className="h-5 w-5" aria-label={p.sections[s]}
                             checked={draft.sections[s]} onChange={() => toggleSection(s)} />
                           {p.sections[s]}
                         </label>
                       ))}
                     </div>
                   </fieldset>
-                  <fieldset className="mb-4">
-                    <legend className="mb-2 text-sm font-medium text-ink">{p.teamsLegend}</legend>
-                    <div className="flex flex-col gap-2">
-                      {teams.map((t) => (
-                        <label key={t.id} className="flex items-center gap-2 text-sm text-ink">
-                          <input type="checkbox" aria-label={t.name}
-                            checked={draft.teamIds.includes(t.id)} onChange={() => toggleTeam(t.id)} />
-                          {t.name}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
+                  <TeamGrantList teams={teamPages.teams} hasMore={teamPages.hasMore}
+                    loadingMore={teamPages.loadingMore} loadMoreFailed={teamPages.error === 'more'}
+                    onLoadMore={() => void teamPages.loadMore()}
+                    selected={draft.teamIds} onToggle={toggleTeam} />
                   <Button variant="primary" size="sm" className="mb-4 w-full sm:w-auto"
                     disabled={busy || sameGrants(draft, original)} onClick={() => void save()}>
                     {t.common.save}
@@ -237,7 +234,7 @@ export function PeopleTab() {
                 </>
               )}
 
-              <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap">
+              <div className="flex flex-col gap-2 border-t border-separator pt-4 sm:flex-row sm:flex-wrap">
                 {target.role === 'admin' ? (
                   <Button variant="secondary" size="sm" className="w-full sm:w-auto"
                     disabled={busy || !rules.demote}
@@ -264,7 +261,7 @@ export function PeopleTab() {
                   {p.removeFromClub}
                 </Button>
               </div>
-              {rules.reason && <p className="mt-2 text-sm text-slate">{p.reason[rules.reason]}</p>}
+              {rules.reason && <p className="mt-2 text-footnote text-ink-2">{p.reason[rules.reason]}</p>}
             </>
           )}
         </div>

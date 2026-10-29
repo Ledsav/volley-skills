@@ -72,6 +72,10 @@ export const clubs = {
     saved: 'Club details saved',
   },
   people: {
+    filterTeams: 'Filter teams',
+    noTeamsMatch: 'No loaded team matches.',
+    loadMoreTeams: 'Load more teams',
+    loadMoreTeamsFailed: 'Could not load more teams. Please try again.',
     loadFailed: 'Could not load people. Please refresh the page.',
     invalidEmail: 'Enter a valid email address.',
     alreadyMember: (email: string) => `${email} is already a member.`,

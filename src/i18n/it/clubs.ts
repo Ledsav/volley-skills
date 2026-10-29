@@ -76,6 +76,10 @@ export const clubs = {
     saved: 'Dati del club salvati',
   },
   people: {
+    filterTeams: 'Filtra squadre',
+    noTeamsMatch: 'Nessuna squadra caricata corrisponde.',
+    loadMoreTeams: 'Carica altre squadre',
+    loadMoreTeamsFailed: 'Impossibile caricare altre squadre. Riprova.',
     loadFailed: 'Impossibile caricare le persone. Aggiorna la pagina.',
     invalidEmail: 'Inserisci un indirizzo email valido.',
     alreadyMember: (email: string) => `${email} è già membro.`,

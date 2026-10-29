@@ -31,9 +31,11 @@ interface ListRowProps {
   onClick?: () => void;
   /** Spread on the interactive element (or the row itself when it is plain), e.g. `useContextMenu().targetProps`. */
   rowProps?: HTMLAttributes<HTMLElement>;
+  /** Marks the row as the current selection (master/detail lists). */
+  selected?: boolean;
 }
 
-export function ListRow({ title, subtitle, leading, trailing, to, onClick, rowProps }: ListRowProps) {
+export function ListRow({ title, subtitle, leading, trailing, to, onClick, rowProps, selected }: ListRowProps) {
   const body = (
     <>
       {leading && <span className="flex shrink-0 items-center">{leading}</span>}
@@ -46,7 +48,8 @@ export function ListRow({ title, subtitle, leading, trailing, to, onClick, rowPr
     </>
   );
   const inner = 'flex min-h-[52px] w-full items-center gap-3 px-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus';
-  const tappable = `${inner} cursor-pointer active:bg-surface-3`;
+  const tappable = `${inner} cursor-pointer active:bg-surface-3${selected ? ' bg-surface-3' : ''}`;
+  const current = selected ? { 'aria-current': 'true' as const } : undefined;
   const separator = `relative before:absolute before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden ${
     leading ? 'before:left-[56px]' : 'before:left-4'
   }`;
@@ -54,11 +57,11 @@ export function ListRow({ title, subtitle, leading, trailing, to, onClick, rowPr
   return (
     <li className={separator} {...(!to && !onClick ? rowProps : undefined)}>
       {to ? (
-        <Link to={to} className={tappable} {...rowProps}>
+        <Link to={to} className={tappable} {...current} {...rowProps}>
           {body}
         </Link>
       ) : onClick ? (
-        <button type="button" onClick={onClick} className={tappable} {...rowProps}>
+        <button type="button" onClick={onClick} className={tappable} {...current} {...rowProps}>
           {body}
         </button>
       ) : (

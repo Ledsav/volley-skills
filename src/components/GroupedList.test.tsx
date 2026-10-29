@@ -63,4 +63,15 @@ describe('GroupedList', () => {
     fireEvent.contextMenu(screen.getByRole('button', { name: 'Ana' }));
     expect(onContextMenu).toHaveBeenCalledTimes(1);
   });
+
+  it('marks a selected row with aria-current', () => {
+    render(
+      <GroupedList>
+        <ListRow title="Ana" onClick={() => {}} selected />
+        <ListRow title="Bo" onClick={() => {}} />
+      </GroupedList>,
+    );
+    expect(screen.getByRole('button', { name: 'Ana' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: 'Bo' })).not.toHaveAttribute('aria-current');
+  });
 });

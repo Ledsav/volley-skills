@@ -201,4 +201,73 @@ describe('PeopleTab', () => {
     render(<PeopleTab />);
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i);
   });
+
+  it('pages the team checklist with Load more (B9)', async () => {
+    const c1 = { id: 'c1' } as never;
+    vi.mocked(accessApi.listAllTeams)
+      .mockResolvedValueOnce({ teams, lastDoc: c1, hasMore: true })
+      .mockResolvedValueOnce({ teams: [{ id: 't3', name: 'U19' }], lastDoc: null, hasMore: false });
+    render(<PeopleTab />);
+    await openPerson('coach@example.com');
+    fireEvent.click(await screen.findByRole('button', { name: 'Load more teams' }));
+    expect(await screen.findByRole('checkbox', { name: 'U19' })).toBeInTheDocument();
+    expect(accessApi.listAllTeams).toHaveBeenLastCalledWith(c1);
+    expect(screen.queryByRole('button', { name: 'Load more teams' })).toBeNull();
+  });
+
+  it('the filter narrows only the loaded teams', async () => {
+    vi.mocked(accessApi.listAllTeams).mockResolvedValue({ teams, lastDoc: null, hasMore: true });
+    render(<PeopleTab />);
+    await openPerson('coach@example.com');
+    const filter = await screen.findByRole('searchbox', { name: 'Filter teams' });
+    fireEvent.change(filter, { target: { value: '17' } });
+    expect(screen.getByRole('checkbox', { name: 'U17' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'U15' })).toBeNull();
+    fireEvent.change(filter, { target: { value: 'zz' } });
+    expect(screen.getByText('No loaded team matches.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Load more teams' })).toBeInTheDocument();
+  });
+
+  it('keeps grants on teams not loaded yet when saving (B9)', async () => {
+    vi.mocked(accessApi.listGrantHolders).mockResolvedValue([
+      { email: 'coach@example.com', grants: { teamIds: ['t1', 't99'], sections: { exercises: false, trainings: false, guides: false } } },
+    ]);
+    render(<PeopleTab />);
+    await openPerson('coach@example.com');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'U17' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(accessApi.saveGrants).toHaveBeenCalledWith(
+      'coach@example.com',
+      { teamIds: ['t1', 't99', 't2'], sections: { exercises: false, trainings: false, guides: false } },
+      { teamIds: ['t1', 't99'], sections: { exercises: false, trainings: false, guides: false } },
+    ));
+  });
+
+  it('loads the team list once, not on every reload', async () => {
+    render(<PeopleTab />);
+    await openPerson('coach@example.com');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'U17' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(accessApi.saveGrants).toHaveBeenCalled());
+    await waitFor(() => expect(accessApi.listGrantHolders).toHaveBeenCalledTimes(2));
+    expect(accessApi.listAllTeams).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed Load more keeps the loaded teams and says so', async () => {
+    vi.mocked(accessApi.listAllTeams)
+      .mockResolvedValueOnce({ teams, lastDoc: null, hasMore: true })
+      .mockRejectedValueOnce(new Error('offline'));
+    render(<PeopleTab />);
+    await openPerson('coach@example.com');
+    fireEvent.click(await screen.findByRole('button', { name: 'Load more teams' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load more teams. Please try again.');
+    expect(screen.getByRole('checkbox', { name: 'U15' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Load more teams' })).toBeEnabled();
+  });
+
+  it('marks the selected person', async () => {
+    render(<PeopleTab />);
+    await openPerson('coach@example.com');
+    expect(screen.getByRole('button', { name: /coach@example.com/ })).toHaveAttribute('aria-current', 'true');
+  });
 });

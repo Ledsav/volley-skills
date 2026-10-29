@@ -41,6 +41,7 @@ const DiagramEditorPage = lazy(() =>
 
 // Dev-only: the guard is a build-time constant, so production bundles drop the gallery entirely.
 const UiGallery = import.meta.env.DEV ? lazy(() => import('./dev/UiGallery')) : null;
+const DiagramEditorPreview = import.meta.env.DEV ? lazy(() => import('./dev/DiagramEditorPreview')) : null;
 
 const AwardsPage = lazy(() => import('./awards/AwardsPage'));
 const ScoutPage = lazy(() => import('./matches/scout/ScoutPage').then((m) => ({ default: m.ScoutPage })));
@@ -92,6 +93,17 @@ export function App() {
                       </Suspense>
                     </SearchProvider>
                   </RequireSignedIn>
+                }
+              />
+            )}
+            {import.meta.env.DEV && DiagramEditorPreview && (
+              // Dev-only and not behind sign-in: the editor over an in-memory scene, for screenshots.
+              <Route
+                path="/dev/preview/diagram-editor"
+                element={
+                  <Suspense fallback={null}>
+                    <DiagramEditorPreview />
+                  </Suspense>
                 }
               />
             )}

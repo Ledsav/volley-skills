@@ -139,4 +139,12 @@ describe('ExerciseDraftDialog', () => {
     unmount();
     expect(signal?.aborted).toBe(true);
   });
+
+  it('Cancel in review asks before discarding the proposals', async () => {
+    const { onSaved } = renderDialog();
+    await generate();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
 });

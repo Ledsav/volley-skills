@@ -10,7 +10,7 @@ import { useT } from '../i18n/I18nProvider';
 import { draftIssueKey, draftIssueText } from './draftMessages';
 
 const iconBtn =
-  'inline-flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg hover:text-ink disabled:opacity-30 sm:h-9 sm:w-9';
+  'inline-flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-30';
 
 interface Props {
   draft: TrainingDraft;
@@ -29,10 +29,10 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
   const off = Math.abs(total - targetMinutes) > targetMinutes * 0.1;
   return (
     <div className="flex flex-col gap-4">
-      <p><span className="inline-block rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">{t.badge}</span></p>
+      <p><span className="inline-block rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">{t.badge}</span></p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="tdraft-name" className="mb-1 block text-sm font-medium text-ink">
+          <label htmlFor="tdraft-name" className="mb-1 block text-callout font-medium text-ink">
             {r.trainingName}
           </label>
           <Input
@@ -43,14 +43,14 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
           />
         </div>
         <div>
-          <label htmlFor="tdraft-age" className="mb-1 block text-sm font-medium text-ink">
+          <label htmlFor="tdraft-age" className="mb-1 block text-callout font-medium text-ink">
             {r.ageGroupTarget}
           </label>
           <Input id="tdraft-age" value={draft.ageGroupTarget} onChange={(e) => onChange({ ...draft, ageGroupTarget: e.target.value })} />
         </div>
       </div>
       <div>
-        <label htmlFor="tdraft-desc" className="mb-1 block text-sm font-medium text-ink">
+        <label htmlFor="tdraft-desc" className="mb-1 block text-callout font-medium text-ink">
           {r.description}
         </label>
         <Textarea
@@ -62,23 +62,24 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
         />
       </div>
 
-      <p className={`text-sm tabular-nums ${off ? 'text-orange-strong' : 'text-slate'}`}>
+      <p className={`text-callout tabular-nums ${off ? 'text-orange-strong' : 'text-ink-2'}`}>
         {r.minutesOfTarget(total, targetMinutes)}
       </p>
       {draft.issues.length > 0 && (
-        <ul className="text-xs text-slate">
+        <ul className="text-footnote text-ink-2">
           {draft.issues.map((issue) => (
             <li key={draftIssueKey(issue)}>{draftIssueText(issue, t)}</li>
           ))}
         </ul>
       )}
 
-      <ol aria-label={r.steps} className="flex flex-col divide-y divide-border">
+      <ol aria-label={r.steps} className="flex flex-col rounded-lg bg-surface-2">
         {draft.steps.map((s, i) => {
           const name = stepName(s);
           const category = s.kind === 'library' ? s.category : s.exercise.category;
           return (
-            <li key={s.kind === 'library' ? `${s.exerciseId}-${i}` : s.exercise.key} className="flex items-center gap-3 py-3">
+            <li key={s.kind === 'library' ? `${s.exerciseId}-${i}` : s.exercise.key} className="relative flex items-center gap-3 px-3 py-2 before:absolute before:left-3 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden"
+            >
               {s.kind === 'library' ? (
                 <DiagramThumbnail exerciseId={s.exerciseId} interactive={false} className="h-16 w-16 shrink-0" />
               ) : (
@@ -89,20 +90,20 @@ export function TrainingProposalReview({ draft, targetMinutes, onChange, onView 
                   type="button"
                   aria-label={r.view(name)}
                   onClick={() => onView(i)}
-                  className="block max-w-full truncate text-left font-medium text-ink hover:underline"
+                  className="block min-h-11 max-w-full truncate text-left text-headline text-ink hover:underline"
                 >
                   {name}
                 </button>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`rounded-sm px-1.5 py-0.5 text-xs font-medium ${
-                      s.kind === 'new' ? 'bg-orange/10 text-orange-strong' : 'bg-bg text-slate'
+                    className={`rounded-full px-2.5 text-caption ${
+                      s.kind === 'new' ? 'bg-ink font-medium text-on-ink' : 'bg-surface-3 text-ink-2'
                     }`}
                   >
                     {s.kind === 'new' ? r.isNew : r.isLibrary}
                   </span>
                   {category && (
-                    <span className="rounded-sm bg-blue/10 px-1.5 py-0.5 text-xs font-medium text-blue-strong">{lb.exerciseCategory[category]}</span>
+                    <span className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">{lb.exerciseCategory[category]}</span>
                   )}
                   <PlayersNote
                     minPlayers={s.kind === 'library' ? s.minPlayers : s.exercise.minPlayers}

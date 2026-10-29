@@ -16,18 +16,18 @@ export function DraftDiagramPreview({ scene, label, onOpen, className = 'h-32 w-
   const box = `${className} shrink-0 overflow-hidden rounded-md border`;
   if (!scene) {
     return (
-      <div className={`${box} flex items-center justify-center border-dashed border-border text-xs text-slate`}>{t.noDiagram}</div>
+      <div className={`${box} flex items-center justify-center border-dashed border-separator text-footnote text-ink-2`}>{t.noDiagram}</div>
     );
   }
   if (!onOpen) {
     return (
-      <div className={`${box} border-border bg-surface`}>
+      <div className={`${box} border-separator bg-surface`}>
         <DiagramSvg scene={scene} />
       </div>
     );
   }
   return (
-    <button type="button" aria-label={label} onClick={onOpen} className={`${box} border-border bg-surface hover:border-blue`}>
+    <button type="button" aria-label={label} onClick={onOpen} className={`${box} border-separator bg-surface hover:border-ink-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus`}>
       <DiagramSvg scene={scene} />
     </button>
   );

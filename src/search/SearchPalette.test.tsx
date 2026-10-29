@@ -248,6 +248,24 @@ describe('SearchPalette', () => {
     expect(screen.queryByText(/No results/)).toBeNull();
   });
 
+  it('same-route result focuses the page heading', () => {
+    vi.useFakeTimers();
+    render(
+      <MemoryRouter initialEntries={['/teams/t1']}>
+        <main id="main" tabIndex={-1}>
+          <h1>Falcons</h1>
+        </main>
+        <SearchPalette onClose={vi.fn()} />
+      </MemoryRouter>
+    );
+    type(screen.getByRole('combobox'), 'falcons');
+    fireEvent.click(screen.getByRole('option', { name: /Falcons U17/ }));
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByRole('heading', { name: 'Falcons' })).toHaveFocus();
+  });
+
   describe('server groups', () => {
     const exercise = (n: number): SearchItem => ({ id: `e${n}`, group: 'exercises', label: `Passaggio ${n}`, sublabel: 'Attack', to: `/exercises?exercise=e${n}` });
     const training: SearchItem = { id: 'tr1', group: 'trainings', label: 'Sessione', sublabel: 'TR-0001', to: '/trainings?training=tr1' };

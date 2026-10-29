@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Sheet } from '../components/Sheet';
@@ -34,10 +34,22 @@ interface Props {
   onClose: (restoreFocus?: boolean) => void;
 }
 
+function focusPageHeading() {
+  const main = document.getElementById('main');
+  const heading = main?.querySelector<HTMLElement>('h1');
+  if (heading) {
+    if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: true });
+  } else {
+    main?.focus({ preventScroll: true });
+  }
+}
+
 export function SearchPalette({ onClose }: Props) {
   const t = useT().search;
   const { access, isPlatformAdmin, activeClubId, appUser } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const wide = useMediaQuery('(min-width: 768px)', true);
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -189,7 +201,11 @@ export function SearchPalette({ onClose }: Props) {
     }
     onClose(false);
     if (item.run) item.run();
-    else if (item.to) navigate(item.to, item.action ? withPendingAction(item.action) : undefined);
+    else if (item.to) {
+      navigate(item.to, item.action ? withPendingAction(item.action) : undefined);
+      // The shell moves focus on a route change; a result for the page we are already on changes no route, so do it here.
+      if (item.to.split(/[?#]/)[0] === pathname) setTimeout(focusPageHeading, 0);
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {

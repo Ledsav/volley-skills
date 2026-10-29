@@ -219,7 +219,7 @@ Used in two places: the create dialog (§1, submit label "Create match") and the
      - It always has a primary **"Start set {N+1}"** button.
   5. A match-over banner (green): "Match over · X–Y" with a primary **"Finish match"** button.
   6. The middle area:
-     - **Desktop (≥1024 px, `min-width: 1024px`):** a 2-column grid. Left is the court column (320–440 px wide). Right holds the text panel (if open), else the Live stats panel, and then the Timeline in a box capped at 50 vh with its own scroll.
+     - **Desktop (≥1024 px, `min-width: 1024px`):** a 2-column grid exactly as tall as the space between the header and the dock, so the page never scrolls. Left is the court column (the court fills its height up to 30rem, both rows always visible; the action panel sits under it). Right (360 px, 400 px from xl) holds the text panel (if open), else the Live stats panel, each scrolling inside itself, and then the Timeline in a box capped at 40 % of the column with its own scroll.
      - **Phone:** a tab bar (`role="tablist"`, aria "Scouting views") with **Court / Live / Timeline / Text**. Text appears only when AI is enabled. Below the bar, the selected view.
   7. The **events dock** (`<section aria-label="Match events">`), shown only while a set is in play, on every phone tab. It contains `RallyBar` (§10). It pads for the safe area.
 - **Court column:**
@@ -452,7 +452,7 @@ Used in two places: the create dialog (§1, submit label "Create match") and the
 
 - **Purpose.** Records match events that are not player actions: points without a player stat, and timeouts.
 - **Layout.** One mirrored row: **[T/O us] [Point us] [Point them] [T/O them]**.
-  - The timeout buttons are narrow. Each shows "T/O" above "N left" (N = timeouts per set − used, floored at 0). Aria: "T/O us (2 left)". Title: "Timeout us · key T".
+  - The timeout buttons are outlined (a hairline border, no fill: lighter than Point), 56 px tall, each under its own point button except on landscape phones where they flank the row. Each shows a timer icon and "T/O · N left" (N = timeouts per set − used, floored at 0), with a Kbd badge (T / Shift+T) on desktop. Aria: "T/O us (2 left)". Title: "Timeout us · key T".
   - The point buttons share the remaining width. "Point us" is light green and "Point them" light red, each with a Kbd badge (P / O).
   - **Quick score** makes the row taller (`min-h-20`, text-xl).
 - **Reason prompt.** After a point is recorded, a chip group appears above the row: "Why? (optional)" (aria "Point us — reason (optional)").
@@ -600,7 +600,7 @@ Used in two places: the create dialog (§1, submit label "Create match") and the
 ### 17. Timeline (`src/matches/scout/TimelineDrawer.tsx`)
 
 - **Where.**
-  - Desktop: below the live stats in the right column, in a box capped at 50 vh.
+  - Desktop: below the live stats in the right column, in a box capped at 40 % of the column.
   - Phone: the "Timeline" tab.
 - **Elements.** A flat list, **newest first**. It is not grouped by set or rally.
   - `setStart` and `setEnd` rows are bold on a tinted background.

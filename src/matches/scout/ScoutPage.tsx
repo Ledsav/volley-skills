@@ -559,8 +559,10 @@ export function ScoutPage() {
     />
     ) : null;
 
+  // Desktop: the column is exactly the height between header and dock, so the court never needs a page
+  // scroll. Phones keep their scrolling main.
   const courtColumn = (
-    <div className="flex min-h-full flex-col gap-3">
+    <div className={`flex flex-col gap-3 ${isDesktop ? 'h-full min-h-0' : 'min-h-full'}`}>
       {!quickScore && (
         <>
           <CourtGrid
@@ -650,12 +652,14 @@ export function ScoutPage() {
       {/* The content region: the set-point prompt floats at its top, below the header and any status strip. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {isDesktop ? (
-          <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.4fr)_360px] gap-4 overflow-y-auto p-4">
+          // One row exactly as tall as the space between header and dock: the court fits, and the right
+          // column's panels scroll inside themselves instead of pushing the page.
+          <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.4fr)_360px] grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.4fr)_400px]">
             {courtColumn}
-            <div className="flex min-w-0 flex-col gap-4">
-              {textPanel}
-              {!textVisible && live}
-              <div className="max-h-[50vh] overflow-y-auto rounded-lg">{timeline}</div>
+            <div className="flex min-h-0 min-w-0 flex-col gap-4">
+              {textPanel && <div className={textVisible ? 'scroll-quiet min-h-0 shrink overflow-y-auto rounded-lg' : undefined}>{textPanel}</div>}
+              {!textVisible && <div className="scroll-quiet min-h-0 shrink overflow-y-auto rounded-lg">{live}</div>}
+              <div className="scroll-quiet max-h-[40%] min-h-0 shrink-0 overflow-y-auto rounded-lg">{timeline}</div>
             </div>
           </main>
         ) : (

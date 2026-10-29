@@ -191,6 +191,15 @@ describe('ScoutPage', () => {
     expect(screen.getByRole('main')).toHaveClass('grid-cols-[minmax(0,1.4fr)_360px]');
   });
 
+  it('desktop fits between header and dock: the main never scrolls, the Live panel scrolls inside itself', async () => {
+    renderPage([setStart]);
+    const live = await screen.findByRole('region', { name: 'Live stats' });
+    const main = screen.getByRole('main');
+    expect(main).toHaveClass('grid-rows-[minmax(0,1fr)]', 'overflow-hidden');
+    expect(main).not.toHaveClass('overflow-y-auto');
+    expect(live.parentElement).toHaveClass('min-h-0', 'overflow-y-auto', 'scroll-quiet');
+  });
+
   it('keeps match events in the bottom dock, on every tab, apart from Undo', async () => {
     renderPage([setStart]);
     const dock = await screen.findByRole('region', { name: 'Match events' });

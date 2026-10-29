@@ -124,7 +124,8 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    // From md the court fills the height it is given but stops growing at 30rem, so tiles stay a sensible size.
+    <div className="flex min-h-0 flex-1 flex-col md:max-h-[30rem]">
       <div className={`${compact ? 'mb-1' : 'mb-2'} flex items-center gap-2`} aria-hidden="true">
         <span className="h-1 flex-1 rounded-full bg-ink" />
         <span className="text-caption text-ink-2">{t.scout.court.net}</span>

@@ -1,4 +1,5 @@
 import { tapFlash } from '../../motion/tapFlash';
+import { Timer } from 'lucide-react';
 import type { PointerEvent } from 'react';
 import { useT } from '../../i18n/I18nProvider';
 import { type MatchFormat, type PointReason, type SetScore, type Side } from '../../types/match';
@@ -41,11 +42,16 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
         onClick={() => onTimeout(team)}
         aria-label={t.scout.rally.timeoutAria(t.matches.shared.side(team), left)}
         title={t.scout.rally.timeoutTitle(t.matches.shared.side(team), keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem'))}
-        className={`flex ${timeoutSize} items-center justify-center rounded-md px-2 text-footnote tabular-nums text-ink-2 ${
+        // A real but lighter button than Point: outlined, no fill, same 56 px target.
+        className={`flex ${timeoutSize} min-w-0 items-center justify-center gap-1.5 rounded-md border border-separator px-3 text-callout font-medium tabular-nums text-ink hover:bg-surface-2 ${
           team === 'us' ? '[grid-area:tu]' : '[grid-area:tt]'
         }`}
       >
-        {`${t.scout.rally.timeoutShort} · ${t.scout.rally.left(left)}`}
+        <Timer size={16} aria-hidden="true" className="shrink-0 text-ink-2" />
+        <span className="truncate">
+          {t.scout.rally.timeoutShort} <span className="text-ink-2">· {t.scout.rally.left(left)}</span>
+        </span>
+        <Kbd>{keyLabel(team === 'us' ? 'timeoutUs' : 'timeoutThem')}</Kbd>
       </button>
     );
   };

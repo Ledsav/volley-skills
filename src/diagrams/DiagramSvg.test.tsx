@@ -35,6 +35,30 @@ describe('DiagramSvg', () => {
     expect(container.querySelector('[data-court="half"]')).not.toBeNull();
   });
 
+  it('fit frames a half court on the court itself (centred), and grows to items measured outside it', () => {
+    const { container, unmount } = render(<DiagramSvg scene={emptyScene('half')} fit />);
+    // half court x 8..92 (net posts), y 6..72, plus 3 units of padding
+    expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('5 3 90 72');
+    unmount();
+
+    const original = (SVGElement.prototype as unknown as { getBBox?: unknown }).getBBox;
+    Object.defineProperty(SVGElement.prototype, 'getBBox', {
+      configurable: true,
+      value: () => ({ x: 4, y: 6, width: 100, height: 60 }),
+    });
+    try {
+      const fitted = render(<DiagramSvg scene={emptyScene('half')} fit />);
+      expect(fitted.container.querySelector('svg')?.getAttribute('viewBox')).toBe('1 3 106 72');
+    } finally {
+      Object.defineProperty(SVGElement.prototype, 'getBBox', { configurable: true, value: original });
+    }
+  });
+
+  it('never fits the interactive editor canvas', () => {
+    const { container } = render(<DiagramSvg scene={emptyScene('half')} interactive fit />);
+    expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 100 100');
+  });
+
   it('renders items in array order (later items appear after earlier in the DOM)', () => {
     const a = { ...createItem('player', { x: 20, y: 20 }), id: 'a' };
     const b = { ...createItem('ball', { x: 30, y: 30 }), id: 'b' };

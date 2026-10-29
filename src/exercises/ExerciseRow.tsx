@@ -39,7 +39,7 @@ export function ExerciseRow({
   const { targetProps, menu } = useContextMenu({ label, items });
 
   return (
-    <li className="relative before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden md:overflow-hidden md:rounded-lg md:bg-surface md:shadow-card md:before:hidden">
+    <li className="relative before:absolute before:left-4 before:right-0 before:top-0 before:z-10 before:h-px before:bg-separator first:before:hidden md:overflow-hidden md:rounded-lg md:bg-surface md:shadow-card md:before:hidden">
       <SwipeRow trailing={[{ label: t.common.delete, tone: 'destructive', undoable: true, onAction: onDelete }]}>
         <>
           <div
@@ -67,7 +67,7 @@ export function ExerciseRow({
             </div>
             <div className="flex min-w-0 flex-1 items-center gap-1 md:items-start md:p-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-headline text-ink">{exercise.name}</p>
+                <p className="line-clamp-2 text-headline text-ink [overflow-wrap:anywhere]">{exercise.name}</p>
                 <p className="text-footnote text-ink-2">
                   {t.labels.exerciseCategory[exercise.category]}
                   {exercise.minPlayers ? <span className="tabular-nums"> · {t.trainings.playersNote.min(exercise.minPlayers)}</span> : null}

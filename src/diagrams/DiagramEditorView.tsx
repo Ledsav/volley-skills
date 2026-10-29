@@ -18,11 +18,12 @@ import {
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useMediaQuery } from '../components/useMediaQuery';
-import { SCENE_LIMITS, type DiagramItemType } from '../types/diagram';
+import { SCENE_LIMITS, type DiagramItemType, type Scene } from '../types/diagram';
 import { CanvasContextMenu, type MenuAction } from './CanvasContextMenu';
 import { CanvasStage, type StageApi, type StageInsets } from './CanvasStage';
 import { getDiagramClipboard, setDiagramClipboard } from './diagramClipboard';
 import { DiagramSvg, bbox } from './DiagramSvg';
+import { courtBox } from './courtGeometry';
 import { DiagramTabs } from './DiagramTabs';
 import { Palette } from './Palette';
 import { CourtSection, PropertiesPanel } from './PropertiesPanel';
@@ -48,6 +49,14 @@ const DESKTOP_INSETS: StageInsets = {
   bottom: 24,
   left: EDGE + ZOOM_W + 24,
 };
+
+/** Room kept around the court when it is framed at rest, in grid units (players and labels just outside the lines). */
+const FRAME_PAD = 5;
+/** What the editor frames at rest: the court's outline plus a margin, so a half court sits in the middle too. */
+function stageFrame(court: Scene['court']) {
+  const b = courtBox(court);
+  return { x: b.x - FRAME_PAD, y: b.y - FRAME_PAD, w: b.w + 2 * FRAME_PAD, h: b.h + 2 * FRAME_PAD };
+}
 
 const ICON = 'h-5 w-5';
 const toolBtn =
@@ -480,7 +489,11 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
         setMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      <CanvasStage onReady={handleStageReady} insets={isDesktop ? DESKTOP_INSETS : undefined}>
+      <CanvasStage
+        onReady={handleStageReady}
+        insets={isDesktop ? DESKTOP_INSETS : undefined}
+        fitBox={stageFrame(activeDiagram.scene.court)}
+      >
         <DiagramSvg
           scene={activeDiagram.scene}
           interactive

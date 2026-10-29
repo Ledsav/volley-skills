@@ -69,7 +69,7 @@ export function DiagramThumbnail({ exerciseId, className, interactive = true }: 
   if (!interactive) {
     return (
       <span aria-hidden="true" className={`block ${boxClass}`}>
-        <DiagramSvg scene={diagram.scene} />
+        <DiagramSvg scene={diagram.scene} fit />
       </span>
     );
   }
@@ -82,7 +82,7 @@ export function DiagramThumbnail({ exerciseId, className, interactive = true }: 
         aria-label={t.diagrams.thumbnail.expand(diagram.title)}
         className={boxClass}
       >
-        <DiagramSvg scene={diagram.scene} />
+        <DiagramSvg scene={diagram.scene} fit />
       </button>
       {lightboxDiagrams && (
         <DiagramLightbox diagrams={lightboxDiagrams} startIndex={0} onClose={() => setLightboxDiagrams(null)} />

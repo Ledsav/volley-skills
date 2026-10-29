@@ -5,7 +5,8 @@ import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
 import { OfflineError, useSave } from '../components/useSave';
 import { Sheet } from '../components/Sheet';
-import { FIELD_CLASS, Input, Textarea } from '../components/Input';
+import { FieldLabel, Input, Textarea } from '../components/Input';
+import { Select } from '../components/Select';
 import { DiagramSvg } from '../diagrams/DiagramSvg';
 import { DiagramLightbox } from '../diagrams/DiagramLightbox';
 import { listDiagrams } from '../diagrams/diagramsApi';
@@ -114,9 +115,9 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
       confirm={{ label: saving ? f.saving : t.common.save, form: FORM_ID, disabled: saving }}
     >
       <form id={FORM_ID} onSubmit={handleSubmit} aria-label={exercise ? f.editTitle : f.newTitle}>
-        <label htmlFor="exercise-name" className="mb-1.5 block text-footnote text-ink-2">
+        <FieldLabel htmlFor="exercise-name">
           {f.name}
-        </label>
+        </FieldLabel>
         <Input
           id="exercise-name"
           value={name}
@@ -124,29 +125,28 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           placeholder={exerciseNameExample()}
           aria-describedby="exercise-name-hint"
         />
-        <p id="exercise-name-hint" className="mt-1 text-footnote text-ink-2">
+        <p id="exercise-name-hint" className="mt-1.5 text-footnote text-ink-2">
           {f.nameHint(exerciseNameExample(), exerciseFocusLabels().join(', '))}
         </p>
 
-        <label htmlFor="exercise-category" className="mb-1.5 mt-4 block text-footnote text-ink-2">
+        <FieldLabel htmlFor="exercise-category" className="mt-4">
           {f.category}
-        </label>
-        <select
+        </FieldLabel>
+        <Select
           id="exercise-category"
           value={category}
           onChange={(e) => setCategory(e.target.value as ExerciseCategory)}
-          className={FIELD_CLASS + ' w-full'}
         >
           {EXERCISE_CATEGORIES.map((c) => (
             <option key={c.key} value={c.key}>
               {lb.exerciseCategory[c.key]}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <label htmlFor="exercise-min-players" className="mb-1.5 mt-4 block text-footnote text-ink-2">
+        <FieldLabel htmlFor="exercise-min-players" className="mt-4">
           {f.minPlayers}
-        </label>
+        </FieldLabel>
         <Input
           id="exercise-min-players"
           // Text, not type="number": a number input reports "" for input it can't parse
@@ -158,13 +158,13 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
           aria-describedby="exercise-min-players-hint"
           className="w-24"
         />
-        <p id="exercise-min-players-hint" className="mt-1 text-footnote text-ink-2">
+        <p id="exercise-min-players-hint" className="mt-1.5 text-footnote text-ink-2">
           {f.minPlayersHint}
         </p>
 
-        <label htmlFor="exercise-description" className="mb-1.5 mt-4 block text-footnote text-ink-2">
+        <FieldLabel htmlFor="exercise-description" className="mt-4">
           {f.description}
-        </label>
+        </FieldLabel>
         <Textarea
           id="exercise-description"
           value={description}
@@ -194,7 +194,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
                     aria-label={f.openDiagram(d.title)}
                   >
                     <span className="block aspect-square w-full overflow-hidden rounded-md bg-surface-2 sm:w-20">
-                      <DiagramSvg scene={d.scene} />
+                      <DiagramSvg scene={d.scene} fit />
                     </span>
                     <span className="mt-0.5 block truncate text-footnote text-ink-2 sm:max-w-20">{d.title}</span>
                   </button>

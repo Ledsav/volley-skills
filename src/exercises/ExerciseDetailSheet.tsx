@@ -197,7 +197,7 @@ export function ExerciseDetailSheet({ entries, startIndex, onClose }: ExerciseDe
                       else if (start - end > SWIPE_PX) stepDiagram(1);
                     }}
                   >
-                    <DiagramSvg scene={currentDiagram.scene} />
+                    <DiagramSvg scene={currentDiagram.scene} fit />
                   </div>
                   <figcaption className="mt-2 flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-callout font-medium text-ink">{currentDiagram.title}</span>

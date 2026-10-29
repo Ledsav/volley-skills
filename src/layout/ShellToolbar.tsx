@@ -72,7 +72,7 @@ export function ShellToolbar({
   );
   const main = mainAction &&
     (mainAction.menu ? (
-      <Menu label={mainAction.label} items={mainAction.menu} align="end" triggerClassName={MAIN_ACTION_CLASS} trigger={mainContent} />
+      <Menu label={mainAction.label} items={mainAction.menu} align="end" disabled={mainAction.disabled} triggerClassName={MAIN_ACTION_CLASS} trigger={mainContent} />
     ) : (
       <MainAction className="gap-2" onClick={mainAction.onSelect} disabled={mainAction.disabled} aria-label={iconOnly ? mainAction.label : undefined}>
         {mainContent}

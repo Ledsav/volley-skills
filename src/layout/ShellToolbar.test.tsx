@@ -51,6 +51,14 @@ describe('ShellToolbar', () => {
     expect(onSelect).toHaveBeenCalled();
   });
 
+  it('a disabled menu main action cannot be opened', () => {
+    renderToolbar({ title: 'Stats', mainAction: { label: 'Export', disabled: true, menu: [{ kind: 'action', label: 'Print', onSelect: () => {} }] } });
+    const trigger = screen.getByRole('button', { name: 'Export' });
+    expect(trigger).toBeDisabled();
+    fireEvent.click(trigger);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
   it('shows the more menu only with items', () => {
     const { unmount } = renderToolbar();
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();

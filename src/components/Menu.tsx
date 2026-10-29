@@ -16,6 +16,7 @@ interface MenuProps {
   /** Which edge of the trigger the menu aligns to, and whether it opens upward (sidebar footer). */
   align?: 'start' | 'end';
   placement?: 'down' | 'up';
+  disabled?: boolean;
 }
 
 /**
@@ -23,7 +24,7 @@ interface MenuProps {
  * arrow keys move between items, Escape or a click outside closes and returns
  * focus to the trigger, choosing an item runs it and closes.
  */
-export function Menu({ label, trigger, items, triggerClassName = '', align = 'end', placement = 'down' }: MenuProps) {
+export function Menu({ label, trigger, items, triggerClassName = '', align = 'end', placement = 'down', disabled = false }: MenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -51,9 +52,10 @@ export function Menu({ label, trigger, items, triggerClassName = '', align = 'en
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
+        disabled={disabled}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((v) => !v)}
-        className={`cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${triggerClassName}`.trim()}
+        className={`cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${triggerClassName}`.trim()}
       >
         {trigger}
       </button>

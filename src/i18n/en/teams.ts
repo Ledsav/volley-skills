@@ -197,6 +197,8 @@ export const teams = {
     receptionPos: 'Reception +',
     acesServeErrors: 'Aces / serve errors',
     oppErrors: 'Points from opp. errors',
+    filterValue: (label: string, value: string) => `${label}: ${value}`,
+    rotationsNote: 'In rotation order 1 to 6. Best and weakest by share of rallies won.',
     trend: 'Trend',
     rotations: 'Rotations',
     bestPlayers: 'Best players',

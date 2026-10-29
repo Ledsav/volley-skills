@@ -208,6 +208,8 @@ export const teams = {
     receptionPos: 'Ricezione +',
     acesServeErrors: 'Ace / errori in battuta',
     oppErrors: 'Punti da errori avv.',
+    filterValue: (label: string, value: string) => `${label}: ${value}`,
+    rotationsNote: 'In ordine di rotazione da 1 a 6. Migliore e peggiore per quota di scambi vinti.',
     trend: 'Andamento',
     rotations: 'Rotazioni',
     bestPlayers: 'Migliori giocatori',

@@ -38,6 +38,9 @@ function pairs(): Pair[] {
   for (const k of ['record', 'sideOut', 'breakPoint', 'attackEff', 'receptionPos', 'acesServeErrors', 'oppErrors'] as const) {
     out.push({ place: `teams.stats.${k}`, en: en.teams.stats[k], it: itCat.teams.stats[k] });
   }
+  for (const k of ['wholeSeason', 'last5', 'last10', 'dates'] as const) {
+    out.push({ place: `teams.stats.${k}`, en: en.teams.stats[k], it: itCat.teams.stats[k] });
+  }
   for (const k of ['tabCourt', 'tabLive', 'tabTimeline', 'tabText', 'dismiss', 'takeBack', 'leave'] as const) {
     out.push({ place: `scout.page.${k}`, en: en.scout.page[k], it: itCat.scout.page[k] });
   }

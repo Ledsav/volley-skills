@@ -32,9 +32,9 @@ export function PlayerIdentityCard({ player, gender = 'mixed' }: PlayerIdentityC
       numeric: true,
       title: player.dob || undefined,
     },
-    { label: p.identity.season, value: player.season, numeric: true },
+    { label: p.identity.season, value: player.season },
     { label: p.shared.nationality, value: player.nationality || '—' },
-    { label: p.shared.license, value: player.licenseNumber || '—', numeric: true },
+    { label: p.shared.license, value: player.licenseNumber || '—' },
   ];
 
   return (
@@ -59,10 +59,14 @@ export function PlayerIdentityCard({ player, gender = 'mixed' }: PlayerIdentityC
               <span className="rounded-full bg-surface-3 px-2 py-0.5 text-caption text-ink">{p.shared.starting}</span>
             )}
             {hasScores && player.level && <LevelPill level={player.level} gender={gender} />}
+            {/* Phones: the average joins this line, so the name gets the full width and never breaks mid-word. */}
+            <span className="text-callout tabular-nums text-ink-2 sm:hidden">
+              {hasScores ? `${formatNumber(player.avgScore!, 1)} ${p.identity.avgShort}` : p.shared.noScores}
+            </span>
           </p>
           <p className="mt-1 text-footnote text-ink-2">{player.teamName}</p>
         </div>
-        <div className="flex shrink-0 flex-col items-end">
+        <div className="hidden shrink-0 flex-col items-end sm:flex">
           <span className="text-title-2 tabular-nums text-ink">{hasScores ? formatNumber(player.avgScore!, 1) : '—'}</span>
           <span className="text-footnote text-ink-2">{hasScores ? p.identity.avgSkillScore : p.shared.noScores}</span>
         </div>

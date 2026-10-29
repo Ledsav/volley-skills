@@ -36,6 +36,7 @@ export const players = {
   },
   identity: {
     avgSkillScore: 'Avg skill score',
+    avgShort: 'avg',
     team: 'Team',
     ageGroup: 'Age group',
     season: 'Season',

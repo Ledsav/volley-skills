@@ -36,6 +36,7 @@ export const players = {
   },
   identity: {
     avgSkillScore: 'Punteggio medio',
+    avgShort: 'media',
     team: 'Squadra',
     ageGroup: 'Categoria',
     season: 'Stagione',

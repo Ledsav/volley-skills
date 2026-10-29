@@ -1,7 +1,7 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { usePageMeta } from '../layout/usePageMeta';
-import { Logo } from '../components/Logo';
+import { BrandMark } from '../components/Logo';
 import { LegalLangSwitcher } from './LegalLangSwitcher';
 import { LanguageToggle } from '../i18n/LanguageToggle';
 import { useLocale, useT } from '../i18n/I18nProvider';
@@ -13,6 +13,9 @@ import {
   CURRENT_DOC_VERSION, LEGAL_LANGS, defaultLegalLang, inForce,
   type LegalDocId, type LegalLang, type VersionedDoc,
 } from './versions';
+
+const NAV_PILL =
+  'inline-flex min-h-9 items-center whitespace-nowrap rounded-full bg-surface-2 px-4 text-callout font-semibold text-ink hover:bg-surface-3';
 
 const VERSIONED: readonly string[] = ['terms', 'dpa', 'subprocessors'];
 /** Documents served at /legal/:doc (the privacy notice keeps its own /privacy route). */
@@ -62,37 +65,35 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
   }
 
   return (
-    <div className="min-h-screen bg-bg text-ink">
-      <header className="bg-navy text-white">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3">
-          <Logo className="text-[22px]" />
-          <div className="flex items-center gap-4">
-          <LanguageToggle />
-          {firebaseUser ? (
-            <Link to="/" className="text-sm text-white/90 hover:underline">{t.legal.page.backToApp}</Link>
-          ) : (
-            <Link to="/login" className="text-sm text-white/90 hover:underline">{t.signup.info.signIn}</Link>
-          )}
+    <div className="min-h-dvh bg-bg text-ink">
+      <header className="glass sticky top-0 z-10">
+        <div className="mx-auto flex h-[52px] max-w-[720px] items-center justify-between gap-3 px-4 sm:px-6">
+          <BrandMark />
+          <div className="flex shrink-0 items-center gap-2">
+            <LanguageToggle />
+            <Link to={firebaseUser ? '/' : '/login'} className={NAV_PILL}>
+              {firebaseUser ? t.legal.page.backToApp : t.signup.info.signIn}
+            </Link>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-2xl p-6">
+      <main className="mx-auto max-w-[720px] px-4 py-8 sm:px-6">
         {found && doc && version ? (
           <>
             <LegalLangSwitcher lang={lang} onChange={changeLang} />
             {(VERSIONED.includes(doc) || requestedVersion) && (
-              <p className="mt-3 text-sm text-slate">
+              <p className="mt-3 text-footnote text-ink-2 tabular-nums">
                 {inForceSince ? t.legal.page.versionInForce(version, formatDate(inForceSince, locale)) : t.legal.page.version(version)}
               </p>
             )}
-            <div lang={lang}>
+            <div lang={lang} className="mt-6 text-base leading-[1.625rem]">
               <LegalMarkdown text={legalText(doc, version, lang)} />
             </div>
           </>
         ) : (
           <>
-            <h1 className="text-title font-semibold">{t.layout.notFound.title}</h1>
-            <p className="mt-2 text-slate">{t.legal.page.notFound}</p>
+            <h1 className="text-title-1">{t.layout.notFound.title}</h1>
+            <p className="mt-2 text-body text-ink-2">{t.legal.page.notFound}</p>
           </>
         )}
         <LegalLinks />

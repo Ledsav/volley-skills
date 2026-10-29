@@ -16,8 +16,8 @@ export function LegalLangSwitcher({ lang, onChange }: { lang: LegalLang; onChang
           lang={l}
           aria-pressed={l === lang}
           onClick={() => onChange(l)}
-          className={`rounded-md border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${
-            l === lang ? 'border-blue bg-blue/10 font-medium text-ink' : 'border-border text-slate hover:bg-bg'
+          className={`min-h-11 rounded-full px-3.5 text-callout focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+            l === lang ? 'bg-ink font-semibold text-on-ink' : 'bg-surface-2 text-ink hover:bg-surface-3'
           }`}
         >
           {LABELS[l]}

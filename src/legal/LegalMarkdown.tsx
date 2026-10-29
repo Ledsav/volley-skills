@@ -18,6 +18,8 @@ function safeHref(raw: string): SafeHref | null {
   return null;
 }
 
+const LINK = 'text-ink underline underline-offset-2 hover:text-ink-2';
+
 const INLINE = /\*\*(.+?)\*\*|`([^`]+)`|\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))*)\)/;
 
 function inline(text: string, keyPrefix = 'i'): ReactNode[] {
@@ -32,14 +34,14 @@ function inline(text: string, keyPrefix = 'i'): ReactNode[] {
     if (m[1] !== undefined) {
       out.push(<strong key={key} className="font-semibold">{inline(m[1], key)}</strong>);
     } else if (m[2] !== undefined) {
-      out.push(<code key={key} className="rounded-sm bg-bg px-1 text-sm">{m[2]}</code>);
+      out.push(<code key={key} className="rounded-sm bg-surface-2 px-1 text-[0.9em]">{m[2]}</code>);
     } else {
       const label = inline(m[3], key);
       const link = safeHref(m[4]);
       if (!link) out.push(<Fragment key={key}>{label}</Fragment>);
-      else if (link.kind === 'internal') out.push(<Link key={key} to={link.href} className="text-blue-strong hover:underline">{label}</Link>);
-      else if (link.kind === 'external') out.push(<a key={key} href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-strong hover:underline">{label}</a>);
-      else out.push(<a key={key} href={link.href} className="text-blue-strong hover:underline">{label}</a>);
+      else if (link.kind === 'internal') out.push(<Link key={key} to={link.href} className={LINK}>{label}</Link>);
+      else if (link.kind === 'external') out.push(<a key={key} href={link.href} target="_blank" rel="noopener noreferrer" className={LINK}>{label}</a>);
+      else out.push(<a key={key} href={link.href} className={LINK}>{label}</a>);
     }
     rest = rest.slice(m.index + m[0].length);
   }
@@ -70,9 +72,9 @@ export function LegalMarkdown({ text }: { text: string }) {
       const title = h[2].trim();
       const clause = level === 2 ? CLAUSE.exec(title) : null;
       const content = inline(title);
-      if (level === 1) blocks.push(<h1 key={key()} className="text-title font-semibold">{content}</h1>);
-      else if (level === 2) blocks.push(<h2 key={key()} id={clause ? clause[1].toLowerCase() : undefined} className="mt-8 scroll-mt-4 text-lg font-semibold">{content}</h2>);
-      else blocks.push(<h3 key={key()} className="mt-5 font-semibold">{content}</h3>);
+      if (level === 1) blocks.push(<h1 key={key()} className="text-large-title md:text-title-1">{content}</h1>);
+      else if (level === 2) blocks.push(<h2 key={key()} id={clause ? clause[1].toLowerCase() : undefined} className="mt-10 scroll-mt-16 text-title-3">{content}</h2>);
+      else blocks.push(<h3 key={key()} className="mt-6 text-headline">{content}</h3>);
       i++;
       continue;
     }
@@ -80,7 +82,7 @@ export function LegalMarkdown({ text }: { text: string }) {
     if (line.startsWith('>')) {
       const quote: string[] = [];
       while (i < lines.length && lines[i].startsWith('>')) { quote.push(lines[i].replace(/^>\s?/, '')); i++; }
-      blocks.push(<blockquote key={key()} className="mt-4 rounded-md border border-orange bg-orange/10 p-3 text-sm text-ink">{inline(quote.join(' '))}</blockquote>);
+      blocks.push(<blockquote key={key()} className="mt-4 rounded-md bg-orange-tint p-4 text-callout text-ink">{inline(quote.join(' '))}</blockquote>);
       continue;
     }
 
@@ -91,13 +93,13 @@ export function LegalMarkdown({ text }: { text: string }) {
       while (i < lines.length && isTableRow(lines[i])) { rows.push(cells(lines[i])); i++; }
       blocks.push(
         <div key={key()} className="mt-4 overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
+          <table className="w-full border-collapse text-left text-callout">
             <thead>
-              <tr>{head.map((c, ci) => <th key={ci} scope="col" className="border border-border bg-bg px-2 py-1 font-semibold">{inline(c)}</th>)}</tr>
+              <tr>{head.map((c, ci) => <th key={ci} scope="col" className="border border-separator bg-surface-2 px-2 py-1.5 text-footnote font-semibold">{inline(c)}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((r, ri) => (
-                <tr key={ri}>{r.map((c, ci) => <td key={ci} className="border border-border px-2 py-1 align-top">{inline(c)}</td>)}</tr>
+                <tr key={ri}>{r.map((c, ci) => <td key={ci} className="border border-separator px-2 py-1.5 align-top">{inline(c)}</td>)}</tr>
               ))}
             </tbody>
           </table>
@@ -113,8 +115,8 @@ export function LegalMarkdown({ text }: { text: string }) {
       while (i < lines.length && re.test(lines[i])) { items.push(re.exec(lines[i])![1]); i++; }
       const li = items.map((it, ii) => <li key={ii}>{inline(it)}</li>);
       blocks.push(ordered
-        ? <ol key={key()} className="mt-3 list-decimal space-y-1 pl-6">{li}</ol>
-        : <ul key={key()} className="mt-3 list-disc space-y-1 pl-6">{li}</ul>);
+        ? <ol key={key()} className="mt-4 list-decimal space-y-1.5 pl-6">{li}</ol>
+        : <ul key={key()} className="mt-4 list-disc space-y-1.5 pl-6">{li}</ul>);
       continue;
     }
 
@@ -123,7 +125,7 @@ export function LegalMarkdown({ text }: { text: string }) {
       para.push(lines[i].trim());
       i++;
     }
-    blocks.push(<p key={key()} className="mt-3">{inline(para.join(' '))}</p>);
+    blocks.push(<p key={key()} className="mt-4">{inline(para.join(' '))}</p>);
   }
 
   return <div className="text-ink">{blocks}</div>;

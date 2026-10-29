@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { MAIN_ACTION_CLASS, MainAction } from '../components/Toolbar';
 import { Menu } from '../components/Menu';
 import { PageChromeProvider, usePageChromeState } from './PageChrome';
-import mark from '../assets/brand/volley-skills-mark.svg';
+import { BrandMark } from '../components/Logo';
 
 function Frame({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   const { appUser } = useAuth();
@@ -25,7 +25,7 @@ function Frame({ title, actions, children }: { title: string; actions?: ReactNod
       <header className="glass sticky top-0 z-30 shadow-[inset_0_-1px_0_rgb(var(--color-separator))] print:hidden">
         <div className="mx-auto flex w-full max-w-screen-xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <img src={mark} alt="Volley Skills" className="h-8 w-8 shrink-0" />
+            <BrandMark wordmark={false} className="shrink-0" />
             <span className="min-w-0 truncate text-headline">{title}</span>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-3">

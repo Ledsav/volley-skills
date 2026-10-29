@@ -54,6 +54,15 @@ describe('MinimalShell main action', () => {
     expect(screen.getByRole('button', { name: 'Download export' })).toBeDisabled();
   });
 
+  it('shows the app mark through BrandMark', () => {
+    render(
+      <MemoryRouter>
+        <MinimalShell title="Club"><p>body</p></MinimalShell>
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('img', { name: 'Volley Skills' }).getAttribute('src')).toContain('volley-skills-mark-app-icon');
+  });
+
   it('uses v2 tokens, not the navy band', () => {
     const { container } = render(
       <MemoryRouter>

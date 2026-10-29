@@ -10,6 +10,7 @@
   color-scheme: light;
 
   --color-navy: 35 86 168; /* kept: stored diagram item colours resolve to it (tokenColor) */
+  --brand-tile-edge: transparent; /* the black app tile gets an edge only on dark surfaces (brand section 6) */
   --color-bg: 245 245 247; /* #F5F5F7 */
   --color-surface: 255 255 255; /* #FFFFFF */
   --color-surface-2: 242 242 247; /* #F2F2F7 */
@@ -51,6 +52,7 @@
   color-scheme: dark;
 
   --color-navy: 28 69 134;
+  --brand-tile-edge: rgb(255 255 255 / 0.16);
   --color-bg: 0 0 0;
   --color-surface: 28 28 30; /* #1C1C1E */
   --color-surface-2: 44 44 46; /* #2C2C2E */
@@ -196,6 +198,7 @@
   .dark {
     color-scheme: light;
     --color-navy: 35 86 168;
+    --brand-tile-edge: transparent;
     --color-bg: 245 245 247;
     --color-surface: 255 255 255;
     --color-surface-2: 242 242 247;

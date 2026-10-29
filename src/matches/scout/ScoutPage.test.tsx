@@ -443,6 +443,24 @@ describe('ScoutPage', () => {
     expect(await screen.findByRole('alertdialog', { name: 'Undo text batch (2 events)?' })).toBeInTheDocument();
   });
 
+  it('a takeover over an open undo confirm sits on top, and confirming deletes nothing', async () => {
+    const text = { source: 'text' as const, chunkId: 'c' };
+    renderPage([
+      setStart,
+      { id: 'x1', order: 2, ...text, type: 'action', playerId: 's', skill: 'S', grade: '#' },
+      { id: 'x2', order: 3, ...text, type: 'point', winner: 'them', reason: null },
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
+    const confirm = await screen.findByRole('alertdialog', { name: 'Undo text batch (2 events)?' });
+    act(() => pushMatch({ ...match, activeDevice: { id: 'other', at: Date.now() } }));
+    await screen.findByRole('alertdialog', { name: 'Scouting moved to another device' });
+    const dialogs = screen.getAllByRole('alertdialog');
+    expect(dialogs[dialogs.length - 1]).toHaveAccessibleName('Scouting moved to another device');
+    const buttons = within(confirm).getAllByRole('button');
+    fireEvent.click(buttons[buttons.length - 1]);
+    expect(api.deleteEvents).not.toHaveBeenCalled();
+  });
+
   it('set 1 has no serve default', async () => {
     renderPage([]);
     const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });

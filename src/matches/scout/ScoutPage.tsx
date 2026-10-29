@@ -304,7 +304,7 @@ export function ScoutPage() {
   }, [reasonPrompt]);
 
   function undo() {
-    if (!events || events.length === 0) return;
+    if (!events || events.length === 0 || takenOver) return;
     setReasonPrompt(null);
     const target = undoTarget(events, writtenRef.current);
     writtenRef.current = target.stack;
@@ -360,6 +360,7 @@ export function ScoutPage() {
   }
 
   function deleteFromTimeline(ids: string[]) {
+    if (takenOver) return;
     if (reasonPrompt && ids.includes(reasonPrompt.eventId)) setReasonPrompt(null);
     if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     void deleteEvents(teamId, matchId, ids).catch(() => writeError.show(getT().scout.page.deleteError));
@@ -815,9 +816,6 @@ export function ScoutPage() {
           if (entry && state.inSet && !quickScore) select(entry.playerId);
         }}
       />
-      {takenOver && (
-        <TakeoverSheet onTakeBack={takeBack} onLeave={() => navigate(`/teams/${teamId}/matches/${matchId}`)} />
-      )}
       {helpOpen && <HotkeyCheatSheet onClose={() => setHelpOpen(false)} />}
 
       {pendingUndo && (
@@ -827,11 +825,19 @@ export function ScoutPage() {
           confirmLabel={sp.undoBatchConfirm}
           onCancel={() => setPendingUndo(null)}
           onConfirm={() => {
+            if (takenOver) {
+              setPendingUndo(null);
+              return;
+            }
             if (anchorId && pendingUndo.includes(anchorId)) setAnchorId(null);
             void deleteEvents(teamId, matchId, pendingUndo).catch(() => writeError.show(sp.undoError));
             setPendingUndo(null);
           }}
         />
+      )}
+      {/* Last, so it stacks above any confirm that was already open. */}
+      {takenOver && (
+        <TakeoverSheet onTakeBack={takeBack} onLeave={() => navigate(`/teams/${teamId}/matches/${matchId}`)} />
       )}
     </ScoutRoot>
   );

@@ -40,7 +40,7 @@ describe('AwardsPrepare', () => {
     expect(p.onAction).toHaveBeenCalledWith({ type: 'pick', key: 'attacker', playerId: 'b' });
     fireEvent.change(within(row).getByLabelText('Winner'), { target: { value: '' } });
     expect(p.onAction).toHaveBeenCalledWith({ type: 'pick', key: 'attacker', playerId: null });
-    fireEvent.click(within(row).getByRole('checkbox', { name: 'Hide' }));
+    fireEvent.click(within(row).getByRole('switch', { name: 'Hide' }));
     expect(p.onAction).toHaveBeenCalledWith({ type: 'hide', key: 'attacker', hidden: true });
   });
 

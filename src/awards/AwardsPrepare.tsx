@@ -78,7 +78,12 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
         <div className="min-w-0 text-center">
           <h1 className="text-headline text-ink">{ta.title}</h1>
           <p className="truncate text-footnote text-ink-2">
-            {props.heading} · <span role="status" className={props.saveState === 'error' ? 'text-red-strong' : undefined}>{ta.saveState[props.saveState]}</span>
+            {props.heading}
+            {/* "Saved" is the quiet default: phones drop it so the heading fits; any other state always shows. */}
+            <span className={props.saveState === 'saved' ? 'hidden sm:inline' : undefined}>
+              {' · '}
+              <span role="status" className={props.saveState === 'error' ? 'text-red-strong' : undefined}>{ta.saveState[props.saveState]}</span>
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-2">

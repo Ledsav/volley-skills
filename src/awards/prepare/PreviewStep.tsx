@@ -1,6 +1,7 @@
-import { Download, X } from 'lucide-react';
-import { Button } from '../../components/Button';
-import { FIELD_CLASS } from '../../components/Input';
+import { Download, ImagePlus, X } from 'lucide-react';
+import { Button, buttonClassName } from '../../components/Button';
+import { Select } from '../../components/Select';
+import { SwitchRow } from '../../components/Switch';
 import { useT } from '../../i18n/I18nProvider';
 import { PRESET_PALETTES, selectedPalette, type Palette } from '../palette';
 import { NAME_STYLES, type NameStyle } from '../nameStyle';
@@ -18,7 +19,16 @@ type Props = Pick<AwardsPrepareProps,
 };
 
 const ROW = 'flex min-h-[52px] flex-wrap items-center justify-between gap-3 px-4 py-3 text-callout text-ink';
-const FILE = 'text-callout file:mr-3 file:min-h-9 file:cursor-pointer file:rounded-full file:border-0 file:bg-surface-2 file:px-4 file:text-callout file:font-semibold file:text-ink';
+/** The visible face of a file picker: a secondary pill. The input itself is visually hidden inside the same label,
+ *  so there is no browser-styled "Choose file · No file chosen" text. */
+function FilePick({ disabled = false }: { disabled?: boolean }) {
+  const t = useT();
+  return (
+    <span aria-hidden="true" className={`${buttonClassName('secondary', 'pill')} min-h-11 gap-1.5 [label:focus-within_&]:ring-2 [label:focus-within_&]:ring-focus ${disabled ? 'opacity-50' : 'cursor-pointer'}`}>
+      <ImagePlus size={16} aria-hidden="true" /> {t.awards.prepare.chooseImage}
+    </span>
+  );
+}
 
 /** Step 3: card settings, then every card with its PNG. */
 export function PreviewStep(props: Props) {
@@ -34,7 +44,7 @@ export function PreviewStep(props: Props) {
       <section aria-label={ta.cardSettings} className="divide-y divide-separator rounded-lg bg-surface shadow-card">
         <div className={ROW}>
           <label className="flex items-center gap-2">{ta.palette}
-            <select className={`${FIELD_CLASS} min-h-11`} value={props.palettePrefs.selectedId}
+            <Select className="min-h-11 w-auto max-w-full" value={props.palettePrefs.selectedId}
               onChange={(e) => props.onPalettePrefs({ ...props.palettePrefs, selectedId: e.target.value })}>
               <optgroup label={ta.presets}>
                 {PRESET_PALETTES.map((p) => <option key={p.id} value={p.id}>{paletteName(p)}</option>)}
@@ -44,7 +54,7 @@ export function PreviewStep(props: Props) {
                   {props.palettePrefs.custom.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </optgroup>
               )}
-            </select>
+            </Select>
           </label>
           <span className="flex gap-1" aria-hidden="true">
             {palette.colors.map((c, i) => <span key={i} className="h-6 w-6 rounded-sm ring-1 ring-separator" style={{ background: c }} />)}
@@ -55,24 +65,22 @@ export function PreviewStep(props: Props) {
           </span>
         </div>
         <div className={ROW}>
-          <label className="inline-flex min-h-11 items-center gap-2">
-            <input type="checkbox" checked={props.includeStory} onChange={(e) => props.onIncludeStory(e.target.checked)} />
-            {props.storyLabel}
-          </label>
+          <SwitchRow className="w-full" label={props.storyLabel} checked={props.includeStory} onChange={props.onIncludeStory} />
         </div>
         <div className={ROW}>
-          <label className="flex flex-wrap items-center gap-2">{ta.backgroundImage}
-            <input type="file" accept="image/*" aria-describedby="awards-background-hint" className={FILE} onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
+          <label className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">{ta.backgroundImage}
+            <FilePick />
+            <input type="file" accept="image/*" aria-label={ta.backgroundImage} aria-describedby="awards-background-hint" className="sr-only" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; props.onBackground(f); }} />
           </label>
           {props.hasBackground && <Button variant="ghost" size="sm" onClick={() => props.onBackground(null)}>{ta.removeBackground}</Button>}
           {/* Photos of minors are used only with recorded consent (Terms T7); a background has none. */}
           <span id="awards-background-hint" className="block w-full text-footnote text-ink-2">{ta.backgroundHint}</span>
         </div>
         <div className={ROW}>
-          <label className="flex items-center gap-2">{ta.namesOnCards}
-            <select className={`${FIELD_CLASS} min-h-11`} value={props.nameStyle} onChange={(e) => props.onNameStyle(e.target.value as NameStyle)}>
+          <label className="flex w-full flex-wrap items-center justify-between gap-2">{ta.namesOnCards}
+            <Select className="min-h-11 w-auto max-w-full" value={props.nameStyle} onChange={(e) => props.onNameStyle(e.target.value as NameStyle)}>
               {NAME_STYLES.map((s) => <option key={s} value={s}>{t.awards.nameStyle[s]}</option>)}
-            </select>
+            </Select>
           </label>
         </div>
         <div role="group" aria-label={ta.branding} className={`${ROW} justify-start`}>
@@ -83,8 +91,9 @@ export function PreviewStep(props: Props) {
               <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={ta.removeClubLogo} onClick={() => props.onClubLogo(null)}><X size={14} aria-hidden="true" /></Button>
             </span>
           ) : (
-            <label className="flex flex-wrap items-center gap-2">{ta.clubLogo}
-              <input type="file" accept="image/*" className={FILE} onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; if (f) props.onClubLogo(f); }} />
+            <label className="flex w-full flex-wrap items-center justify-between gap-2">{ta.clubLogo}
+              <FilePick />
+              <input type="file" accept="image/*" aria-label={ta.clubLogo} className="sr-only" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; if (f) props.onClubLogo(f); }} />
             </label>
           )}
           {props.branding.sponsors.map((img, i) => (
@@ -93,15 +102,13 @@ export function PreviewStep(props: Props) {
               <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={ta.removeSponsor(i + 1)} onClick={() => props.onRemoveSponsor(i)}><X size={14} aria-hidden="true" /></Button>
             </span>
           ))}
-          <label className="flex flex-wrap items-center gap-2">{ta.addSponsorLogos}
-            <input type="file" accept="image/*" multiple disabled={props.branding.sponsors.length >= MAX_SPONSORS} className={FILE}
+          <label className="flex w-full flex-wrap items-center justify-between gap-2">{ta.addSponsorLogos}
+            <FilePick disabled={props.branding.sponsors.length >= MAX_SPONSORS} />
+            <input type="file" accept="image/*" multiple aria-label={ta.addSponsorLogos} disabled={props.branding.sponsors.length >= MAX_SPONSORS} className="sr-only"
               onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ''; if (fs.length) props.onAddSponsors(fs); }} />
           </label>
           {props.branding.sponsors.length >= MAX_SPONSORS && <span className="text-footnote text-ink-2">{ta.maxSponsors(MAX_SPONSORS)}</span>}
-          <label className="inline-flex min-h-11 items-center gap-2">
-            <input type="checkbox" checked={!props.branding.mono} onChange={(e) => props.onLogosMono(!e.target.checked)} />
-            {ta.originalColours}
-          </label>
+          <SwitchRow className="w-full" label={ta.originalColours} checked={!props.branding.mono} onChange={(on) => props.onLogosMono(!on)} />
         </div>
       </section>
       <p className="mt-3 text-footnote text-ink-2">{ta.privacyNote}</p>

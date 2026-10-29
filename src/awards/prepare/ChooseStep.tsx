@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Button } from '../../components/Button';
-import { FIELD_CLASS } from '../../components/Input';
+import { FIELD_LABEL_CLASS } from '../../components/Input';
+import { Select } from '../../components/Select';
+import { Switch } from '../../components/Switch';
 import { useT } from '../../i18n/I18nProvider';
 import type { Person } from '../../teams/stats/rosterIndex';
 import { MAX_CUSTOM_AWARDS } from '../../types/awards';
@@ -32,12 +34,13 @@ export function ChooseStep({ awards, people, onAction }: Props) {
               <section aria-labelledby={titleId} className={`space-y-2 rounded-lg bg-surface p-4 shadow-card ${a.hidden ? 'opacity-60' : ''}`}>
                 <h2 id={titleId} className="text-headline text-ink">{a.title}</h2>
                 {a.kind === 'stats' ? (
-                  <label className="block text-footnote text-ink-2">{ta.winner}
-                    <select className={`${FIELD_CLASS} mt-1 block min-h-11 w-full max-w-full sm:ml-2 sm:mt-0 sm:inline-block sm:w-auto`} value={a.overridden ? a.winner?.playerId ?? '' : ''}
+                  <label className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                    <span className={`${FIELD_LABEL_CLASS} sm:mb-0`}>{ta.winner}</span>
+                    <Select className="min-h-11 w-full min-w-0 max-w-full sm:w-auto" value={a.overridden ? a.winner?.playerId ?? '' : ''}
                       onChange={(e) => onAction({ type: 'pick', key: a.key, playerId: e.target.value || null })}>
                       <option value="">{a.suggested ? ta.statsChoice(label(who(a.suggested.playerId))) : ta.statsChoiceNone}</option>
                       {people.map((p) => <option key={p.playerId} value={p.playerId}>{label(p)}</option>)}
-                    </select>
+                    </Select>
                   </label>
                 ) : (
                   <p className="text-callout text-ink">{a.winner ? label(a.winner) : '—'}{a.note && <span className="text-ink-2"> · {a.note}</span>}</p>
@@ -50,8 +53,8 @@ export function ChooseStep({ awards, people, onAction }: Props) {
                 )}
                 <div className="flex flex-wrap items-center gap-2">
                   {a.kind === 'stats' && (
-                    <label className="inline-flex min-h-11 items-center gap-2 text-callout text-ink-2">
-                      <input type="checkbox" checked={a.hidden} onChange={(e) => onAction({ type: 'hide', key: a.key, hidden: e.target.checked })} /> {ta.hide}
+                    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-callout text-ink-2">
+                      <Switch checked={a.hidden} onChange={(hidden) => onAction({ type: 'hide', key: a.key, hidden })} aria-label={ta.hide} /> {ta.hide}
                     </label>
                   )}
                   <span className="ml-auto flex items-center gap-1">

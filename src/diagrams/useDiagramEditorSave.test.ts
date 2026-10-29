@@ -87,13 +87,18 @@ describe('useDiagramEditor save pipeline (B2)', () => {
     expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(1);
   });
 
-  it('beforeunload warns only while a save is failing', async () => {
+  it('beforeunload warns while edits exist only in memory or a save is failing, not once handed over', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { result } = await dirtyEditor();
-    const before = new Event('beforeunload', { cancelable: true });
-    window.dispatchEvent(before);
-    expect(before.defaultPrevented).toBe(false);
+    const mem = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(mem);
+    expect(mem.defaultPrevented).toBe(true);
+    await act(() => result.current.save());
+    const clean = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(clean);
+    expect(clean.defaultPrevented).toBe(false);
     vi.mocked(diagramsApi.saveDiagramSet).mockRejectedValue(new Error('x'));
+    act(() => result.current.dispatch({ type: 'undo' }));
     await act(() => result.current.save());
     const after = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(after);
@@ -114,7 +119,10 @@ describe('useDiagramEditor save pipeline (B2)', () => {
   it('unmount during an in-flight save writes the later edits under the real ids', async () => {
     let resolveFirst!: (v: { idMap: Record<string, string> }) => void;
     vi.mocked(diagramsApi.saveDiagramSet)
-      .mockImplementationOnce(() => new Promise((res) => { resolveFirst = res; }))
+      .mockImplementationOnce((_e, ops, _u, onQueued) => {
+        onQueued?.(Object.fromEntries(ops.creates.map((c) => [c.tempId, 'real-2'])));
+        return new Promise((res) => { resolveFirst = res; });
+      })
       .mockResolvedValue({ idMap: {} });
     vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([
       { id: 'd1', title: 'Setup', order: 0, scene: emptyScene('full'), updatedBy: 'u', updatedAt: null },
@@ -156,5 +164,61 @@ describe('useDiagramEditor save pipeline (B2)', () => {
     expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
     const ops = vi.mocked(diagramsApi.saveDiagramSet).mock.calls[1][1];
     expect(ops.updates[0].scene.items).toHaveLength(0);
+  });
+
+  it('a follow-up batch is queued at once, without waiting for the first ack, under the real ids (I-3)', async () => {
+    let resolveFirst!: (v: { idMap: Record<string, string> }) => void;
+    vi.mocked(diagramsApi.saveDiagramSet)
+      .mockImplementationOnce((_e, ops, _u, onQueued) => {
+        onQueued?.(Object.fromEntries(ops.creates.map((c) => [c.tempId, 'real-2'])));
+        return new Promise((res) => { resolveFirst = res; });
+      })
+      .mockResolvedValue({ idMap: {} });
+    vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([
+      { id: 'd1', title: 'Setup', order: 0, scene: emptyScene('full'), updatedBy: 'u', updatedAt: null },
+    ]);
+    const { result } = renderHook(() => useDiagramEditor('ex-1', 'uid'));
+    await waitFor(() => expect(result.current.activeDiagram).not.toBeNull());
+    act(() => result.current.dispatch({ type: 'addDiagram' }));
+    act(() => void result.current.save());
+    act(() => result.current.dispatch({ type: 'addItem', item: { ...createItem('cone', { x: 1, y: 1 }), id: 'x' } }));
+    await act(() => result.current.flush());
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
+    const ops = vi.mocked(diagramsApi.saveDiagramSet).mock.calls[1][1];
+    expect(ops.creates).toEqual([]);
+    expect(ops.updates.map((u) => u.id)).toEqual(['real-2']);
+    await act(async () => resolveFirst({ idMap: {} }));
+  });
+
+  it('an edit dispatched but not rendered when the ack lands stays dirty and is written next (I-1)', async () => {
+    vi.mocked(diagramsApi.saveDiagramSet)
+      .mockImplementationOnce(async (_e, _o, _u, onQueued) => {
+        result.current.dispatch({ type: 'addItem', item: { ...createItem('cone', { x: 2, y: 2 }), id: 'late' } });
+        onQueued?.({});
+        return { idMap: {} };
+      })
+      .mockResolvedValue({ idMap: {} });
+    const { result } = await dirtyEditor();
+    await act(() => result.current.save());
+    expect(result.current.dirty).toBe(true);
+    await act(() => result.current.flush());
+    expect(diagramsApi.saveDiagramSet).toHaveBeenCalledTimes(2);
+    const ops = vi.mocked(diagramsApi.saveDiagramSet).mock.calls[1][1];
+    expect(ops.updates[0].scene.items.map((i) => i.id)).toEqual(['x', 'late']);
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it('a commit that fails after it was queued makes the edits dirty again and reports failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(diagramsApi.saveDiagramSet).mockImplementationOnce(async (_e, _o, _u, onQueued) => {
+      onQueued?.({});
+      throw Object.assign(new Error('offline'), { code: 'unavailable' });
+    });
+    const { result } = await dirtyEditor();
+    await act(() => result.current.save());
+    expect(result.current.dirty).toBe(true);
+    expect(result.current.status).toBe('failed');
+    await act(() => result.current.save());
+    expect(result.current.status).toBe('saved');
   });
 });

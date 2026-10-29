@@ -208,8 +208,8 @@ export const players = {
       none: 'No entries yet.',
       notes: 'Notes',
       deleteEntry: 'Delete entry',
-      deleteTitle: 'Delete this entry?',
-      deleteMessage: "This can't be undone.",
+      deletedNotice: (d: string) => `Entry from ${d} deleted`,
+      rowMenu: (d: string) => `Actions for the entry from ${d}`,
       deleteError: 'Could not delete this entry. Please try again.',
     },
     chart: {

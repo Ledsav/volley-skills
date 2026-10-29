@@ -5,7 +5,8 @@ import * as physicalTestsApi from './physicalTestsApi';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, testClub } from '../test/authValue';
 import type { PhysicalTest } from '../types/physicalTest';
-import { NoticeProvider } from '../components/Notice';
+import { NoticeProvider, UNDO_MS } from '../components/Notice';
+import { I18nProvider } from '../i18n/I18nProvider';
 import { PlayerSyncProvider } from './playerSync';
 
 vi.mock('./physicalTestsApi');
@@ -131,5 +132,66 @@ describe('PhysicalTestingSection', () => {
     expect(screen.getByRole('img', { name: 'Waiting to sync' })).toBeInTheDocument();
     await act(async () => resolve('test-1'));
     expect(screen.queryByRole('img', { name: 'Waiting to sync' })).not.toBeInTheDocument();
+  });
+
+  it('history opens as a sheet and Escape returns focus to View history', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    vi.spyOn(physicalTestsApi, 'listHistoryByType').mockResolvedValue({ tests: [], lastDoc: null });
+    vi.spyOn(physicalTestsApi, 'listSeriesByType').mockResolvedValue([]);
+
+    render(
+      <NoticeProvider>
+        <PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />
+      </NoticeProvider>,
+    );
+
+    await waitFor(() => expect(screen.getAllByText('No data yet').length).toBe(8));
+    const trigger = screen.getAllByText('View history')[0];
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('closing the sheet during the undo window still deletes and refreshes the latest row', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never }));
+      vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({ cmj: cmjEntry });
+      const fetchLatest = vi.spyOn(physicalTestsApi, 'fetchLatestTests').mockResolvedValue({});
+      vi.spyOn(physicalTestsApi, 'listHistoryByType').mockResolvedValue({ tests: [cmjEntry], lastDoc: null });
+      vi.spyOn(physicalTestsApi, 'listSeriesByType').mockResolvedValue([]);
+      const del = vi.spyOn(physicalTestsApi, 'deletePhysicalTest').mockResolvedValue(undefined);
+
+      render(
+        <I18nProvider>
+          <NoticeProvider>
+            <PhysicalTestingSection teamId="team-1" playerId="player-1" isAdmin={true} />
+          </NoticeProvider>
+        </I18nProvider>,
+      );
+
+      await screen.findByText(/34 cm — 2026-09-01/);
+      fireEvent.click(screen.getAllByText('View history')[0]);
+      fireEvent.click(await screen.findByText(/2026-09-01 —/));
+      fireEvent.click(screen.getByText('Delete entry'));
+      fireEvent.keyDown(document, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(del).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNDO_MS);
+      });
+
+      expect(del).toHaveBeenCalledWith('team-1', 'player-1', 'test-1');
+      expect(fetchLatest).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

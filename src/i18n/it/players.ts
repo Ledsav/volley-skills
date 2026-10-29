@@ -211,8 +211,8 @@ export const players = {
       none: 'Ancora nessun dato.',
       notes: 'Note',
       deleteEntry: 'Elimina voce',
-      deleteTitle: 'Eliminare questa voce?',
-      deleteMessage: 'Non si può annullare.',
+      deletedNotice: (d: string) => `Voce del ${d} eliminata`,
+      rowMenu: (d: string) => `Azioni per la voce del ${d}`,
       deleteError: 'Impossibile eliminare questa voce. Riprova.',
     },
     chart: {

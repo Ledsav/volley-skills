@@ -33,6 +33,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
   const [activeDialogType, setActiveDialogType] = useState<PhysicalTestType | null>(null);
   const [historyType, setHistoryType] = useState<PhysicalTestType | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function apply(next: LatestTests) {
     setLatestByType(next);
@@ -62,6 +63,11 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
           {loadError}
         </p>
       )}
+      {deleteError && (
+        <p role="alert" className="text-sm text-red-strong">
+          {deleteError}
+        </p>
+      )}
       {!loadError && (
         <ul className="divide-y divide-border">
           {PHYSICAL_TEST_ORDER.filter((type) => visible.includes(type) || !!latestByType[type]).map((testType) => {
@@ -79,7 +85,10 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => setHistoryType(testType)}>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                      setDeleteError(null);
+                      setHistoryType(testType);
+                    }}>
                     {p.viewHistory}
                   </Button>
                   {canAdd && (
@@ -114,6 +123,7 @@ export function PhysicalTestingSection({ teamId, playerId, isAdmin, storedLatest
           isAdmin={isAdmin}
           onClose={() => setHistoryType(null)}
           onDeleted={reload}
+          onDeleteFailed={() => setDeleteError(p.history.deleteError)}
         />
       )}
     </div>

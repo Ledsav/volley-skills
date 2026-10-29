@@ -14,7 +14,7 @@ interface SetStartDialogProps {
   /** Current role per roster player (roster roles merged with the previous set's roles). */
   roles: RoleMap;
   initialLineup: string[];
-  initialServing: Side;
+  initialServing: Side | null;
   /** `roles` is the full per-set role map for the roster (slot picks override the current roles). */
   onStart: (lineup: string[], serving: Side, roles: RoleMap) => void;
   onCancel: () => void;
@@ -88,7 +88,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
   const [slots, setSlots] = useState<Slots51>(init.slots);
   const [setterZone, setSetterZone] = useState(init.zone);
   const [manual, setManual] = useState<string[]>(() => Array.from({ length: 6 }, (_, i) => initialLineup[i] ?? ''));
-  const [serving, setServing] = useState<Side>(initialServing);
+  const [serving, setServing] = useState<Side | null>(initialServing);
 
   // A player picked into a slot plays that slot's role for this set.
   const slotRoles: RoleMap = { ...roles };
@@ -103,6 +103,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
       : new Set(filled).size < 6
         ? mode === 'role' ? t.dupRole : t.dupManual
         : null;
+  const hint = error ?? (serving === null ? t.chooseServe : null);
   const warnings = mode === 'manual' && !error ? check51(manual, roles) : [];
 
   const switchMode = (next: 'role' | 'manual') => {
@@ -131,8 +132,8 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
           <Button variant="ghost" onClick={onCancel}>{t.back}</Button>
           <Button
             variant="primary"
-            disabled={!!error}
-            onClick={() => onStart(lineup, serving, Object.fromEntries(roster.map((r) => [r.playerId, setRoles[r.playerId] ?? r.positionCategory])))}
+            disabled={!!error || serving === null}
+            onClick={() => onStart(lineup, serving as Side, Object.fromEntries(roster.map((r) => [r.playerId, setRoles[r.playerId] ?? r.positionCategory])))}
           >
             {t.start}
           </Button>
@@ -258,7 +259,7 @@ export function SetStartDialog({ setNumber, roster, liberos, roles, initialLineu
           </label>
         ))}
       </fieldset>
-      {error && <p className="mt-3 text-sm text-slate">{error}</p>}
+      {hint && <p className="mt-3 text-sm text-ink-2">{hint}</p>}
     </Dialog>
   );
 }

@@ -254,6 +254,7 @@ describe('ScoutPage', () => {
     renderPage([]);
     const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
     fireEvent.change(within(dialog).getByLabelText('Opposite'), { target: { value: 'bench' } });
+    fireEvent.click(within(dialog).getByLabelText('They serve'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Start set' }));
     const event = vi.mocked(api.addEvent).mock.calls[0][2];
     expect(event).toMatchObject({ type: 'setStart', set: 1 });
@@ -269,6 +270,7 @@ describe('ScoutPage', () => {
   it('Start set leaves the roster alone when no role changed', async () => {
     renderPage([]);
     const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    fireEvent.click(within(dialog).getByLabelText('They serve'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Start set' }));
     expect(api.addEvent).toHaveBeenCalledTimes(1);
     expect(api.updateMatchRoster).not.toHaveBeenCalled();
@@ -362,6 +364,14 @@ describe('ScoutPage', () => {
     ]);
     fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
     expect(await screen.findByRole('alertdialog', { name: 'Undo text batch (2 events)?' })).toBeInTheDocument();
+  });
+
+  it('set 1 has no serve default', async () => {
+    renderPage([]);
+    const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
+    expect(within(dialog).getByLabelText('We serve')).not.toBeChecked();
+    expect(within(dialog).getByLabelText('They serve')).not.toBeChecked();
+    expect(within(dialog).getByRole('button', { name: 'Start set' })).toBeDisabled();
   });
 
   it('sends a match that is not live back to the match page', async () => {
@@ -740,6 +750,7 @@ describe('ScoutPage', () => {
       const start: MatchEvent = { ...setStart, id: 'new', serving: 'us' } as MatchEvent;
       // Simulate this device having written the setStart (the dialog's own flow is covered elsewhere).
       vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'new', written: Promise.resolve() });
+      fireEvent.click(within(dialog).getByLabelText('We serve'));
       fireEvent.click(within(dialog).getByRole('button', { name: /start set/i }));
       act(() => pushEvents([start]));
       expect(screen.getByRole('button', { name: '#2 Sofía' })).toHaveAttribute('aria-pressed', 'true');
@@ -760,6 +771,7 @@ describe('ScoutPage', () => {
       renderPage([]);
       const dialog = await screen.findByRole('dialog', { name: 'Start set 1' });
       vi.mocked(api.addEvent).mockReturnValueOnce({ id: 'start', written: Promise.resolve() });
+      fireEvent.click(within(dialog).getByLabelText('They serve'));
       fireEvent.click(within(dialog).getByRole('button', { name: /start set/i }));
       const start: MatchEvent = { ...setStart, id: 'start' };
       act(() => pushEvents([start]));

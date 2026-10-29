@@ -82,10 +82,10 @@ function nextSetRoles(match: Match, events: MatchEvent[]): RoleMap {
 }
 
 /** First serve alternates set to set: the other side of the previous set's first server. */
-function nextSetServing(events: MatchEvent[], fallbackServing: Side): Side {
+function nextSetServing(events: MatchEvent[]): Side | null {
   const prevStart = sortEvents(events).filter((e) => e.type === 'setStart').pop();
-  const prev = prevStart && prevStart.type === 'setStart' ? prevStart.serving : fallbackServing;
-  return prev === 'us' ? 'them' : 'us';
+  if (!prevStart || prevStart.type !== 'setStart') return null;
+  return prevStart.serving === 'us' ? 'them' : 'us';
 }
 
 /** Mounts the keyboard listener once the page is live and shows its jersey hint. */
@@ -666,7 +666,7 @@ export function ScoutPage() {
           liberos={match.liberos}
           roles={nextSetRoles(match, events ?? [])}
           initialLineup={state.setStartLineup.length === 6 ? state.setStartLineup : defaultLineup(match.roster, match.liberos)}
-          initialServing={nextSetServing(events ?? [], state.serving)}
+          initialServing={nextSetServing(events ?? [])}
           onCancel={() => setSetDialogOpen(false)}
           onStart={(lineup, serving, roles) => {
             record({ type: 'setStart', set: state.set + 1, lineup, serving, roles });

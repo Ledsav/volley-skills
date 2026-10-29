@@ -123,6 +123,7 @@ export const scout = {
     delete: 'Delete',
   },
   setStart: {
+    chooseServe: 'Choose who serves first.',
     title: (n: number) => `Start set ${n}`,
     start: 'Start set',
     back: 'Back',

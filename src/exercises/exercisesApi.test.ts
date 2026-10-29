@@ -9,6 +9,7 @@ import {
   countTrainingsUsingExercise,
   bulkCreateExercises,
   getExercise,
+  searchExercises,
 } from './exercisesApi';
 
 const {
@@ -326,5 +327,30 @@ describe('exercisesApi', () => {
 
     expect(count).toBe(3);
     expect(mockWhere).toHaveBeenCalledWith('exerciseIds', 'array-contains', 'ex-1');
+  });
+});
+
+describe('searchExercises', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('queries searchTokens ordered by name, 20 per page', async () => {
+    mockGetDocs.mockResolvedValue({ docs: Array.from({ length: 20 }, (_, i) => ({ id: `d${i}`, data: () => ({ name: `N${i}` }) })) });
+    const page = await searchExercises('pass');
+    expect(mockWhere).toHaveBeenCalledWith('searchTokens', 'array-contains', 'pass');
+    const args = (vi.mocked(mockGetDocs).mock.calls[0][0] as unknown[]);
+    expect(args).toContainEqual({ type: 'orderBy', args: ['name'] });
+    expect(args).toContainEqual({ type: 'limit', args: [20] });
+    expect(page.items).toHaveLength(20);
+    expect(page.hasMore).toBe(true);
+  });
+
+  it('continues after the cursor and reports the last page', async () => {
+    const cursor = { id: 'c' } as never;
+    mockGetDocs.mockResolvedValue({ docs: [{ id: 'x', data: () => ({ name: 'X' }) }] });
+    const page = await searchExercises('pass', cursor);
+    const args = (vi.mocked(mockGetDocs).mock.calls[0][0] as unknown[]);
+    expect(args).toContainEqual({ type: 'startAfter', args: [cursor] });
+    expect(page.hasMore).toBe(false);
+    expect(page.lastDoc?.id).toBe('x');
   });
 });

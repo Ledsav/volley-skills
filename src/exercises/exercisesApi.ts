@@ -148,6 +148,27 @@ export async function listExercisesInCategories(
   return { exercises, lastDoc, hasMore: snapshot.docs.length === EXERCISES_PAGE_SIZE };
 }
 
+const SEARCH_PAGE_SIZE = 20;
+
+/** One page of exercises whose name has a word starting with `token` (see searchTokens). */
+export async function searchExercises(
+  token: string,
+  afterDoc: QueryDocumentSnapshot | null = null
+): Promise<{ items: Exercise[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
+  const snapshot = await getDocs(
+    query(
+      clubCol('exercises'),
+      where('searchTokens', 'array-contains', token),
+      orderBy('name'),
+      ...(afterDoc ? [startAfter(afterDoc)] : []),
+      limit(SEARCH_PAGE_SIZE)
+    )
+  );
+  const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Exercise);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { items, lastDoc, hasMore: snapshot.docs.length === SEARCH_PAGE_SIZE };
+}
+
 export async function getExercisesByIds(ids: string[]): Promise<Exercise[]> {
   const snaps = await Promise.all(ids.map((id) => getDoc(clubDoc('exercises', id))));
   return snaps

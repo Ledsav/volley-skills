@@ -99,6 +99,27 @@ export async function listTrainings(
   return { trainings, lastDoc, hasMore: snapshot.docs.length === TRAININGS_PAGE_SIZE };
 }
 
+const SEARCH_PAGE_SIZE = 20;
+
+/** One page of trainings whose name or businessId has a word starting with `token`. */
+export async function searchTrainings(
+  token: string,
+  afterDoc: QueryDocumentSnapshot | null = null
+): Promise<{ items: Training[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
+  const snapshot = await getDocs(
+    query(
+      clubCol('trainings'),
+      where('searchTokens', 'array-contains', token),
+      orderBy('name'),
+      ...(afterDoc ? [startAfter(afterDoc)] : []),
+      limit(SEARCH_PAGE_SIZE)
+    )
+  );
+  const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Training);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  return { items, lastDoc, hasMore: snapshot.docs.length === SEARCH_PAGE_SIZE };
+}
+
 export async function findTrainingByBusinessId(businessId: string): Promise<Training | null> {
   const snapshot = await getDocs(
     query(clubCol('trainings'), where('businessId', '==', businessId), limit(1))

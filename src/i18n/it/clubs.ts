@@ -128,8 +128,10 @@ export const clubs = {
     fullUseUntil: (date: string) => `Uso completo fino al ${date}`,
     exportUntil: (date: string) => `Esportazione dei dati fino al ${date}`,
     acceptedTerms: 'Termini accettati',
-    acceptedSummary: (versionKey: string, date: string | null, by: string) =>
-      `${versionKey}, accettati ${date ? `il ${date} ` : ''}da ${by}`,
+    acceptedDocs: (terms: string, dpa: string) =>
+      terms === dpa ? `Termini e DPA del ${terms}` : `Termini del ${terms} e DPA del ${dpa}`,
+    acceptedSummary: (what: string, date: string | null, by: string) =>
+      `${what}, accettati ${date ? `il ${date} ` : ''}da ${by}`,
     notAccepted: 'Non ancora accettati',
     terms: 'Termini',
     dpa: 'DPA',

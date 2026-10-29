@@ -7,10 +7,12 @@ import { Link } from 'react-router-dom';
 import { OPERATOR_CONTACT_EMAIL } from '../../legal/operator';
 import { parseVersionKey } from '../../legal/versions';
 import { requestTermination } from '../clubAdminApi';
-import { formatDateValue } from '../../i18n/format';
+import { formatDate, formatDateValue } from '../../i18n/format';
 import { useT } from '../../i18n/I18nProvider';
 
 const fmt = (d: Date) => formatDateValue(d, 'long');
+/** A version id is an ISO date ("2026-10-22"); show it as a date, or as is when it is not one. */
+const fmtVersion = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? formatDate(v, 'long') : v);
 
 const ROW = 'relative flex min-h-[52px] flex-col justify-center gap-0.5 px-4 py-3 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden';
 const LINK = 'text-callout text-ink underline underline-offset-2';
@@ -63,9 +65,11 @@ export function ContractTab() {
           {retrieval && <p className="text-footnote text-ink-2 tabular-nums">{c.exportUntil(fmt(retrieval))}</p>}
         </Row>
         <Row label={c.acceptedTerms}>
-          <span className="text-callout tabular-nums">
+          <span className="text-callout">
             {legal
-              ? c.acceptedSummary(legal.versionKey, legal.acceptedAt ? fmt(legal.acceptedAt.toDate()) : null, legal.acceptedBy)
+              ? c.acceptedSummary(
+                  accepted ? c.acceptedDocs(fmtVersion(accepted.terms), fmtVersion(accepted.dpa)) : legal.versionKey,
+                  legal.acceptedAt ? fmt(legal.acceptedAt.toDate()) : null, legal.acceptedBy)
               : c.notAccepted}
           </span>
           <span className="flex flex-wrap gap-x-4">

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Users } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { GroupedList, ListRow } from '../../components/GroupedList';
 import { SkeletonBlock } from '../../components/Skeleton';
+import { StatusLayout } from '../../components/StatusLayout';
 import { TeamGrantList } from './TeamGrantList';
 import { useTeamPages } from './useTeamPages';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -172,7 +173,9 @@ export function PeopleTab() {
   });
 
   const detail = !target || !rules ? (
-    <p className="text-callout text-ink-2">{p.selectPerson}</p>
+    <StatusLayout icon={Users} className="py-10">
+      <p className="text-callout">{p.selectPerson}</p>
+    </StatusLayout>
   ) : (
     <>
       {!narrow && <h2 className="mb-4 break-all text-title-3 text-ink">{target.email}</h2>}
@@ -237,9 +240,8 @@ export function PeopleTab() {
       {(error ?? (teamPages.error === 'load' ? p.loadFailed : null)) && !confirm && !(narrow && target) && (
         <p role="alert" className="mb-4 text-red-strong">{error ?? p.loadFailed}</p>
       )}
-      <div className={narrow ? '' : 'grid gap-6 lg:grid-cols-[20rem_1fr]'}>
-        <div className="rounded-lg bg-surface p-4 shadow-card">
-          <GroupedList header={p.people}>
+      <div className={narrow ? '' : 'grid items-start gap-6 lg:grid-cols-[20rem_1fr]'}>
+        <GroupedList header={p.people}>
             {!loaded
               ? [0, 1, 2, 3].map((i) => (
                 <li key={i} className="flex min-h-[52px] items-center px-4"><SkeletonBlock className="h-4 w-40" /></li>
@@ -253,10 +255,10 @@ export function PeopleTab() {
                   onMakeOwner={() => askOwner(x.email)}
                   onRemove={() => askRemove(x.email)} />
               ))}
-          </GroupedList>
-        </div>
+        </GroupedList>
 
-        {!narrow && <div className="rounded-lg bg-surface p-4 shadow-card">{detail}</div>}
+        {/* mt-6 lines the panel up with the list under its "People" header. */}
+        {!narrow && <div className="mt-6 rounded-lg bg-surface p-4 shadow-card">{detail}</div>}
       </div>
 
       {narrow && target && (

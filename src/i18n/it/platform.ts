@@ -25,6 +25,7 @@ export const platform = {
     notAccepted: 'Non accettati',
     moreActionsFor: (club: string) => `Altre azioni per ${club}`,
     noClubs: (filtered: boolean) => (filtered ? 'Nessun club con questo stato.' : 'Ancora nessun club.'),
+    loading: 'Caricamento club…',
     loadMore: 'Carica altri',
   },
   dialog: {

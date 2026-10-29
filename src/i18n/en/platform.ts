@@ -23,6 +23,7 @@ export const platform = {
     notAccepted: 'Not accepted',
     moreActionsFor: (club: string) => `More actions for ${club}`,
     noClubs: (filtered: boolean) => `No clubs${filtered ? ' with this status' : ' yet'}.`,
+    loading: 'Loading clubs…',
     loadMore: 'Load more',
   },
   dialog: {

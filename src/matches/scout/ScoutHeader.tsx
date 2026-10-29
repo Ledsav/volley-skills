@@ -14,6 +14,8 @@ interface ScoutHeaderProps {
   onEditScore: () => void;
   onRotate: (delta: 1 | -1) => void;
   onUndo: () => void;
+  /** Set when Undo has nothing it may remove (only imported events): disables it and explains why. */
+  undoHint: string | null;
   /** App tools (modes, panels, exit) — everything that is neither a match event nor a correction. */
   tools: MenuItem[];
   /** No set in play: the engine ignores corrections, so they are unavailable. */
@@ -27,7 +29,7 @@ const CONTROL = 'flex h-11 items-center justify-center rounded-md bg-white/10 ho
  * rotation, Undo), then the tools menu. Match events live in the bottom dock.
  * Kept to a single row so the court gets the screen.
  */
-export function ScoutHeader({ state, format, opponent, pending, onEditScore, onRotate, onUndo, tools, disabled = false }: ScoutHeaderProps) {
+export function ScoutHeader({ state, format, opponent, pending, onEditScore, onRotate, onUndo, undoHint, tools, disabled = false }: ScoutHeaderProps) {
   const t = useT().scout.header;
   const serving = state.serving === 'us';
   return (
@@ -56,11 +58,21 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
           <ChevronRight size={16} aria-hidden="true" />
         </button>
       </span>
-      <button type="button" onClick={onUndo} aria-label={t.undo} className={`${CONTROL} shrink-0 gap-1.5 px-3 text-sm font-medium`}>
-        <Undo2 size={16} aria-hidden="true" />
-        <span className="hidden sm:inline">{t.undo}</span>
-        <Kbd>{keyLabel('undo')}</Kbd>
-      </button>
+      <span className="flex shrink-0 flex-col items-end">
+        <button
+          type="button"
+          onClick={onUndo}
+          aria-label={t.undo}
+          disabled={undoHint !== null}
+          aria-describedby={undoHint !== null ? 'undo-hint' : undefined}
+          className={`${CONTROL} gap-1.5 px-3 text-sm font-medium`}
+        >
+          <Undo2 size={16} aria-hidden="true" />
+          <span className="hidden sm:inline">{t.undo}</span>
+          <Kbd>{keyLabel('undo')}</Kbd>
+        </button>
+        {undoHint !== null && <span id="undo-hint" className="text-caption text-ink-2">{undoHint}</span>}
+      </span>
 
       <span className="hidden shrink-0 items-center gap-1 text-xs text-white/80 sm:flex" aria-live="polite">
         {pending > 0 ? (

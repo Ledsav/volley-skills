@@ -30,6 +30,7 @@ import { HotkeyCheatSheet } from './HotkeyCheatSheet';
 import { keyLabel } from './hotkeys';
 import { Kbd } from './Kbd';
 import { RallyBar, type ReasonPrompt } from './RallyBar';
+import { onlyImports, undoTarget } from './undoTarget';
 import { ScoutHeader } from './ScoutHeader';
 import type { MenuItem } from '../../components/Menu';
 import { LiveStatsPanel } from './LiveStatsPanel';
@@ -304,18 +305,11 @@ export function ScoutPage() {
   function undo() {
     if (!events || events.length === 0) return;
     setReasonPrompt(null);
-    let last: MatchEvent | undefined;
-    while (!last && writtenRef.current.length > 0) {
-      const id = writtenRef.current.pop();
-      last = events.find((e) => e.id === id);
-    }
-    if (!last) {
-      const sorted = sortEvents(events);
-      last = sorted[sorted.length - 1];
-    }
-    const chunkId = last.chunkId;
-    const ids = chunkId ? events.filter((e) => e.chunkId === chunkId).map((e) => e.id) : [last.id];
-    if (ids.length > 1) setPendingUndo(ids);
+    const target = undoTarget(events, writtenRef.current);
+    writtenRef.current = target.stack;
+    if (target.kind === 'none' || target.kind === 'importOnly') return;
+    const ids = target.ids;
+    if (target.kind === 'batch') setPendingUndo(ids);
     else if (anchorId && ids.includes(anchorId)) setAnchorId(null);
     if (ids.length === 1) void deleteEvents(teamId, matchId, ids).catch(() => setWriteError(getT().scout.page.undoError));
   }
@@ -581,6 +575,7 @@ export function ScoutPage() {
         pending={pending}
         disabled={!state.inSet}
         onUndo={undo}
+        undoHint={onlyImports(events ?? []) ? sp.undoImportHint : null}
         tools={tools}
         onEditScore={() => setShowCorrection(true)}
         onRotate={(delta) =>

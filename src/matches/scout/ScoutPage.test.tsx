@@ -330,6 +330,40 @@ describe('ScoutPage', () => {
     await waitFor(() => expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['e2']));
   });
 
+  it('undo on a reopened import removes taps, then stops at the import', async () => {
+    const imp = { source: 'import' as const, chunkId: 'imp' };
+    const events: MatchEvent[] = [
+      { ...setStart, id: 'i1', order: 1, ...imp },
+      { id: 'i2', order: 2, ...imp, type: 'action', playerId: 'oh1', skill: 'R', grade: '+' },
+      { id: 'i3', order: 3, ...imp, type: 'point', winner: 'us', reason: null },
+      { id: 't1', order: 4, source: 'tap', chunkId: null, type: 'timeout', team: 'us' },
+    ];
+    renderPage(events);
+    fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
+    expect(api.deleteEvents).toHaveBeenCalledWith('t1', 'm1', ['t1']);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    act(() => pushEvents(events.slice(0, 3)));
+    const undoButton = screen.getByRole('button', { name: /undo/i });
+    expect(undoButton).toBeDisabled();
+    expect(undoButton).toHaveAccessibleDescription("Imported events can't be undone");
+    vi.mocked(api.deleteEvents).mockClear();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+    });
+    expect(api.deleteEvents).not.toHaveBeenCalled();
+  });
+
+  it('a text batch confirms with wording that names the source', async () => {
+    const text = { source: 'text' as const, chunkId: 'c' };
+    renderPage([
+      setStart,
+      { id: 'x1', order: 2, ...text, type: 'action', playerId: 's', skill: 'S', grade: '#' },
+      { id: 'x2', order: 3, ...text, type: 'point', winner: 'them', reason: null },
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: /undo/i }));
+    expect(await screen.findByRole('alertdialog', { name: 'Undo text batch (2 events)?' })).toBeInTheDocument();
+  });
+
   it('sends a match that is not live back to the match page', async () => {
     for (const status of ['setup', 'finished'] as const) {
       vi.mocked(api.getMatch).mockResolvedValue({ ...match, status });

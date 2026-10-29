@@ -19,6 +19,10 @@ export const home = {
   liveNow: 'Live now',
   vs: (opponent: string) => `vs ${opponent}`,
   resumeScouting: 'Resume scouting',
+  live: {
+    sets: 'sets',
+    setInPlay: (n: number) => `Set ${n} in play`,
+  },
   nextUp: {
     title: 'Next 7 days',
     error: 'Could not load upcoming sessions.',

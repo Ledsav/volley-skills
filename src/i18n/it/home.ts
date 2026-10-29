@@ -21,6 +21,10 @@ export const home = {
   liveNow: 'In diretta',
   vs: (opponent: string) => `vs ${opponent}`,
   resumeScouting: 'Riprendi lo scouting',
+  live: {
+    sets: 'set',
+    setInPlay: (n: number) => `Set ${n} in corso`,
+  },
   nextUp: {
     title: 'Prossimi 7 giorni',
     error: 'Impossibile caricare i prossimi allenamenti.',

@@ -1,9 +1,6 @@
 # Volley Skills design system (v2)
 
-**Status:** the visual direction was approved on 2026-10-28, and the system is being built on branch
-`feature/ui-redesign`. Until that branch merges, the running app still follows the old
-[`2026-09-04-volley-skills-design-system.md`](../../superpowers/specs/2026-09-04-volley-skills-design-system.md).
-From the merge on, this document is the source of truth for every UI decision.
+**Status:** approved 2026-10-28; built by the UI redesign; the source of truth for every UI decision.
 
 This document is the *rules*. The redesign project that applies them is
 [`2026-10-28-ui-redesign-design.md`](../../superpowers/specs/2026-10-28-ui-redesign-design.md). It covers agreed
@@ -78,15 +75,16 @@ Each data colour has two forms:
 
 | Meaning | Fill light / dark | Text light / dark |
 |---|---|---|
-| Beginner (avg < 4), error, grade `=`, destructive | `#FF3B30` / `#FF453A` | `#D70015` / `#FF6961` |
+| Beginner (avg < 4), error, grade `=`, destructive | `#FF3B30` / `#FF453A` | `#CD0014` / `#FF6961` (`#D70015` darkened one step for AA on the 14% tint) |
 | Developing (< 6), warning, grades `/` `-` | `#FF9500` / `#FF9F0A` | `#C93400` / `#FFB340` |
 | Advanced (< 8), info | `#007AFF` / `#0A84FF` | `#0040DD` / `#409CFF` |
-| Elite (≥ 8), success, grades `+` `#`, live | `#34C759` / `#30D158` | `#248A3D` / `#30DB5B` |
+| Elite (≥ 8), success, grades `+` `#`, live | `#34C759` / `#30D158` | `#1E7D37` / `#30DB5B` (`#248A3D` darkened one step for AA on the 14% tint) |
 
 - The grade `!` is neutral (`ink-2`).
 - Tints (pills, banners) are the fill at 14% on light and 22% on dark.
 - Blue is **only** the Advanced band. It is never a UI accent: links, selection and buttons are ink.
 - Red is the one non-data use, and only on a destructive action, always with a destructive label.
+- The solid destructive fill is `#D70015` with white content (swipe actions).
 - The meanings are fixed. Only the hues above may be tuned.
 
 ### 2.3 High contrast
@@ -106,10 +104,10 @@ depends on size: tighter as text grows. Sizes are in `rem`, so the browser's tex
 | Role | Size / line | Weight | Tracking | Use |
 |---|---|---|---|---|
 | `large-title` | 34/40 (phone 30/36) | 700 | −0.022em | Page titles ("Today", "Teams") |
-| `title-1` | 28/34 | 700 | −0.020em | Sheet titles, the team name on the team page |
-| `title-2` | 22/28 | 600 | −0.017em | Section headers |
+| `title-1` | 28/34 | 700 | −0.020em | The team name, the player name, desktop page titles |
+| `title-2` | 22/28 | 600 | −0.017em | Section headers; the title in the desktop sheet header |
 | `title-3` | 19/24 | 600 | −0.012em | Card titles |
-| `headline` | 16/22 | 600 | −0.010em | Row titles, emphasised body |
+| `headline` | 16/22 | 600 | −0.010em | Row titles, emphasised body; the title in the phone sheet bar |
 | `body` | 15/22 (inputs 16 on touch) | 400 | −0.005em | Default |
 | `callout` | 14/20 | 400 | −0.003em | Secondary row text |
 | `footnote` | 13/18 | 400 | 0 | Metadata, helper text |

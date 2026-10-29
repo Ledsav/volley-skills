@@ -1,8 +1,7 @@
 # Volley Skills brand identity
 
-**Status:** approved on 2026-10-28 (the "Spin" direction). It ships with the UI redesign on branch
-`feature/ui-redesign`. Until that branch merges, the app still uses the 2026-10-13 colour Spin Ball documented in
-[`docs/brand/README.md`](../../brand/README.md).
+**Status:** in the app since the redesign's cleanup (2026-10-29). The previous colour Spin Ball is in
+[`history-colour-spin-ball.md`](history-colour-spin-ball.md).
 
 This document covers the identity: the mark, the wordmark, colour, icons and how to use them. The UI rules are in the
 [design system](../design-system/README.md).
@@ -106,7 +105,7 @@ CMYK values are specified yet; ask the printer to match the HEX.
 
 ## 8. Moving into the app
 
-Done during the redesign's cleanup increment, not before:
+Done in the cleanup increment (2026-10-29). The maskable icon from step 3 is kept as `public/icon-maskable-512.png`.
 
 1. Copy `logo/*.svg` into `src/assets/brand/`, replacing the old Spin Ball files.
 2. Update `Logo` / `LogoMark` in `src/components/Logo.tsx`. The lockup now sits on light and dark surfaces through
@@ -115,7 +114,7 @@ Done during the redesign's cleanup increment, not before:
    maskable icon with the files in `logo/web-icons/`. Keep the existing `manifest.webmanifest` name and merge
    `theme_color` and icons from `site.webmanifest`.
 4. Regenerate `public/og-image` with the new lockup.
-5. Move `docs/brand/README.md` here as the history of the old mark, and point CLAUDE.md to this folder.
+5. The old guide became [`history-colour-spin-ball.md`](history-colour-spin-ball.md), and CLAUDE.md points to this folder.
 
 ## 9. Trademark
 

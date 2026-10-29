@@ -1,6 +1,6 @@
 # Volley Skills — logo guide
 
-> **Being replaced.** The new one-colour Spin mark and identity are in [`docs/design/brand/`](../design/brand/README.md) and ship with `feature/ui-redesign`. Until then, this guide describes the logo in the running app.
+> **History.** The 2026-10-13 colour Spin Ball, replaced on 2026-10-29 by the one-colour mark in [`README.md`](README.md). Its files are no longer in the app.
 
 The mark is the **Spin Ball**: a volleyball reduced to three swirling panels, with a
 halftone-dot crescent shadow inside the ball. The wordmark is "VOLLEY / SKILLS" in

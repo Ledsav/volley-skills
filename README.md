@@ -376,11 +376,11 @@ sequencing, physical-test calculations), then component tests for the most impor
 <img src="public/favicon.svg" alt="" width="56" align="right" />
 
 The visual language is documented in the
-[design system spec](docs/superpowers/specs/2026-09-04-volley-skills-design-system.md).
+[design system](docs/design/design-system/README.md) and the [brand identity](docs/design/brand/README.md).
 
-- **Colour:** navy `#2356A8` for structure and primary actions, blue `#2865F6` for interactive
-  elements, and orange / green / red for status and levels.
-- **Type:** Inter (self-hosted) everywhere; the logo is fixed SVG artwork (`src/assets/brand`).
+- **Colour:** monochrome chrome; colour only for levels, grades and states.
+- **Type:** Inter (self-hosted) everywhere; the logo is fixed SVG artwork (`src/assets/brand`, copied from
+  `docs/design/brand/logo`).
 - **Icons:** [Lucide](https://lucide.dev).
 - Light-first, with a dark theme.
 

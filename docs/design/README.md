@@ -14,9 +14,7 @@ Related documents elsewhere:
   and delivery.
 - [`../superpowers/specs/ui-redesign-inventory/`](../superpowers/specs/ui-redesign-inventory/README.md): the parity
   contract, meaning every feature and how it must keep behaving.
-- [`../superpowers/specs/2026-09-04-volley-skills-design-system.md`](../superpowers/specs/2026-09-04-volley-skills-design-system.md)
-  and [`../brand/README.md`](../brand/README.md): the **current** design system and logo, in force until
-  `feature/ui-redesign` merges. Then they are retired.
+- [`brand/history-colour-spin-ball.md`](brand/history-colour-spin-ball.md): the previous colour Spin Ball logo, kept as history.
 
 To view the mockups locally, run `python -m http.server 5180 --directory docs/design` and open
 `http://localhost:5180/design-system/mockups/volley-skills-v2.html`.

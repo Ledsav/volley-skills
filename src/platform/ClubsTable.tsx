@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { FIELD_CLASS } from '../components/Input';
 import { SkeletonBlock } from '../components/Skeleton';
 import { Menu } from '../components/Menu';
+import { useMediaQuery } from '../components/useMediaQuery';
 import type { Club, ClubStatus } from '../types/club';
 import { ClubActionDialog } from './ClubActionDialog';
 import { clubActions, type ClubAction } from './clubActions';
@@ -53,6 +54,8 @@ export function ClubsTable() {
   const [error, setError] = useState<'loadMoreFailed' | 'loadFailed' | null>(null);
   const [active, setActive] = useState<{ club: Club; action: ClubAction } | null>(null);
   const request = useRef(0);
+  // Phones get one stacked row per club: five table columns at 390 px broke the owner email letter by letter.
+  const wide = useMediaQuery('(min-width: 768px)');
 
   const load = useCallback(async (filter: ClubStatus | null, after: QueryDocumentSnapshot | null) => {
     const mine = ++request.current;
@@ -81,6 +84,39 @@ export function ClubsTable() {
     setClubs((current) => current.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   }
 
+  function termsCell(club: Club) {
+    return club.legal ? p.termsAccepted(termsVersion(club.legal.versionKey)) : <span className="text-ink-2">{p.notAccepted}</span>;
+  }
+
+  function actionsFor(club: Club) {
+    const actions = clubActions(club);
+    const primary = actions.filter((a) => !a.secondary);
+    const secondary = actions.filter((a) => a.secondary);
+    return (
+      <div className="flex flex-wrap items-center gap-1">
+        {primary.map((a) => (
+          <Button key={a.kind} variant="ghost" size="sm" onClick={() => setActive({ club, action: a })}>
+            {a.label}
+          </Button>
+        ))}
+        {secondary.length > 0 && (
+          <Menu label={p.moreActionsFor(club.name)}
+            triggerClassName="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2"
+            trigger={<MoreHorizontal size={18} aria-hidden="true" />}
+            items={secondary.map((a) => ({
+              kind: 'action' as const, label: a.label, onSelect: () => setActive({ club, action: a }),
+            }))} />
+        )}
+      </div>
+    );
+  }
+
+  const statusPill = (club: Club) => (
+    <span className={`inline-block rounded-full px-2 text-caption ${STATUS_PILL[club.status]}`}>
+      {t.clubs.status[club.status]}
+    </span>
+  );
+
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
@@ -95,7 +131,33 @@ export function ClubsTable() {
       {error && <p role="alert" className="mb-3 text-footnote text-red-strong">{p[error]}</p>}
 
       {/* pb-24: room for the row menu to open below the last row inside the scroller. */}
-      <div className="overflow-x-auto rounded-lg bg-surface pb-24 shadow-card">
+      <div className={wide ? 'overflow-x-auto rounded-lg bg-surface pb-24 shadow-card' : 'rounded-lg bg-surface shadow-card'}>
+        {!wide && (
+          <ul aria-label={p.columns.club}>
+            {!loaded && clubs.length === 0 && [0, 1, 2].map((i) => (
+              <li key={`sk-${i}`} aria-hidden="true" className="flex flex-col gap-2 px-4 py-3">
+                <SkeletonBlock className="h-5 w-40" />
+                <SkeletonBlock className="h-4 w-56 max-w-full" />
+              </li>
+            ))}
+            {clubs.map((club) => (
+              <li key={club.id}
+                className="relative flex flex-col gap-1 py-3 pl-4 pr-2 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator first:before:hidden">
+                <div className="flex items-start justify-between gap-3 pr-2">
+                  <p className="min-w-0 text-headline text-ink">{club.name}</p>
+                  {statusPill(club)}
+                </div>
+                <p className="break-all text-footnote text-ink-2">{club.ownerEmail}</p>
+                <p className="text-footnote text-ink-2">{p.created(club.country, day(club.createdAt))} · {termsCell(club)}</p>
+                {club.status === 'terminating' && (
+                  <p className="text-footnote text-ink-2">{p.endsAndExport(day(club.termination?.effectiveAt), day(club.termination?.retrievalEndsAt))}</p>
+                )}
+                <div className="-ml-3">{actionsFor(club)}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {wide && (
         <table className="w-full border-collapse">
           <thead className="border-b border-separator">
             <tr>
@@ -112,9 +174,6 @@ export function ClubsTable() {
               </tr>
             ))}
             {clubs.map((club) => {
-              const actions = clubActions(club);
-              const primary = actions.filter((a) => !a.secondary);
-              const secondary = actions.filter((a) => a.secondary);
               return (
                 <tr key={club.id}>
                   <th scope="row" className={`${TD} text-left font-medium`}>
@@ -123,38 +182,19 @@ export function ClubsTable() {
                   </th>
                   <td className={`${TD} break-all`}>{club.ownerEmail}</td>
                   <td className={TD}>
-                    <span className={`inline-block rounded-full px-2 text-caption ${STATUS_PILL[club.status]}`}>
-                      {t.clubs.status[club.status]}
-                    </span>
+                    {statusPill(club)}
                     {club.status === 'terminating' && (
                       <p className={SUB}>{p.endsAndExport(day(club.termination?.effectiveAt), day(club.termination?.retrievalEndsAt))}</p>
                     )}
                   </td>
-                  <td className={`${TD} tabular-nums`}>
-                    {club.legal ? p.termsAccepted(termsVersion(club.legal.versionKey)) : <span className="text-ink-2">{p.notAccepted}</span>}
-                  </td>
-                  <td className="px-3 py-1 align-top">
-                    <div className="flex flex-wrap items-center gap-1">
-                      {primary.map((a) => (
-                        <Button key={a.kind} variant="ghost" size="sm" onClick={() => setActive({ club, action: a })}>
-                          {a.label}
-                        </Button>
-                      ))}
-                      {secondary.length > 0 && (
-                        <Menu label={p.moreActionsFor(club.name)}
-                          triggerClassName="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2"
-                          trigger={<MoreHorizontal size={18} aria-hidden="true" />}
-                          items={secondary.map((a) => ({
-                            kind: 'action' as const, label: a.label, onSelect: () => setActive({ club, action: a }),
-                          }))} />
-                      )}
-                    </div>
-                  </td>
+                  <td className={TD}>{termsCell(club)}</td>
+                  <td className="px-3 py-1 align-top">{actionsFor(club)}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        )}
         {!loaded && clubs.length === 0 && <p role="status" className="sr-only">{p.loading}</p>}
         {loaded && clubs.length === 0 && !error && (
           <p className="p-4 text-callout text-ink-2">{p.noClubs(status !== null)}</p>

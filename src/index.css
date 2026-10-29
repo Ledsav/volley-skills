@@ -182,6 +182,38 @@
 }
 
 @media print {
+  /* Print light whatever the theme: every dark token takes its light value. */
+  .dark {
+    color-scheme: light;
+    --color-navy: 35 86 168;
+    --color-bg: 245 245 247;
+    --color-surface: 255 255 255;
+    --color-surface-2: 242 242 247;
+    --color-surface-3: 229 229 234;
+    --color-ink: 29 29 31;
+    --color-ink-2: 110 110 115;
+    --color-ink-3: 142 142 147;
+    --color-on-ink: 255 255 255;
+    --color-separator: 222 222 224;
+    --color-focus: 0 113 227;
+    --color-segment-thumb: 255 255 255;
+    --color-sidebar: 255 255 255;
+    --color-slate: 110 110 115;
+    --color-border: 222 222 224;
+    --color-red: 255 59 48;
+    --color-red-strong: 205 0 20;
+    --color-orange: 255 149 0;
+    --color-orange-strong: 201 52 0;
+    --color-blue: 0 122 255;
+    --color-blue-strong: 0 64 221;
+    --color-green: 52 199 89;
+    --color-green-strong: 30 125 55;
+    --glass: rgb(255 255 255 / 0.72);
+    --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06);
+    --scrim: rgb(0 0 0 / 0.28);
+    --tint-alpha: 0.14;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
   header, nav, footer { display: none !important; }
   body { background: #fff; }
   /* Report only: keep grade bars / rotation colors, don't split a player row. */

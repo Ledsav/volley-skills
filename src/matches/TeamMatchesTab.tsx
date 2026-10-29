@@ -249,6 +249,7 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
         <Sheet title={l.createTitle} onClose={closeCreate} size="lg" detent="large" guardUnsaved>
           <MatchSetupForm
             teamId={teamId}
+            narrow
             defaultDate={creatingDate}
             submitLabel={l.createSubmit}
             onCancel={closeCreate}

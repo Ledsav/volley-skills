@@ -25,6 +25,8 @@ interface MatchSetupFormProps {
   onSubmit: (input: MatchSetupInput) => Promise<void> | void;
   onCancel: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  /** In a sheet: one roster column, so names keep room beside the role and number fields. */
+  narrow?: boolean;
 }
 
 // The fieldset itself stays unstyled: a background or border on it would draw the legend in the card's top edge
@@ -37,7 +39,7 @@ const GROUP = 'rounded-lg bg-surface p-4';
 type Picks = Record<string, { checked: boolean; number: number; role: PositionCategory }>;
 interface LiberoPick { playerId: string; mode: LiberoMode }
 
-export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel, onDirtyChange }: MatchSetupFormProps) {
+export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSubmit, onCancel, onDirtyChange, narrow = false }: MatchSetupFormProps) {
   const t = useT();
   const m = t.matches.setup;
   const LIBERO_MODES: { value: LiberoMode; label: string }[] = [
@@ -207,7 +209,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         <p className={`mb-2 text-callout tabular-nums ${tooMany ? 'font-semibold text-red-strong' : 'text-ink-2'}`}>
           {m.selected(checkedPlayers.length, MAX_ROSTER)}
         </p>
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className={narrow ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2'}>
           {players.map((p) => (
             <li
               key={p.id}

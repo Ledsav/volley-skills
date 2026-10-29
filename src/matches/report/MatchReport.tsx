@@ -68,7 +68,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange, inPlay }
           {inPlay && (
             <li className="rounded-md bg-surface px-3 py-2 text-center shadow-card">
               <p className="flex items-center justify-center gap-1 text-caption text-ink-2">
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-red" />
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-green" />
                 {rp.setInPlay(inPlay.set)}
               </p>
               <p className="text-headline tabular-nums text-ink">{inPlay.us}–{inPlay.them}</p>

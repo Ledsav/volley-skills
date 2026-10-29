@@ -106,11 +106,11 @@ export function LiveStatsPanel({ state, roster }: { state: MatchState; roster: M
         <thead>
           <tr className="text-caption text-ink-2">
             <th scope="col" className="py-1 pr-1 text-left font-medium">{sc.player}</th>
-            <th scope="col" className="truncate px-1 text-right font-medium">{sc.ptsErr}</th>
+            <th scope="col" className="px-1 text-right font-medium leading-tight">{sc.ptsErr}</th>
             <th scope="col" className="truncate px-1 text-right font-medium">{lb.skill.S}</th>
             <th scope="col" className="truncate px-1 text-right font-medium">{sc.recPlus}</th>
             <th scope="col" className="truncate px-1 text-right font-medium">{lb.skill.A}</th>
-            <th scope="col" className="truncate pl-1 text-right font-medium">{lb.skill.B}</th>
+            <th scope="col" className="truncate text-right font-medium">{lb.skill.B}</th>
           </tr>
         </thead>
         <tbody>

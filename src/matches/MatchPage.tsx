@@ -186,7 +186,7 @@ export function MatchPage() {
         <div className="mb-6 print:hidden">
           <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <span className="inline-flex items-center gap-2 text-callout text-ink-2">
-              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red" />
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-green" />
               {p.inProgress}
             </span>
             <Button variant="secondary" size="sm" disabled={!state} onClick={() => void finish()}>{p.finish}</Button>

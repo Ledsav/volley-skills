@@ -85,12 +85,13 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             aria-label={`${g} ${t.labels.grade[skill][g]}`}
             onPointerDown={(e) => tapFlash(e.currentTarget)}
             onClick={() => onGrade(skill, g)}
-            className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md px-1 ${SCOUT_GRADE_CLASS[g]}`}
+            className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md px-1 max-[379px]:px-0.5 ${SCOUT_GRADE_CLASS[g]}`}
           >
             <Kbd className="absolute right-1 top-1">{g}</Kbd>
             <span className="text-title-3 md:text-title-2" aria-hidden="true">{g}</span>
-            {/* Up to two short lines ("Free / ball") instead of an ellipsis; still inside the 56 px button. */}
-            <span className="line-clamp-2 max-w-full break-words text-center text-[11px] font-medium leading-[13px] md:text-caption" aria-hidden="true">
+            {/* Up to two short lines ("Free / ball") instead of an ellipsis; still inside the 56 px button. On 360 px phones the
+                label steps down a size so a long word ("Pressure") fits instead of breaking mid-word. */}
+            <span className="line-clamp-2 max-w-full hyphens-auto break-words text-center text-[11px] font-medium leading-[13px] max-[379px]:text-[10px] md:text-caption" aria-hidden="true">
               {t.labels.grade[skill][g]}
             </span>
           </button>

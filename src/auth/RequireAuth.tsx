@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ClubGate } from '../clubs/ClubGate';
 import { useAuth } from './AuthContext';
+import { AlertTriangle } from 'lucide-react';
+import { StatusLayout } from '../components/StatusLayout';
 import { AuthShell } from './AuthShell';
 import { rememberReturnTo } from './returnTo';
 import { useT } from '../i18n/I18nProvider';
@@ -15,7 +17,7 @@ export function RequireSignedIn({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <AuthShell>
-        <p className="text-slate">{t.loading}</p>
+        <StatusLayout role="status">{t.loading}</StatusLayout>
       </AuthShell>
     );
   }
@@ -23,13 +25,13 @@ export function RequireSignedIn({ children }: { children: ReactNode }) {
   if (authError) {
     return (
       <AuthShell>
-        <p role="alert" className="text-red-strong">
+        <StatusLayout role="alert" tone="error" icon={AlertTriangle}>
           {t.wentWrong}
-          <a href="/login" className="font-medium text-blue-strong hover:underline">
+          <a href="/login" className="font-semibold text-ink underline">
             {t.tryAgain}
           </a>
           .
-        </p>
+        </StatusLayout>
       </AuthShell>
     );
   }

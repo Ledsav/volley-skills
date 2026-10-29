@@ -19,4 +19,14 @@ describe('NotFoundPage', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Go home' }));
     expect(screen.getByText('home page')).toBeInTheDocument();
   });
+
+  it('Go home is an ink pill next to Back', () => {
+    render(
+      <MemoryRouter initialEntries={['/nope']}>
+        <Routes><Route path="*" element={<NotFoundPage />} /></Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Go home' })).toHaveClass('bg-ink');
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+  });
 });

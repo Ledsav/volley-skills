@@ -25,4 +25,11 @@ describe('RequirePlatformAdmin', () => {
     expect(screen.queryByText('secret')).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent("You don't have access to this page.");
   });
+
+  it('a non-operator gets the framed no-access status', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess }));
+    renderGate();
+    expect(screen.getByRole('alert')).toHaveTextContent("You don't have access to this page.");
+    expect(screen.getByTestId('auth-court')).toBeInTheDocument();
+  });
 });

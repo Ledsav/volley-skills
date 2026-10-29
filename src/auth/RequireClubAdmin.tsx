@@ -1,17 +1,7 @@
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { AuthShell } from './AuthShell';
-import { useT } from '../i18n/I18nProvider';
+import { NoAccess } from './NoAccess';
 import { RequireAuth } from './RequireAuth';
-
-function Denied() {
-  const t = useT().auth.shared;
-  return (
-    <AuthShell>
-      <p role="alert" className="text-red-strong">{t.noAccess}</p>
-    </AuthShell>
-  );
-}
 
 export function RequireClubAdmin({ children }: { children: ReactNode }) {
   return (
@@ -23,5 +13,5 @@ export function RequireClubAdmin({ children }: { children: ReactNode }) {
 
 function Gate({ children }: { children: ReactNode }) {
   const { access } = useAuth();
-  return access?.isClubAdmin ? <>{children}</> : <Denied />;
+  return access?.isClubAdmin ? <>{children}</> : <NoAccess />;
 }

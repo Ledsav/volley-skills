@@ -87,7 +87,9 @@ export const awards = {
     choose: 'Scegli…',
     note: 'Nota',
     addAward: 'Aggiungi premio',
-    cancel: 'Annulla',
+    steps: { label: 'Passaggi', choose: 'Scegli', photos: 'Foto', preview: 'Anteprima' },
+    customAwardTitle: 'Premio personalizzato',
+    cards: 'Card',
   },
   nameStyle: {
     full: 'Nome completo',
@@ -144,6 +146,10 @@ export const awards = {
     nextSlide: 'Slide successiva',
     fullscreen: 'Schermo intero',
     exit: 'Esci dalla presentazione',
+    shortcuts: 'Scorciatoie da tastiera',
+    keysExit: 'Torna alla preparazione',
+    keysToggle: 'Mostra o nascondi questo elenco',
+    keysTap: 'Tocca la metà destra per andare avanti, quella sinistra per tornare indietro.',
   },
   story: {
     finalScore: 'Risultato finale',

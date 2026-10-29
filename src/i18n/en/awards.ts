@@ -86,7 +86,9 @@ export const awards = {
     choose: 'Choose…',
     note: 'Note',
     addAward: 'Add award',
-    cancel: 'Cancel',
+    steps: { label: 'Award steps', choose: 'Choose', photos: 'Photos', preview: 'Preview' },
+    customAwardTitle: 'Custom award',
+    cards: 'Cards',
   },
   nameStyle: {
     full: 'Full name',
@@ -143,6 +145,10 @@ export const awards = {
     nextSlide: 'Next slide',
     fullscreen: 'Fullscreen',
     exit: 'Exit presentation',
+    shortcuts: 'Keyboard shortcuts',
+    keysExit: 'Back to prepare',
+    keysToggle: 'Show or hide this list',
+    keysTap: 'Tap the right half to go forward, the left half to go back.',
   },
   story: {
     finalScore: 'Final score',

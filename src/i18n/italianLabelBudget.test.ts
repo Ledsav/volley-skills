@@ -47,6 +47,9 @@ function pairs(): Pair[] {
   for (const k of ['saved', 'saving', 'retry'] as const) {
     out.push({ place: `diagrams.editor.status.${k}`, en: en.diagrams.editor.status[k], it: itCat.diagrams.editor.status[k] });
   }
+  for (const k of ['choose', 'photos', 'preview'] as const) {
+    out.push({ place: `awards.prepare.steps.${k}`, en: en.awards.prepare.steps[k], it: itCat.awards.prepare.steps[k] });
+  }
   out.push({ place: 'scout.rally.timeoutShort', en: en.scout.rally.timeoutShort, it: itCat.scout.rally.timeoutShort });
   return out;
 }

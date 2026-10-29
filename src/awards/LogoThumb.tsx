@@ -11,5 +11,5 @@ export function LogoThumb({ img, size = 48 }: { img: HTMLCanvasElement; size?: n
     ctx.clearRect(0, 0, size, size);
     ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
   }, [img, size]);
-  return <canvas ref={ref} width={size} height={size} className="rounded-sm border border-border bg-bg" aria-hidden="true" />;
+  return <canvas ref={ref} width={size} height={size} className="rounded-sm bg-bg ring-1 ring-separator" aria-hidden="true" />;
 }

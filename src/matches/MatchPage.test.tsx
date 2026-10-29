@@ -201,8 +201,11 @@ describe('MatchPage', () => {
       expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
       expect(matchesApi.deleteMatch).not.toHaveBeenCalled();
       if (status === 'finished') {
-        fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, delete' }));
+        const yes = within(dialog).getByRole('button', { name: 'Yes, delete' });
+        fireEvent.click(yes);
+        fireEvent.click(yes);
         expect(await screen.findByText('team page')).toBeInTheDocument();
+        expect(matchesApi.deleteMatch).toHaveBeenCalledTimes(1);
         expect(matchesApi.deleteMatch).toHaveBeenCalledWith('t1', 'm1');
       }
       unmount();

@@ -8,6 +8,7 @@ import { PageSkeleton } from '../components/Skeleton';
 import { NotFoundState, isNotFoundError } from '../components/NotFoundState';
 import type { MenuItem } from '../components/Menu';
 import { PageHeader } from '../layout/PageHeader';
+import { usePublishPageChrome } from '../layout/PageChrome';
 import { downloadText } from '../export/exportJson';
 import type { Match } from '../types/match';
 import { buildFinishPayload } from './finish';
@@ -53,6 +54,9 @@ export function MatchPage() {
     [match, state],
   );
   const finishingRef = useRef(false);
+  const deletingRef = useRef(false);
+  // While the match loads, the toolbar shows a loading title instead of nothing.
+  usePublishPageChrome({ title: p.loading }, !match && !error && !notFound);
 
   if (notFound) {
     return <NotFoundState title={p.notFoundTitle} message={p.notFoundMessage} backTo={`/teams/${teamId}`} backLabel={p.backToTeam} />;
@@ -198,10 +202,15 @@ export function MatchPage() {
             setDeleteError(null);
           }}
           onConfirm={() => {
+            if (deletingRef.current) return;
+            deletingRef.current = true;
             setDeleteError(null);
             deleteMatch(teamId, matchId)
               .then(() => navigate(`/teams/${teamId}`))
-              .catch(() => setDeleteError(p.deleteError));
+              .catch(() => setDeleteError(p.deleteError))
+              .finally(() => {
+                deletingRef.current = false;
+              });
           }}
         />
       )}

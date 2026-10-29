@@ -32,6 +32,9 @@ interface DvwReviewProps {
 
 type Edits = Partial<Pick<MatchSetupInput, 'date' | 'opponent' | 'competition'>> & { bestOf?: 3 | 5 };
 
+const GROUP = 'rounded-lg bg-surface p-4';
+const HEADER = 'mb-2 text-footnote text-ink-2';
+
 export function DvwReview({ teamId, file, fileName, players, appNames, duplicate, gender = 'mixed', onCancel, onImport }: DvwReviewProps) {
   const t = useT();
   const d = t.dvw.review;
@@ -82,8 +85,6 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
   const canImport = blocking.length === 0 && (!scoresDiffer || confirmed);
   const sets = Math.max(checks.fileSets.length, checks.pointLineSets.length, checks.replaySets.length);
 
-  const GROUP = 'rounded-lg bg-surface p-4';
-  const HEADER = 'mb-2 text-footnote text-ink-2';
   return (
     <div className="flex flex-col gap-4">
       {duplicate && (

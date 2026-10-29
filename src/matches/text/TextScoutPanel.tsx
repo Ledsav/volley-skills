@@ -222,7 +222,7 @@ export function TextScoutPanel({ match, events, anchorId, maxWritten, online, on
           <p className="text-callout text-ink-2">{tx.noProvider}</p>
           <Link
             to="/settings"
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-surface-2 px-3 py-1.5 text-sm font-semibold tracking-[-0.01em] text-ink hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-surface-2 px-3 py-1.5 text-callout font-semibold tracking-[-0.01em] text-ink hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             {tx.openSettings}
           </Link>

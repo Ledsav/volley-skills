@@ -1,5 +1,5 @@
 import type { Gender } from '../i18n/catalog';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { FileUp, Plus, Trophy } from 'lucide-react';
@@ -98,6 +98,7 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
   const [online, setOnline] = useState(() => navigator.onLine);
   const [loaded, setLoaded] = useState(false);
   const [deleting, setDeleting] = useState<Match | null>(null);
+  const deletingRef = useRef(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -209,6 +210,8 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
             setDeleteError(null);
           }}
           onConfirm={() => {
+            if (deletingRef.current) return;
+            deletingRef.current = true;
             const target = deleting;
             setDeleteError(null);
             deleteMatch(teamId, target.id)
@@ -216,7 +219,10 @@ export function TeamMatchesTab({ teamId, teamName, gender, newMatchDate = null, 
                 setMatches((cur) => cur.filter((x) => x.id !== target.id));
                 setDeleting(null);
               })
-              .catch(() => setDeleteError(t.matches.page.deleteError));
+              .catch(() => setDeleteError(t.matches.page.deleteError))
+              .finally(() => {
+                deletingRef.current = false;
+              });
           }}
         />
       )}

@@ -32,9 +32,9 @@ export function PageHeader({ title, eyebrow, description, actions, mainAction, m
   return (
     <div data-page-header className={`flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${className}`.trim()}>
       <div className="min-w-0">
-        {eyebrow && <div className="mb-0.5 text-sm text-slate">{eyebrow}</div>}
+        {eyebrow && <div className="mb-0.5 text-sm text-ink-2">{eyebrow}</div>}
         <h1 className="text-large-title break-words text-ink md:text-title-1">{title}</h1>
-        {description && <div className="mt-1 text-slate">{description}</div>}
+        {description && <div className="mt-1 text-ink-2">{description}</div>}
       </div>
       {actions && <div className="grid auto-cols-fr grid-flow-col gap-2 sm:flex sm:shrink-0 sm:flex-wrap sm:justify-end">{actions}</div>}
     </div>

@@ -7,8 +7,9 @@ import { SPONSOR_ROW } from './branding';
 const card: CardModel = {
   key: 'mvp', awardTitle: 'MVP', name: 'Lena P.', number: 12, statLine: '6.2 MVP pts', footer: 'vs Rivals · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC', note: '',
 };
-const colors = slideColors(PRESET_PALETTES[0], 0);
-const colors2 = slideColors(PRESET_PALETTES[1], 0);
+const NAVY = PRESET_PALETTES.find((p) => p.id === 'navy')!;
+const colors = slideColors(NAVY, 0);
+const colors2 = slideColors(PRESET_PALETTES.find((p) => p.id === 'gold')!, 0);
 const fakeImage = { width: 800, height: 600 } as unknown as ImageBitmap;
 
 describe('drawAwardCard', () => {

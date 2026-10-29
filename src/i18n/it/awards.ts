@@ -98,6 +98,7 @@ export const awards = {
     number: 'Solo numero',
   },
   paletteNames: {
+    night: 'Notte',
     navy: 'Blu navy',
     gold: 'Notte d’oro',
     court: 'Arancio campo',

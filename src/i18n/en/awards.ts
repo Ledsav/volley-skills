@@ -97,6 +97,7 @@ export const awards = {
     number: 'Number only',
   },
   paletteNames: {
+    night: 'Night',
     navy: 'Navy',
     gold: 'Gold Night',
     court: 'Court Orange',

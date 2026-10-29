@@ -4,7 +4,8 @@ import { containRect, contentBottom, drawHeaderRow, drawSponsorRow, knockOutBack
 import { CARD_W } from './geometry';
 import { recordingCtx } from './testCtx';
 
-const colors = slideColors(PRESET_PALETTES[0], 0);
+const NAVY = PRESET_PALETTES.find((p) => p.id === 'navy')!;
+const colors = slideColors(NAVY, 0);
 const img = (w: number, h: number) => ({ width: w, height: h }) as unknown as ImageBitmap;
 const branding = (n: number, clubLogo: ImageBitmap | null = null): Branding => ({ clubLogo, sponsors: Array.from({ length: n }, () => img(400, 100)), mono: false });
 

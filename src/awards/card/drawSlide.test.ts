@@ -10,8 +10,9 @@ import { SPONSOR_ROW } from './branding';
 import { recordingCtx } from './testCtx';
 
 const model = (key: string, name: string): CardModel => ({ key, awardTitle: key, name, number: 7, statLine: null, footer: 'Season 2026-27', teamName: 'U17', clubName: 'Demo VC', note: '' });
+const NAVY = PRESET_PALETTES.find((p) => p.id === 'navy')!;
 const deps: StoryDeps = {
-  palette: PRESET_PALETTES[0],
+  palette: NAVY,
   cards: [{ key: 'mvp', title: 'MVP', model: model('mvp', 'Ana L.') }, { key: 'server', title: 'Best server', model: model('server', 'Bea S.') }],
   artFor: () => ({ photo: null, cutout: null, background: null }),
   clubName: 'Demo VC', winnersTitle: 'Winners',
@@ -69,7 +70,7 @@ describe('renderStoryFrame', () => {
     const during = recordingCtx();
     expect(renderStoryFrame(during.ctx, slides, 1, 100, deps, false, 0)).toBe(false);
     const fillsDuring = during.calls.filter((c) => c.method === 'set:fillStyle').map((c) => c.args[0]);
-    expect(fillsDuring).toContain(PRESET_PALETTES[0].colors[0]); // intro background still visible
+    expect(fillsDuring).toContain(NAVY.colors[0]); // intro background still visible
   });
 
   it('durations: suspense is open-ended, summary grows with the number of winners', () => {

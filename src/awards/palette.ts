@@ -13,6 +13,7 @@ const WHITE = '#FFFFFF';
 const INK = '#0F172A';
 
 export const PRESET_PALETTES: Palette[] = [
+  { id: 'night', name: 'Night', colors: ['#000000', '#000000', '#000000', '#000000'] },
   { id: 'navy', name: 'Navy', colors: ['#1C4586', '#0B1B36', '#F97316', '#2865F6', '#F5C542'] },
   { id: 'gold', name: 'Gold Night', colors: ['#1A1A1A', '#3A2A05', '#F5C542', '#7A5A10', '#FFFFFF'] },
   { id: 'court', name: 'Court Orange', colors: ['#C2410C', '#7C2D12', '#FFFFFF', '#1C4586', '#FDBA74'] },
@@ -65,7 +66,7 @@ export function newPaletteId(): string {
 function migrateOldTheme(): PalettePrefs | null {
   const raw = JSON.parse(localStorage.getItem(OLD_THEME_KEY) ?? 'null') as { presetId?: string; custom?: { from?: string; to?: string } | null } | null;
   if (!raw) return null;
-  const base = PRESET_PALETTES.find((p) => p.id === raw.presetId) ?? PRESET_PALETTES[0];
+  const base = PRESET_PALETTES.find((p) => p.id === raw.presetId) ?? PRESET_PALETTES.find((p) => p.id === 'navy')!;
   const c = raw.custom;
   if (c && typeof c.from === 'string' && typeof c.to === 'string' && HEX.test(c.from) && HEX.test(c.to)) {
     const migrated: Palette = { id: newPaletteId(), name: 'My colours', colors: [c.from, c.to, ...base.colors.slice(2)].slice(0, MAX_COLORS) };
@@ -101,5 +102,5 @@ export function allPalettes(p: PalettePrefs): Palette[] {
 }
 
 export function selectedPalette(p: PalettePrefs): Palette {
-  return allPalettes(p).find((x) => x.id === p.selectedId) ?? PRESET_PALETTES[0];
+  return allPalettes(p).find((x) => x.id === p.selectedId) ?? PRESET_PALETTES.find((p) => p.id === 'navy')!;
 }

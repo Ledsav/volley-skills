@@ -95,7 +95,7 @@ function chip(label: string, measure: Measure, maxWidth?: number): Content {
     ],
     width: w,
     unbreakable: true,
-  };
+  } as Content;
 }
 
 interface LineupEntry {

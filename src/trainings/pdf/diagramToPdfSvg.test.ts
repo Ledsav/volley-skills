@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PALETTE_COLORS } from '../../types/diagram';
 import { createItem, emptyScene } from '../../diagrams/sceneFactory';
@@ -19,10 +19,9 @@ describe('resolveThemeColors', () => {
   });
 
   it('every inlined colour matches the light theme in index.css', () => {
-    const css = readFileSync(fileURLToPath(new URL('../../index.css', import.meta.url)), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
     const start = css.indexOf(':root {');
-    const root = css.slice(start, css.indexOf('
-}', start));
+    const root = css.slice(start, css.indexOf('\n}', start));
     const parsed = new Map<string, number[]>();
     for (const m of root.matchAll(/--color-([a-z0-9-]+):\s*(\d+)\s+(\d+)\s+(\d+)/g)) parsed.set(m[1], [+m[2], +m[3], +m[4]]);
     for (const [key, rgb] of Object.entries(LIGHT_TOKENS)) expect(parsed.get(key), key).toEqual(rgb);

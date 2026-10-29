@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { Input, Textarea, FIELD_CLASS } from '../components/Input';
 import { HealthHint } from '../components/HealthHint';
+import { getInitials } from '../players/nameFormat';
 import { Stopwatch } from './Stopwatch';
 import { isPhysicalTestReady, buildPhysicalTestInput, type PhysicalTestFields } from '../players/physicalTestFieldLogic';
 import { getLatestByType } from '../players/physicalTestsApi';
@@ -36,6 +37,7 @@ interface SessionQualityPanelProps {
   sessionDate: string;
   playerId: string;
   playerName: string;
+  playerNumber?: number;
   testType: PhysicalTestType;
   entry: TestingSessionEntry | null;
   recordedByUid: string;
@@ -59,6 +61,7 @@ export function SessionQualityPanel({
   sessionDate,
   playerId,
   playerName,
+  playerNumber,
   testType,
   entry,
   recordedByUid,
@@ -128,13 +131,39 @@ export function SessionQualityPanel({
   const ready = isPhysicalTestReady(testType, fields);
 
   return (
-    <Dialog title={`${t.labels.physicalTest[testType]} — ${playerName}`} onClose={onClose} mobileSheet>
+    <Sheet
+      title={`${t.labels.physicalTest[testType]} — ${playerName}`}
+      onClose={onClose}
+      detent="large"
+      size="md"
+      footer={
+        <div className="flex w-full gap-3">
+          <Button variant="secondary" onClick={onClose} className="min-h-12 flex-1">{t.common.close}</Button>
+          <Button variant="primary" onClick={() => void handleFinish()} disabled={!ready || saving} className="min-h-12 flex-1">
+            {s.finish}
+          </Button>
+        </div>
+      }
+    >
+        <div className="mb-5 flex flex-col items-center gap-1 text-center">
+          <div
+            aria-hidden="true"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-3 text-headline text-ink-2"
+          >
+            {getInitials(playerName)}
+          </div>
+          <p className="text-headline text-ink">{playerName}</p>
+          {playerNumber !== undefined && playerNumber > 0 && (
+            <p className="text-footnote tabular-nums text-ink-2">#{playerNumber}</p>
+          )}
+        </div>
         {testType === 'growth' && (
           <>
             <div className="mb-4">
-              <label htmlFor="height" className="mb-1 block text-sm font-medium text-ink">{s.height}</label>
+              <label htmlFor="height" className="mb-1 block text-footnote text-ink-2">{s.height}</label>
               <Input
                 id="height"
+                className="text-stat tabular-nums text-center h-16 w-full"
                 type="number"
                 inputMode="decimal"
                 step="any"
@@ -144,9 +173,10 @@ export function SessionQualityPanel({
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="body-mass" className="mb-1 block text-sm font-medium text-ink">{s.bodyMass}</label>
+              <label htmlFor="body-mass" className="mb-1 block text-footnote text-ink-2">{s.bodyMass}</label>
               <Input
                 id="body-mass"
+                className="text-stat tabular-nums text-center h-16 w-full"
                 type="number"
                 inputMode="decimal"
                 step="any"
@@ -160,9 +190,10 @@ export function SessionQualityPanel({
 
         {testType === 'approachJump' && (
           <div className="mb-4">
-            <label htmlFor="standing-reach" className="mb-1 block text-sm font-medium text-ink">{s.standingReach}</label>
+            <label htmlFor="standing-reach" className="mb-1 block text-footnote text-ink-2">{s.standingReach}</label>
             <Input
               id="standing-reach"
+              className="text-stat tabular-nums text-center h-16 w-full"
               type="number"
               inputMode="decimal"
               step="any"
@@ -176,13 +207,13 @@ export function SessionQualityPanel({
         {testType === 'shuttle5105' && (
           <>
             <div className="mb-5">
-              <label htmlFor="shuttle-right" className="mb-1 block text-sm font-medium text-ink">{s.rightFirst}</label>
+              <label htmlFor="shuttle-right" className="mb-1 block text-footnote text-ink-2">{s.rightFirst}</label>
               <Input
                 id="shuttle-right"
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="mb-2 w-full"
+                className="mb-2 h-16 w-full text-center text-stat tabular-nums"
                 value={fields.rightFirstSeconds}
                 onChange={(e) => setFields({ ...fields, rightFirstSeconds: e.target.value })}
                 onBlur={() => persist(fields)}
@@ -190,13 +221,13 @@ export function SessionQualityPanel({
               <Stopwatch onRecord={(s) => persist({ ...fields, rightFirstSeconds: String(s) })} />
             </div>
             <div className="mb-5">
-              <label htmlFor="shuttle-left" className="mb-1 block text-sm font-medium text-ink">{s.leftFirst}</label>
+              <label htmlFor="shuttle-left" className="mb-1 block text-footnote text-ink-2">{s.leftFirst}</label>
               <Input
                 id="shuttle-left"
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="mb-2 w-full"
+                className="mb-2 h-16 w-full text-center text-stat tabular-nums"
                 value={fields.leftFirstSeconds}
                 onChange={(e) => setFields({ ...fields, leftFirstSeconds: e.target.value })}
                 onBlur={() => persist(fields)}
@@ -209,7 +240,7 @@ export function SessionQualityPanel({
         {testType === 'strength' && (
           <>
             <div className="mb-4">
-              <label htmlFor="strength-mode" className="mb-1 block text-sm font-medium text-ink">{s.mode}</label>
+              <label htmlFor="strength-mode" className="mb-1 block text-footnote text-ink-2">{s.mode}</label>
               <select
                 id="strength-mode"
                 className={`${FIELD_CLASS} w-full`}
@@ -223,7 +254,7 @@ export function SessionQualityPanel({
             {fields.strengthMode === 'weighted' ? (
               <>
                 <div className="mb-4">
-                  <label htmlFor="strength-exercise" className="mb-1 block text-sm font-medium text-ink">{s.exercise}</label>
+                  <label htmlFor="strength-exercise" className="mb-1 block text-footnote text-ink-2">{s.exercise}</label>
                   <select
                     id="strength-exercise"
                     className={`${FIELD_CLASS} w-full`}
@@ -236,9 +267,10 @@ export function SessionQualityPanel({
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="strength-weight" className="mb-1 block text-sm font-medium text-ink">{s.weight}</label>
+                  <label htmlFor="strength-weight" className="mb-1 block text-footnote text-ink-2">{s.weight}</label>
                   <Input
                     id="strength-weight"
+                    className="text-stat tabular-nums text-center h-16 w-full"
                     type="number"
                     inputMode="decimal"
                     step="any"
@@ -251,7 +283,7 @@ export function SessionQualityPanel({
             ) : (
               <>
                 <div className="mb-4">
-                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-sm font-medium text-ink">{s.exercise}</label>
+                  <label htmlFor="strength-bodyweight-exercise" className="mb-1 block text-footnote text-ink-2">{s.exercise}</label>
                   <select
                     id="strength-bodyweight-exercise"
                     className={`${FIELD_CLASS} w-full`}
@@ -263,9 +295,10 @@ export function SessionQualityPanel({
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="strength-reps" className="mb-1 block text-sm font-medium text-ink">{s.reps}</label>
+                  <label htmlFor="strength-reps" className="mb-1 block text-footnote text-ink-2">{s.reps}</label>
                   <Input
                     id="strength-reps"
+                    className="text-stat tabular-nums text-center h-16 w-full"
                     type="number"
                     inputMode="numeric"
                     value={fields.reps}
@@ -282,13 +315,13 @@ export function SessionQualityPanel({
           <div className="mb-4">
             <ul className="mb-3 flex flex-wrap gap-2">
               {(fields[attemptConfig.key] as number[]).map((value, index) => (
-                <li key={index} className="flex items-center gap-1 rounded-full bg-blue/10 py-1 pl-3 pr-1 text-sm text-ink">
+                <li key={index} className="flex items-center gap-1 rounded-full bg-surface-2 py-1 pl-3 pr-1 text-body tabular-nums text-ink">
                   {formatDecimal(value)} {attemptConfig.unit}
                   <button
                     type="button"
                     aria-label={s.removeAttempt(index + 1)}
                     onClick={() => removeAttempt(index)}
-                    className="rounded-full p-1 text-red-strong hover:bg-red/10"
+                    className="rounded-full p-1 text-red-strong hover:bg-surface-3"
                   >
                     x
                   </button>
@@ -300,7 +333,7 @@ export function SessionQualityPanel({
                 <Stopwatch onRecord={(s) => { setNewAttempt(String(s)); }} />
               </div>
             )}
-            <label htmlFor="new-attempt" className="mb-1 block text-sm font-medium text-ink">{attemptLabel}</label>
+            <label htmlFor="new-attempt" className="mb-1 block text-footnote text-ink-2">{attemptLabel}</label>
             <div className="flex items-center gap-3">
               <Input
                 id="new-attempt"
@@ -308,11 +341,11 @@ export function SessionQualityPanel({
                 type="number"
                 inputMode="decimal"
                 step="any"
-                className="flex-1"
+                className="text-stat tabular-nums text-center h-16 min-w-0 flex-1"
                 value={newAttempt}
                 onChange={(e) => setNewAttempt(e.target.value)}
               />
-              <Button variant="secondary" size="md" onClick={addAttempt} className="shrink-0">
+              <Button variant="secondary" size="md" onClick={addAttempt} className="min-h-12 shrink-0">
                 {s.addAttempt}
               </Button>
             </div>
@@ -320,18 +353,12 @@ export function SessionQualityPanel({
         )}
 
         <div className="mb-4">
-          <label htmlFor="notes" className="mb-1 block text-sm font-medium text-ink">{s.notes}</label>
+          <label htmlFor="notes" className="mb-1 block text-footnote text-ink-2">{s.notes}</label>
           <Textarea id="notes" aria-describedby="notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => persist(fields)} />
           <HealthHint id="notes-hint" />
         </div>
 
-        <div className="flex justify-between gap-3">
-          <Button variant="ghost" onClick={onClose}>{t.common.close}</Button>
-          <Button variant="primary" onClick={() => void handleFinish()} disabled={!ready || saving}>
-            {s.finish}
-          </Button>
-        </div>
-        {error && <p role="alert" className="mt-3 text-sm text-red-strong">{error}</p>}
-    </Dialog>
+        {error && <p role="alert" className="mt-3 text-footnote text-red-strong">{error}</p>}
+    </Sheet>
   );
 }

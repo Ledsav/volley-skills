@@ -281,4 +281,29 @@ describe('SessionQualityPanel', () => {
     fireEvent.blur(screen.getByLabelText('Body mass (kg)'));
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('shows who is being tested in a full-height sheet', async () => {
+    vi.spyOn(physicalTestsApi, 'getLatestByType').mockResolvedValue(null);
+
+    render(
+      <SessionQualityPanel
+        teamId="team-1"
+        sessionId="session-1"
+        sessionDate="2026-09-16"
+        playerId="player-1"
+        playerName="Giulia Bianchi"
+        playerNumber={9}
+        testType="cmj"
+        entry={null}
+        recordedByUid="coach-uid"
+        onClose={vi.fn()}
+        onFinished={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('GB')).toBeInTheDocument();
+    expect(screen.getAllByText('Giulia Bianchi').length).toBeGreaterThan(0);
+    expect(screen.getByText('#9')).toBeInTheDocument();
+    expect(screen.getByLabelText('New attempt (cm)')).toHaveClass('text-stat');
+  });
 });

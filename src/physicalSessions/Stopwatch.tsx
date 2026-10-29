@@ -46,15 +46,15 @@ export function Stopwatch({ onRecord }: StopwatchProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-2 text-center text-3xl font-semibold tabular-nums text-ink">
+      <div className="mb-2 text-center text-display tabular-nums text-ink">
         {formatNumber(elapsedMs / 1000, 1)}s
       </div>
       {!running ? (
-        <Button variant="primary" size="md" onClick={start} className="w-full py-4 text-base">
+        <Button variant="primary" size="md" onClick={start} className="min-h-14 w-full">
           {s.start}
         </Button>
       ) : (
-        <Button variant="destructive" size="md" onClick={stop} className="w-full py-4 text-base">
+        <Button variant="destructive" size="md" onClick={stop} className="min-h-14 w-full">
           {s.stop}
         </Button>
       )}

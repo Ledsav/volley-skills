@@ -15,15 +15,13 @@ interface Props {
 export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: Props) {
   const t = useT().diagrams.tabs;
   return (
-    <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-surface px-3 py-2 lg:flex-wrap lg:overflow-visible">
+    <div className="flex items-center gap-1.5 overflow-x-auto px-2 py-1.5 lg:flex-wrap lg:overflow-visible">
       {diagrams.map((d) => {
         const active = d.id === activeId;
         return (
           <div
             key={d.id}
-            className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-sm ${
-              active ? 'border-blue bg-blue/10' : 'border-border bg-bg'
-            }`}
+            className={`flex shrink-0 items-center gap-1 rounded-lg ${active ? 'bg-surface-3 px-2' : ''}`}
           >
             {active ? (
               <input
@@ -31,18 +29,18 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                 value={d.title}
                 onChange={(e) => dispatch({ type: 'renameDiagram', id: d.id, title: e.target.value })}
                 maxLength={SCENE_LIMITS.titleLength}
-                className="w-28 rounded-sm bg-transparent text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                className="min-h-11 w-28 rounded-sm bg-transparent text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:text-callout"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'selectDiagram', id: d.id })}
-                className="text-slate"
+                className="min-h-11 rounded-lg px-3 text-callout text-ink-2 hover:bg-surface-2"
               >
                 {d.title}
               </button>
             )}
-            {dirtyIds.has(d.id) && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-orange" />}
+            {dirtyIds.has(d.id) && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ink-2" />}
             {active && (
               <>
                 <button
@@ -51,7 +49,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                   className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'left' })}
                 >
-                  <ChevronLeft className="h-4 w-4 text-slate" />
+                  <ChevronLeft className="h-4 w-4 text-ink-2" />
                 </button>
                 <button
                   type="button"
@@ -59,7 +57,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
                   className="inline-flex min-h-11 min-w-11 items-center justify-center"
                   onClick={() => dispatch({ type: 'reorderDiagram', id: d.id, direction: 'right' })}
                 >
-                  <ChevronRight className="h-4 w-4 text-slate" />
+                  <ChevronRight className="h-4 w-4 text-ink-2" />
                 </button>
                 <button
                   type="button"
@@ -79,7 +77,7 @@ export function DiagramTabs({ diagrams, activeId, dirtyIds, canAdd, dispatch }: 
         aria-label={t.add}
         disabled={!canAdd}
         onClick={() => dispatch({ type: 'addDiagram' })}
-        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-border p-1 text-slate disabled:opacity-40"
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-ink-2 hover:bg-surface-2 disabled:opacity-40"
       >
         <Plus className="h-4 w-4" />
       </button>

@@ -4,6 +4,7 @@ export interface MenuAction {
   label: string;
   onSelect: () => void;
   disabled?: boolean;
+  destructive?: boolean;
 }
 
 interface Props {
@@ -44,7 +45,7 @@ export function CanvasContextMenu({ x, y, actions, onClose }: Props) {
     <div
       ref={menuRef}
       role="menu"
-      className="fixed z-50 min-w-40 rounded-md border border-border bg-surface py-1 shadow-pop"
+      className="glass glass-pop fixed z-50 min-w-48 rounded-xl p-1"
       style={{ left: x, top: y }}
     >
       {actions.map((action) => (
@@ -57,7 +58,9 @@ export function CanvasContextMenu({ x, y, actions, onClose }: Props) {
             action.onSelect();
             onClose();
           }}
-          className="flex min-h-9 w-full items-center px-3 text-left text-sm text-ink hover:bg-bg disabled:opacity-40 disabled:hover:bg-transparent"
+          className={`flex min-h-11 w-full items-center rounded-md px-3 text-left text-callout hover:bg-surface-2 disabled:text-ink-3 disabled:hover:bg-transparent ${
+            action.destructive ? 'text-red-strong' : 'text-ink'
+          }`}
         >
           {action.label}
         </button>

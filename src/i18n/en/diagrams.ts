@@ -19,8 +19,6 @@ export const diagrams = {
   nav: {
     previous: 'Previous diagram',
     next: 'Next diagram',
-    prevShort: '‹ Prev',
-    nextShort: 'Next ›',
   },
   thumbnail: {
     expand: (title: string) => `Expand diagram ${title}`,

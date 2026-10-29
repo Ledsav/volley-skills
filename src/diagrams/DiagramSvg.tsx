@@ -103,7 +103,7 @@ export function DiagramSvg({
                 width={ob.w}
                 height={ob.h}
                 fill="none"
-                stroke="rgb(var(--color-blue))"
+                stroke="rgb(var(--color-focus))"
                 strokeWidth={0.6}
                 strokeDasharray="2 1.5"
               />
@@ -129,7 +129,7 @@ export function DiagramSvg({
                         cx={p.x}
                         cy={p.y}
                         r={1.8}
-                        fill="rgb(var(--color-blue))"
+                        fill="rgb(var(--color-focus))"
                       />
                     );
                   }
@@ -156,7 +156,7 @@ export function DiagramSvg({
                         cx={p.x}
                         cy={p.y}
                         r={1.8}
-                        fill="rgb(var(--color-blue))"
+                        fill="rgb(var(--color-focus))"
                         onPointerDown={onDown}
                       />
                     </g>
@@ -179,7 +179,7 @@ export function DiagramSvg({
                     cx={b.x + b.w}
                     cy={b.y}
                     r={1.8}
-                    fill="rgb(var(--color-blue))"
+                    fill="rgb(var(--color-focus))"
                     onPointerDown={onHandleDown}
                   />
                 </g>
@@ -195,8 +195,8 @@ export function DiagramSvg({
           y={marqueeRect.y}
           width={marqueeRect.w}
           height={marqueeRect.h}
-          fill="rgb(var(--color-blue) / 0.1)"
-          stroke="rgb(var(--color-blue))"
+          fill="rgb(var(--color-focus) / 0.1)"
+          stroke="rgb(var(--color-focus))"
           strokeWidth={0.4}
           strokeDasharray="1.5 1"
           style={{ pointerEvents: 'none' }}

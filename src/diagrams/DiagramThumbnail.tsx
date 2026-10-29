@@ -64,7 +64,7 @@ export function DiagramThumbnail({ exerciseId, className, interactive = true }: 
   if (!diagram) return null;
 
   const boxClass =
-    className ?? 'aspect-square w-16 shrink-0 overflow-hidden rounded-sm border border-border bg-surface';
+    className ?? 'aspect-square w-16 shrink-0 overflow-hidden rounded-md bg-surface-2';
 
   if (!interactive) {
     return (

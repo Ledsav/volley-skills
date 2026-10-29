@@ -125,6 +125,22 @@ describe('TrainingViewSheet', () => {
       expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
     });
 
+    it('autoBuildPdf starts building once and still needs the Share PDF ready tap', async () => {
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockResolvedValue(pdf);
+      vi.mocked(shareFile.shareOrDownload).mockResolvedValue('shared');
+      render(
+        <NoticeProvider>
+          <TrainingViewSheet training={training} autoBuildPdf onClose={vi.fn()} onEdit={vi.fn()} />
+        </NoticeProvider>,
+      );
+      const ready = await screen.findByRole('button', { name: 'Share PDF ready' });
+      expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
+      expect(shareFile.shareOrDownload).not.toHaveBeenCalled();
+      fireEvent.click(ready);
+      await waitFor(() => expect(shareFile.shareOrDownload).toHaveBeenCalledWith([pdf], 'Passing circuit'));
+      expect(exportTrainingPdf.generateTrainingPdf).toHaveBeenCalledTimes(1);
+    });
+
     it('announces when the PDF is being prepared and when it is ready', async () => {
       let resolve: (f: File) => void = () => {};
       vi.mocked(exportTrainingPdf.generateTrainingPdf).mockReturnValue(new Promise((r) => (resolve = r)));

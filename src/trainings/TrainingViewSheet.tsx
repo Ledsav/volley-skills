@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Clock, FileDown, Pencil, Play, Share2, TriangleAlert, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
@@ -16,6 +16,8 @@ interface TrainingViewSheetProps {
   training: Training;
   /** Set when opened from a team's calendar session: the PDF export then adds team notes. */
   teamContext?: { teamId: string; date: string; notes: string };
+  /** Start building the PDF on open (the "Export PDF" row action). Sharing still takes the "Share PDF ready" tap. */
+  autoBuildPdf?: boolean;
   onClose: () => void;
   onEdit: () => void;
 }
@@ -25,7 +27,7 @@ interface TrainingViewSheetProps {
  * with time slots, each opening full-screen, and "Start" to step through the
  * whole session from the first exercise. Editing is one tap away via "Edit".
  */
-export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: TrainingViewSheetProps) {
+export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose, onEdit }: TrainingViewSheetProps) {
   const t = useT();
   const lb = t.labels;
   const v = t.trainings.view;
@@ -86,6 +88,15 @@ export function TrainingViewSheet({ training, teamContext, onClose, onEdit }: Tr
       cancelled = true;
     };
   }, [training]);
+
+  // Declared after the effect above, which resets the PDF on mount.
+  const autoBuilt = useRef(false);
+  useEffect(() => {
+    if (!autoBuildPdf || teamContext || autoBuilt.current) return;
+    autoBuilt.current = true;
+    void buildPdf();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalMinutes = useMemo(
     () => training.exercises.reduce((sum, e) => sum + (e.durationMinutes || 0), 0),

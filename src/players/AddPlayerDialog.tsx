@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/Button';
-import { Dialog } from '../components/Dialog';
+import { Sheet } from '../components/Sheet';
 import { Input, FIELD_CLASS } from '../components/Input';
 import { useSave } from '../components/useSave';
 import { createPlayer } from './playersApi';
@@ -17,7 +17,7 @@ interface AddPlayerDialogProps {
   onCreated: () => void;
 }
 
-const labelClass = 'mb-1 block text-sm font-medium text-ink';
+const labelClass = 'mb-1 block text-footnote font-medium text-ink-2';
 const fieldClass = 'mb-4';
 
 function emptyGuardian(): Guardian {
@@ -89,8 +89,15 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
   }
 
   return (
-    <Dialog title={p.addPlayer.title(g)} onClose={onClose} guardUnsaved size="lg" mobileSheet>
-      <form onSubmit={handleSubmit} aria-label={p.addPlayer.title(g)}>
+    <Sheet
+      title={p.addPlayer.title(g)}
+      onClose={onClose}
+      size="lg"
+      detent="large"
+      guardUnsaved
+      confirm={{ label: saving ? p.shared.saving : p.addPlayer.create, form: 'add-player-form', disabled: saving }}
+    >
+      <form id="add-player-form" onSubmit={handleSubmit} aria-label={p.addPlayer.title(g)}>
 
         <div className={fieldClass}>
           <label htmlFor="player-number" className={labelClass}>
@@ -171,9 +178,9 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           <Input id="player-phone" value={playerPhone} onChange={(e) => setPlayerPhone(e.target.value)} />
         </div>
 
-        <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate">{p.addPlayer.guardians}</h3>
+        <h3 className="mb-2 mt-6 text-headline text-ink">{p.addPlayer.guardians}</h3>
         {guardians.map((guardian, index) => (
-          <div key={index} className="mb-4 rounded-md border border-border p-3">
+          <div key={index} className="mb-4 rounded-lg bg-surface-2 p-3">
             <div className={fieldClass}>
               <label htmlFor={`guardian-relation-${index}`} className={labelClass}>
                 {p.shared.relation}
@@ -232,7 +239,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           {p.shared.addGuardian}
         </Button>
 
-        <label className="mb-4 flex items-start gap-2 text-sm text-ink">
+        <label className="mb-4 flex items-start gap-2 text-callout text-ink">
           <input
             type="checkbox"
             checked={consentGiven}
@@ -243,20 +250,12 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           {p.shared.consent(g)}
         </label>
 
-        <div className="mt-2 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            {t.common.cancel}
-          </Button>
-          <Button variant="primary" type="submit" disabled={saving}>
-            {saving ? p.shared.saving : p.addPlayer.create}
-          </Button>
-        </div>
         {error && (
-          <p role="alert" className="mt-3 text-right text-sm text-red-strong">
+          <p role="alert" className="mt-3 text-callout text-red-strong">
             {error}
           </p>
         )}
       </form>
-    </Dialog>
+    </Sheet>
   );
 }

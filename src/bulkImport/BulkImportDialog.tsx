@@ -138,16 +138,16 @@ export function BulkImportDialog<TInput, TIssue = string>({
   return (
     <Dialog title={title} onClose={onClose} size="lg">
       <div>
-        {hint && <p className="mb-3 text-sm text-slate">{hint}</p>}
+        {hint && <p className="mb-3 text-callout text-ink-2">{hint}</p>}
 
-        <details className="mb-3 text-sm text-slate">
+        <details className="mb-3 text-callout text-ink-2">
           <summary className="cursor-pointer select-none">{t.bulkImport.exampleFormat}</summary>
           <div className="mt-2">
             <CodeBlock code={exampleJson} language="JSON" />
           </div>
         </details>
 
-        <label htmlFor="bulk-json" className="mb-1 block text-sm font-medium text-ink">
+        <label htmlFor="bulk-json" className="mb-1 block text-footnote font-medium text-ink-2">
           {t.bulkImport.pasteJson}
         </label>
         <Textarea
@@ -160,7 +160,7 @@ export function BulkImportDialog<TInput, TIssue = string>({
           rows={10}
         />
 
-        <label htmlFor="bulk-file" className="mt-3 block text-sm text-slate">
+        <label htmlFor="bulk-file" className="mt-3 block text-callout text-ink-2">
           {t.bulkImport.chooseFile}
         </label>
         <input
@@ -168,7 +168,7 @@ export function BulkImportDialog<TInput, TIssue = string>({
           type="file"
           accept="application/json,.json"
           onChange={handleFile}
-          className="mt-1 block w-full min-w-0 text-sm text-slate"
+          className="mt-1 block w-full min-w-0 text-callout text-ink-2"
         />
 
         <div className="mt-3">
@@ -178,13 +178,13 @@ export function BulkImportDialog<TInput, TIssue = string>({
         </div>
 
         {parseError && (
-          <p role="alert" className="mt-3 text-sm text-red-strong">
+          <p role="alert" className="mt-3 text-callout text-red-strong">
             {parseError}
           </p>
         )}
 
         {errors.length > 0 && (
-          <ul role="alert" className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-red-strong">
+          <ul role="alert" className="mt-3 max-h-48 space-y-1 overflow-y-auto text-callout text-red-strong">
             {errors.map((message, i) => (
               <li key={i}>{message}</li>
             ))}
@@ -192,13 +192,13 @@ export function BulkImportDialog<TInput, TIssue = string>({
         )}
 
         {ready && (
-          <p className="mt-3 text-sm text-green-strong">
+          <p className="mt-3 text-callout text-green-strong">
             {t.bulkImport.ready(ready.length)}
           </p>
         )}
 
         {commitError && (
-          <p role="alert" className="mt-3 text-sm text-red-strong">
+          <p role="alert" className="mt-3 text-callout text-red-strong">
             {commitError}
           </p>
         )}

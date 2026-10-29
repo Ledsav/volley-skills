@@ -102,6 +102,11 @@ export const teams = {
     avgSkill: 'Media abilità',
   },
   roster: {
+    rowMenu: (n: string) => `Azioni per ${n}`,
+    openCard: 'Apri scheda',
+    setStarting: 'Metti tra i titolari',
+    unsetStarting: 'Togli dai titolari',
+    removeMenu: 'Rimuovi…',
     sortLineup: 'Formazione',
     sortSkill: 'Livello',
     sortBirthdate: 'Data di nascita',

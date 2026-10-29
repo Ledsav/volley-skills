@@ -92,6 +92,11 @@ export const teams = {
     avgSkill: 'Avg. skill',
   },
   roster: {
+    rowMenu: (n: string) => `Actions for ${n}`,
+    openCard: 'Open card',
+    setStarting: 'Set as starting',
+    unsetStarting: 'Remove from starting',
+    removeMenu: 'Remove…',
     sortLineup: 'Lineup',
     sortSkill: 'Skill level',
     sortBirthdate: 'Birthdate',

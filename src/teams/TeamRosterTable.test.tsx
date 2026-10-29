@@ -54,6 +54,14 @@ function makePlayer(
   };
 }
 
+function renderRoster() {
+  return render(
+    <MemoryRouter>
+      <TeamRosterTable teamId="team-1" />
+    </MemoryRouter>
+  );
+}
+
 describe('TeamRosterTable', () => {
   it('renders players in the desktop table with a single averaged skill column, not per-skill columns', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
@@ -97,55 +105,115 @@ describe('TeamRosterTable', () => {
     expect(within(cards[0]).getByText('Advanced')).toBeInTheDocument();
   });
 
-  it('keeps the wide table for screens it fits and uses a card grid below that', async () => {
+  it('keeps the wide table for screens it fits and uses grouped rows below that', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [makePlayer('player-1', 7, 'Marie Dubois', 'MB')],
       lastDoc: null,
       hasMore: false,
     });
 
-    render(
-      <MemoryRouter>
-        <TeamRosterTable teamId="team-1" />
-      </MemoryRouter>
-    );
+    renderRoster();
 
-    const cardList = (await screen.findAllByTestId('roster-mobile-card'))[0].parentElement as HTMLElement;
-    expect(cardList.className).toContain('sm:grid-cols-2');
-    expect(cardList.className).toContain('xl:hidden');
+    const rowList = (await screen.findAllByTestId('roster-mobile-card'))[0].parentElement as HTMLElement;
+    expect(rowList.className).toContain('xl:hidden');
+    expect(rowList.className).not.toContain('sm:grid-cols-2');
 
-    // `relative` keeps the header's absolutely-positioned sr-only text inside
-    // the scroll box instead of widening the whole page.
+    // `relative` keeps the header's absolutely-positioned sr-only text inside the box instead of widening the page.
     const tableWrapper = screen.getByRole('table').parentElement as HTMLElement;
     expect(tableWrapper.className).toContain('xl:block');
     expect(tableWrapper.className).toContain('relative');
   });
 
-  it('lays out the mobile card as labelled fields so every stat stays readable', async () => {
+  it('the phone row shows position, number, age, average and level', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
-      players: [
-        makePlayer('player-1', 7, 'Marie Dubois', 'MB', { dob: '2009-04-12', avgScore: 6.5 }),
-      ],
+      players: [makePlayer('player-1', 7, 'Marie Dubois', 'MB', { dob: '2009-04-12', avgScore: 6.5, level: 'Developing' })],
       lastDoc: null,
       hasMore: false,
     });
 
-    render(
-      <MemoryRouter>
-        <TeamRosterTable teamId="team-1" />
-      </MemoryRouter>
-    );
+    renderRoster();
 
     const card = within((await screen.findAllByTestId('roster-mobile-card'))[0]);
-    expect(card.getByText('#7')).toBeInTheDocument();
-    expect(card.getByText('Position')).toBeInTheDocument();
-    expect(card.getByText('Middle')).toBeInTheDocument();
-    expect(card.getByText('Born')).toBeInTheDocument();
-    expect(card.getByText('2009-04-12', { exact: false })).toBeInTheDocument();
-    expect(card.getByText('Skill avg')).toBeInTheDocument();
+    expect(card.getByText(/Middle · #7/)).toBeInTheDocument();
     expect(card.getByText('6.5')).toBeInTheDocument();
-    // the starting toggle carries a visible label, not just a screen-reader one
-    expect(card.getByText('Starting')).toBeInTheDocument();
+    expect(card.getByText('Developing')).toBeInTheDocument();
+  });
+
+  it("shows a Starting chip on a starting player's row", async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('p1', 1, 'Starter One', 'OH', { starting: true }),
+        makePlayer('p2', 2, 'Bench Two', 'OH', { starting: false }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+    renderRoster();
+    const cards = await screen.findAllByTestId('roster-mobile-card');
+    expect(within(cards[0]).getByText('Starting')).toBeInTheDocument();
+    expect(within(cards[1]).queryByText('Starting')).not.toBeInTheDocument();
+  });
+
+  it('the row menu sets a player as starting', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('p1', 1, 'Test Player', 'OH', { starting: false })],
+      lastDoc: null,
+      hasMore: false,
+    });
+    const startingSpy = vi.spyOn(playersApi, 'setPlayerStarting').mockResolvedValue(undefined);
+    renderRoster();
+    await screen.findAllByText('Test Player');
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Test Player' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Set as starting' }));
+    await waitFor(() => expect(startingSpy).toHaveBeenCalledWith('team-1', 'p1', true));
+    expect(within((await screen.findAllByTestId('roster-mobile-card'))[0]).getByText('Starting')).toBeInTheDocument();
+  });
+
+  it('right-click on a phone row offers Open card, Set as starting and Remove…', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('p1', 1, 'Test Player')],
+      lastDoc: null,
+      hasMore: false,
+    });
+    renderRoster();
+    const card = (await screen.findAllByTestId('roster-mobile-card'))[0];
+    fireEvent.contextMenu(card, { clientX: 20, clientY: 20 });
+    const items = (await screen.findAllByRole('menuitem')).map((m) => m.textContent);
+    expect(items).toEqual(['Open card', 'Set as starting', 'Remove…']);
+  });
+
+  it('Remove… from a row menu opens the confirmation and never deletes directly', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [makePlayer('p1', 1, 'Test Player')],
+      lastDoc: null,
+      hasMore: false,
+    });
+    const deleteSpy = vi.spyOn(playersApi, 'deletePlayer').mockResolvedValue(undefined);
+    renderRoster();
+    await screen.findAllByText('Test Player');
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Test Player' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove…' }));
+    expect(await screen.findByText('Yes, remove player')).toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('a column header sorts by skill and marks aria-sort', async () => {
+    vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
+      players: [
+        makePlayer('low', 1, 'Low Score', 'OH', { avgScore: 4.1 }),
+        makePlayer('high', 2, 'High Score', 'OH', { avgScore: 8.7 }),
+      ],
+      lastDoc: null,
+      hasMore: false,
+    });
+    renderRoster();
+    await screen.findAllByText('Low Score');
+    const table = within(screen.getByRole('table'));
+    fireEvent.click(table.getByRole('button', { name: 'Skill avg' }));
+    await waitFor(() => {
+      expect(table.getAllByRole('link').map((a) => a.textContent)).toEqual(['High Score', 'Low Score']);
+    });
+    expect(table.getByRole('columnheader', { name: 'Skill avg' })).toHaveAttribute('aria-sort', 'descending');
   });
 
   it('shows the position-category label for each player', async () => {

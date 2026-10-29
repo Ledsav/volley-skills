@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { MoreHorizontal } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useContextMenu } from '../components/ContextMenu';
 import { FIELD_CLASS } from '../components/Input';
 import { LevelPill } from '../components/LevelPill';
+import type { MenuItem } from '../components/Menu';
+import { SwipeRow } from '../components/SwipeRow';
 import { deletePlayer, listPlayers, setPlayerStarting } from '../players/playersApi';
 import { ageFromDob } from '../players/age';
 import { filterRoster, sortRoster, type RosterSort } from '../players/rosterSort';
@@ -13,11 +17,12 @@ import { formatNumber } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
 
-const NUMERIC_HEADER_CLASS =
-  'px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate';
-const NUMERIC_CELL_CLASS = 'px-3 py-2 text-right tabular-nums text-ink';
-
 const SORT_VALUES = ['lineup', 'skill', 'birthdate'] as const satisfies readonly RosterSort[];
+const TH_CLASS = 'sticky z-10 whitespace-nowrap bg-surface px-3 py-2 text-left text-caption text-ink-2';
+// 52px toolbar plus the 64px pinned tab strip
+const TH_STYLE = { top: 'calc(env(safe-area-inset-top, 0px) + 116px)' };
+const SORT_BUTTON_CLASS =
+  'min-h-11 cursor-pointer text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
 
 /** ISO birthdate with the current age beside it, or an em dash when unknown. */
 function BornCell({ dob }: { dob: string }) {
@@ -27,8 +32,147 @@ function BornCell({ dob }: { dob: string }) {
   return (
     <>
       <span className="tabular-nums">{dob}</span>
-      <span className="text-slate"> · {t.age(age)}</span>
+      <span className="text-ink-2"> · {t.age(age)}</span>
     </>
+  );
+}
+
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+interface RowProps {
+  teamId: string;
+  player: Player;
+  gender: Gender;
+  onToggleStarting: (player: Player, starting: boolean) => void;
+  onRemove: (player: Player) => void;
+}
+
+/** Open card, Starting and Remove: the same actions in the phone kebab, long-press, right-click and the desktop row. */
+function useRowActions({ teamId, player, onToggleStarting, onRemove }: RowProps) {
+  const tr = useT().teams.roster;
+  const navigate = useNavigate();
+  const items: MenuItem[] = [
+    { kind: 'action', label: tr.openCard, onSelect: () => navigate(`/teams/${teamId}/players/${player.id}`) },
+    {
+      kind: 'action',
+      label: player.starting ? tr.unsetStarting : tr.setStarting,
+      onSelect: () => onToggleStarting(player, !player.starting),
+    },
+    { kind: 'divider' },
+    { kind: 'action', label: tr.removeMenu, danger: true, onSelect: () => onRemove(player) },
+  ];
+  return useContextMenu({ label: tr.rowMenu(player.fullName), items });
+}
+
+/** A phone / tablet row: grouped list item with swipe (right: Starting, left: Remove), kebab and long-press menu. */
+function RosterPhoneRow(props: RowProps) {
+  const { teamId, player, gender, onToggleStarting, onRemove } = props;
+  const t = useT();
+  const tr = t.teams.roster;
+  const { targetProps, menu } = useRowActions(props);
+  const age = ageFromDob(player.dob ?? '');
+  const subtitle = [
+    t.labels.position[player.positionCategory](gender),
+    player.number != null ? `#${player.number}` : null,
+    age !== null ? tr.age(age) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <li data-testid="roster-mobile-card" className="group" {...targetProps}>
+      <SwipeRow
+        leading={{
+          label: player.starting ? tr.unsetStarting : tr.setStarting,
+          tone: 'neutral',
+          undoable: true,
+          onAction: () => onToggleStarting(player, !player.starting),
+        }}
+        trailing={[{ label: tr.removeMenu, tone: 'destructive', undoable: false, onAction: () => onRemove(player) }]}
+      >
+        <div className="relative flex min-h-[52px] items-center gap-2 pl-4 pr-1 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator group-first:before:hidden">
+          <Link
+            to={`/teams/${teamId}/players/${player.id}`}
+            className="flex min-w-0 flex-1 items-center gap-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-3 text-footnote font-semibold text-ink-2"
+            >
+              {initials(player.fullName)}
+            </span>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-headline text-ink">{player.fullName}</span>
+              <span className="truncate text-footnote tabular-nums text-ink-2">{subtitle}</span>
+            </span>
+          </Link>
+          {player.starting && (
+            <span className="shrink-0 rounded-full bg-surface-3 px-2 text-caption text-ink">{tr.starting}</span>
+          )}
+          <span className="shrink-0 text-callout tabular-nums text-ink-2">
+            {player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}
+          </span>
+          <LevelPill level={player.level} gender={gender} />
+          {/* Opens the context menu (a portal), so the grouped list's rounded clip never cuts it off. */}
+          <button
+            type="button"
+            aria-label={tr.rowMenu(player.fullName)}
+            aria-haspopup="menu"
+            onClick={(e) => targetProps.onContextMenu?.(e)}
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            <MoreHorizontal size={20} aria-hidden="true" />
+          </button>
+        </div>
+      </SwipeRow>
+      {menu}
+    </li>
+  );
+}
+
+/** A desktop table row; keeps the Starting checkbox, and right-click offers the same actions. */
+function RosterTableRow(props: RowProps) {
+  const { teamId, player, gender, onToggleStarting, onRemove } = props;
+  const t = useT();
+  const tr = t.teams.roster;
+  const { targetProps, menu } = useRowActions(props);
+  return (
+    <tr {...targetProps} className="h-[52px] min-h-[52px] hover:bg-surface-2">
+      <td className="px-3 py-2">
+        <label className="inline-flex items-center">
+          <span className="sr-only">{tr.startingFor(player.fullName)}</span>
+          <input type="checkbox" checked={player.starting} onChange={(e) => onToggleStarting(player, e.target.checked)} />
+        </label>
+      </td>
+      <td className="px-3 py-2">
+        <Link to={`/teams/${teamId}/players/${player.id}`} className="text-headline text-ink hover:underline">
+          {player.fullName}
+        </Link>
+      </td>
+      <td className="px-3 py-2 text-callout text-ink">
+        <span className="block max-w-[10rem] truncate">{t.labels.position[player.positionCategory](gender)}</span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 text-callout text-ink">
+        <BornCell dob={player.dob ?? ''} />
+      </td>
+      <td className="px-3 py-2 text-right text-callout tabular-nums text-ink">
+        {player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}
+      </td>
+      <td className="px-3 py-2">
+        <LevelPill level={player.level} gender={gender} />
+      </td>
+      <td className="px-3 py-2 text-right">
+        <Button variant="dangerGhost" size="sm" onClick={() => onRemove(player)} aria-label={tr.removeAria(player.fullName)}>
+          {tr.remove}
+        </Button>
+        {menu}
+      </td>
+    </tr>
   );
 }
 
@@ -43,7 +187,6 @@ interface TeamRosterTableProps {
 
 export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onRosterChanged }: TeamRosterTableProps) {
   const t = useT();
-  const lb = t.labels;
   const tr = t.teams.roster;
   const [players, setPlayers] = useState<Player[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -123,6 +266,16 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
+  const rowProps = (player: Player): RowProps => ({
+    teamId,
+    player,
+    gender,
+    onToggleStarting: (p, starting) => void toggleStarting(p, starting),
+    onRemove: setPendingDelete,
+  });
+  const ariaSort = (value: RosterSort): 'ascending' | 'descending' | undefined =>
+    sort === value ? (value === 'skill' ? 'descending' : 'ascending') : undefined;
+
   return (
     <div>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -136,7 +289,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
             className={`${FIELD_CLASS} w-full text-base sm:text-sm`}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate">
+        <label className="flex items-center gap-2 text-callout text-ink-2 xl:hidden">
           {tr.sort}
           <select
             aria-label={tr.sortAria}
@@ -154,139 +307,65 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
       </div>
 
       {startingError && (
-        <p role="alert" className="mb-3 text-sm text-red-strong">
+        <p role="alert" className="mb-3 text-callout text-red-strong">
           {startingError}
         </p>
       )}
 
-      {/* Below xl (<1280px): a card per player — one column on phones, two
-          from `sm`. The table needs ~740px of card width, which it only gets
-          at xl (the sidebar eats the room at lg), so anything narrower would
-          scroll sideways (design system §UX table guidance). */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:hidden">
-        {visiblePlayers.map((player) => (
-          <div
-            key={player.id}
-            data-testid="roster-mobile-card"
-            className="rounded-lg border border-border bg-surface p-4 shadow-card"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <Link
-                to={`/teams/${teamId}/players/${player.id}`}
-                className="flex min-w-0 items-baseline gap-2 active:opacity-70"
-              >
-                {player.number != null && (
-                  <span className="shrink-0 tabular-nums text-sm font-semibold text-slate">
-                    {`#${player.number}`}
-                  </span>
-                )}
-                <span className="font-medium text-ink">{player.fullName}</span>
-              </Link>
-              <LevelPill level={player.level} gender={gender} />
-            </div>
-
-            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-slate">{tr.position}</dt>
-              <dd className="text-ink">{lb.position[player.positionCategory](gender)}</dd>
-
-              <dt className="text-slate">{tr.born}</dt>
-              <dd className="text-ink">
-                <BornCell dob={player.dob ?? ''} />
-              </dd>
-
-              <dt className="text-slate">{tr.skillAvg}</dt>
-              <dd className="tabular-nums text-ink">{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</dd>
-            </dl>
-
-            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-              <label className="flex items-center gap-2 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  checked={player.starting}
-                  onChange={(e) => void toggleStarting(player, e.target.checked)}
-                />
-                <span className="sr-only">{tr.startingFor(player.fullName)}</span>
-                <span aria-hidden="true">{tr.starting}</span>
-              </label>
-              <Button
-                variant="dangerGhost"
-                size="sm"
-                onClick={() => setPendingDelete(player)}
-                aria-label={tr.removeAria(player.fullName)}
-              >
-                {tr.remove}
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Below xl (<1280px): grouped rows. The table needs ~740px of card width, which it only gets at xl
+          (the sidebar eats the room at lg), so anything narrower would scroll sideways. */}
+      {visiblePlayers.length > 0 && (
+        <ul className="overflow-hidden rounded-lg bg-surface shadow-card xl:hidden">
+          {visiblePlayers.map((player) => (
+            <RosterPhoneRow key={player.id} {...rowProps(player)} />
+          ))}
+        </ul>
+      )}
 
       {visiblePlayers.length === 0 && (
-        <p className="rounded-lg border border-border bg-surface p-4 text-center text-sm text-slate shadow-card">
+        <p className="rounded-lg bg-surface p-4 text-center text-callout text-ink-2 shadow-card">
           {players.length === 0 ? tr.none : tr.noMatch}
         </p>
       )}
 
-      {/* Wide desktop (>=1280px): the full table. `relative` keeps the header's
-          absolutely-positioned sr-only text inside this box, not the page. */}
-      <div className="relative hidden overflow-x-auto rounded-lg border border-border bg-surface shadow-card xl:block">
+      {/* Wide desktop (>=1280px): the full table. `relative` keeps the header's absolutely-positioned sr-only text
+          inside this box, not the page. Headers stick under the toolbar and the pinned tab strip. */}
+      <div className="relative hidden rounded-lg bg-surface shadow-card xl:block">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-border">
-              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">{tr.startCol}</th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">{tr.nameCol}</th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
+            <tr>
+              <th scope="col" aria-sort={ariaSort('lineup')} className={TH_CLASS} style={TH_STYLE}>
+                <button type="button" onClick={() => setSort('lineup')} className={SORT_BUTTON_CLASS}>
+                  {tr.startCol}
+                </button>
+              </th>
+              <th scope="col" className={TH_CLASS} style={TH_STYLE}>
+                {tr.nameCol}
+              </th>
+              <th scope="col" className={TH_CLASS} style={TH_STYLE}>
                 {tr.position}
               </th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">
-                {tr.born}
+              <th scope="col" aria-sort={ariaSort('birthdate')} className={TH_CLASS} style={TH_STYLE}>
+                <button type="button" onClick={() => setSort('birthdate')} className={SORT_BUTTON_CLASS}>
+                  {tr.born}
+                </button>
               </th>
-              <th scope="col" className={`${NUMERIC_HEADER_CLASS} whitespace-nowrap`}>{tr.skillAvg}</th>
-              <th scope="col" className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate">{tr.level}</th>
-              <th scope="col" className="px-3 py-2 text-right">
+              <th scope="col" aria-sort={ariaSort('skill')} className={`${TH_CLASS} text-right`} style={TH_STYLE}>
+                <button type="button" onClick={() => setSort('skill')} className={SORT_BUTTON_CLASS}>
+                  {tr.skillAvg}
+                </button>
+              </th>
+              <th scope="col" className={TH_CLASS} style={TH_STYLE}>
+                {tr.level}
+              </th>
+              <th scope="col" className={`${TH_CLASS} text-right`} style={TH_STYLE}>
                 <span className="sr-only">{tr.actions}</span>
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-separator">
             {visiblePlayers.map((player) => (
-              <tr key={player.id} className="border-b border-border last:border-b-0 hover:bg-bg">
-                <td className="px-3 py-2">
-                  <label className="inline-flex items-center">
-                    <span className="sr-only">{tr.startingFor(player.fullName)}</span>
-                    <input
-                      type="checkbox"
-                      checked={player.starting}
-                      onChange={(e) => void toggleStarting(player, e.target.checked)}
-                    />
-                  </label>
-                </td>
-                <td className="px-3 py-2">
-                  <Link to={`/teams/${teamId}/players/${player.id}`} className="text-blue-strong hover:underline">
-                    {player.fullName}
-                  </Link>
-                </td>
-                <td className="px-3 py-2 text-ink">
-                  <span className="block max-w-[10rem] truncate">{lb.position[player.positionCategory](gender)}</span>
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-ink">
-                  <BornCell dob={player.dob ?? ''} />
-                </td>
-                <td className={NUMERIC_CELL_CLASS}>{player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}</td>
-                <td className="px-3 py-2">
-                  <LevelPill level={player.level} gender={gender} />
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <Button
-                    variant="dangerGhost"
-                    size="sm"
-                    onClick={() => setPendingDelete(player)}
-                    aria-label={tr.removeAria(player.fullName)}
-                  >
-                    {tr.remove}
-                  </Button>
-                </td>
-              </tr>
+              <RosterTableRow key={player.id} {...rowProps(player)} />
             ))}
           </tbody>
         </table>

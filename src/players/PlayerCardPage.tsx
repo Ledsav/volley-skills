@@ -29,7 +29,8 @@ import { PlayerMatchStatsSection } from './PlayerMatchStatsSection';
 import { PlayerKpiTiles } from './PlayerKpiTiles';
 import { ageFromDob } from './age';
 import { deletePlayer, getPlayer, recordPlayerConsent, setPhotoConsent, setPlayerLeftClub, updatePlayerDevelopmentPlan } from './playersApi';
-import { deletionDueDate, todayIso } from './retention';
+import { deletionDueDate } from './retention';
+import { todayLocalIso } from '../dates/today';
 import { PlayerSkillsSection } from './PlayerSkillsSection';
 import { PageSkeleton } from '../components/Skeleton';
 import { SectionTabs } from '../components/SectionTabs';
@@ -410,7 +411,7 @@ export function PlayerCardPage() {
                     variant="ghost"
                     size="sm"
                     className="mt-3 self-start"
-                    onClick={() => void handleLeftClub(todayIso())}
+                    onClick={() => void handleLeftClub(todayLocalIso())}
                   >
                     {c.markLeft(gender)}
                   </Button>

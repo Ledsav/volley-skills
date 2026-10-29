@@ -5,7 +5,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
 import { deletePlayer, listPlayersDueForDeletion } from '../players/playersApi';
-import { deletionCutoff, RETENTION_MONTHS, todayIso } from '../players/retention';
+import { deletionCutoff, RETENTION_MONTHS } from '../players/retention';
+import { todayLocalIso } from '../dates/today';
 import type { Player } from '../types/player';
 
 interface RetentionNoticeProps {
@@ -28,7 +29,7 @@ export function RetentionNotice({ teamId, gender = 'mixed', onDeleted }: Retenti
 
   useEffect(() => {
     let cancelled = false;
-    listPlayersDueForDeletion(teamId, deletionCutoff(todayIso()))
+    listPlayersDueForDeletion(teamId, deletionCutoff(todayLocalIso()))
       .then((players) => {
         if (!cancelled) setDue(players);
       })

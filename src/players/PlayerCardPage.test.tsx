@@ -1,3 +1,5 @@
+process.env.TZ = 'Europe/Rome';
+
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -352,6 +354,30 @@ describe('PlayerCardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Still in the club' }));
     await waitFor(() => expect(leftSpy).toHaveBeenLastCalledWith('team-1', 'player-1', null));
     expect(await screen.findByRole('button', { name: 'Mark as left the club' })).toBeInTheDocument();
+  });
+
+  it('marks left with the local date just after midnight', async () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({
+        firebaseUser: { email: 'coach@example.com' } as never,
+        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        access: clubAdminAccess,
+      })
+    );
+    vi.spyOn(playersApi, 'getPlayer').mockResolvedValue(basePlayer);
+    vi.spyOn(teamsApi, 'getTeam').mockResolvedValue(baseTeam);
+    vi.spyOn(physicalTestsApi, 'loadLatestTests').mockResolvedValue({});
+    const leftSpy = vi.spyOn(playersApi, 'setPlayerLeftClub').mockResolvedValue(undefined);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-10-14T22:30:00Z'));
+    try {
+      renderPlayerCard();
+      await openSection('Privacy');
+      fireEvent.click(await screen.findByRole('button', { name: 'Mark as left the club' }));
+      await waitFor(() => expect(leftSpy).toHaveBeenCalledWith('team-1', 'player-1', '2026-10-15'));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('splits the profile into sections, with Matches and Privacy for admins only', async () => {

@@ -1,3 +1,4 @@
+import { todayLocalIso } from '../dates/today';
 import type { CalendarSession } from '../types/calendarSession';
 import type { Match } from '../types/match';
 import type { Team } from '../types/team';
@@ -8,11 +9,9 @@ export type FeedItem =
   | { kind: 'session'; date: string; team: Team; session: CalendarSession }
   | { kind: 'match'; date: string; team: Team; match: Match };
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
 /** Local calendar date, ISO "YYYY-MM-DD" (calendar dates are local, not UTC). */
 export function todayIso(now: Date = new Date()): string {
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return todayLocalIso(now);
 }
 
 export function addDays(iso: string, n: number): string {

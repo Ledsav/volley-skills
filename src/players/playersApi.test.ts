@@ -1,3 +1,5 @@
+process.env.TZ = 'Europe/Rome';
+
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   bulkCreatePlayers,
@@ -383,6 +385,18 @@ describe('playersApi', () => {
     const consent = await recordPlayerConsent('team-1', 'player-1', 'coach@example.com');
     expect(consent).toEqual({ given: true, date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), confirmedBy: 'coach@example.com' });
     expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', { consent, updatedAt: 'server-timestamp' });
+  });
+
+  it('records consent with the local date', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-14T22:30:00Z'));
+    expect(await recordPlayerConsent('team-1', 'player-1', 'coach@example.com')).toEqual({
+      given: true,
+      date: '2026-10-15',
+      confirmedBy: 'coach@example.com',
+    });
+    expect((await recordPlayerConsent('team-1', 'player-1', 'coach@example.com', '2026-01-02')).date).toBe('2026-01-02');
   });
 
   it('marks a player as having left the club, and back', async () => {

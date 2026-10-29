@@ -18,6 +18,7 @@ import { db } from '../firebase/config';
 import { clubCol, clubDoc } from '../firebase/clubPaths';
 import { deleteCollection } from '../firebase/deleteCollection';
 import { withBackoff } from '../firebase/withBackoff';
+import { todayLocalIso } from '../dates/today';
 import { MAX_IMPORT } from '../bulkImport/parseJsonArray';
 import { erasePlayerFootprint } from './playerFootprintApi';
 import { computeAvgScore, computeLevel } from './skillMath';
@@ -101,7 +102,7 @@ export async function createPlayer(
     avgScore: null,
     level: null,
     developmentPlan: { shortTermObjectives: [], seasonObjectives: [], generalNotes: '' },
-    consent: { given: true, date: new Date().toISOString().slice(0, 10), confirmedBy: confirmedByEmail },
+    consent: { given: true, date: todayLocalIso(), confirmedBy: confirmedByEmail },
     createdBy: creatorUid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -228,8 +229,13 @@ export async function listPlayersDueForDeletion(teamId: string, cutoff: string):
 }
 
 /** Records guardian consent for a player created without it (bulk import). */
-export async function recordPlayerConsent(teamId: string, playerId: string, confirmedByEmail: string): Promise<Player['consent']> {
-  const consent = { given: true, date: new Date().toISOString().slice(0, 10), confirmedBy: confirmedByEmail };
+export async function recordPlayerConsent(
+  teamId: string,
+  playerId: string,
+  confirmedByEmail: string,
+  today: string = todayLocalIso(),
+): Promise<Player['consent']> {
+  const consent = { given: true, date: today, confirmedBy: confirmedByEmail };
   await updateDoc(clubDoc('teams', teamId, 'players', playerId), { consent, updatedAt: serverTimestamp() });
   return consent;
 }

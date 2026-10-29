@@ -1,3 +1,4 @@
+import { todayLocalIso } from '../dates/today';
 import { formatMonth, monthNames, weekdayNames } from '../i18n/format';
 
 function iso(d: Date): string {
@@ -30,10 +31,7 @@ export function formatDayLabel(date: string): string {
 /** Today's date as an ISO "YYYY-MM-DD" string, in the viewer's local timezone
  *  (grid cell dates represent local calendar days, not UTC ones). */
 export function todayIso(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-    now.getDate()
-  ).padStart(2, '0')}`;
+  return todayLocalIso();
 }
 
 export function buildMonthGrid(year: number, month: number): { date: string; inMonth: boolean }[][] {

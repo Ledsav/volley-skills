@@ -113,6 +113,19 @@ describe('TeamMatchesTab', () => {
     expect(screen.getByText('Rivals')).toBeInTheDocument();
   });
 
+  it('a double tap on Yes, delete removes the row with one delete call', async () => {
+    vi.mocked(matchesApi.deleteMatch).mockResolvedValue(undefined);
+    render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
+    const row = (await screen.findByText('Live FC')).closest('li') as HTMLElement;
+    fireEvent.contextMenu(row, { clientX: 10, clientY: 10 });
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Actions for vs Live FC' })).getByRole('menuitem', { name: 'Delete…' }));
+    const yes = within(screen.getByRole('alertdialog', { name: 'Delete this match?' })).getByRole('button', { name: 'Yes, delete' });
+    fireEvent.click(yes);
+    fireEvent.click(yes);
+    await waitFor(() => expect(screen.queryByText('Live FC')).not.toBeInTheDocument());
+    expect(matchesApi.deleteMatch).toHaveBeenCalledTimes(1);
+  });
+
   it('a finished row offers Report and Delete', async () => {
     render(<MemoryRouter><WithChrome><TeamMatchesTab teamId="t1" teamName="Team" /></WithChrome></MemoryRouter>);
     const row = (await screen.findByText('Rivals')).closest('li') as HTMLElement;

@@ -117,7 +117,7 @@ export function ScoutPage() {
   const { aiEnabled } = useClubFeatures();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   // Landscape phones: too short for a stacked panel, so the panel sits beside the court and the dock is one row.
-  const isShort = useMediaQuery('(max-height: 560px)', false) && !isDesktop;
+  const isShort = useMediaQuery('(max-height: 560px) and (orientation: landscape)', false) && !isDesktop;
   const deviceId = useMemo(() => getDeviceId(), []);
 
   const [match, setMatch] = useState<Match | null>(null);
@@ -574,7 +574,8 @@ export function ScoutPage() {
             form={(id) => playerForm(state, id)}
             disabled={!state.inSet}
             servingUs={state.serving === 'us'}
-            compact={!isDesktop && (isShort || actionPanel !== null)}
+            // Stays compact while auto-select will reopen the panel, so the court does not jump after every grade.
+            compact={!isDesktop && (isShort || actionPanel !== null || (autoSelect && !quickScore && state.inSet))}
             onSelect={(id) => select(id)}
             onLongPress={(id) => {
               if (!liberoIds.has(id)) setSubOutId(id);

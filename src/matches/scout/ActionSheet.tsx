@@ -36,12 +36,13 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
     >
       {/* One row: who, the fundamentals (scrolls sideways), Substitute, Close. */}
       <div className="mb-1.5 flex items-center gap-1.5 md:mb-2">
-        <p className="flex shrink-0 items-center gap-1.5 text-ink md:max-w-[10rem]">
-          <span className="hidden min-w-0 truncate text-headline md:inline">{player.name}</span>
+        <p className="hidden shrink-0 items-center gap-1.5 text-ink md:flex md:max-w-[10rem]">
+          <span className="hidden min-w-0 truncate text-headline lg:inline">{player.name}</span>
           <span className="shrink-0 text-callout tabular-nums text-ink-2">#{player.number}</span>
           <RoleChip role={isLibero ? 'L' : player.positionCategory} libero={isLibero} />
         </p>
-        <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none]">
+        <div className="relative min-w-0 flex-1">
+        <div className="flex gap-1.5 overflow-x-auto pr-6 [scrollbar-width:none] lg:pr-0">
           {skills.map((s) => (
             <button
               key={s}
@@ -49,7 +50,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
               aria-pressed={s === skill}
               onPointerDown={(e) => tapFlash(e.currentTarget)}
               onClick={() => setSkill(s)}
-              className={`inline-flex min-h-14 shrink-0 items-center gap-1.5 rounded-full px-3 text-callout md:min-h-11 md:px-4 ${
+              className={`inline-flex min-h-14 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-callout md:min-h-11 md:px-4 ${
                 s === skill ? 'bg-ink text-on-ink' : 'bg-surface-2 text-ink'
               }`}
             >
@@ -57,6 +58,9 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
               <Kbd>{s}</Kbd>
             </button>
           ))}
+        </div>
+        {/* End fade: more fundamentals wait to the right (rank 4+ may need a swipe). */}
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-surface to-transparent lg:hidden" />
         </div>
         {!isLibero && (
           <button
@@ -66,7 +70,7 @@ export function ActionSheet({ player, isLibero, skills, onGrade, onSub, onClose,
             className="flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-callout text-ink hover:bg-surface-2"
           >
             <ArrowLeftRight size={16} aria-hidden="true" />
-            <span className="hidden md:inline">{t.scout.actionSheet.substitute}</span>
+            <span className="hidden lg:inline">{t.scout.actionSheet.substitute}</span>
           </button>
         )}
         <button type="button" aria-label={t.scout.actionSheet.close} onClick={onClose} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2">

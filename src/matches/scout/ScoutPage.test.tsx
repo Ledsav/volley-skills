@@ -822,6 +822,37 @@ describe('ScoutPage', () => {
       expect(screen.getByRole('group', { name: /reason/i })).toHaveClass('flex-nowrap', 'overflow-x-auto');
     });
 
+    it('a short portrait viewport keeps the portrait layout', async () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-height') && !query.includes('orientation: landscape'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      expect(screen.getByTestId('pinned-panel')).toBeInTheDocument();
+      const dock = screen.getByRole('region', { name: 'Match events' });
+      expect(dock.querySelector('.grid')).not.toHaveClass("[grid-template-areas:'tu_pu_pt_tt']");
+    });
+
+    it('keeps tiles compact while auto-select will reopen the panel', async () => {
+      renderPage([setStart]);
+      const tile = await screen.findByRole('button', { name: '#7 Ana' });
+      expect(screen.queryByRole('region', { name: /^Actions for/ })).not.toBeInTheDocument();
+      expect(tile).toHaveClass('min-h-14');
+    });
+
+    it('fundamentals sit in a faded scrolling row with the name and Substitute label from lg', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      const panel = screen.getByRole('region', { name: /^Actions for/ });
+      const chip = within(panel).getAllByRole('button', { pressed: true })[0];
+      expect(chip.parentElement?.nextElementSibling).toHaveClass('bg-gradient-to-l');
+      expect(within(panel).getByText('Substitute')).toHaveClass('hidden', 'lg:inline');
+      expect(within(panel).getByText('#7').closest('p')).toHaveClass('hidden', 'md:flex');
+    });
+
     it('on a landscape phone the panel sits beside the court and the dock is one row', async () => {
       window.matchMedia = vi.fn().mockImplementation((query: string) => ({
         matches: query.includes('max-height'),

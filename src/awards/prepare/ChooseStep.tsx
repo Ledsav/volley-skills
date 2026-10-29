@@ -33,7 +33,7 @@ export function ChooseStep({ awards, people, onAction }: Props) {
                 <h2 id={titleId} className="text-headline text-ink">{a.title}</h2>
                 {a.kind === 'stats' ? (
                   <label className="block text-footnote text-ink-2">{ta.winner}
-                    <select className={`${FIELD_CLASS} ml-2 min-h-11`} value={a.overridden ? a.winner?.playerId ?? '' : ''}
+                    <select className={`${FIELD_CLASS} mt-1 block min-h-11 w-full max-w-full sm:ml-2 sm:mt-0 sm:inline-block sm:w-auto`} value={a.overridden ? a.winner?.playerId ?? '' : ''}
                       onChange={(e) => onAction({ type: 'pick', key: a.key, playerId: e.target.value || null })}>
                       <option value="">{a.suggested ? ta.statsChoice(label(who(a.suggested.playerId))) : ta.statsChoiceNone}</option>
                       {people.map((p) => <option key={p.playerId} value={p.playerId}>{label(p)}</option>)}

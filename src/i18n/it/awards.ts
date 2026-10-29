@@ -109,7 +109,6 @@ export const awards = {
     newTitle: 'Nuova tavolozza',
     defaultName: 'La mia tavolozza',
     delete: 'Elimina tavolozza',
-    cancel: 'Annulla',
     save: 'Salva tavolozza',
     name: 'Nome della tavolozza',
     colours: 'Colori',
@@ -125,7 +124,6 @@ export const awards = {
     note: 'La foto resta su questo dispositivo e viene dimenticata quando lasci questa pagina.',
     dragAria: 'Trascina per posizionare la foto',
     zoom: 'Zoom',
-    cancel: 'Annulla',
     use: 'Usa la foto',
   },
   photo: {

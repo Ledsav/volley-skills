@@ -47,4 +47,13 @@ describe('PaletteEditor', () => {
     expect(screen.getByRole('alertdialog')).toHaveTextContent('Discard changes?');
     expect(onCancel).not.toHaveBeenCalled();
   });
+
+  it('adding a colour alone arms the discard guard', () => {
+    const onCancel = vi.fn();
+    render(<PaletteEditor initial={null} onSave={vi.fn()} onCancel={onCancel} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add colour' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Discard changes?');
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

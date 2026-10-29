@@ -85,7 +85,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
           {!noWinners && (
             <Menu
               label={ta.export}
-              triggerClassName={`${buttonClassName('secondary', 'pill')} gap-2`}
+              triggerClassName={`${buttonClassName('secondary', 'pill')} min-h-11 gap-2`}
               trigger={<><Share2 size={16} aria-hidden="true" /><span className="hidden sm:inline">{ta.export}</span></>}
               items={[
                 { kind: 'action', label: ta.winnerCards, onSelect: props.onExportAll },
@@ -96,7 +96,7 @@ export function AwardsPrepare(props: AwardsPrepareProps) {
               ]}
             />
           )}
-          <Button variant="primary" size="pill" className="gap-1" disabled={noWinners} onClick={props.onPresent}><Play size={16} aria-hidden="true" /> {ta.present}</Button>
+          <Button variant="primary" size="pill" className="min-h-11 gap-1" disabled={noWinners} onClick={props.onPresent}><Play size={16} aria-hidden="true" /> {ta.present}</Button>
         </div>
       </header>
 

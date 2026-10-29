@@ -16,10 +16,12 @@ export function PaletteEditor({ initial, onSave, onDelete, onCancel }: {
   const [colors, setColors] = useState<string[]>(initial?.colors ?? DEFAULT_COLORS);
   const draft: Palette = { id: initial?.id ?? 'draft', name, colors };
   const setColor = (i: number, v: string) => setColors((cs) => cs.map((c, j) => (j === i ? v.toUpperCase() : c)));
+  // Adding or removing a colour is a button-only edit, so the guard cannot rely on change events.
+  const dirty = name !== (initial?.name ?? t.defaultName) || colors.join() !== (initial?.colors ?? DEFAULT_COLORS).join();
   const save = () => onSave({ id: initial?.id ?? newPaletteId(), name: name.trim(), colors });
 
   return (
-    <Sheet title={initial ? t.editTitle : t.newTitle} onClose={onCancel} guardUnsaved
+    <Sheet title={initial ? t.editTitle : t.newTitle} onClose={onCancel} dirty={dirty}
       confirm={{ label: t.save, onConfirm: save, disabled: !name.trim() }}>
       <label className="block text-headline text-ink" htmlFor="palette-name">{t.name}</label>
       <Input id="palette-name" className="mt-1 w-full" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />

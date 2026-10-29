@@ -54,7 +54,7 @@ export function PlayerStatsTable({ teamId, rows }: { teamId: string; rows: TeamP
         </thead>
         <tbody className="divide-y divide-separator">
           {sorted.map((r) => (
-            <tr key={r.playerId} className="min-h-[52px]">
+            <tr key={r.playerId} className="h-[52px]">
               <td className="py-3 pl-4 pr-2 text-ink-2">{r.number ?? '—'}</td>
               <th scope="row" className="sticky left-0 z-10 bg-surface py-3 pr-2 text-left font-normal">
                 {r.current ? <Link to={`/teams/${teamId}/players/${r.playerId}`} className="text-ink hover:underline">{r.name}</Link> : <span className="text-ink">{r.name}</span>}

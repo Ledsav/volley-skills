@@ -81,7 +81,7 @@ export function MatchReport({ match, report, set: setProp, onSetChange }: MatchR
           <table className="w-full text-callout tabular-nums">
             <thead>
               <tr>
-                <th scope="col" className="px-3 py-2 text-left text-caption font-medium text-ink-2">{rp.player}</th>
+                <th scope="col" className="sticky left-0 z-10 bg-surface px-3 py-2 text-left text-caption font-medium text-ink-2">{rp.player}</th>
                 {SKILLS.map((s) => (
                   <th scope="col" key={s} className="px-3 py-2 text-left text-caption font-medium text-ink-2">{lb.skill[s]}</th>
                 ))}

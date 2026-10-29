@@ -13,6 +13,7 @@ import type { Match } from '../types/match';
 import type { Team } from '../types/team';
 import { AwardsPrepare } from './AwardsPrepare';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useMediaQuery } from '../components/useMediaQuery';
 import { Sheet } from '../components/Sheet';
 import { AwardsRoot } from './AwardsRoot';
 import { recordStory, videoExtension, videoSupported } from './exportVideo';
@@ -284,6 +285,7 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
 
   // `video` is set once recording finishes: sharing then needs a fresh tap, because the browser's
   // share sheet only opens right after a user gesture (a 30–90 s recording outlives the original one).
+  const wide = useMediaQuery('(min-width: 768px)', true); // phones get the sheet's own header Cancel
   const [recording, setRecording] = useState<{ progress: number; ctrl: AbortController; video: File | null } | null>(null);
   const recordingCtrl = useRef<AbortController | null>(null);
   useEffect(() => () => recordingCtrl.current?.abort(), []); // leaving the page stops the recorder
@@ -429,23 +431,18 @@ export default function AwardsPage({ scope }: { scope: AwardScope }) {
     />
     {recording && !recording.video && (
       <Sheet title={ta.recordingTitle} onClose={() => recording.ctrl.abort()}
-        footer={<Button variant="secondary" onClick={() => recording.ctrl.abort()}>{t.common.cancel}</Button>}>
+        footer={wide ? <Button variant="secondary" onClick={() => recording.ctrl.abort()}>{t.common.cancel}</Button> : undefined}>
         <p className="text-callout text-ink-2">{ta.recordingBody}</p>
         <progress className="mt-3 h-2 w-full accent-[rgb(var(--color-ink))]" max={1} value={recording.progress} aria-label={ta.recordingProgress} />
       </Sheet>
     )}
     {recording?.video && (
       <Sheet title={ta.videoReadyTitle} onClose={() => setRecording(null)}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setRecording(null)}>{t.common.close}</Button>
-            <Button variant="primary" onClick={() => {
-              const file = recording.video!;
-              setRecording(null);
-              void shareOrDownload([file], heading).catch(() => setNotice(ta.shareVideoError));
-            }}>{ta.shareVideo}</Button>
-          </>
-        }>
+        confirm={{ label: ta.shareVideo, onConfirm: () => {
+          const file = recording.video!;
+          setRecording(null);
+          void shareOrDownload([file], heading).catch(() => setNotice(ta.shareVideoError));
+        } }}>
         <p className="text-callout text-ink-2">{ta.videoReadyBody}</p>
       </Sheet>
     )}

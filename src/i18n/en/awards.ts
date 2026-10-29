@@ -108,7 +108,6 @@ export const awards = {
     newTitle: 'New palette',
     defaultName: 'My palette',
     delete: 'Delete palette',
-    cancel: 'Cancel',
     save: 'Save palette',
     name: 'Palette name',
     colours: 'Colours',
@@ -124,7 +123,6 @@ export const awards = {
     note: 'The photo stays on this device and is forgotten when you leave this page.',
     dragAria: 'Drag to position the photo',
     zoom: 'Zoom',
-    cancel: 'Cancel',
     use: 'Use photo',
   },
   photo: {

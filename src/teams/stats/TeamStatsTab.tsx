@@ -132,7 +132,7 @@ export default function TeamStatsTab({ team }: { team: Team }) {
       <Menu
         label={text}
         align="start"
-        triggerClassName={`${buttonClassName('secondary', 'pill')} gap-1`}
+        triggerClassName={`${buttonClassName('secondary', 'pill')} min-h-11 gap-1`}
         trigger={<>{text}<ChevronDown size={16} aria-hidden="true" /></>}
         items={items}
       />

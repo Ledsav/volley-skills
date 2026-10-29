@@ -35,7 +35,7 @@ export function PhotosStep(props: Props) {
                 <p className="text-footnote text-ink-2">{label(a.winner!)}</p>
                 {props.photoAllowed(a.key) ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <label className={`${buttonClassName('secondary', 'pill')} gap-1 focus-within:ring-2 focus-within:ring-focus`}>
+                    <label className={`${buttonClassName('secondary', 'pill')} min-h-11 gap-1 focus-within:ring-2 focus-within:ring-focus`}>
                       <ImagePlus size={16} aria-hidden="true" /> {photo ? ta.changePhoto : ta.addPhoto}
                       <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) props.onPickFile(a.key, f); e.target.value = ''; }} />
                     </label>

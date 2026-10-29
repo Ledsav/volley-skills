@@ -18,6 +18,7 @@ import { bulkCreatePlayers } from '../players/playersApi';
 import { Button } from '../components/Button';
 import type { MenuItem } from '../components/Menu';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { usePublishPageChrome } from '../layout/PageChrome';
 import { useWindowScrolled } from '../layout/useWindowScrolled';
 import { Pencil, Upload, UserPlus } from 'lucide-react';
 import { PageHeader } from '../layout/PageHeader';
@@ -39,6 +40,13 @@ const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
 type TeamTab = 'roster' | 'calendar' | 'matches' | 'stats' | 'plan' | 'physical' | 'settings';
 // Tabs that publish their own toolbar chrome while active; the page header stays quiet then.
+/** Stats publishes its own chrome; until its chunk loads this keeps the toolbar title from going blank. */
+function StatsFallback({ title }: { title: string }) {
+  const t = useT();
+  usePublishPageChrome({ title });
+  return <p className="text-ink-2">{t.teams.shared.loadingStats}</p>;
+}
+
 const OWN_CHROME = new Set<TeamTab>(['matches', 'calendar', 'physical', 'stats']);
 const TEAM_TABS: TeamTab[] = ['roster', 'calendar', 'matches', 'stats', 'plan', 'physical', 'settings'];
 // Earlier tab ids, so old links and bookmarks still land on the right tab.
@@ -188,7 +196,7 @@ export function TeamPage() {
           <TeamMatchesTab teamId={teamId} teamName={team.name} gender={gender} newMatchDate={newMatchDate} onNewMatchHandled={() => setNewMatchDate(null)} admin={admin} />
         )}
         {activeTab === 'stats' && admin && (
-          <Suspense fallback={<p className="text-ink-2">{t.teams.shared.loadingStats}</p>}>
+          <Suspense fallback={<StatsFallback title={team.name} />}>
             <TeamStatsTab team={team} />
           </Suspense>
         )}

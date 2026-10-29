@@ -143,16 +143,6 @@ export function App() {
                 }
               />
               <Route
-                path="/exercises/:exerciseId/diagram"
-                element={
-                  <RequireSection section="exercises">
-                    <Suspense fallback={<LazyFallback what="editor" />}>
-                      <DiagramEditorPage />
-                    </Suspense>
-                  </RequireSection>
-                }
-              />
-              <Route
                 path="/club"
                 element={
                   <RequireClubAdmin>
@@ -164,6 +154,19 @@ export function App() {
               <Route path="/admin/access" element={<Navigate to="/club?tab=people" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
+            {/* Full screen, outside the shell: no sidebar, tab bar or palette. */}
+            <Route
+              path="/exercises/:exerciseId/diagram"
+              element={
+                <RequireAuth>
+                  <RequireSection section="exercises">
+                    <Suspense fallback={<LazyFallback what="editor" />}>
+                      <DiagramEditorPage />
+                    </Suspense>
+                  </RequireSection>
+                </RequireAuth>
+              }
+            />
             <Route
               path="/teams/:teamId/matches/:matchId/scout"
               element={

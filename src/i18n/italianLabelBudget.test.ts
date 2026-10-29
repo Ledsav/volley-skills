@@ -41,6 +41,9 @@ function pairs(): Pair[] {
   for (const k of ['tabCourt', 'tabLive', 'tabTimeline', 'tabText', 'dismiss', 'takeBack', 'leave'] as const) {
     out.push({ place: `scout.page.${k}`, en: en.scout.page[k], it: itCat.scout.page[k] });
   }
+  for (const k of ['saved', 'saving', 'retry'] as const) {
+    out.push({ place: `diagrams.editor.status.${k}`, en: en.diagrams.editor.status[k], it: itCat.diagrams.editor.status[k] });
+  }
   out.push({ place: 'scout.rally.timeoutShort', en: en.scout.rally.timeoutShort, it: itCat.scout.rally.timeoutShort });
   return out;
 }

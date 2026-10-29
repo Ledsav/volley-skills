@@ -31,10 +31,10 @@ describe('renderStoryFrame', () => {
   it('stat: counts up from 0 to the final number', () => {
     const early = recordingCtx();
     renderStoryFrame(early.ctx, slides, 1, 0, deps, false, null);
-    expect(early.texts()).toContain('0%');
+    expect(early.runs()).toContain('0%');
     const late = recordingCtx();
     renderStoryFrame(late.ctx, slides, 1, 10_000, deps, false, null);
-    expect(late.texts()).toEqual(expect.arrayContaining(['SIDE-OUT', '68%']));
+    expect(late.runs()).toEqual(expect.arrayContaining(['Side-out', '68%']));
   });
 
   it('long caption wraps into several lines inside the card', () => {
@@ -45,10 +45,10 @@ describe('renderStoryFrame', () => {
   });
 
   it('reduced motion draws the final frame immediately', () => {
-    const { ctx, texts } = recordingCtx();
+    const { ctx, runs } = recordingCtx();
     const done = renderStoryFrame(ctx, slides, 1, 0, deps, true, null);
     expect(done).toBe(true);
-    expect(texts()).toContain('68%');
+    expect(runs()).toContain('68%');
   });
 
   it('suspense never reports done (it pulses) unless motion is reduced', () => {
@@ -94,16 +94,50 @@ function overflows(calls: { method: string; args: unknown[] }[]): string[] {
   return bad;
 }
 
-describe('long text never leaves the card', () => {
-  const long = (key: string): CardModel => ({
-    key, awardTitle: 'Most improved player of the whole season', name: 'Maximiliana Alexandrovna-Kowalczyk', number: 12,
-    statLine: null, note: 'Always first in the gym and last to leave, cheering on every single teammate all year',
-    footer: 'vs Volleyball Club Grand-Duché Esch-sur-Alzette Ladies · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC',
-  });
-  const longDeps: StoryDeps = { ...deps, cards: [{ key: 'x', title: 'Most improved player of the whole season', model: long('x') }] };
-  const longStat: StoryStat = { id: 'record', kicker: 'Final score — a long day at the office', big: 3, bigSuffix: '–2', caption: 'vs Volleyball Club Grand-Duché Esch-sur-Alzette Ladies', detail: '25–23 · 23–25 · 25–27 · 25–21 · 15–13 · after a very long fight' };
-  const longSlides = buildStory({ introTitle: 'vs Volleyball Club Grand-Duché Esch sur Alzette Ladies Team', teamName: 'Seniors Dames Nationale 1 — Promotion League Squad', stats: [longStat], awardCount: 1, includeStory: true });
+const long = (key: string): CardModel => ({
+  key, awardTitle: 'Most improved player of the whole season', name: 'Maximiliana Alexandrovna-Kowalczyk', number: 12,
+  statLine: null, note: 'Always first in the gym and last to leave, cheering on every single teammate all year',
+  footer: 'vs Volleyball Club Grand-Duché Esch-sur-Alzette Ladies · 12 Oct 2026', teamName: 'U17 Girls', clubName: 'Demo VC',
+});
+const longDeps: StoryDeps = { ...deps, cards: [{ key: 'x', title: 'Most improved player of the whole season', model: long('x') }] };
+const longStat: StoryStat = { id: 'record', kicker: 'Final score — a long day at the office', big: 3, bigSuffix: '–2', caption: 'vs Volleyball Club Grand-Duché Esch-sur-Alzette Ladies', detail: '25–23 · 23–25 · 25–27 · 25–21 · 15–13 · after a very long fight' };
+const longSlides = buildStory({ introTitle: 'vs Volleyball Club Grand-Duché Esch sur Alzette Ladies Team', teamName: 'Seniors Dames Nationale 1 — Promotion League Squad', stats: [longStat], awardCount: 1, includeStory: true });
 
+
+describe('v2 type on the story slides', () => {
+  const re = /^(500|600|700) [\d.]+px Inter, system-ui, sans-serif$/;
+  it('every slide draws only 500-700 weights', () => {
+    for (const set of [slides, longSlides]) {
+      set.forEach((_, i) => {
+        const { ctx, calls } = recordingCtx();
+        renderStoryFrame(ctx, set, i, 1e9, set === slides ? deps : longDeps, true, null);
+        for (const c of calls.filter((c) => c.method === 'set:font')) expect(String(c.args[0]), `slide ${i}`).toMatch(re);
+      });
+    }
+  });
+
+  it('the stat kicker prints as stored, not uppercased', () => {
+    const { ctx, texts } = recordingCtx();
+    renderStoryFrame(ctx, slides, 1, 10_000, deps, false, null);
+    expect(texts()).toContain('Side-out');
+    expect(texts()).not.toContain('SIDE-OUT');
+  });
+
+  it('the counting number is laid out digit by digit', () => {
+    const { ctx, texts, runs } = recordingCtx();
+    renderStoryFrame(ctx, slides, 1, 10_000, deps, false, null);
+    expect(runs()).toContain('68%');
+    expect(texts()).toEqual(expect.arrayContaining(['6', '8', '%']));
+  });
+
+  it('summary winners sit on accent glows', () => {
+    const { ctx, calls } = recordingCtx();
+    renderStoryFrame(ctx, slides, slides.length - 1, 10_000, deps, false, null);
+    expect(calls.filter((c) => c.method === 'createRadialGradient').length).toBeGreaterThanOrEqual(deps.cards.length + 1);
+  });
+});
+
+describe('long text never leaves the card', () => {
   it('every slide, fully drawn, keeps each text line inside the text area and on the card', () => {
     longSlides.forEach((_, i) => {
       const { ctx, calls } = recordingCtx();

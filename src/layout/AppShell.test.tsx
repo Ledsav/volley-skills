@@ -165,9 +165,11 @@ describe('AppShell', () => {
     expect(within(bottomBar).getByRole('link', { name: 'More' })).toHaveAttribute('href', '/more');
   });
 
-  it('caps page content at one shared width so wide screens keep readable lines', () => {
-    renderShell();
-    expect(screen.getByText('Page content').parentElement).toHaveClass('mx-auto', 'max-w-screen-xl');
+  it('keeps the sticky toolbar a sibling of main, so it stays pinned while the page scrolls', () => {
+    const { container } = renderShell();
+    const toolbar = container.querySelector('header[data-scrolled]') as HTMLElement;
+    expect(toolbar).toHaveClass('sticky');
+    expect(toolbar.parentElement).toBe(container.querySelector('main')?.parentElement);
   });
 
   it('has a skip link to main and Today first in the sidebar', () => {

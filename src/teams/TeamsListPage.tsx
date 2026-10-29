@@ -18,6 +18,7 @@ import { useNotify } from '../components/Notice';
 import { PageHeader } from '../layout/PageHeader';
 import { useTakePendingAction } from '../search/pendingAction';
 import { Plus } from 'lucide-react';
+import { PageContainer } from '../layout/PageContainer';
 
 /** Grouped rows on phones; a card grid from md (TeamCard layout="responsive" supplies the rest). */
 const LIST_CLASS =
@@ -89,7 +90,7 @@ export function TeamsListPage() {
   const emptyText = !isClubAdmin ? l.noneAssigned : effective === 'mine' ? l.noneMine : l.none;
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         title={l.title}
         mainAction={isClubAdmin ? { label: l.create, icon: Plus, onSelect: () => setShowCreate(true) } : undefined}
@@ -105,7 +106,7 @@ export function TeamsListPage() {
           ]}
           value={filter}
           onChange={changeFilter}
-          className="mb-4 w-full sm:w-auto"
+          className="mb-4 w-full sm:w-fit"
         />
       )}
 
@@ -165,6 +166,6 @@ export function TeamsListPage() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

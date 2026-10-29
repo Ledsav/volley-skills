@@ -22,6 +22,7 @@ import { useNotify, useUndoable } from '../components/Notice';
 import { ExerciseRow } from './ExerciseRow';
 import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
+import { PageContainer } from '../layout/PageContainer';
 
 // Sentinel for askDelete when the usage count read fails: the confirm dialog
 // still opens, but the message says the count could not be determined.
@@ -173,7 +174,7 @@ export function ExercisesPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         title={p.title}
         mainAction={{ label: p.newExercise, icon: Plus, onSelect: () => setDialog({ mode: 'new' }) }}
@@ -286,6 +287,6 @@ export function ExercisesPage() {
           error={deleteError}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

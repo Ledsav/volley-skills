@@ -8,6 +8,7 @@ import { usePendingSignups } from '../interest/usePendingSignups';
 import { navGroups } from './navModel';
 import { useT } from '../i18n/I18nProvider';
 import { usePageMeta } from './usePageMeta';
+import { PageContainer } from './PageContainer';
 
 // Hairline inset to the text (past the 18px icon and gap); the last row of a group has none.
 const ROW =
@@ -37,7 +38,7 @@ export function MorePage() {
   const otherClubs = otherUsableClubs(memberships, activeClubId);
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6 p-4 sm:p-6">
+    <PageContainer width="form" className="flex flex-col gap-6">
       {club && <h1 className="text-large-title text-ink md:text-title-1">{club.name}</h1>}
 
       {groups.map((g) => (
@@ -80,6 +81,6 @@ export function MorePage() {
         </button>
       </Section>
       {unsyncedDialog}
-    </div>
+    </PageContainer>
   );
 }

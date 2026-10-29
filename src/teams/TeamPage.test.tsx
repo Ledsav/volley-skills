@@ -227,8 +227,8 @@ describe('TeamPage', () => {
     const heading = await screen.findByRole('heading', { name: 'U17 Boys' });
 
     const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
-    expect(page.className).toContain('p-4');
-    expect(page.className).toContain('sm:p-6');
+    expect(page).toHaveAttribute('data-page-container', 'content');
+    expect(page.className).toContain('px-[var(--page-gutter)]');
 
     // The title sits on the canvas, not inside a card that would nest the tabs' own cards.
     expect(heading.closest('.shadow-card')).toBeNull();

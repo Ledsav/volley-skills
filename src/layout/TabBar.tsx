@@ -19,7 +19,7 @@ export function TabBar({ pendingSignups = 0 }: { pendingSignups?: number }) {
   return (
     <nav
       aria-label={t.appShell.phoneNav}
-      className="glass fixed inset-x-0 bottom-0 z-30 flex border-t border-separator pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
+      className="glass fixed inset-x-0 bottom-0 z-30 flex border-t border-separator !shadow-none pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       {tabs.map(({ to, label, Icon, end }) => (
         <NavLink key={to} to={to} end={end} className={tabClass}>

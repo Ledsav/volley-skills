@@ -34,7 +34,8 @@ import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
 import { useT } from '../i18n/I18nProvider';
 import { teamGender } from './teamGender';
-import { stickyTop, TEAM_TABS_H } from '../layout/chromeMetrics';
+import { STRIP_GLASS, stickyTop, TEAM_TABS_H } from '../layout/chromeMetrics';
+import { PageContainer } from '../layout/PageContainer';
 
 const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
@@ -136,7 +137,7 @@ export function TeamPage() {
       : undefined;
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       {/* Title and tabs sit on the canvas; each tab brings its own cards (no card-in-card). */}
       <PageHeader
         title={team.name}
@@ -151,7 +152,7 @@ export function TeamPage() {
       {/* Pinned under the 52px toolbar; turns glass once the page scrolls, like the toolbar. */}
       <div
         style={{ top: stickyTop('toolbar'), height: TEAM_TABS_H }}
-        className={`sticky z-20 -mx-4 flex items-center px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 print:hidden ${scrolled ? 'glass' : 'bg-bg'}`}
+        className={`sticky z-20 -mx-[var(--page-gutter)] flex items-center px-[var(--page-gutter)] print:hidden ${scrolled ? STRIP_GLASS : 'bg-bg'}`}
       >
         <SegmentedControl
           semantics="tabs"
@@ -159,7 +160,7 @@ export function TeamPage() {
           options={tabs}
           value={activeTab}
           onChange={changeTab}
-          className="w-full md:w-auto"
+          className="w-full md:w-fit"
         />
       </div>
 
@@ -247,6 +248,6 @@ export function TeamPage() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

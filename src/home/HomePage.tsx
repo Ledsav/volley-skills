@@ -13,6 +13,7 @@ import { Shortcuts, useTeamAction } from './Shortcuts';
 import { useHomeFeed } from './useHomeFeed';
 import { useT } from '../i18n/I18nProvider';
 import { formatDateValue } from '../i18n/format';
+import { PageContainer } from '../layout/PageContainer';
 
 export function HomePage() {
   const t = useT().home;
@@ -28,7 +29,7 @@ export function HomePage() {
   const canPlan = state.teams.length > 0 && !!access?.sections.trainings;
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader title={t.title} eyebrow={formatDateValue(new Date(), 'full')} />
       {state.loading ? (
         <PageSkeleton layout="team" label={t.loading} />
@@ -69,6 +70,6 @@ export function HomePage() {
           {plan.picker}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

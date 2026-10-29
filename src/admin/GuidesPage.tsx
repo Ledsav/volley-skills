@@ -5,6 +5,7 @@ import { SkillGuideEditor } from '../skillGuide/SkillGuideEditor';
 import { PhysicalTestGuideEditor } from '../physicalTestGuide/PhysicalTestGuideEditor';
 import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
+import { PageContainer } from '../layout/PageContainer';
 
 type GuideTab = 'skills' | 'physical';
 
@@ -15,7 +16,7 @@ export function GuidesPage() {
   const tab: GuideTab = params.get('tab') === 'physical' ? 'physical' : 'skills';
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       {/* The active editor publishes the toolbar (title and Save), not the header. */}
       <PageHeader title={t.title} publishChrome={false} />
       <SegmentedControl
@@ -36,6 +37,6 @@ export function GuidesPage() {
       <div role="tabpanel" aria-label={t.physicalTestGuide} hidden={tab !== 'physical'}>
         <PhysicalTestGuideEditor active={tab === 'physical'} />
       </div>
-    </div>
+    </PageContainer>
   );
 }

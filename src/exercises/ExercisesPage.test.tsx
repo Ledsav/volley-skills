@@ -115,8 +115,8 @@ describe('ExercisesPage', () => {
     const heading = await screen.findByRole('heading', { name: 'Exercises' });
 
     const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
-    expect(page.className).toContain('p-4');
-    expect(page.className).toContain('sm:p-6');
+    expect(page).toHaveAttribute('data-page-container', 'content');
+    expect(page.className).toContain('px-[var(--page-gutter)]');
 
     const header = heading.closest('[data-page-header]') as HTMLElement;
     expect(header.className).toMatch(/(^|\s)flex-col(\s|$)/);

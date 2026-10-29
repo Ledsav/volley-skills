@@ -94,8 +94,8 @@ describe('TeamsListPage', () => {
     const heading = await screen.findByRole('heading', { name: 'Teams' });
 
     const page = heading.closest('[data-page-header]')?.parentElement as HTMLElement;
-    expect(page.className).toContain('p-4');
-    expect(page.className).toContain('sm:p-6');
+    expect(page).toHaveAttribute('data-page-container', 'content');
+    expect(page.className).toContain('px-[var(--page-gutter)]');
 
     // the page's actions live in the shell toolbar, not in a content row
     expect(heading.closest('[data-page-header]')?.querySelector('button')).toBeNull();

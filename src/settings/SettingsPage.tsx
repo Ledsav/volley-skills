@@ -12,6 +12,7 @@ import { providerName, readAiSettings } from '../ai/aiSettings';
 import { useT } from '../i18n/I18nProvider';
 import { PageHeader } from '../layout/PageHeader';
 import { focusPageHeading } from '../layout/focusPageHeading';
+import { PageContainer } from '../layout/PageContainer';
 
 /** Personal settings only. Pages live in the sidebar (phones: More); sign-out in the account menu. */
 export function SettingsPage() {
@@ -33,7 +34,7 @@ export function SettingsPage() {
   }, [view]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-8 p-4 sm:p-6 lg:p-8">
+    <PageContainer width="form" className="flex flex-col gap-8">
       {view === 'ai' ? (
         <div>
           <PageHeader
@@ -59,7 +60,7 @@ export function SettingsPage() {
                 semantics="radio"
                 value={pref}
                 onChange={setPref}
-                className="w-full sm:ml-auto sm:w-auto"
+                className="w-full sm:ml-auto sm:w-fit"
                 options={[
                   { id: 'system', label: t.themeSystem },
                   { id: 'light', label: t.themeLight },
@@ -76,6 +77,6 @@ export function SettingsPage() {
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

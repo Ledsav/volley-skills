@@ -37,6 +37,7 @@ import { TrainingRow } from './TrainingRow';
 import { PageHeader } from '../layout/PageHeader';
 import { useT } from '../i18n/I18nProvider';
 import { trainingImportIssueText } from './trainingsImportMessages';
+import { PageContainer } from '../layout/PageContainer';
 
 type TeamContext = { teamId: string; date: string; notes: string };
 
@@ -189,7 +190,7 @@ export function TrainingsPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         title={p.title}
         mainAction={{ label: p.newTraining, icon: Plus, onSelect: () => setDialog({ mode: 'new' }) }}
@@ -338,6 +339,6 @@ export function TrainingsPage() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

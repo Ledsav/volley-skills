@@ -40,6 +40,7 @@ import { usePublishPageChrome } from '../layout/PageChrome';
 import { EditPickerSheet, type EditTarget } from './EditPickerSheet';
 import { SuggestionToggle } from './SuggestionToggle';
 import { readSuggestionPref, writeSuggestionPref } from './suggestionPref';
+import { PageContainer } from '../layout/PageContainer';
 
 function Section({
   title,
@@ -259,8 +260,8 @@ function PlayerCardContent() {
   }
 
   return (
-    <div className="w-full p-4 lg:p-6">
-      <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
+    <PageContainer>
+      <div className="flex flex-col gap-4">
         {sync.syncFailed && (
           <p role="alert" className="text-callout text-red-strong">
             {c.sync.failed}
@@ -501,6 +502,6 @@ function PlayerCardContent() {
           error={deleteError}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -8,6 +8,7 @@ import { PeopleTab } from './PeopleTab';
 import { ContractTab } from './ContractTab';
 import { ExportTab } from './ExportTab';
 import { useT } from '../../i18n/I18nProvider';
+import { PageContainer } from '../../layout/PageContainer';
 
 type ClubTab = 'profile' | 'people' | 'export' | 'contract';
 
@@ -30,16 +31,16 @@ export function ClubAreaPage({ restricted = false }: { restricted?: boolean }) {
   const active = tabs.find((x) => x.id === requested)?.id ?? (restricted ? 'contract' : 'profile');
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader title={t.pageTitle} eyebrow={club?.name} publishChrome={!OWN_CHROME.has(active)} />
       <SegmentedControl semantics="tabs" label={t.sectionsLabel} options={tabs} value={active}
-        onChange={(id) => setParams({ tab: id }, { replace: true })} className="mb-6 w-full sm:w-auto" />
+        onChange={(id) => setParams({ tab: id }, { replace: true })} className="mb-6 w-full sm:w-fit" />
       <div role="tabpanel" aria-label={tabs.find((x) => x.id === active)?.label}>
         {active === 'profile' && <ProfileTab restricted={restricted} />}
         {active === 'people' && <PeopleTab />}
         {active === 'export' && <ExportTab />}
         {active === 'contract' && <ContractTab />}
       </div>
-    </div>
+    </PageContainer>
   );
 }

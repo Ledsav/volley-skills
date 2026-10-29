@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, focusHeading]);
 
   return (
-    <div className="canvas min-h-screen bg-bg xl:flex">
+    <div data-app-shell className="canvas min-h-screen bg-bg xl:flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink focus:shadow-pop">
         {t.appShell.skipToContent}
       </a>
@@ -64,11 +64,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-w-0 flex-1 pb-[calc(49px+env(safe-area-inset-bottom))] md:pb-0">
         <ContractEndingBanner />
         <LegalNoticeBanner />
-        <div className="print:hidden">
-          <ShellToolbar onOpenNav={() => setNavOpen(true)} navButtonRef={navButtonRef} />
-        </div>
-        {/* One content width for every page: long lines on a wide monitor are hard to scan. */}
-        <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto w-full max-w-screen-xl focus:outline-none">
+        {/* A direct child of this tall column, so its `position: sticky` holds while the page scrolls (a wrapper
+            as tall as the toolbar would carry it away). Print hides every <header>. */}
+        <ShellToolbar onOpenNav={() => setNavOpen(true)} navButtonRef={navButtonRef} />
+        {/* Pages set their own width and gutters through PageContainer. */}
+        <main id="main" ref={mainRef} tabIndex={-1} className="w-full focus:outline-none">
           {children}
         </main>
       </div>

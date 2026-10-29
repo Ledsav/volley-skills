@@ -34,6 +34,8 @@ describe('ActionSheet', () => {
     for (const c of SCOUT_GRADE_CLASS['#'].split(' ')) expect(perfect).toHaveClass(c);
     const error = screen.getByRole('button', { name: /^= / });
     for (const c of SCOUT_GRADE_CLASS['='].split(' ')) expect(error).toHaveClass(c);
+    expect(perfect).toHaveClass('bg-green', 'text-on-ink');
+    expect(error).toHaveClass('bg-red', 'text-on-ink');
     const neutral = screen.getByRole('button', { name: /^! / });
     expect(neutral).toHaveClass('text-ink-2');
     expect(neutral).toHaveClass('bg-surface-2');

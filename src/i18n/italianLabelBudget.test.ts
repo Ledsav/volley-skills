@@ -53,6 +53,12 @@ function pairs(): Pair[] {
   for (const k of ['skillGuide', 'physicalTestGuide'] as const) {
     out.push({ place: `admin.guidesPage.${k}`, en: en.admin.guidesPage[k], it: itCat.admin.guidesPage[k] });
   }
+  for (const k of ['profile', 'people', 'export', 'contract'] as const) {
+    out.push({ place: `clubs.area.tabs.${k}`, en: en.clubs.area.tabs[k], it: itCat.clubs.area.tabs[k] });
+  }
+  for (const k of ['clubs', 'leads'] as const) {
+    out.push({ place: `platform.tabs.${k}`, en: en.platform.tabs[k], it: itCat.platform.tabs[k] });
+  }
   out.push({ place: 'scout.rally.timeoutShort', en: en.scout.rally.timeoutShort, it: itCat.scout.rally.timeoutShort });
   return out;
 }

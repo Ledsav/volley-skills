@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExportTab } from './ExportTab';
+import { WithChrome } from '../../test/chromeProbe';
 import { loadClubExportData } from '../export/clubExportApi';
 import * as exportJson from '../../export/exportJson';
 import type { ClubExportData } from '../export/clubExport';
@@ -36,7 +37,7 @@ const button = () => screen.getByRole('button', { name: /download export/i });
 describe('ExportTab', () => {
   it('downloads one zip named after the club', async () => {
     vi.mocked(loadClubExportData).mockResolvedValue(EMPTY);
-    render(<ExportTab />);
+    render(<WithChrome><ExportTab /></WithChrome>);
     fireEvent.click(button());
     await waitFor(() => expect(download).toHaveBeenCalledTimes(1));
     const [name, blob] = download.mock.calls[0] as [string, Blob];
@@ -50,7 +51,7 @@ describe('ExportTab', () => {
       onProgress('Team 1 of 2: U17');
       return new Promise(() => {});
     });
-    render(<ExportTab />);
+    render(<WithChrome><ExportTab /></WithChrome>);
     fireEvent.click(button());
     expect(await screen.findByRole('status')).toHaveTextContent('Team 1 of 2: U17');
     expect(button()).toBeDisabled();
@@ -58,7 +59,7 @@ describe('ExportTab', () => {
 
   it('a failed load downloads nothing', async () => {
     vi.mocked(loadClubExportData).mockRejectedValue(new Error('Missing or insufficient permissions.'));
-    render(<ExportTab />);
+    render(<WithChrome><ExportTab /></WithChrome>);
     fireEvent.click(button());
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Export failed: Missing or insufficient permissions. Nothing was downloaded.',

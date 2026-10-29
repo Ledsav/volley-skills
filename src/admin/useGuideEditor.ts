@@ -43,10 +43,14 @@ export function useGuideEditor<T extends { key: string }>(o: {
   const inFlight = useRef(false);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
 
   // Reloads when the catalog changes (the Italian one arrives after first paint): an unsaved guide
   // shows its fallback in the active language, a saved one is returned as stored.
   useEffect(() => {
+    // A catalog change must not overwrite unsaved edits.
+    if (dirtyRef.current) return;
     let cancelled = false;
     latest.current
       .load()
@@ -56,6 +60,7 @@ export function useGuideEditor<T extends { key: string }>(o: {
         setDraft(r.items);
         setStored(r.stored);
         setLoaded(true);
+        setLoadError(null);
       })
       .catch(() => {
         if (!cancelled) setLoadError(latest.current.messages.loadError);

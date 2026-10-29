@@ -1,9 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PhysicalTestGuideEditor } from './PhysicalTestGuideEditor';
 import { I18nProvider } from '../i18n/I18nProvider';
 import { useAuth } from '../auth/AuthContext';
 import { authValue, clubAdminAccess } from '../test/authValue';
+import { NoticeProvider } from '../components/Notice';
+import { WithChrome } from '../test/chromeProbe';
 
 const mockGetDoc = vi.fn();
 vi.mock('firebase/firestore', () => ({
@@ -18,9 +21,15 @@ vi.mock('../i18n/locales', async (orig) => ({ ...(await orig<typeof import('../i
 
 function renderEditor() {
   return render(
-    <I18nProvider>
-      <PhysicalTestGuideEditor />
-    </I18nProvider>
+    <MemoryRouter>
+      <NoticeProvider>
+        <I18nProvider>
+          <WithChrome>
+            <PhysicalTestGuideEditor />
+          </WithChrome>
+        </I18nProvider>
+      </NoticeProvider>
+    </MemoryRouter>
   );
 }
 
@@ -42,7 +51,7 @@ describe('physical test guide in Italian', () => {
     renderEditor();
 
     expect(await screen.findByText('Registra altezza (cm) e massa corporea (kg).', { exact: false })).toBeInTheDocument();
-    expect(screen.getAllByLabelText('Protocollo')).toHaveLength(8);
+    expect(document.querySelectorAll('li button')).toHaveLength(8);
   });
 
   it('shows a saved guide as stored, not translated', async () => {
@@ -56,8 +65,9 @@ describe('physical test guide in Italian', () => {
     });
     renderEditor();
 
-    expect(await screen.findByDisplayValue('Our own protocol text')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Salto con contromovimento' })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /Salto con contromovimento/ }));
+    expect(screen.getByDisplayValue('Our own protocol text')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Salto con contromovimento' })).toBeInTheDocument();
     expect(screen.queryByText('Registra altezza', { exact: false })).not.toBeInTheDocument();
   });
 });

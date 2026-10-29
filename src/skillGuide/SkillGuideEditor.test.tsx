@@ -103,7 +103,7 @@ describe('SkillGuideEditor', () => {
     vi.mocked(skillGuideApi.getSkillGuide).mockRejectedValue({ code: 'unavailable' });
     renderEditor();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the skill guide.');
-    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument());
   });
 
   it('disables Save until the guide has loaded', async () => {

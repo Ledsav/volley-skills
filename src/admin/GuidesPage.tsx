@@ -34,7 +34,7 @@ export function GuidesPage() {
         <SkillGuideEditor active={tab === 'skills'} />
       </div>
       <div role="tabpanel" hidden={tab !== 'physical'}>
-        <PhysicalTestGuideEditor />
+        <PhysicalTestGuideEditor active={tab === 'physical'} />
       </div>
     </div>
   );

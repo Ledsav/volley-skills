@@ -312,18 +312,19 @@ describe('DiagramEditorPage', () => {
     expect(document.querySelector('[data-canvas-stage]')!.closest('[data-own-undo]')).not.toBeNull();
   });
 
-  it('shows the active diagram\'s current court in the Court select', async () => {
+  it('shows the active diagram\'s current court in the Court preset control', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
-    expect(screen.getByLabelText('Court preset')).toHaveValue('full');
+    const preset = screen.getByRole('radiogroup', { name: 'Court preset' });
+    expect(within(preset).getByRole('radio', { name: 'Full' })).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('changes the court to half via the select, re-rendering the backdrop and asserting Saving…', async () => {
+  it('changes the court to half via the preset control, re-rendering the backdrop and asserting Saving…', async () => {
     renderPage();
     await screen.findByDisplayValue('Setup');
     expect(screen.getByText('Saved')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Court preset'), { target: { value: 'half' } });
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Court preset' })).getByRole('radio', { name: 'Half' }));
 
     await waitFor(() => {
       const stage = document.querySelector('[data-canvas-stage]')!;

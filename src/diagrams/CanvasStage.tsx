@@ -9,9 +9,26 @@ export interface StageApi {
   resetView: () => void;
 }
 
+/** Space kept clear of the fitted court on each side, in px (floating chrome over the canvas). */
+export interface StageInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 interface Props {
   children: ReactNode;
   onReady?: (api: StageApi) => void;
+  /** The court is fitted and centred inside the stage minus these insets; panning still reaches the edges. */
+  insets?: StageInsets;
+}
+
+const NO_INSETS: StageInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/** The insets that fit a stage of this size; none when the stage is too small for them (or has no layout). */
+function effectiveInsets(width: number, height: number, insets: StageInsets): StageInsets {
+  return width > insets.left + insets.right && height > insets.top + insets.bottom ? insets : NO_INSETS;
 }
 
 const MIN = 0.5;
@@ -30,13 +47,15 @@ export function startedOnItem(target: EventTarget | null): boolean {
   );
 }
 
-export function CanvasStage({ children, onReady }: Props) {
+export function CanvasStage({ children, onReady, insets = NO_INSETS }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [t, setT] = useState({ x: 0, y: 0, scale: 1 });
   // Pinch starts from the live scale, so it stays in sync after the zoom
   // buttons / reset change it outside the gesture.
   const scaleRef = useRef(t.scale);
   scaleRef.current = t.scale;
+  const insetsRef = useRef(insets);
+  insetsRef.current = insets;
 
   useGesture(
     {
@@ -66,21 +85,28 @@ export function CanvasStage({ children, onReady }: Props) {
         const el = outerRef.current;
         if (!el) return { x: 50, y: 50 };
         // DiagramSvg uses preserveAspectRatio="xMidYMid meet", which centres the
-        // 100×100 viewBox as a letterboxed square — account for that offset
-        // before converting to court units.
+        // 100×100 viewBox as a letterboxed square inside the inset area — undo
+        // the pan/zoom first, then that offset, before converting to court units.
         const r = el.getBoundingClientRect();
-        const side = Math.min(r.width, r.height) || 1;
-        const offX = (r.width - side) / 2;
-        const offY = (r.height - side) / 2;
-        const px = (clientX - r.left - offX - t.x) / t.scale;
-        const py = (clientY - r.top - offY - t.y) / t.scale;
+        const i = effectiveInsets(r.width, r.height, insetsRef.current);
+        const w = r.width - i.left - i.right;
+        const h = r.height - i.top - i.bottom;
+        const side = Math.min(w, h) || 1;
+        const offX = i.left + (w - side) / 2;
+        const offY = i.top + (h - side) / 2;
+        const px = (clientX - r.left - t.x) / t.scale - offX;
+        const py = (clientY - r.top - t.y) / t.scale - offY;
         return { x: (px / side) * 100, y: (py / side) * 100 };
       },
       zoomBy: (factor) => {
         const el = outerRef.current;
         const r = el?.getBoundingClientRect();
-        const cx = (r?.width ?? 0) / 2;
-        const cy = (r?.height ?? 0) / 2;
+        const width = r?.width ?? 0;
+        const height = r?.height ?? 0;
+        const i = effectiveInsets(width, height, insetsRef.current);
+        // Keep the centre of the court's area fixed.
+        const cx = i.left + (width - i.left - i.right) / 2;
+        const cy = i.top + (height - i.top - i.bottom) / 2;
         setT((cur) => {
           const scale = Math.max(MIN, Math.min(MAX, cur.scale * factor));
           const k = scale / cur.scale;
@@ -99,7 +125,9 @@ export function CanvasStage({ children, onReady }: Props) {
         className="absolute inset-0"
         style={{ transform: `translate(${t.x}px, ${t.y}px) scale(${t.scale})`, transformOrigin: '0 0' }}
       >
-        {children}
+        <div className="absolute" style={{ top: insets.top, right: insets.right, bottom: insets.bottom, left: insets.left }}>
+          {children}
+        </div>
       </div>
     </div>
   );

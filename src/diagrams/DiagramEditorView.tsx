@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import {
-  ArrowUpToLine,
   BoxSelect,
+  BringToFront,
   ChevronLeft,
   Copy,
   Maximize,
@@ -18,14 +18,14 @@ import {
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useMediaQuery } from '../components/useMediaQuery';
-import { SCENE_LIMITS, type CourtPreset, type DiagramItemType } from '../types/diagram';
+import { SCENE_LIMITS, type DiagramItemType } from '../types/diagram';
 import { CanvasContextMenu, type MenuAction } from './CanvasContextMenu';
-import { CanvasStage, type StageApi } from './CanvasStage';
+import { CanvasStage, type StageApi, type StageInsets } from './CanvasStage';
 import { getDiagramClipboard, setDiagramClipboard } from './diagramClipboard';
 import { DiagramSvg, bbox } from './DiagramSvg';
 import { DiagramTabs } from './DiagramTabs';
 import { Palette } from './Palette';
-import { PropertiesPanel } from './PropertiesPanel';
+import { CourtSection, PropertiesPanel } from './PropertiesPanel';
 import { SaveStatus } from './SaveStatus';
 import { cloneItemAt, createItem } from './sceneFactory';
 import { computeHandleTransform } from './transformMath';
@@ -34,11 +34,30 @@ import { useT } from '../i18n/I18nProvider';
 
 const SNAP = 2.5;
 
+// Desktop chrome geometry, in px. The toolbar floats 12 px from the edges; the tabs strip and the inspector start
+// 12 px under it; the zoom pad sits bottom-left. The court is fitted into what is left between them.
+const EDGE = 12;
+const TOOLBAR_H = 60;
+const BELOW_TOOLBAR = EDGE + TOOLBAR_H + EDGE;
+const TABS_H = 52;
+const INSPECTOR_W = 312;
+const ZOOM_W = 44;
+const DESKTOP_INSETS: StageInsets = {
+  top: BELOW_TOOLBAR + TABS_H + 16,
+  right: EDGE + INSPECTOR_W + 24,
+  bottom: 24,
+  left: EDGE + ZOOM_W + 24,
+};
+
+const ICON = 'h-5 w-5';
 const toolBtn =
-  'inline-flex h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-caption text-ink hover:bg-surface-2 disabled:opacity-40 aria-pressed:bg-surface-3 aria-pressed:text-ink';
-const zoomBtn = 'inline-flex h-11 w-11 items-center justify-center text-ink-2 hover:bg-surface-2 hover:text-ink';
+  'pressable inline-flex h-12 min-w-12 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-md px-1.5 text-caption text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40 aria-pressed:bg-surface-3';
+const zoomBtn =
+  'inline-flex h-11 w-11 items-center justify-center text-ink-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus';
 const iconBtn =
-  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink hover:bg-surface-2 disabled:opacity-30';
+  'pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-30 disabled:hover:bg-transparent';
+/** One internal vertical scroll with a quiet scrollbar, never a horizontal one. */
+const panelScroll = 'scroll-quiet min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain';
 
 /** Non-modal panel pinned to the bottom of the canvas on phones — the court
  *  stays visible (and editable) above it so changes show up live. */
@@ -47,21 +66,16 @@ function BottomPanel({ title, onClose, children }: { title: string; onClose: () 
   return (
     <section
       aria-label={title}
-      className="absolute inset-x-0 bottom-0 z-10 flex max-h-[55%] flex-col rounded-t-xl bg-surface shadow-sheet"
+      className="absolute inset-x-0 bottom-0 z-10 flex max-h-[60%] flex-col rounded-t-xl bg-surface shadow-sheet"
     >
       <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-ink-3/40" />
-      <header className="flex shrink-0 items-center justify-between px-3">
+      <header className="flex shrink-0 items-center justify-between pl-4 pr-2">
         <h2 className="text-headline text-ink">{title}</h2>
-        <button
-          type="button"
-          aria-label={t.closePanel(title)}
-          onClick={onClose}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink"
-        >
-          <X className="h-5 w-5" aria-hidden="true" />
+        <button type="button" aria-label={t.closePanel(title)} onClick={onClose} className={iconBtn}>
+          <X className={ICON} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+      <div className={panelScroll}>{children}</div>
     </section>
   );
 }
@@ -83,10 +97,12 @@ export interface DiagramEditorViewProps {
   saveError: string | null;
   /** Leaves the editor (back to the exercises list). */
   onExit: () => void;
+  /** Phone only: a panel open from the start (the dev preview uses it to show each panel). */
+  initialPhonePanel?: 'add' | 'edit' | 'court';
 }
 
 /** The editor's UI over an editor state: the page feeds it the real hook, the dev preview a fixture. */
-export function DiagramEditorView({ state, activeDiagram, dispatch, save, status, saveError, onExit }: DiagramEditorViewProps) {
+export function DiagramEditorView({ state, activeDiagram, dispatch, save, status, saveError, onExit, initialPhonePanel }: DiagramEditorViewProps) {
   const t = useT();
   const ed = t.diagrams.editor;
   const stageApi = useRef<StageApi | null>(null);
@@ -94,8 +110,10 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
   const [snapOn, setSnapOn] = useState(true);
   // Phone-only UI: which bottom panel is open, the settings drop-down, and a
   // sticky multi-select mode (touch has no Shift/Ctrl to add to a selection).
-  const [mobilePanel, setMobilePanel] = useState<'add' | 'edit' | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<'add' | 'edit' | null>(
+    initialPhonePanel === 'add' || initialPhonePanel === 'edit' ? initialPhonePanel : null,
+  );
+  const [settingsOpen, setSettingsOpen] = useState(initialPhonePanel === 'court');
   const [multiSelect, setMultiSelect] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [marqueeRect, setMarqueeRect] = useState<Rect | null>(null);
@@ -409,44 +427,13 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
     },
   ];
 
-  const courtSettings = (labelled: boolean) =>
-    activeDiagram && (
-      <>
-        <label className="flex min-h-11 items-center gap-2 text-callout text-ink-2">
-          <input type="checkbox" checked={snapOn} onChange={(e) => setSnapOn(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--color-ink))]" /> {ed.snap}
-        </label>
-        <label className="flex min-h-11 items-center gap-2 text-callout text-ink-2">
-          {labelled && ed.court}
-          <select
-            aria-label={ed.courtPreset}
-            value={activeDiagram.scene.court}
-            onChange={(e) => dispatch({ type: 'setCourt', court: e.target.value as CourtPreset })}
-            className="min-h-11 rounded-md bg-surface-2 px-2 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:text-callout"
-          >
-            <option value="full">{ed.full}</option>
-            <option value="half">{ed.half}</option>
-            <option value="blank">{ed.blank}</option>
-          </select>
-        </label>
-        <label className="flex min-h-11 items-center gap-2 text-callout text-ink-2">
-          <input
-            type="checkbox"
-            checked={activeDiagram.scene.showZones}
-            onChange={() => dispatch({ type: 'toggleZones' })}
-            className="h-4 w-4 accent-[rgb(var(--color-ink))]"
-          />
-          {ed.zones}
-        </label>
-      </>
-    );
-
   const undoRedo = (
     <>
       <button type="button" aria-label={ed.undo} disabled={state.undo.length === 0} onClick={() => dispatch({ type: 'undo' })} className={iconBtn}>
-        <Undo2 className="h-5 w-5" aria-hidden="true" />
+        <Undo2 className={ICON} strokeWidth={1.75} aria-hidden="true" />
       </button>
       <button type="button" aria-label={ed.redo} disabled={state.redo.length === 0} onClick={() => dispatch({ type: 'redo' })} className={iconBtn}>
-        <Redo2 className="h-5 w-5" aria-hidden="true" />
+        <Redo2 className={ICON} strokeWidth={1.75} aria-hidden="true" />
       </button>
     </>
   );
@@ -454,13 +441,13 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
   const zoomGroup = (
     <>
       <button type="button" aria-label={ed.zoomIn} onClick={() => stageApi.current?.zoomBy(1.25)} className={zoomBtn}>
-        <ZoomIn className="h-4 w-4" aria-hidden="true" />
+        <ZoomIn className={ICON} strokeWidth={1.75} aria-hidden="true" />
       </button>
       <button type="button" aria-label={ed.zoomOut} onClick={() => stageApi.current?.zoomBy(0.8)} className={zoomBtn}>
-        <ZoomOut className="h-4 w-4" aria-hidden="true" />
+        <ZoomOut className={ICON} strokeWidth={1.75} aria-hidden="true" />
       </button>
       <button type="button" aria-label={ed.fitCourt} onClick={() => stageApi.current?.resetView()} className={zoomBtn}>
-        <Maximize className="h-4 w-4" aria-hidden="true" />
+        <Maximize className={ICON} strokeWidth={1.75} aria-hidden="true" />
       </button>
     </>
   );
@@ -478,6 +465,12 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
   const canvas = activeDiagram && (
     <div
       className={isDesktop ? 'absolute inset-0 overflow-hidden' : 'relative min-h-0 flex-1 overflow-hidden'}
+      onPointerDown={(e) => {
+        // The court is fitted inside insets; a press on the bare stage around it clears the selection like a
+        // press on the court's own background does.
+        const el = e.target as Element;
+        if (!e.shiftKey && el.closest('[data-canvas-stage]') && !el.closest('svg')) dispatch({ type: 'selectItem', id: null });
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         const id = (e.target as Element).closest('[data-item-id]')?.getAttribute('data-item-id');
@@ -487,7 +480,7 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
         setMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      <CanvasStage onReady={handleStageReady}>
+      <CanvasStage onReady={handleStageReady} insets={isDesktop ? DESKTOP_INSETS : undefined}>
         <DiagramSvg
           scene={activeDiagram.scene}
           interactive
@@ -507,12 +500,12 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
       </CanvasStage>
 
       {!isDesktop && (
-        <div className="glass-pop glass absolute right-2 top-2 flex flex-col overflow-hidden rounded-xl">{zoomGroup}</div>
+        <div className="glass glass-pop absolute right-3 top-3 flex flex-col overflow-hidden rounded-lg">{zoomGroup}</div>
       )}
 
       {!isDesktop && mobilePanel === 'add' && (
         <BottomPanel title={ed.addElement} onClose={() => setMobilePanel(null)}>
-          <div className="p-3">
+          <div className="px-4 pb-4 pt-1">
             <Palette onAdd={addFromPalette} variant="grid" />
           </div>
         </BottomPanel>
@@ -542,12 +535,14 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
       type="button"
       onClick={leaveEditor}
       aria-label={ed.backToExercises}
-      className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2 text-ink hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      className="pressable inline-flex h-11 shrink-0 items-center gap-0.5 rounded-md pl-1 pr-2 text-ink hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
     >
-      <ChevronLeft className="h-6 w-6" aria-hidden="true" />
-      {isDesktop && <span className="text-callout">{ed.exercisesLink}</span>}
+      <ChevronLeft className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+      {isDesktop && <span className="text-callout font-medium">{ed.exercisesLink}</span>}
     </button>
   );
+
+  const divider = <span aria-hidden="true" className="mx-1 h-7 w-px shrink-0 bg-separator" />;
 
   return (
     // Full screen outside the app shell. data-own-undo: the editor owns Ctrl+Z.
@@ -556,29 +551,59 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
         <>
           {canvas}
           {!activeDiagram && emptyState}
-          <header className="glass glass-pop absolute inset-x-3 top-3 z-10 flex min-h-[52px] items-center gap-2 rounded-xl px-2">
+          <header
+            style={{ top: EDGE, height: TOOLBAR_H }}
+            className="glass glass-pop absolute inset-x-3 z-20 flex items-center gap-1 rounded-xl px-2"
+          >
             {backControl}
-            <SaveStatus status={status} onRetry={() => void save()} />
+            <span className="flex w-[88px] shrink-0 items-center">
+              <SaveStatus status={status} onRetry={() => void save()} />
+            </span>
+            {divider}
             <Palette onAdd={addFromPalette} variant="toolbar" />
+            {divider}
             {undoRedo}
           </header>
-          {saveError && (
-            <p role="alert" title={saveError} className="glass absolute right-3 top-[68px] z-10 max-w-[280px] truncate rounded-lg px-3 py-1 text-footnote text-red-strong">
-              {saveError}
-            </p>
-          )}
-          <div className="glass glass-pop absolute left-3 top-[76px] z-10 max-w-[calc(100%-320px)] rounded-xl">{tabs}</div>
+          <div
+            style={{ top: BELOW_TOOLBAR, maxWidth: `calc(100% - ${EDGE * 3 + INSPECTOR_W}px)` }}
+            className="glass glass-pop absolute left-3 z-10 rounded-lg"
+          >
+            {tabs}
+          </div>
           {activeDiagram && (
-            <aside className="glass glass-pop absolute bottom-3 right-3 top-[132px] z-10 w-[280px] overflow-y-auto rounded-xl">
-              <div className="border-b border-separator px-3 py-2">
-                <h2 className="text-caption text-ink-2">{ed.court}</h2>
-                {courtSettings(false)}
+            <aside
+              aria-label={ed.properties}
+              style={{ top: BELOW_TOOLBAR, width: INSPECTOR_W, maxHeight: `calc(100% - ${BELOW_TOOLBAR + EDGE}px)` }}
+              className="glass glass-pop absolute right-3 z-10 flex flex-col overflow-hidden rounded-xl"
+            >
+              <div className={panelScroll}>
+                <CourtSection
+                  title={ed.court}
+                  scene={activeDiagram.scene}
+                  dispatch={dispatch}
+                  snapOn={snapOn}
+                  onSnapChange={setSnapOn}
+                />
+                <PropertiesPanel item={selectedItem} dispatch={dispatch} selectedCount={selectedCount} />
               </div>
-              <PropertiesPanel item={selectedItem} dispatch={dispatch} selectedCount={selectedCount} />
             </aside>
           )}
           {activeDiagram && (
-            <div className="glass glass-pop absolute bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-xl">{zoomGroup}</div>
+            <div className="glass glass-pop absolute bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-lg">{zoomGroup}</div>
+          )}
+          {saveError && (
+            <div
+              style={{ left: DESKTOP_INSETS.left, right: DESKTOP_INSETS.right }}
+              className="pointer-events-none absolute bottom-3 z-10 flex justify-center"
+            >
+              <p
+                role="alert"
+                title={saveError}
+                className="glass glass-pop pointer-events-auto max-w-full truncate rounded-full px-4 py-2 text-footnote text-red-strong"
+              >
+                {saveError}
+              </p>
+            </div>
           )}
         </>
       ) : (
@@ -596,19 +621,21 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
                   aria-label={ed.courtSettings}
                   aria-expanded={settingsOpen}
                   onClick={() => setSettingsOpen((v) => !v)}
-                  className={`${iconBtn} aria-expanded:bg-surface-3`}
+                  className={`${iconBtn} aria-expanded:bg-surface-3 aria-expanded:text-ink`}
                 >
-                  <Settings2 className="h-5 w-5" aria-hidden="true" />
+                  <Settings2 className={ICON} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               )}
             </div>
             {saveError && (
-              <p role="alert" className="px-3 pb-2 text-footnote text-red-strong">
+              <p role="alert" className="px-4 pb-2 text-footnote text-red-strong">
                 {saveError}
               </p>
             )}
             {settingsOpen && activeDiagram && (
-              <div className="flex flex-wrap items-center gap-x-5 border-t border-separator px-4">{courtSettings(true)}</div>
+              <div className="border-t border-separator">
+                <CourtSection scene={activeDiagram.scene} dispatch={dispatch} snapOn={snapOn} onSnapChange={setSnapOn} />
+              </div>
             )}
           </header>
           {tabs}
@@ -617,15 +644,15 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
               {canvas}
               <nav
                 aria-label={ed.toolsNav}
-                className="glass flex shrink-0 items-center justify-around gap-1 px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1"
+                className="glass flex shrink-0 items-center justify-around gap-0.5 px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1"
               >
                 <button type="button" aria-pressed={mobilePanel === 'add'} onClick={() => setMobilePanel((p) => (p === 'add' ? null : 'add'))} className={toolBtn}>
-                  <Plus className="h-5 w-5" aria-hidden="true" />
-                  {ed.add}
+                  <Plus className={ICON} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{ed.add}</span>
                 </button>
                 <button type="button" aria-pressed={multiSelect} onClick={() => setMultiSelect((v) => !v)} className={toolBtn}>
-                  <BoxSelect className="h-5 w-5" aria-hidden="true" />
-                  {ed.multi}
+                  <BoxSelect className={ICON} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{ed.multi}</span>
                 </button>
                 <button
                   type="button"
@@ -634,8 +661,8 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
                   onClick={() => setMobilePanel((p) => (p === 'edit' ? null : 'edit'))}
                   className={toolBtn}
                 >
-                  <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-                  {ed.edit}
+                  <SlidersHorizontal className={ICON} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{ed.edit}</span>
                 </button>
                 <button
                   type="button"
@@ -645,8 +672,8 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
                   }
                   className={toolBtn}
                 >
-                  <Copy className="h-5 w-5" aria-hidden="true" />
-                  {ed.duplicate}
+                  <Copy className={ICON} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{ed.duplicate}</span>
                 </button>
                 <button
                   type="button"
@@ -656,8 +683,8 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
                   }}
                   className={toolBtn}
                 >
-                  <ArrowUpToLine className="h-5 w-5" aria-hidden="true" />
-                  {ed.forward}
+                  <BringToFront className={ICON} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{ed.forward}</span>
                 </button>
                 <button
                   type="button"
@@ -668,8 +695,8 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
                   }}
                   className={`${toolBtn} text-red-strong`}
                 >
-                  <Trash2 className="h-5 w-5" aria-hidden="true" />
-                  {t.common.delete}
+                  <Trash2 className={ICON} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{t.common.delete}</span>
                 </button>
               </nav>
             </div>

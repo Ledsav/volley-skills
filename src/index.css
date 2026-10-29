@@ -128,6 +128,8 @@
   .bg-green-tint { background-color: rgb(var(--color-green) / var(--tint-alpha)); }
   .pressable { transition: transform 160ms var(--ease-out), background-color 150ms ease, color 150ms ease; }
   .pressable:active { transform: scale(0.97); transition-duration: 100ms; }
+  /* A floating panel's own scroll: a thin, quiet scrollbar on a transparent track. */
+  .scroll-quiet { scrollbar-width: thin; scrollbar-color: rgb(var(--color-ink-3) / 0.45) transparent; }
 }
 
 @media (prefers-reduced-transparency: reduce) {

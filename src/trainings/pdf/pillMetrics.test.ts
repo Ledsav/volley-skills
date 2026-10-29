@@ -14,7 +14,8 @@ interface Fontkit {
 }
 
 const require = createRequire(import.meta.url);
-const fontkit = require('fontkit') as Fontkit;
+// fontkit comes with pdfmake, so resolve it from pdfmake's own location instead of relying on hoisting.
+const fontkit = createRequire(require.resolve('pdfmake'))('fontkit') as Fontkit;
 const roboto = fontkit.openSync(require.resolve('pdfmake/build/fonts/Roboto/Roboto-Regular.ttf'));
 const widthAt8 = (s: string) => (roboto.layout(s).advanceWidth / roboto.unitsPerEm) * 8;
 

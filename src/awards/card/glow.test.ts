@@ -19,3 +19,12 @@ describe('glow', () => {
     expect(b.calls).toHaveLength(0);
   });
 });
+
+describe('readableOverGlow', () => {
+  it('keeps the glow behind labels on dark palettes and drops it on a light one where the label would wash out', async () => {
+    const { readableOverGlow } = await import('./glow');
+    expect(readableOverGlow('#0A1F44', '#F97316', '#FFFFFF', 0.42)).toBe(true);
+    // mid-grey background with white text, a pale accent glow lifts the background under 4.5
+    expect(readableOverGlow('#6B6B6B', '#FFFFFF', '#FFFFFF', 0.42)).toBe(false);
+  });
+});

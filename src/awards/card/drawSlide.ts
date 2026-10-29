@@ -5,7 +5,7 @@ import type { StoryStat } from '../story/storyStats';
 import { CARD_DURATION_MS, easeOutBack, easeOutCubic } from './cardTimeline';
 import { CARD_H, CARD_W, cardHeader, drawAwardCard, drawBackground, drawTitleCard, text, type CardArt, type CardModel } from './drawAwardCard';
 import { contentBottom, drawHeaderRow, drawSponsorRow, type HeaderInfo } from './branding';
-import { drawGlow } from './glow';
+import { drawGlow, readableOverGlow } from './glow';
 import { initialsOf } from './initials';
 import { fontFor, trackPx } from './type';
 import { fitBlock, fitFontSize, fillTabular } from './wrapText';
@@ -106,7 +106,8 @@ function drawSummary(ctx: CanvasRenderingContext2D, deps: StoryDeps, colors: Sli
     const cy = top + Math.floor(i / 2) * rowH + r + 10;
     const art = deps.artFor(c.key);
     const img = art.cutout ?? art.photo;
-    drawGlow(ctx, cx, cy, r * 1.6, colors.accent, 0.35 * clamp(appear));
+    const glowAlpha = !img && !readableOverGlow(colors.bg, colors.accent, colors.text, 0.35) ? 0 : 0.35;
+    drawGlow(ctx, cx, cy, r * 1.6, colors.accent, glowAlpha * clamp(appear));
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(appear, appear);

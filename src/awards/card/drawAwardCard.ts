@@ -3,7 +3,7 @@ import { contentBottom, drawHeaderRow, drawSponsorRow, type Branding, type Heade
 import { cardBeats, easeOutBack, easeOutCubic } from './cardTimeline';
 import { confettiAt, seedFrom } from './confetti';
 import { CARD_H, CARD_W, MARGIN } from './geometry';
-import { drawGlow } from './glow';
+import { drawGlow, readableOverGlow } from './glow';
 import { initialsOf } from './initials';
 import { fontFor, trackPx } from './type';
 import { fitBlock, textAt } from './wrapText';
@@ -123,7 +123,9 @@ export function drawAwardCard(ctx: CanvasRenderingContext2D, card: CardModel, co
     const cx = CARD_W - MARGIN - r;
     const cy = (top + playerBottom) / 2;
     const s = Math.max(0, easeOutBack(b.photo));
-    drawGlow(ctx, cx, cy, r * 1.7, colors.accent, 0.42 * Math.min(1, s));
+    // initials / number sit on the glow: drop it when they would not stay readable on a light custom palette
+    const glowAlpha = !art.photo && !readableOverGlow(colors.bg, colors.accent, colors.text, 0.42) ? 0 : 0.42;
+    drawGlow(ctx, cx, cy, r * 1.7, colors.accent, glowAlpha * Math.min(1, s));
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(s, s);

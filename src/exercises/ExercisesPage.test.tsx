@@ -270,6 +270,30 @@ describe('ExercisesPage', () => {
       expect(exercisesApi.listExercises).toHaveBeenCalledTimes(1);
     });
 
+    it('cancelling the confirm after a failed delete clears the stale error (m-6)', async () => {
+      vi.mocked(exercisesApi.countTrainingsUsingExercise).mockResolvedValue(2);
+      vi.mocked(exercisesApi.deleteExercise).mockRejectedValue(new Error('denied'));
+      renderPage();
+      await chooseDelete();
+      fireEvent.click(await screen.findByRole('button', { name: 'Yes, delete exercise' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete');
+      fireEvent.click(screen.getByRole('button', { name: /cancel|keep/i }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('a double Delete before the usage count returns reads it once and shows one notice (m-7)', async () => {
+      let resolveCount!: (n: number) => void;
+      vi.mocked(exercisesApi.countTrainingsUsingExercise).mockReturnValue(new Promise<number>((r) => { resolveCount = r; }));
+      renderPage();
+      await chooseDelete();
+      await chooseDelete();
+      await act(async () => resolveCount(0));
+      await waitFor(() => expect(screen.queryByText('Pepper')).not.toBeInTheDocument());
+      expect(exercisesApi.countTrainingsUsingExercise).toHaveBeenCalledTimes(1);
+      expect(screen.getAllByRole('button', { name: 'Undo' })).toHaveLength(1);
+    });
+
     it('still opens the delete confirmation when the usage count read fails', async () => {
       vi.mocked(exercisesApi.countTrainingsUsingExercise).mockRejectedValue(new Error('offline'));
       renderPage();

@@ -527,7 +527,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
                 label={m.filterByCategory}
                 value={pickerCategory}
                 onChange={selectCategory}
-                className="mb-2 pb-1"
+                className="mb-2 pb-1 !-mx-3 !px-3"
                 options={[
                   { id: '' as ExerciseCategory | '', label: m.all },
                   ...EXERCISE_CATEGORIES.map((c) => ({ id: c.key as ExerciseCategory | '', label: lb.exerciseCategory[c.key] })),

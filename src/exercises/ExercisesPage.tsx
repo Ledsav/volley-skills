@@ -39,6 +39,7 @@ export function ExercisesPage() {
   const notify = useNotify();
   const undoable = useUndoable();
   const mounted = useRef(true);
+  const checkingDelete = useRef(new Set<string>());
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -137,6 +138,9 @@ export function ExercisesPage() {
 
   // A used exercise is a high-impact delete: it keeps the confirm naming the number of trainings.
   async function requestDelete(exercise: Exercise) {
+    // A second Delete on the same row while its usage count is being read does nothing.
+    if (checkingDelete.current.has(exercise.id)) return;
+    checkingDelete.current.add(exercise.id);
     setDeleteError(null);
     let usageCount = USAGE_UNKNOWN;
     try {
@@ -144,6 +148,7 @@ export function ExercisesPage() {
     } catch {
       usageCount = USAGE_UNKNOWN;
     }
+    checkingDelete.current.delete(exercise.id);
     if (usageCount === 0) deleteWithUndo(exercise);
     else setPendingDelete({ exercise, usageCount });
   }
@@ -274,7 +279,10 @@ export function ExercisesPage() {
           message={pendingDelete.usageCount === USAGE_UNKNOWN ? p.usageUnknown : p.usedIn(pendingDelete.usageCount)}
           confirmLabel={p.confirmDelete}
           onConfirm={() => void confirmDelete()}
-          onCancel={() => setPendingDelete(null)}
+          onCancel={() => {
+            setPendingDelete(null);
+            setDeleteError(null);
+          }}
           error={deleteError}
         />
       )}

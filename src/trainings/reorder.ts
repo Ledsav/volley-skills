@@ -66,8 +66,6 @@ export function useRowReorder(opts: { count: number; onMove: (from: number, to: 
       return {
         transform: `translateY(${d.my}px)${reduced ? '' : ' scale(1.02)'}`,
         position: 'relative',
-        zIndex: 10,
-        boxShadow: '0 8px 32px rgba(0,0,0,.12)',
       };
     },
   };

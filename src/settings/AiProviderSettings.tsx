@@ -153,7 +153,7 @@ export function AiProviderSettings({ testFn = testConnection }: { testFn?: typeo
             <label className="flex min-h-11 items-center gap-2 text-body text-ink">
               <input
                 type="checkbox"
-                className="h-4 w-4"
+                className="h-4 w-4 accent-ink"
                 checked={s.rememberKey}
                 onChange={(e) => update({ ...s, rememberKey: e.target.checked })}
               />

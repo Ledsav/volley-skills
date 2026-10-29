@@ -84,4 +84,16 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Test connection' })).not.toBeInTheDocument();
   });
+
+  it('focus follows the AI subpage and back', () => {
+    render(
+      <MemoryRouter initialEntries={['/settings']}>
+        <main id="main" tabIndex={-1}><SettingsPage /></main>
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('link', { name: /Provider/ }));
+    expect(screen.getByRole('heading', { level: 1, name: 'AI provider' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toHaveFocus();
+  });
 });

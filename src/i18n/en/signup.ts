@@ -42,6 +42,7 @@ export const signup = {
     intro:
       'These clauses limit liability, set how the service can change or end, or decide how disputes are handled. Each one needs your specific approval.',
     sent: (email: string) => `We've sent a confirmation link to ${email}. Open it in this browser to sign.`,
+    approveClause: (id: string) => `I specifically approve clause ${id}`,
     approve: 'Approve these clauses specifically',
     sendFailed: 'Could not send the confirmation link. Please try again.',
   },

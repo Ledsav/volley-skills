@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/Button';
 import { LegalMarkdown } from '../legal/LegalMarkdown';
 import { specificClauses } from '../legal/specificClauses';
@@ -20,6 +20,21 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
   const clauses = useMemo(() => specificClauses(termsVersion, dpaVersion, lang), [termsVersion, dpaVersion, lang]);
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState(false);
+  // UI-only: ticks are never stored. A different text (language or version) has to be ticked again.
+  const [ticked, setTicked] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    setTicked(new Set());
+  }, [lang, termsVersion, dpaVersion]);
+  const allTicked = clauses.every((c) => ticked.has(c.id));
+
+  function toggle(id: string, on: boolean) {
+    setTicked((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
 
   async function send() {
     setState('sending');
@@ -35,30 +50,42 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-slate">
-        {t.intro}
-      </p>
-      <div lang={lang} className="flex flex-col gap-4">
-        {clauses.map((c) => (
-          <article key={c.id} className="rounded-md border border-border bg-surface p-4">
-            <h3 className="mb-2 text-base font-semibold text-ink">{c.id}. {c.heading}</h3>
-            <LegalMarkdown text={c.text} />
-          </article>
+      <p className="text-body text-ink-2">{t.intro}</p>
+      <ul lang={lang} className="overflow-hidden rounded-lg bg-surface shadow-card">
+        {clauses.map((c, i) => (
+          <li key={c.id} className={i > 0 ? 'border-t border-separator' : undefined}>
+            <article className="p-4">
+              <h3 className="text-headline text-ink">{c.id}. {c.heading}</h3>
+              <div className="text-base leading-[1.625rem]">
+                <LegalMarkdown text={c.text} />
+              </div>
+              <label htmlFor={`approve-${c.id}`} className="mt-3 flex min-h-11 items-start gap-3 text-body text-ink">
+                <input
+                  id={`approve-${c.id}`}
+                  type="checkbox"
+                  checked={ticked.has(c.id)}
+                  onChange={(e) => toggle(c.id, e.target.checked)}
+                  className="mt-1 h-5 w-5 accent-ink"
+                />
+                <span>{t.approveClause(c.id)}</span>
+              </label>
+            </article>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {state === 'sent' ? (
-        <p role="status" className="text-sm text-ink">
+        <p role="status" className="text-body text-ink">
           {t.sent(email)}
         </p>
       ) : (
         <div>
-          <Button variant="primary" disabled={state === 'sending'} onClick={send}>
+          <Button variant="primary" disabled={state === 'sending' || !allTicked} onClick={send}>
             {t.approve}
           </Button>
         </div>
       )}
-      {error && <p role="alert" className="text-sm text-red-strong">{t.sendFailed}</p>}
+      {error && <p role="alert" className="text-footnote text-red-strong">{t.sendFailed}</p>}
     </div>
   );
 }

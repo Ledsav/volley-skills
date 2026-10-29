@@ -84,6 +84,7 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Terms of Service/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Data Processing Agreement/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    for (const box of screen.getAllByRole('checkbox', { name: /specifically approve clause/ })) fireEvent.click(box);
     fireEvent.click(screen.getByRole('button', { name: 'Approve these clauses specifically' }));
     await waitFor(() => expect(sendSigningLink).toHaveBeenCalledWith('user@example.com', expect.any(String)));
     const draft = readSignDraft(Date.now());

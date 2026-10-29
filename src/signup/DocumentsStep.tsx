@@ -24,13 +24,13 @@ function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }:
   return (
     <section className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-ink">{title}</h3>
+        <h3 className="text-headline text-ink">{title}</h3>
         <a
           href={`/legal/${doc}?v=${encodeURIComponent(version)}&lang=${lang}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={onRead}
-          className="text-sm text-blue-strong hover:underline"
+          className="text-callout text-ink underline"
         >
           {t.openInNewTab}<span className="sr-only"> ({title})</span>
         </a>
@@ -44,11 +44,11 @@ function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }:
           const el = e.currentTarget;
           if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) onRead();
         }}
-        className="max-h-72 overflow-y-auto rounded-md border border-border bg-surface p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+        className="max-h-72 overflow-y-auto rounded-lg bg-surface p-4 text-base leading-[1.625rem] shadow-card focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         <LegalMarkdown text={legalText(doc, version, lang)} />
       </div>
-      <label htmlFor={id} className="flex items-start gap-2 text-sm text-ink">
+      <label htmlFor={id} className="flex min-h-11 items-start gap-3 text-body text-ink">
         <input
           id={id}
           type="checkbox"
@@ -56,12 +56,12 @@ function DocBox({ doc, title, version, lang, read, accepted, onRead, onAccept }:
           disabled={!read}
           aria-describedby={read ? undefined : hintId}
           onChange={(e) => onAccept(e.target.checked)}
-          className="mt-1 h-4 w-4"
+          className="mt-1 h-5 w-5 accent-ink"
         />
         <span>{t.accept(title)}</span>
       </label>
       {!read && (
-        <p id={hintId} className="text-xs text-slate">
+        <p id={hintId} className="text-footnote text-ink-2">
           {t.scrollHint}
         </p>
       )}
@@ -105,9 +105,9 @@ export function DocumentsStep({ termsVersion, dpaVersion, lang, onLangChange, on
         onRead={() => setRead((r) => ({ ...r, dpa: true }))}
         onAccept={(v) => setAccepted((a) => ({ ...a, dpa: v }))}
       />
-      <p className="text-sm text-slate">
+      <p className="text-footnote text-ink-2">
         {t.signup.documents.listOf}{' '}
-        <a href={`/legal/subprocessors?lang=${lang}`} target="_blank" rel="noopener noreferrer" className="text-blue-strong hover:underline">
+        <a href={`/legal/subprocessors?lang=${lang}`} target="_blank" rel="noopener noreferrer" className="text-ink underline">
           {t.legal.docTitles.subprocessors}
         </a>{' '}
         {t.signup.documents.isPart}

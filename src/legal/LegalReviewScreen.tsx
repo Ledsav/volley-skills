@@ -89,31 +89,31 @@ export function LegalReviewScreen() {
 
   return (
     <MinimalShell title={club?.name ?? t.clubs.clubFallback}>
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <h1 className="mb-2 text-title font-semibold text-ink">{title}</h1>
-        <ul className="mb-4 list-disc pl-5 text-sm text-ink">
+      <div className="mx-auto max-w-[720px] px-4 py-8 sm:px-6">
+        <h1 className="text-large-title text-ink md:text-title-1">{title}</h1>
+        <ul className="mb-6 mt-2 list-disc pl-5 text-body text-ink-2">
           <li>{locale === 'it' ? versions.terms.summaries?.it ?? versions.terms.summary : versions.terms.summary}</li>
           <li>{locale === 'it' ? versions.dpa.summaries?.it ?? versions.dpa.summary : versions.dpa.summary}</li>
         </ul>
 
         {step === 1 && (
-          <form onSubmit={submitDetails} noValidate className="flex flex-col gap-4">
+          <form onSubmit={submitDetails} noValidate className="flex flex-col gap-4 rounded-lg bg-surface p-4 shadow-card">
             <div className="flex flex-col gap-1">
-              <label htmlFor="review-person" className="text-sm font-medium text-ink">{t.signup.shared.yourName}</label>
+              <label htmlFor="review-person" className="text-footnote font-medium text-ink-2">{t.signup.shared.yourName}</label>
               <Input id="review-person" value={person} onChange={(e) => setPerson(e.target.value)} autoComplete="name"
                 aria-invalid={errors.person ? true : undefined}
                 aria-describedby={errors.person ? 'review-person-error' : undefined} />
-              {errors.person && <p id="review-person-error" role="alert" className="text-sm text-red-strong">{t.signup.shared.nameRequired}</p>}
+              {errors.person && <p id="review-person-error" role="alert" className="text-footnote text-red-strong">{t.signup.shared.nameRequired}</p>}
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="review-authority" className="flex items-start gap-2 text-sm text-ink">
+              <label htmlFor="review-authority" className="flex min-h-11 items-start gap-3 text-body text-ink">
                 <input id="review-authority" type="checkbox" checked={authority} onChange={(e) => setAuthority(e.target.checked)}
                   aria-invalid={errors.authority ? true : undefined}
                   aria-describedby={errors.authority ? 'review-authority-error' : undefined}
-                  className="mt-1 h-4 w-4" />
+                  className="mt-1 h-5 w-5 accent-ink" />
                 <span>{t.signup.shared.authority}</span>
               </label>
-              {errors.authority && <p id="review-authority-error" role="alert" className="text-sm text-red-strong">{t.signup.shared.authorityRequired}</p>}
+              {errors.authority && <p id="review-authority-error" role="alert" className="text-footnote text-red-strong">{t.signup.shared.authorityRequired}</p>}
             </div>
             <div><Button type="submit" variant="primary">{t.signup.shared.next}</Button></div>
           </form>
@@ -156,8 +156,8 @@ export function LegalReviewScreen() {
         )}
 
         {canEnd && (
-          <div className="mt-8 border-t border-border pt-4">
-            <p className="mb-2 text-sm text-slate">{t.legal.review.dontAgree}</p>
+          <div className="mt-10 border-t border-separator pt-6">
+            <p className="mb-2 text-footnote text-ink-2">{t.legal.review.dontAgree}</p>
             <Button variant="destructive" onClick={() => setConfirming(true)}>{t.clubs.contract.endOurContract}</Button>
           </div>
         )}

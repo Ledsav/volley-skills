@@ -27,7 +27,7 @@ export const calendar = {
         count ? `, ${count} ${plural('it', count, { one: 'allenamento', other: 'allenamenti' })}` : ''
       }`,
     trainingsOn: (day: string) => `Allenamenti di ${day}`,
-    noTrainings: 'Nessun allenamento in programma.',
+    nothingPlanned: 'Niente in programma per questo giorno.',
     today: 'Oggi',
     partsHeading: 'Piano della sessione',
     partsSummary: (n: number, minutes: number) =>
@@ -45,8 +45,10 @@ export const calendar = {
     pickTraining: 'Scegli un allenamento da assegnare.',
     assignError: 'Impossibile assegnare l’allenamento. Riprova.',
     date: 'Data',
-    findByBusinessId: 'Cerca per ID',
-    find: 'Cerca',
+    searchLabel: 'Cerca allenamenti',
+    searchPlaceholder: 'Cerca per nome o ID',
+    lookUp: (id: string) => `Cerca l’ID “${id}”`,
+    notFound: (id: string) => `Nessun allenamento con ID ${id}.`,
     training: 'Allenamento',
     noneAvailable: 'Nessun allenamento disponibile.',
     loadMore: 'Carica altri',

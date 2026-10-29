@@ -26,7 +26,7 @@ export const calendar = {
         count ? `, ${count} ${plural('en', count, { one: 'training', other: 'trainings' })}` : ''
       }`,
     trainingsOn: (day: string) => `Trainings on ${day}`,
-    noTrainings: 'No trainings scheduled.',
+    nothingPlanned: 'Nothing planned for this day.',
     today: 'Today',
     partsHeading: 'Session plan',
     partsSummary: (n: number, minutes: number) =>
@@ -44,8 +44,10 @@ export const calendar = {
     pickTraining: 'Pick a training to assign.',
     assignError: 'Could not assign the training. Please try again.',
     date: 'Date',
-    findByBusinessId: 'Find by business ID',
-    find: 'Find',
+    searchLabel: 'Search trainings',
+    searchPlaceholder: 'Search by name or business ID',
+    lookUp: (id: string) => `Look up business ID “${id}”`,
+    notFound: (id: string) => `No training with business ID ${id}.`,
     training: 'Training',
     noneAvailable: 'No trainings available.',
     loadMore: 'Load more',

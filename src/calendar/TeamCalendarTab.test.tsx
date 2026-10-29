@@ -441,7 +441,7 @@ describe('TeamCalendarTab', () => {
       await waitFor(() => expect(calendarApi.listCalendarSessions).toHaveBeenCalled());
 
       expect(screen.getByRole('button', { name: 'Today, Tuesday 15 September' })).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByText('No trainings scheduled.')).toBeInTheDocument();
+      expect(screen.getByText('Nothing planned for this day.')).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Thursday 10 September, 1 training' }));
@@ -451,7 +451,7 @@ describe('TeamCalendarTab', () => {
       expect(await screen.findByLabelText('Remove TR-0007 on 2026-09-10')).toBeInTheDocument();
     });
 
-    it('gives the match chip of the tapped day a 44px touch target', async () => {
+    it('lists the match of the tapped day as a 52px row', async () => {
       render(
         <MemoryRouter>
           <TeamCalendarTab teamId="team-1" />
@@ -459,7 +459,7 @@ describe('TeamCalendarTab', () => {
       );
       fireEvent.click(await screen.findByRole('button', { name: 'Previous week' }));
       fireEvent.click(await screen.findByRole('button', { name: /Saturday 12 September/ }));
-      expect(screen.getByRole('link', { name: 'vs Rivals 3–1' }).className).toContain('min-h-11');
+      expect(screen.getByRole('link', { name: /vs Rivals.*3–1/ }).className).toContain('min-h-[52px]');
     });
 
     it('opens the assign dialog for the selected day', async () => {

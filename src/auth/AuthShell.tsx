@@ -23,7 +23,7 @@ export function AuthShell({
 }) {
   const t = useT().auth.shell;
   return (
-    <div className="min-h-dvh bg-bg text-ink min-[1100px]:grid min-[1100px]:grid-cols-[1.15fr_1fr]">
+    <div className="canvas min-h-dvh bg-bg text-ink min-[1100px]:grid min-[1100px]:grid-cols-[1.15fr_1fr]">
       <section className="relative hidden overflow-hidden px-8 pb-8 pt-7 min-[1100px]:sticky min-[1100px]:top-0 min-[1100px]:flex min-[1100px]:h-dvh min-[1100px]:flex-col min-[1100px]:justify-between">
         <div
           aria-hidden="true"
@@ -41,7 +41,7 @@ export function AuthShell({
         </div>
       </section>
 
-      <div className="flex min-h-dvh flex-col bg-bg px-5 pb-6 pt-[max(1rem,env(safe-area-inset-top))] min-[1100px]:border-l min-[1100px]:border-separator min-[1100px]:bg-sidebar min-[1100px]:px-7">
+      <div className="canvas flex min-h-dvh flex-col bg-bg px-5 pb-6 pt-[max(1rem,env(safe-area-inset-top))] min-[1100px]:border-l min-[1100px]:border-separator min-[1100px]:bg-sidebar min-[1100px]:px-7">
         <header className="flex min-h-11 items-center gap-2">
           <BrandMark className="min-w-0 min-[1100px]:hidden" />
           <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -49,7 +49,7 @@ export function AuthShell({
             {navAction && (
               <Link
                 to={navAction.to}
-                className="inline-flex min-h-9 items-center whitespace-nowrap rounded-full bg-surface-2 px-4 text-callout font-semibold text-ink hover:bg-surface-3"
+                className="relative inline-flex min-h-9 items-center after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] whitespace-nowrap rounded-full bg-surface-2 px-4 text-callout font-semibold text-ink hover:bg-surface-3"
               >
                 {navAction.label}
               </Link>

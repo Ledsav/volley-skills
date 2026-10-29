@@ -15,7 +15,7 @@ import {
 } from './versions';
 
 const NAV_PILL =
-  'inline-flex min-h-9 items-center whitespace-nowrap rounded-full bg-surface-2 px-4 text-callout font-semibold text-ink hover:bg-surface-3';
+  "relative inline-flex min-h-9 items-center after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] whitespace-nowrap rounded-full bg-surface-2 px-4 text-callout font-semibold text-ink hover:bg-surface-3";
 
 const VERSIONED: readonly string[] = ['terms', 'dpa', 'subprocessors'];
 /** Documents served at /legal/:doc (the privacy notice keeps its own /privacy route). */
@@ -65,10 +65,10 @@ export function LegalDocView({ doc, canonicalPath }: { doc: LegalDocId | null; c
   }
 
   return (
-    <div className="min-h-dvh bg-bg text-ink">
+    <div className="canvas min-h-dvh bg-bg text-ink">
       <header className="glass sticky top-0 z-10">
         <div className="mx-auto flex h-[52px] max-w-[720px] items-center justify-between gap-3 px-4 sm:px-6">
-          <BrandMark />
+          <BrandMark className="min-w-0" />
           <div className="flex shrink-0 items-center gap-2">
             <LanguageToggle />
             <Link to={firebaseUser ? '/' : '/login'} className={NAV_PILL}>

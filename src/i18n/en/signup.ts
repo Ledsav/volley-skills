@@ -44,6 +44,7 @@ export const signup = {
     sent: (email: string) => `We've sent a confirmation link to ${email}. Open it in this browser to sign.`,
     approveClause: (id: string) => `I specifically approve clause ${id}`,
     approve: 'Approve these clauses specifically',
+    tickAll: 'Tick every clause to approve.',
     sendFailed: 'Could not send the confirmation link. Please try again.',
   },
   complete: {

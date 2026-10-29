@@ -20,7 +20,7 @@ export function LanguageToggle({ className = '' }: { className?: string }) {
           lang={c.id}
           aria-pressed={locale === c.id}
           onClick={() => setLocale(c.id)}
-          className={`min-h-9 min-w-11 rounded-full px-2 text-caption ${
+          className={`relative min-h-9 min-w-11 rounded-full px-2 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] text-caption ${
             locale === c.id ? 'bg-surface text-ink shadow-card' : 'text-ink-2'
           }`}
         >

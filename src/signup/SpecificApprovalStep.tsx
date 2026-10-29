@@ -37,6 +37,7 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
   }
 
   async function send() {
+    if (!allTicked) return;
     setState('sending');
     setError(false);
     try {
@@ -51,12 +52,12 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
   return (
     <div className="flex flex-col gap-4">
       <p className="text-body text-ink-2">{t.intro}</p>
-      <ul lang={lang} className="overflow-hidden rounded-lg bg-surface shadow-card">
+      <ul className="overflow-hidden rounded-lg bg-surface shadow-card">
         {clauses.map((c, i) => (
           <li key={c.id} className={i > 0 ? 'border-t border-separator' : undefined}>
             <article className="p-4">
-              <h3 className="text-headline text-ink">{c.id}. {c.heading}</h3>
-              <div className="text-base leading-[1.625rem]">
+              <h3 lang={lang} className="text-headline text-ink">{c.id}. {c.heading}</h3>
+              <div lang={lang} className="text-base leading-[1.625rem]">
                 <LegalMarkdown text={c.text} />
               </div>
               <label htmlFor={`approve-${c.id}`} className="mt-3 flex min-h-11 items-start gap-3 text-body text-ink">
@@ -80,9 +81,10 @@ export function SpecificApprovalStep({ termsVersion, dpaVersion, lang, email, on
         </p>
       ) : (
         <div>
-          <Button variant="primary" disabled={state === 'sending' || !allTicked} onClick={send}>
+          <Button variant="primary" disabled={state === 'sending' || !allTicked} onClick={send} aria-describedby={allTicked ? undefined : 'approve-hint'}>
             {t.approve}
           </Button>
+          {!allTicked && <p id="approve-hint" className="mt-2 text-footnote text-ink-2">{t.tickAll}</p>}
         </div>
       )}
       {error && <p role="alert" className="text-footnote text-red-strong">{t.sendFailed}</p>}

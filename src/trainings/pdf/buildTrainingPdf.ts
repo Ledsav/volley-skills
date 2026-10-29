@@ -8,19 +8,18 @@ import type { Training } from '../../types/training';
 import { needsMorePlayers } from '../suggestions';
 
 // Light-theme design tokens (src/index.css): a PDF is always printed light.
-const INK = '#0F172A';
-const SLATE = '#64748B';
-const BLUE = '#2865F6';
-const BORDER = '#E2E8F0';
-const BG = '#F8FAFC';
-const WARN = '#C2410C';
+const INK = '#1D1D1F';
+const INK_2 = '#6E6E73';
+const INK_3 = '#8E8E93';
+const SEPARATOR = '#DEDEE0';
+const WARN = '#C93400';
 
 // Level band colours (design system: red/orange/blue/green), in their light-theme text shades.
 const LEVEL_COLOR: Record<Level, string> = {
-  Beginner: '#DC2626',
-  Developing: '#C2410C',
-  Advanced: '#2865F6',
-  Elite: '#0C7C4F',
+  Beginner: '#CD0014',
+  Developing: '#C93400',
+  Advanced: '#0040DD',
+  Elite: '#1E7D37',
 };
 
 // The embedded font (Roboto) has no arrow glyphs; coaches type them in names and descriptions.
@@ -69,6 +68,34 @@ interface TrainingPdfInput {
   diagramsById: Map<string, Diagram[]>;
   /** Turns a saved diagram into an SVG string (injected so this module stays pure). */
   svgFor: (d: Diagram) => string;
+  /** Width in pt of regular-weight text, for sizing category pills. The default estimates Roboto, the PDF's font. */
+  measure?: (text: string, fontSize: number) => number;
+}
+
+type Measure = NonNullable<TrainingPdfInput['measure']>;
+const defaultMeasure: Measure = (s, size) => s.length * size * 0.56;
+
+/** Shared table look: hairline rows, no fills. */
+const HAIRLINE = {
+  hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
+  vLineWidth: () => 0,
+  hLineColor: () => SEPARATOR,
+  paddingTop: () => 6,
+  paddingBottom: () => 6,
+};
+
+/** An outlined category pill sized to its label; plain text when it would not fit `maxWidth`. */
+function chip(label: string, measure: Measure, maxWidth?: number): Content {
+  const w = Math.ceil(measure(label, 8)) + 11;
+  if (maxWidth !== undefined && w > maxWidth) return { text: label };
+  return {
+    stack: [
+      { canvas: [{ type: 'rect', x: 0, y: 0, w, h: 13, r: 6.5, lineWidth: 0.5, lineColor: INK_3 }] },
+      { text: label, fontSize: 8, color: INK, margin: [5, -10.5, 0, 0] },
+    ],
+    width: w,
+    unbreakable: true,
+  };
 }
 
 interface LineupEntry {
@@ -123,7 +150,7 @@ export function trainingPdfFileName(training: Training, date?: string): string {
 
 const dot = '  ·  ';
 
-function coverPage(training: Training, lineup: LineupEntry[], t: Catalog): Content[] {
+function coverPage(training: Training, lineup: LineupEntry[], t: Catalog, measure: Measure): Content[] {
   const p = t.trainings.pdf;
   const total = lineup.reduce((sum, e) => sum + e.minutes, 0);
   const facts = [
@@ -140,7 +167,8 @@ function coverPage(training: Training, lineup: LineupEntry[], t: Catalog): Conte
   ];
   if (training.targets && training.targets.length > 0) {
     content.push({
-      text: [{ text: p.targets, bold: true, color: INK }, training.targets.map((target) => t.labels.exerciseCategory[target]).join(dot)],
+      columns: [{ text: p.targets, bold: true, color: INK, width: 'auto' }, ...training.targets.map((target) => chip(t.labels.exerciseCategory[target], measure))],
+      columnGap: 4,
       style: 'facts',
     });
   }
@@ -156,12 +184,12 @@ function coverPage(training: Training, lineup: LineupEntry[], t: Catalog): Conte
     (text, i): TableCell => ({ text, style: 'th', alignment: i >= 3 ? 'right' : 'left' }),
   );
   const rows = lineup.map((e): TableCell[] => [
-    { text: String(e.number), color: SLATE },
+    { text: String(e.number), color: INK_2 },
     e.name === null ? { text: p.deletedExercise, color: WARN, italics: true } : { text: e.name, bold: true },
-    { text: e.category ? t.labels.exerciseCategory[e.category] : '' },
+    e.category ? chip(t.labels.exerciseCategory[e.category], measure, 72) : { text: '' },
     { text: e.minPlayers !== undefined ? String(e.minPlayers) : '', alignment: 'right' },
     { text: String(e.minutes), alignment: 'right' },
-    { text: `${e.start}–${e.end}`, alignment: 'right', color: SLATE },
+    { text: `${e.start}–${e.end}`, alignment: 'right', color: INK_2 },
   ]);
   const totalRow: TableCell[] = [
     '',
@@ -173,15 +201,8 @@ function coverPage(training: Training, lineup: LineupEntry[], t: Catalog): Conte
   ];
 
   content.push({
-    table: { headerRows: 1, dontBreakRows: true, widths: [18, '*', 70, 52, 30, 50], body: [head, ...rows, totalRow] },
-    layout: {
-      hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
-      vLineWidth: () => 0,
-      hLineColor: () => BORDER,
-      fillColor: (row: number) => (row === 0 ? BG : null),
-      paddingTop: () => 6,
-      paddingBottom: () => 6,
-    },
+    table: { headerRows: 1, dontBreakRows: true, widths: [18, '*', 80, 52, 30, 50], body: [head, ...rows, totalRow] },
+    layout: HAIRLINE,
     style: 'table',
   });
   return content;
@@ -200,20 +221,13 @@ function teamNotesPage(notes: TeamNotes, t: Catalog): Content {
     const head = [p.team.player, p.team.position, p.team.level, p.team.whatToLookAt].map((text): TableCell => ({ text, style: 'th' }));
     const rows = notes.players.map((pl): TableCell[] => [
       { text: pl.name, bold: true },
-      { text: pl.position, color: SLATE },
-      pl.level ? { text: t.labels.level[pl.level](notes.gender), color: LEVEL_COLOR[pl.level], bold: true } : { text: p.team.notRated, color: SLATE, italics: true },
+      { text: pl.position, color: INK_2 },
+      pl.level ? { text: t.labels.level[pl.level](notes.gender), color: LEVEL_COLOR[pl.level], bold: true } : { text: p.team.notRated, color: INK_2, italics: true },
       { text: pl.note },
     ]);
     stack.push({
       table: { headerRows: 1, dontBreakRows: true, widths: [110, 90, 60, '*'], body: [head, ...rows] },
-      layout: {
-        hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
-        vLineWidth: () => 0,
-        hLineColor: () => BORDER,
-        fillColor: (row: number) => (row === 0 ? BG : null),
-        paddingTop: () => 6,
-        paddingBottom: () => 6,
-      },
+      layout: HAIRLINE,
       style: 'table',
       margin: [0, 14, 0, 0],
     });
@@ -259,15 +273,15 @@ function exercisePage(
   const p = t.trainings.pdf;
   const suggested = training.suggestedPlayers ?? null;
   const timing = slots.map((s) => p.slotTiming(s.minutes, s.start, s.end)).join(', ');
+  const measure = input.measure ?? defaultMeasure;
   const facts = [
-    t.labels.exerciseCategory[exercise.category],
     timing,
     exercise.minPlayers !== undefined ? p.minPlayersFact(exercise.minPlayers) : '',
   ].filter(Boolean);
 
   const stack: Content[] = [
     { text: `${slots.map((s) => `#${s.number}`).join(', ')} · ${exercise.name}`, style: 'h1' },
-    { text: facts.join(dot), style: 'facts' },
+    { columns: [chip(t.labels.exerciseCategory[exercise.category], measure), { text: facts.join(dot), style: 'facts', width: '*' }], columnGap: 8 },
   ];
   if (needsMorePlayers(exercise.minPlayers, suggested)) {
     stack.push({ text: p.needsMore(exercise.minPlayers as number, suggested as number), style: 'warn' });
@@ -294,30 +308,30 @@ export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDe
     header: () => ({
       text: fontSafe(`${training.businessId} · ${training.name}`),
       fontSize: 8,
-      color: SLATE,
+      color: INK_2,
       margin: [PAGE_MARGINS[0], 24, PAGE_MARGINS[2], 0],
     }),
     footer: (currentPage: number, pageCount: number) => ({
       text: t.trainings.pdf.page(currentPage, pageCount),
       fontSize: 8,
-      color: SLATE,
+      color: INK_2,
       alignment: 'right',
       margin: [PAGE_MARGINS[0], 16, PAGE_MARGINS[2], 0],
     }),
-    content: fontSafeTree([...coverPage(training, lineup, t), ...(teamNotes ? [teamNotesPage(teamNotes, t)] : []), ...pages]),
+    content: fontSafeTree([...coverPage(training, lineup, t, input.measure ?? defaultMeasure), ...(teamNotes ? [teamNotesPage(teamNotes, t)] : []), ...pages]),
     defaultStyle: { fontSize: 10, color: INK, lineHeight: 1.25 },
     styles: {
-      label: { fontSize: 9, bold: true, color: BLUE, characterSpacing: 0.5 },
-      title: { fontSize: 24, bold: true, margin: [0, 2, 0, 6] },
-      h1: { fontSize: 18, bold: true, margin: [0, 0, 0, 4] },
-      h2: { fontSize: 13, bold: true, margin: [0, 20, 0, 8] },
-      facts: { fontSize: 10, color: SLATE, margin: [0, 2, 0, 0] },
+      label: { fontSize: 9, bold: true, color: INK_2 },
+      title: { fontSize: 24, bold: true, characterSpacing: -0.48, margin: [0, 2, 0, 6] },
+      h1: { fontSize: 18, bold: true, characterSpacing: -0.31, margin: [0, 0, 0, 4] },
+      h2: { fontSize: 13, bold: true, characterSpacing: -0.16, margin: [0, 20, 0, 8] },
+      facts: { fontSize: 10, color: INK_2, margin: [0, 2, 0, 0] },
       body: { fontSize: 11, lineHeight: 1.4 },
-      muted: { color: SLATE },
+      muted: { color: INK_2 },
       warn: { fontSize: 10, bold: true, color: WARN, margin: [0, 6, 0, 0] },
-      th: { fontSize: 8, bold: true, color: SLATE },
+      th: { fontSize: 8, bold: true, color: INK_2 },
       table: { fontSize: 10 },
-      caption: { fontSize: 9, color: SLATE, alignment: 'center', margin: [0, 4, 0, 0] },
+      caption: { fontSize: 9, color: INK_2, alignment: 'center', margin: [0, 4, 0, 0] },
     },
   };
 }

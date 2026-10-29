@@ -267,3 +267,48 @@ describe('in Italian', () => {
     expect(JSON.stringify(footer(2, 3))).toContain('Pagina 2 di 3');
   });
 });
+
+describe('v2 look', () => {
+  const svgFor = () => '<svg width="100" height="100"></svg>';
+  const build = (extra: Partial<Parameters<typeof buildWith>[0]> = {}) =>
+    buildTrainingDocDefinition({ training: training(), exercisesById, diagramsById: new Map(), svgFor, ...extra });
+  const tables = (def: ReturnType<typeof build>) => walk(def.content).filter((n) => n.table);
+
+  it('prints on a light, monochrome page', () => {
+    const def = build();
+    expect(def.defaultStyle).toMatchObject({ color: '#1D1D1F' });
+    const json = JSON.stringify(def);
+    for (const old of ['#2865F6', '#F8FAFC', '#0F172A']) expect(json).not.toContain(old);
+  });
+
+  it('separates table rows with hairlines and no header fill', () => {
+    const found = tables(build());
+    expect(found.length).toBeGreaterThan(0);
+    for (const n of found) {
+      const layout = n.layout as { hLineColor: () => string; fillColor?: unknown };
+      expect(layout.hLineColor()).toBe('#DEDEE0');
+      expect(layout.fillColor).toBeUndefined();
+    }
+  });
+
+  it('draws categories as outlined pills sized to the label', () => {
+    const def = build({ measure: (s, n) => s.length * n * 0.5 });
+    const pill = walk(def.content).find((n) => Array.isArray(n.stack) && (n.stack as { text?: string }[]).some((c) => c.text === 'Service'));
+    expect(pill).toBeDefined();
+    expect((pill!.stack as { canvas: unknown[] }[])[0].canvas[0]).toMatchObject({ type: 'rect', w: 39, h: 13, r: 6.5, lineWidth: 0.5, lineColor: '#8E8E93' });
+  });
+
+  it('falls back to plain text when a pill would not fit its column', () => {
+    const def = build({ measure: () => 500 });
+    const cover = JSON.stringify(tables(def)[0]);
+    expect(cover).not.toContain('"rect"');
+    expect(cover).toContain('Service');
+  });
+
+  it('colours level labels with the v2 band text colours', () => {
+    const def = build({
+      teamNotes: { teamName: 'U17', gender: 'mixed', general: '', players: [{ name: 'A', position: '', level: 'Advanced', note: '' }] },
+    });
+    expect(walk(def.content).find((n) => n.text === 'Advanced')).toMatchObject({ color: '#0040DD' });
+  });
+});

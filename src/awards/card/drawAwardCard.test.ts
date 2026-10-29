@@ -124,6 +124,54 @@ describe('drawAwardCard', () => {
     expect(calls.some((c) => c.method === 'set:globalAlpha' && c.args[0] === 0.18)).toBe(false);
   });
 
+  it('draws only 500–700 weights', () => {
+    const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
+    const re = /^(500|600|700) [\d.]+px Inter, system-ui, sans-serif$/;
+    for (const art of [{ photo: null, cutout: null, background: null }, { photo: null, cutout: cut, background: null }, { photo: fakeImage, cutout: null, background: null }]) {
+      const { ctx, calls } = recordingCtx();
+      drawAwardCard(ctx, card, colors, art, 1);
+      const fonts = calls.filter((c) => c.method === 'set:font').map((c) => String(c.args[0]));
+      expect(fonts.length).toBeGreaterThan(0);
+      for (const f of fonts) expect(f).toMatch(re);
+    }
+    const { ctx, calls } = recordingCtx();
+    drawTitleCard(ctx, 'Best server', colors, { photo: null, cutout: null, background: null }, 0.5);
+    for (const c of calls.filter((c) => c.method === 'set:font')) expect(String(c.args[0])).toMatch(re);
+  });
+
+  it('draws the award title with display tracking', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 1);
+    const at = calls.findIndex((c) => c.method === 'fillText' && c.args[0] === 'MVP');
+    const spacing = calls.slice(0, at).filter((c) => c.method === 'set:letterSpacing').pop()!;
+    expect(parseFloat(String(spacing.args[0]))).toBeLessThan(0);
+  });
+
+  it('the player stands on a soft accent glow', () => {
+    const cut = { width: 600, height: 900 } as unknown as ImageBitmap;
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: cut, background: null }, 1);
+    const draws = calls.map((c, i) => ({ c, i })).filter(({ c }) => c.method === 'drawImage' && c.args[0] === cut);
+    const first = draws[0];
+    const glow = calls.map((c, i) => ({ c, i })).filter(({ c, i }) => c.method === 'createRadialGradient' && i < first.i).pop()!;
+    const gx = glow.c.args[0] as number;
+    const xs = draws.map(({ c }) => c.args as number[]);
+    expect(gx).toBeGreaterThan(Math.min(...xs.map((d) => d[5])));
+    expect(gx).toBeLessThan(Math.max(...xs.map((d) => d[5] + d[7])));
+  });
+
+  it('the photo circle has no ring', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: fakeImage, cutout: null, background: null }, 1);
+    expect(calls.some((c) => c.method === 'stroke')).toBe(false);
+  });
+
+  it('with no photo and no number the card shows the initials', () => {
+    const { ctx, texts } = recordingCtx();
+    drawAwardCard(ctx, { ...card, number: null }, colors, { photo: null, cutout: null, background: null }, 1);
+    expect(texts()).toContain('LP');
+  });
+
   it('title card shows only the award title', () => {
     const { ctx, texts } = recordingCtx();
     drawTitleCard(ctx, 'Best server', colors, { photo: null, cutout: null, background: null }, 0.5);

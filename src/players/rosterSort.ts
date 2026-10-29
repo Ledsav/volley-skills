@@ -1,7 +1,7 @@
 import type { Player, PositionCategory } from '../types/player';
 import { ageFromDob } from './age';
 
-export type RosterSort = 'number' | 'skill' | 'lineup' | 'birthdate';
+export type RosterSort = 'number' | 'skill' | 'lineup' | 'birthdate' | 'position';
 
 // Lineup order: specialist roles first, then unassigned, and finally "universal"
 // (an all-round player with no fixed position) dead last.
@@ -19,6 +19,11 @@ const POSITION_RANK: Record<PositionCategory, number> = {
 export function positionRank(category: PositionCategory | null | undefined): number {
   if (!category) return POSITION_RANK.TBD;
   return POSITION_RANK[category] ?? POSITION_RANK.TBD;
+}
+
+/** The category a player is grouped under: an unknown or missing one counts as TBD (same as its rank). */
+export function positionGroupKey(category: PositionCategory | null | undefined): PositionCategory {
+  return category && category in POSITION_RANK ? category : 'TBD';
 }
 
 /**
@@ -85,6 +90,10 @@ export function sortRoster(players: Player[], sort: RosterSort): Player[] {
           Number(b.starting === true) - Number(a.starting === true) ||
           positionRank(a.positionCategory) - positionRank(b.positionCategory) ||
           byNumberThenName(a, b)
+      );
+    case 'position':
+      return copy.sort(
+        (a, b) => positionRank(a.positionCategory) - positionRank(b.positionCategory) || byNumberThenName(a, b)
       );
     case 'number':
     default:

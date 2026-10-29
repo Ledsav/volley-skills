@@ -1,6 +1,7 @@
 import { sameForAll } from '../agree';
 import { plural } from '../plural';
 import type { Gender } from '../catalog';
+import type { PositionCategory } from '../../types/player';
 
 export const teams = {
   gender: {
@@ -100,6 +101,16 @@ export const teams = {
     sortLineup: 'Lineup',
     sortSkill: 'Skill level',
     sortBirthdate: 'Birthdate',
+    sortPosition: 'Position',
+    positionGroup: {
+      S: () => 'Setters',
+      OH: () => 'Outside hitters',
+      O: () => 'Opposites',
+      MB: () => 'Middle blockers',
+      L: () => 'Liberos',
+      TBD: () => 'Position not set',
+      U: () => 'Universals',
+    } as Record<PositionCategory, (g: Gender) => string>,
     age: (years: number) => `${years}y`,
     searchLabel: 'Search players',
     searchPlaceholder: 'Search name, position, number',

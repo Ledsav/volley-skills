@@ -20,7 +20,14 @@ type TargetProps = Pick<
 >;
 
 /** Right-click and touch/pen long-press menus. Spread `targetProps` on the row and render `menu` once. */
-export function useContextMenu({ label, items, disabled }: Options): { targetProps: TargetProps; menu: ReactNode } {
+export function useContextMenu({ label, items, disabled }: Options): {
+  targetProps: TargetProps;
+  menu: ReactNode;
+  /** Whether the menu is showing. */
+  isOpen: boolean;
+  /** Closes the menu without moving focus. */
+  closeMenu: () => void;
+} {
   const [at, setAt] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const id = useId();
@@ -153,5 +160,5 @@ export function useContextMenu({ label, items, disabled }: Options): { targetPro
       )
     : null;
 
-  return { targetProps, menu };
+  return { targetProps, menu, isOpen: at !== null, closeMenu: () => close(false) };
 }

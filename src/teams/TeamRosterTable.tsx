@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
@@ -6,23 +6,46 @@ import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useContextMenu } from '../components/ContextMenu';
 import { FIELD_CLASS } from '../components/Input';
+import { GroupedList } from '../components/GroupedList';
 import { LevelPill } from '../components/LevelPill';
 import type { MenuItem } from '../components/Menu';
 import { SwipeRow } from '../components/SwipeRow';
 import { deletePlayer, listPlayers, setPlayerStarting } from '../players/playersApi';
 import { ageFromDob } from '../players/age';
-import { filterRoster, sortRoster, type RosterSort } from '../players/rosterSort';
-import type { Player } from '../types/player';
+import { filterRoster, positionGroupKey, sortRoster, type RosterSort } from '../players/rosterSort';
+import { stickyTop } from '../layout/chromeMetrics';
+import type { Level, Player, PositionCategory } from '../types/player';
 import { formatNumber } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
 
-const SORT_VALUES = ['lineup', 'skill', 'birthdate'] as const satisfies readonly RosterSort[];
+const SORT_VALUES = ['lineup', 'position', 'skill', 'birthdate'] as const satisfies readonly RosterSort[];
 const TH_CLASS = 'sticky z-10 whitespace-nowrap bg-surface px-3 py-2 text-left text-caption text-ink-2';
-// 52px toolbar plus the 64px pinned tab strip
-const TH_STYLE = { top: 'calc(env(safe-area-inset-top, 0px) + 116px)' };
+// Under the toolbar and the pinned tab strip
+const TH_STYLE = { top: stickyTop('teamTabs') };
 const SORT_BUTTON_CLASS =
   'min-h-11 cursor-pointer text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
+
+const LEVEL_BAR_CLASS: Record<Level, string> = {
+  Beginner: 'bg-red',
+  Developing: 'bg-orange',
+  Advanced: 'bg-blue',
+  Elite: 'bg-green',
+};
+
+/** Decorative average-skill meter: the fill is avgScore out of 10 in the level colour; an empty track when unrated. */
+function AvgSkillBar({ avgScore, level, className = 'w-8' }: { avgScore: number | null | undefined; level: Level | null; className?: string }) {
+  const pct = avgScore == null ? 0 : Math.max(0, Math.min(100, (avgScore / 10) * 100));
+  return (
+    <span aria-hidden="true" data-testid="avg-skill-bar" className={`block h-1 shrink-0 overflow-hidden rounded-full bg-surface-3 ${className}`}>
+      <span
+        data-testid="avg-skill-fill"
+        className={`block h-full rounded-full ${level ? LEVEL_BAR_CLASS[level] : 'bg-ink-3'}`}
+        style={{ width: `${pct}%` }}
+      />
+    </span>
+  );
+}
 
 /** ISO birthdate with the current age beside it, or an em dash when unknown. */
 function BornCell({ dob }: { dob: string }) {
@@ -74,7 +97,8 @@ function RosterPhoneRow(props: RowProps) {
   const { teamId, player, gender, onToggleStarting, onRemove } = props;
   const t = useT();
   const tr = t.teams.roster;
-  const { targetProps, menu } = useRowActions(props);
+  const { targetProps, menu, isOpen, closeMenu } = useRowActions(props);
+  const openAtPress = useRef<boolean | null>(null);
   const age = ageFromDob(player.dob ?? '');
   const subtitle = [
     t.labels.position[player.positionCategory](gender),
@@ -95,35 +119,51 @@ function RosterPhoneRow(props: RowProps) {
         }}
         trailing={[{ label: tr.removeMenu, tone: 'destructive', undoable: false, onAction: () => onRemove(player) }]}
       >
-        <div className="relative flex min-h-[52px] items-center gap-2 pl-4 pr-1 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator group-first:before:hidden">
+        {/* Name budget at 360px (list 328px): 328 - 16 (pl-4) - 8 (two gap-1) - 44 (kebab) - 92 (widest pill, Italian) - 46 (avatar 36 + gap 10) = 122px. */}
+        <div className="relative flex min-h-[52px] items-center gap-1 pl-4 pr-0 before:absolute before:left-4 before:right-0 before:top-0 before:h-px before:bg-separator group-first:before:hidden">
           <Link
             to={`/teams/${teamId}/players/${player.id}`}
-            className="flex min-w-0 flex-1 items-center gap-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="flex min-w-0 flex-1 items-center gap-2.5 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             <span
               aria-hidden="true"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-3 text-footnote font-semibold text-ink-2"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-footnote font-semibold text-ink-2"
             >
               {initials(player.fullName)}
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-headline text-ink">{player.fullName}</span>
-              <span className="truncate text-footnote tabular-nums text-ink-2">{subtitle}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                {player.starting && (
+                  <span className="shrink-0 rounded-full bg-surface-3 px-2 text-caption text-ink">{tr.starting}</span>
+                )}
+                <span className="truncate text-footnote tabular-nums text-ink-2">{subtitle}</span>
+              </span>
             </span>
           </Link>
-          {player.starting && (
-            <span className="shrink-0 rounded-full bg-surface-3 px-2 text-caption text-ink">{tr.starting}</span>
-          )}
-          <span className="shrink-0 text-callout tabular-nums text-ink-2">
-            {player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}
+          <span className="flex shrink-0 flex-col items-end gap-1">
+            <LevelPill level={player.level} gender={gender} />
+            <span className="flex items-center gap-1.5">
+              <span className="text-callout tabular-nums text-ink-2">
+                {player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}
+              </span>
+              <AvgSkillBar avgScore={player.avgScore} level={player.level} />
+            </span>
           </span>
-          <LevelPill level={player.level} gender={gender} />
           {/* Opens the context menu (a portal), so the grouped list's rounded clip never cuts it off. */}
           <button
             type="button"
             aria-label={tr.rowMenu(player.fullName)}
             aria-haspopup="menu"
-            onClick={(e) => targetProps.onContextMenu?.(e)}
+            aria-expanded={isOpen}
+            onPointerDown={() => (openAtPress.current = isOpen)}
+            onClick={(e) => {
+              // A press outside the menu already closed it, so a kebab press while open must stay closed.
+              const wasOpen = openAtPress.current ?? isOpen;
+              openAtPress.current = null;
+              if (wasOpen) closeMenu();
+              else targetProps.onContextMenu?.(e);
+            }}
             className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             <MoreHorizontal size={20} aria-hidden="true" />
@@ -160,8 +200,11 @@ function RosterTableRow(props: RowProps) {
       <td className="whitespace-nowrap px-3 py-2 text-callout text-ink">
         <BornCell dob={player.dob ?? ''} />
       </td>
-      <td className="px-3 py-2 text-right text-callout tabular-nums text-ink">
-        {player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}
+      <td className="px-3 py-2 text-callout tabular-nums text-ink">
+        <span className="flex items-center justify-end gap-2">
+          <AvgSkillBar avgScore={player.avgScore} level={player.level} className="w-12" />
+          {player.avgScore != null ? formatNumber(player.avgScore, 1) : '—'}
+        </span>
       </td>
       <td className="px-3 py-2">
         <LevelPill level={player.level} gender={gender} />
@@ -201,6 +244,19 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
     () => sortRoster(filterRoster(players, search), sort),
     [players, search, sort]
   );
+
+  // Under the Position sort the list splits into one group per position (already adjacent after sorting).
+  const groups = useMemo(() => {
+    if (sort !== 'position') return null;
+    const out: { key: PositionCategory; players: Player[] }[] = [];
+    for (const player of visiblePlayers) {
+      const key = positionGroupKey(player.positionCategory);
+      const last = out[out.length - 1];
+      if (last && last.key === key) last.players.push(player);
+      else out.push({ key, players: [player] });
+    }
+    return out;
+  }, [sort, visiblePlayers]);
 
   async function loadFirstPage() {
     const page = await listPlayers(teamId);
@@ -286,7 +342,7 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={tr.searchPlaceholder}
-            className={`${FIELD_CLASS} w-full text-base sm:text-sm`}
+            className={`${FIELD_CLASS} w-full`}
           />
         </label>
         <label className="flex items-center gap-2 text-callout text-ink-2 xl:hidden">
@@ -295,11 +351,11 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
             aria-label={tr.sortAria}
             value={sort}
             onChange={(e) => setSort(e.target.value as RosterSort)}
-            className={`${FIELD_CLASS} px-2 text-base sm:text-sm`}
+            className={`${FIELD_CLASS} px-2`}
           >
             {SORT_VALUES.map((value) => (
               <option key={value} value={value}>
-                {{ lineup: tr.sortLineup, skill: tr.sortSkill, birthdate: tr.sortBirthdate }[value]}
+                {{ lineup: tr.sortLineup, position: tr.sortPosition, skill: tr.sortSkill, birthdate: tr.sortBirthdate }[value]}
               </option>
             ))}
           </select>
@@ -314,7 +370,18 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
 
       {/* Below xl (<1280px): grouped rows. The table needs ~740px of card width, which it only gets at xl
           (the sidebar eats the room at lg), so anything narrower would scroll sideways. */}
-      {visiblePlayers.length > 0 && (
+      {visiblePlayers.length > 0 && groups && (
+        <div className="flex flex-col gap-4 xl:hidden">
+          {groups.map((group) => (
+            <GroupedList key={group.key} header={t.teams.roster.positionGroup[group.key](gender)}>
+              {group.players.map((player) => (
+                <RosterPhoneRow key={player.id} {...rowProps(player)} />
+              ))}
+            </GroupedList>
+          ))}
+        </div>
+      )}
+      {visiblePlayers.length > 0 && !groups && (
         <ul className="overflow-hidden rounded-lg bg-surface shadow-card xl:hidden">
           {visiblePlayers.map((player) => (
             <RosterPhoneRow key={player.id} {...rowProps(player)} />
@@ -342,8 +409,10 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
               <th scope="col" className={TH_CLASS} style={TH_STYLE}>
                 {tr.nameCol}
               </th>
-              <th scope="col" className={TH_CLASS} style={TH_STYLE}>
-                {tr.position}
+              <th scope="col" aria-sort={ariaSort('position')} className={TH_CLASS} style={TH_STYLE}>
+                <button type="button" onClick={() => setSort('position')} className={SORT_BUTTON_CLASS}>
+                  {tr.position}
+                </button>
               </th>
               <th scope="col" aria-sort={ariaSort('birthdate')} className={TH_CLASS} style={TH_STYLE}>
                 <button type="button" onClick={() => setSort('birthdate')} className={SORT_BUTTON_CLASS}>
@@ -363,11 +432,26 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-separator">
-            {visiblePlayers.map((player) => (
-              <RosterTableRow key={player.id} {...rowProps(player)} />
-            ))}
-          </tbody>
+          {groups ? (
+            groups.map((group) => (
+              <tbody key={group.key} className="divide-y divide-separator">
+                <tr>
+                  <th scope="rowgroup" colSpan={7} className="bg-surface-2 px-3 py-2 text-left text-caption text-ink-2">
+                    {tr.positionGroup[group.key](gender)}
+                  </th>
+                </tr>
+                {group.players.map((player) => (
+                  <RosterTableRow key={player.id} {...rowProps(player)} />
+                ))}
+              </tbody>
+            ))
+          ) : (
+            <tbody className="divide-y divide-separator">
+              {visiblePlayers.map((player) => (
+                <RosterTableRow key={player.id} {...rowProps(player)} />
+              ))}
+            </tbody>
+          )}
         </table>
       </div>
 

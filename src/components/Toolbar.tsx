@@ -1,4 +1,5 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode, type RefObject } from 'react';
+import { TOOLBAR_H } from '../layout/chromeMetrics';
 import { Button } from './Button';
 
 /**
@@ -32,8 +33,8 @@ export function Toolbar({
   return (
     <header
       data-scrolled={scrolled}
-      style={{ top: 'env(safe-area-inset-top, 0px)' }}
-      className={`sticky z-30 flex h-[52px] items-center gap-2 px-4 ${scrolled ? 'glass' : 'bg-transparent'}`}
+      style={{ top: 'env(safe-area-inset-top, 0px)', height: TOOLBAR_H }}
+      className={`sticky z-30 flex items-center gap-2 px-4 ${scrolled ? 'glass' : 'bg-transparent'}`}
     >
       {leading && <div className="flex shrink-0 items-center gap-1">{leading}</div>}
       <span

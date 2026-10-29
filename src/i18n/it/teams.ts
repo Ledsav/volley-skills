@@ -1,4 +1,5 @@
 import type { Catalog, Gender } from '../catalog';
+import type { PositionCategory } from '../../types/player';
 import { agree } from '../agree';
 import { plural } from '../plural';
 
@@ -110,6 +111,16 @@ export const teams = {
     sortLineup: 'Formazione',
     sortSkill: 'Livello',
     sortBirthdate: 'Data di nascita',
+    sortPosition: 'Ruolo',
+    positionGroup: {
+      S: (g: Gender) => agree(g, 'Palleggiatori', 'Palleggiatrici', 'Palleggiatori/trici'),
+      OH: (g: Gender) => agree(g, 'Schiacciatori (banda)', 'Schiacciatrici (banda)', 'Schiacciatori/trici (banda)'),
+      O: (g: Gender) => agree(g, 'Opposti', 'Opposte', 'Opposti/e'),
+      MB: () => 'Centrali',
+      L: () => 'Liberi',
+      TBD: () => 'Ruolo da definire',
+      U: () => 'Universali',
+    } as Record<PositionCategory, (g: Gender) => string>,
     age: (years: number) => `${years} anni`,
     searchLabel: 'Cerca giocatori',
     searchPlaceholder: 'Cerca nome, ruolo, numero',

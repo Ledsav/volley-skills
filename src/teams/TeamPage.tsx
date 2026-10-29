@@ -33,6 +33,7 @@ import type { Team } from '../types/team';
 import { useNotify } from '../components/Notice';
 import { useT } from '../i18n/I18nProvider';
 import { teamGender } from './teamGender';
+import { stickyTop, TEAM_TABS_H } from '../layout/chromeMetrics';
 
 const TeamStatsTab = lazy(() => import('./stats/TeamStatsTab'));
 
@@ -141,8 +142,8 @@ export function TeamPage() {
 
       {/* Pinned under the 52px toolbar; turns glass once the page scrolls, like the toolbar. */}
       <div
-        style={{ top: 'calc(52px + env(safe-area-inset-top, 0px))' }}
-        className={`sticky z-20 -mx-4 flex h-16 items-center px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 print:hidden ${scrolled ? 'glass' : 'bg-bg'}`}
+        style={{ top: stickyTop('toolbar'), height: TEAM_TABS_H }}
+        className={`sticky z-20 -mx-4 flex items-center px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 print:hidden ${scrolled ? 'glass' : 'bg-bg'}`}
       >
         <SegmentedControl
           semantics="tabs"

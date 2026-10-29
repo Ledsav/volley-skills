@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterRoster, positionRank, sortRoster } from './rosterSort';
+import { filterRoster, positionGroupKey, positionRank, sortRoster } from './rosterSort';
 import type { Player, PositionCategory } from '../types/player';
 
 function player(overrides: Partial<Player>): Player {
@@ -123,9 +123,28 @@ describe('sortRoster', () => {
     ]);
   });
 
+  it('for position, ignores starters and orders by position, then number, then name', () => {
+    const roster = [
+      player({ id: 'mb', number: 8, positionCategory: 'MB', starting: true }),
+      player({ id: 's-b', number: 0, fullName: 'Bea', positionCategory: 'S' }),
+      player({ id: 's-a', number: 0, fullName: 'Ana', positionCategory: 'S' }),
+      player({ id: 's-7', number: 7, positionCategory: 'S' }),
+      player({ id: 'u', number: 1, positionCategory: 'U' }),
+    ];
+    expect(sortRoster(roster, 'position').map((p) => p.id)).toEqual(['s-7', 's-a', 's-b', 'mb', 'u']);
+  });
+
   it('does not mutate the input array', () => {
     const roster = [player({ id: 'x', number: 9 }), player({ id: 'y', number: 2 })];
     sortRoster(roster, 'number');
     expect(roster.map((p) => p.id)).toEqual(['x', 'y']);
+  });
+});
+
+describe('positionGroupKey', () => {
+  it('keeps a known category and treats an unknown or missing one as TBD', () => {
+    expect(positionGroupKey('MB')).toBe('MB');
+    expect(positionGroupKey(null)).toBe('TBD');
+    expect(positionGroupKey('XX' as PositionCategory)).toBe('TBD');
   });
 });

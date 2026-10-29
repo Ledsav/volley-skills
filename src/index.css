@@ -46,6 +46,19 @@
   --lh-score: 4.5rem;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Page gutter (design system section 4): 20 px on phones, 32 px from tablet up. */
+  --page-gutter: 2rem;
+  /* Secondary fills (surface-2/-3) on the bg canvas step one shade darker, so fields, segmented tracks and
+     secondary buttons stay visible there (#F2F2F7 on #F5F5F7 is ~1.02:1). On a surface (cards, sheets, the
+     sidebar) they keep the token values above. See "Fill context" below. */
+  --fill-bg-2: 232 232 237; /* #E8E8ED */
+  --fill-bg-3: 220 220 225; /* #DCDCE1 */
+  --fill-surface-2: 242 242 247;
+  --fill-surface-3: 229 229 234;
+  /* Glyphs for native controls (a background image cannot use currentColor): ink-2 per theme. */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --date-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+  --time-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
 }
 
 .dark {
@@ -80,6 +93,13 @@
   --scrim: rgb(0 0 0 / 0.56);
   --tint-alpha: 0.22;
   --shadow-card: none;
+  --fill-bg-2: 44 44 46;
+  --fill-bg-3: 58 58 60;
+  --fill-surface-2: 44 44 46;
+  --fill-surface-3: 58 58 60;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --date-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+  --time-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
 }
 
 /* Phone type sizes (design system section 3): large-title 30/36, score 56. */
@@ -89,6 +109,7 @@
     --lh-large-title: 2.25rem;
     --fs-score: 3.5rem;
     --lh-score: 3.5rem;
+    --page-gutter: 1.25rem;
   }
 }
 
@@ -110,6 +131,99 @@
     outline: 2px solid rgb(var(--color-focus));
     outline-offset: 2px;
   }
+
+  /* Thin, quiet scrollbars everywhere (no arrow buttons, transparent track): panels, sheets and the page.
+     Firefox takes the standard properties. Chromium and Safari take the ::-webkit-scrollbar rules instead: there the
+     standard properties would win over them and Windows would still draw arrow buttons, so they are left at auto. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-ink-3) / 0.45) transparent;
+  }
+  @supports selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-ink-3) / 0.45);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--color-ink-3) / 0.7);
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+  /* The app shell reserves the page scrollbar's gutter, so opening a sheet (which locks the scroll) or a page
+     growing past the fold does not shift the layout sideways. Full-screen routes are left alone. */
+  html:has([data-app-shell]) {
+    scrollbar-gutter: stable;
+  }
+
+  /* Native controls, dressed once for every form (design system section 8): */
+  /* a select gets the field chevron instead of the OS arrow; a select drawing its own icon opts out. */
+  select:not([multiple]):not([size]):not(.appearance-none) {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: var(--select-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+  }
+  select:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  /* Checkboxes and radios: ink, never the browser's blue; 20 px unless a class sizes them. */
+  :where(input[type='checkbox'], input[type='radio']) {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+  }
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'] {
+    accent-color: rgb(var(--color-ink));
+  }
+  /* Date and time pickers: the lucide glyph in ink-2 instead of the OS calendar icon. */
+  input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    background: var(--date-glyph) center / 1rem 1rem no-repeat;
+    width: 1rem;
+    height: 1rem;
+    opacity: 1;
+    color: transparent;
+  }
+  input[type='time']::-webkit-calendar-picker-indicator {
+    background-image: var(--time-glyph);
+  }
+}
+
+/* Fill context (see --fill-bg-2): the canvas gets the darker fills, a surface restores the token values. These are
+   plain class selectors on purpose: they follow whatever paints the element's background. */
+body,
+.bg-bg {
+  --color-surface-2: var(--fill-bg-2);
+  --color-surface-3: var(--fill-bg-3);
+}
+.bg-surface,
+.bg-sidebar {
+  --color-surface-2: var(--fill-surface-2);
+  --color-surface-3: var(--fill-surface-3);
 }
 
 @layer utilities {
@@ -128,8 +242,26 @@
   .bg-green-tint { background-color: rgb(var(--color-green) / var(--tint-alpha)); }
   .pressable { transition: transform 160ms var(--ease-out), background-color 150ms ease, color 150ms ease; }
   .pressable:active { transform: scale(0.97); transition-duration: 100ms; }
-  /* A floating panel's own scroll: a thin, quiet scrollbar on a transparent track. */
-  .scroll-quiet { scrollbar-width: thin; scrollbar-color: rgb(var(--color-ink-3) / 0.45) transparent; }
+  /* A floating panel's own scroll: a thin, quiet scrollbar on a transparent track. Every scroller now gets that from
+     the base rules, so this only restates it for Firefox (in Chromium the standard properties would bring back the
+     Windows arrow buttons). */
+  @supports not selector(::-webkit-scrollbar) {
+    .scroll-quiet { scrollbar-width: thin; scrollbar-color: rgb(var(--color-ink-3) / 0.45) transparent; }
+  }
+  /* A horizontal strip of chips or tabs: no scrollbar, and a soft fade on whichever edge has more content
+     (useEdgeFade sets data-fade-start / data-fade-end; ScrollStrip wires both). */
+  .scroll-strip {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    --fade-start: 0px;
+    --fade-end: 0px;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+  }
+  .scroll-strip::-webkit-scrollbar { display: none; }
+  .scroll-strip[data-fade-start] { --fade-start: 1.5rem; }
+  .scroll-strip[data-fade-end] { --fade-end: 1.5rem; }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -226,6 +358,13 @@
     --scrim: rgb(0 0 0 / 0.28);
     --tint-alpha: 0.14;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --fill-bg-2: 232 232 237;
+    --fill-bg-3: 220 220 225;
+    --fill-surface-2: 242 242 247;
+    --fill-surface-3: 229 229 234;
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --date-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+    --time-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
   }
   header, nav, footer { display: none !important; }
   body { background: #fff; }

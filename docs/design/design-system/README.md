@@ -66,6 +66,12 @@ Colours are CSS variables per theme in `src/index.css`, exposed to Tailwind as s
 | `focus` | `#0071E3` | `#409CFF` | Focus ring only |
 | `sidebar` | `#FFFFFF` | `#0D0D0F` | Solid sidebar and the sign-in form pane |
 
+**Fill context.** On the light `bg` canvas, `surface-2` and `surface-3` step one shade darker (`#E8E8ED` /
+`#DCDCE1`), so a field, a segmented track or a secondary button placed straight on the page stays visible
+(`#F2F2F7` on `#F5F5F7` is about 1.02:1). Inside anything painted `surface` or `sidebar` (cards, sheets, the sidebar,
+the sign-in pane) they keep the values above. `src/index.css` does this once ("Fill context"); components keep using
+`bg-surface-2`. Quiet labels on these fills are `ink` at 75%, because `ink-2` drops under AA on the darker shade.
+
 ### 2.2 Data colours
 
 Each data colour has two forms:
@@ -126,6 +132,9 @@ depends on size: tighter as text grows. Sizes are in `rem`, so the browser's tex
   - 32 px between groups, and 8 px between a group header and its group.
   - Page gutters are 20 px on phones and 32 px on desktop.
   - Content is at most 1080 px wide; forms and long text at most 720 px.
+  - Every shell page sits in `PageContainer` (`src/layout/PageContainer.tsx`): left-aligned, the gutter on both sides,
+    capped at 1080 (or 720 with `width="form"`). The gutter is the `--page-gutter` variable, so full-bleed strips
+    use `-mx-[var(--page-gutter)]`; a sheet body sets its own.
 - **Radii:**
 
   | Radius | Use |
@@ -220,7 +229,9 @@ The exact behaviour of each pattern, and which screen uses what, is in the redes
 |---|---|
 | **Main action** | At most one per screen, top-right in the toolbar: a filled ink pill on desktop, "+" or a short label on a phone. Secondary actions go in a "⋯" menu beside it. |
 | **Buttons** | Primary is filled `ink` with `on-ink` text. Secondary is a `surface-2` fill. Plain is text only. Destructive is red text. Minimum 44 px high. |
-| **Segmented control** | Replaces tab rows: a `surface-2` track with a sliding `surface` pill (`#636366` in dark). |
+| **Segmented control** | Replaces tab rows: a `surface-2` track with a sliding `surface` pill (`#636366` in dark). As wide as its labels; `w-full` only on phones. When it overflows it scrolls with an edge fade. |
+| **Horizontal strips** | Chip rows and strips (`ScrollStrip`) scroll with no scrollbar and fade the edge that hides more. Other scrollers get thin, quiet scrollbars with no arrow buttons. |
+| **Form controls** | One label style (`FieldLabel` / `Field`: footnote, `ink-2`). Native selects get the field chevron, checkboxes and radios are `ink`, date pickers the lucide calendar glyph, all from `src/index.css`. On/off settings use `Switch`. |
 | **Grouped list** | `surface` group, radius 16, rows at least 52 px, hairlines inset to the text. Chevron only when the row navigates. |
 | **Level pill** | The band's tint plus its text colour, with the number in tabular figures. |
 | **Sheet** | Replaces every dialog. Desktop: centred, 560 px (720 for builders), with footer actions. Phone: bottom sheet with detents, grabber, Cancel · Title · Confirm in the header. A dirty sheet never closes on a flick; it asks "Discard changes?". |

@@ -60,6 +60,7 @@ export function PeopleTab() {
       return allHolders;
     } catch {
       setError(p.loadFailed);
+      setLoaded(true);
       return null;
     }
   }
@@ -175,6 +176,7 @@ export function PeopleTab() {
   ) : (
     <>
       {!narrow && <h2 className="mb-4 break-all text-title-3 text-ink">{target.email}</h2>}
+      {narrow && error && !confirm && <p role="alert" className="mb-4 text-footnote text-red-strong">{error}</p>}
 
       {target.role === 'admin' ? (
         <p className="mb-4 text-callout text-ink-2">{p.adminsFullAccess}</p>
@@ -192,7 +194,7 @@ export function PeopleTab() {
               ))}
             </div>
           </fieldset>
-          <TeamGrantList teams={teamPages.teams} hasMore={teamPages.hasMore}
+          <TeamGrantList key={target.email} teams={teamPages.teams} hasMore={teamPages.hasMore}
             loadingMore={teamPages.loadingMore} loadMoreFailed={teamPages.error === 'more'}
             onLoadMore={() => void teamPages.loadMore()}
             selected={draft.teamIds} onToggle={toggleTeam} />
@@ -232,7 +234,7 @@ export function PeopleTab() {
 
   return (
     <div>
-      {(error ?? (teamPages.error === 'load' ? p.loadFailed : null)) && !confirm && (
+      {(error ?? (teamPages.error === 'load' ? p.loadFailed : null)) && !confirm && !(narrow && target) && (
         <p role="alert" className="mb-4 text-red-strong">{error ?? p.loadFailed}</p>
       )}
       <div className={narrow ? '' : 'grid gap-6 lg:grid-cols-[20rem_1fr]'}>

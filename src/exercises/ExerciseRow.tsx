@@ -58,7 +58,7 @@ export function ExerciseRow({
             <div
               onClick={stop}
               onKeyDown={stop}
-              className="shrink-0 self-center empty:hidden md:aspect-[4/3] md:w-full md:self-auto md:bg-surface-2 md:empty:block"
+              className="shrink-0 self-center empty:hidden md:aspect-[4/3] md:w-full md:self-auto md:overflow-hidden md:bg-surface-2 md:empty:block"
             >
               <DiagramThumbnail
                 exerciseId={exercise.id}

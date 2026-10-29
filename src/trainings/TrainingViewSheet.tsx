@@ -112,9 +112,11 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
       detent="large"
       onClose={onClose}
       footer={
-        <>
+        // Phones: the PDF action gets its own row, so "Share PDF ready" (or a longer Italian label) never wraps
+        // inside a third of the width; Edit and Start share the row below.
+        <div className="flex w-full flex-wrap items-center gap-3 sm:flex-nowrap">
           {pdf instanceof File ? (
-            <Button variant="secondary" onClick={() => void sharePdf(pdf)} className="flex-1 gap-1.5 sm:mr-auto sm:flex-none">
+            <Button variant="secondary" onClick={() => void sharePdf(pdf)} className="w-full gap-1.5 whitespace-nowrap sm:mr-auto sm:w-auto">
               <Share2 className="h-4 w-4" aria-hidden="true" />
               {v.sharePdfReady}
             </Button>
@@ -123,7 +125,7 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
               variant="secondary"
               onClick={() => (teamContext ? setAskingNotes(true) : void buildPdf())}
               disabled={pdf === 'building'}
-              className="flex-1 gap-1.5 sm:mr-auto sm:flex-none"
+              className="w-full gap-1.5 whitespace-nowrap sm:mr-auto sm:w-auto"
             >
               <FileDown className="h-4 w-4" aria-hidden="true" />
               {pdf === 'building' ? v.preparingPdf : v.sharePdf}
@@ -142,7 +144,7 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
             <Play className="h-4 w-4" aria-hidden="true" />
             {v.start}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-col gap-4">

@@ -25,7 +25,7 @@ export function NextUpBlock({ items, failed, onPlan }: { items: FeedItem[]; fail
         <GroupedList>
           {items.map((item) => (
             <ListRow
-              key={item.kind === 'session' ? `s-${item.session.id}` : `m-${item.match.id}`}
+              key={item.kind === 'session' ? `s-${item.team.id}/${item.session.id}` : `m-${item.team.id}/${item.match.id}`}
               // B1: a session opens the team calendar on that session.
               to={
                 item.kind === 'session'

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import * as teamsApi from './teamsApi';
@@ -95,5 +95,16 @@ describe('CreateTeamDialog', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
+  });
+
+  it('Cancel after typing asks to discard', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } }));
+    const onClose = vi.fn();
+    render(<CreateTeamDialog onClose={onClose} onCreated={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'U17' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole('alertdialog', { name: 'Discard changes?' })).getByRole('button', { name: 'Discard' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -21,6 +21,7 @@ export const teams = {
       }),
   },
   shared: {
+    loading: 'Caricamento squadre…',
     saving: 'Salvataggio…',
     loadMore: 'Carica altri',
     loadingStats: 'Caricamento statistiche di squadra…',
@@ -30,6 +31,10 @@ export const teams = {
     import: 'Importa',
     create: 'Crea squadra',
     none: 'Ancora nessuna squadra.',
+    filterLabel: 'Mostra squadre',
+    filterMine: 'Mie',
+    filterAll: 'Tutte',
+    noneMine: 'Non sei ancora in nessuna squadra.',
     noneAssigned: "Nessuna squadra assegnata — chiedi all'amministratore del club.",
     season: (season: string) => `Stagione ${season}`,
     rowMenu: (n: string) => `Azioni per ${n}`,

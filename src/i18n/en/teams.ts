@@ -16,6 +16,7 @@ export const teams = {
     players: ((n: number) => (n === 1 ? '1 player' : `${n} players`)) as (n: number, g: Gender) => string,
   },
   shared: {
+    loading: 'Loading teams…',
     saving: 'Saving…',
     loadMore: 'Load more',
     loadingStats: 'Loading team stats…',
@@ -25,6 +26,10 @@ export const teams = {
     import: 'Import',
     create: 'Create team',
     none: 'No teams yet.',
+    filterLabel: 'Show teams',
+    filterMine: 'Mine',
+    filterAll: 'All',
+    noneMine: "You're not listed on any team yet.",
     noneAssigned: 'No teams assigned yet — ask your club admin.',
     season: (season: string) => `Season ${season}`,
     rowMenu: (n: string) => `Actions for ${n}`,

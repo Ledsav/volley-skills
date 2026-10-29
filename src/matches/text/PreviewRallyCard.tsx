@@ -24,15 +24,15 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
     onChange({ ...rally, actions: rally.actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
 
   return (
-    <li className={`rounded-md border p-2 ${issues.some((x) => x.blocking) ? 'border-red' : 'border-border'} bg-surface`}>
+    <li className={`rounded-lg bg-surface-2 p-3 ${issues.some((x) => x.blocking) ? 'ring-1 ring-red' : ''}`}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-semibold text-ink">{t.textScout.preview.rally(n)}</span>
-        <button type="button" aria-label={t.textScout.preview.deleteRally(n)} onClick={onDelete} className="flex h-11 w-11 items-center justify-center rounded-md text-red-strong hover:bg-red/10">
+        <span className="text-callout font-semibold text-ink">{t.textScout.preview.rally(n)}</span>
+        <button type="button" aria-label={t.textScout.preview.deleteRally(n)} onClick={onDelete} className="flex h-11 w-11 items-center justify-center rounded-md text-red-strong hover:bg-red-tint">
           <Trash2 size={16} aria-hidden="true" />
         </button>
       </div>
       {(rally.subs.length > 0 || rally.timeouts.length > 0) && (
-        <p className="mb-1 text-xs text-slate">
+        <p className="mb-1 text-footnote text-ink-2">
           {rally.subs.map((s) => t.textScout.preview.sub(s.inNumber, s.outNumber)).concat(rally.timeouts.map((to) => t.textScout.preview.timeout(to.team))).join(' · ')}
         </p>
       )}
@@ -62,7 +62,7 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
             <select
               aria-label={t.textScout.preview.gradeAria(n, i + 1)}
               aria-invalid={a.grade === null ? 'true' : undefined}
-              className={a.grade === null ? SELECT.replace('border-border', 'border-red') : SELECT}
+              className={a.grade === null ? `${SELECT} ring-1 ring-red` : SELECT}
               value={a.grade ?? ''}
               onChange={(e) => setAction(i, { grade: e.target.value ? (e.target.value as Grade) : null })}
             >
@@ -76,14 +76,14 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
               type="button"
               aria-label={t.textScout.preview.deleteActionAria(n, i + 1)}
               onClick={() => onChange({ ...rally, actions: rally.actions.filter((_, j) => j !== i) })}
-              className="flex h-11 w-11 items-center justify-center rounded-md text-slate hover:bg-bg"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 hover:bg-surface-3"
             >
               <Trash2 size={14} aria-hidden="true" />
             </button>
           </li>
         ))}
       </ul>
-      <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+      <label className="mt-2 flex items-center gap-2 text-callout text-ink">
         {t.textScout.preview.point}
         <select
           aria-label={t.textScout.preview.pointAria(n)}
@@ -97,10 +97,10 @@ export function PreviewRallyCard({ index, rally, roster, issues, onChange, onDel
           <option value="us">{t.textScout.preview.us}</option>
           <option value="them">{t.textScout.preview.them}</option>
         </select>
-        {rally.point?.reason && <span className="text-xs text-slate">{t.labels.pointReason[rally.point.reason]}</span>}
+        {rally.point?.reason && <span className="text-footnote text-ink-2">{t.labels.pointReason[rally.point.reason]}</span>}
       </label>
       {issues.map((x, i) => (
-        <p key={i} className={`mt-1 text-xs ${x.blocking ? 'text-red-strong' : 'text-orange-strong'}`}>{issueMessage(x, t)}</p>
+        <p key={i} className={`mt-1 text-footnote ${x.blocking ? 'text-red-strong' : 'text-orange-strong'}`}>{issueMessage(x, t)}</p>
       ))}
     </li>
   );

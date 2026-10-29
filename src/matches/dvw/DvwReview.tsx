@@ -82,76 +82,84 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
   const canImport = blocking.length === 0 && (!scoresDiffer || confirmed);
   const sets = Math.max(checks.fileSets.length, checks.pointLineSets.length, checks.replaySets.length);
 
+  const GROUP = 'rounded-lg bg-surface p-4';
+  const HEADER = 'mb-2 text-footnote text-ink-2';
   return (
-    <div className="flex flex-col gap-5">
-      <p className="text-sm text-slate">{fileName}</p>
-
+    <div className="flex flex-col gap-4">
       {duplicate && (
-        <p className="rounded-md border border-orange bg-orange/10 px-3 py-2 text-sm text-ink">
+        <p className="rounded-lg bg-orange-tint px-3 py-2 text-callout text-ink">
           {d.alreadyImported(duplicate.date, duplicate.opponent)}{' '}
-          <Link to={`/teams/${teamId}/matches/${duplicate.id}`} className="font-medium text-blue-strong hover:underline">
+          <Link to={`/teams/${teamId}/matches/${duplicate.id}`} className="font-semibold text-ink underline">
             {d.openExisting}
           </Link>
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {d.date}
-          <Input type="date" value={setup.date} onChange={(e) => setEdits((c) => ({ ...c, date: e.target.value }))} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {d.opponent}
-          <Input value={setup.opponent} onChange={(e) => setEdits((c) => ({ ...c, opponent: e.target.value }))} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {d.competition}
-          <select
-            className={FIELD_CLASS}
-            value={setup.competition}
-            onChange={(e) => setEdits((c) => ({ ...c, competition: e.target.value as Competition }))}>
-            <option value="league">{d.league}</option>
-            <option value="cup">{d.cup}</option>
-            <option value="friendly">{d.friendly}</option>
-            <option value="tournament">{d.tournament}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {d.format}
-          <select
-            className={FIELD_CLASS}
-            value={setup.format.bestOf}
-            onChange={(e) => setEdits((c) => ({ ...c, bestOf: Number(e.target.value) as 3 | 5 }))}>
-            <option value={3}>{d.bestOf3}</option>
-            <option value={5}>{d.bestOf5}</option>
-          </select>
-        </label>
-      </div>
+      <section className={GROUP}>
+        <h3 className={HEADER}>{d.file}</h3>
+        <p className="truncate text-callout text-ink">{fileName}</p>
+      </section>
 
-      <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-ink">{d.whichTeam}</legend>
+      <section className={GROUP}>
+        <h3 className={HEADER}>{d.matchGroup}</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {d.date}
+            <Input type="date" value={setup.date} onChange={(e) => setEdits((c) => ({ ...c, date: e.target.value }))} />
+          </label>
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {d.opponent}
+            <Input value={setup.opponent} onChange={(e) => setEdits((c) => ({ ...c, opponent: e.target.value }))} />
+          </label>
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {d.competition}
+            <select
+              className={FIELD_CLASS}
+              value={setup.competition}
+              onChange={(e) => setEdits((c) => ({ ...c, competition: e.target.value as Competition }))}>
+              <option value="league">{d.league}</option>
+              <option value="cup">{d.cup}</option>
+              <option value="friendly">{d.friendly}</option>
+              <option value="tournament">{d.tournament}</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {d.format}
+            <select
+              className={FIELD_CLASS}
+              value={setup.format.bestOf}
+              onChange={(e) => setEdits((c) => ({ ...c, bestOf: Number(e.target.value) as 3 | 5 }))}>
+              <option value={3}>{d.bestOf3}</option>
+              <option value={5}>{d.bestOf5}</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <fieldset className={GROUP}>
+        <legend className={`${HEADER} float-left w-full`}>{d.whichTeam}</legend>
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-6">
           {(['*', 'a'] as const).map((s) => (
-            <label key={s} className="flex items-center gap-2 text-sm text-ink">
+            <label key={s} className="flex min-h-11 items-center gap-2 text-callout text-ink">
               <input type="radio" name="dvw-side" checked={side === s} onChange={() => flip(s)} />
               {file.teams[s].name}
-              <span className="text-slate">({s === '*' ? d.home : d.visiting})</span>
+              <span className="text-ink-2">({s === '*' ? d.home : d.visiting})</span>
             </label>
           ))}
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-ink">{d.roster}</legend>
+      <fieldset className={GROUP}>
+        <legend className={`${HEADER} float-left w-full`}>{d.roster}</legend>
         <ul className="flex flex-col gap-2">
           {ourFilePlayers(file, side).map((p) => {
             const key = `${side}${p.jersey}`;
             const name = `${p.firstName} ${p.lastName}`.trim() || d.notInList;
             return (
-              <li key={key} className="flex items-center gap-2 text-sm">
+              <li key={key} className="flex items-center gap-2 text-callout">
                 <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-ink">#{p.jersey}</span>
                 <span className="min-w-0 flex-1 truncate text-ink">{name}</span>
-                <span className="hidden w-20 shrink-0 text-xs text-slate sm:block">{roleLabel(p)}</span>
+                <span className="hidden w-20 shrink-0 text-footnote text-ink-2 sm:block">{roleLabel(p)}</span>
                 <select
                   aria-label={d.mapAria(p.jersey, name)}
                   className={`${FIELD_CLASS} w-40 shrink-0`}
@@ -170,11 +178,11 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
         </ul>
       </fieldset>
 
-      <section data-testid="checks" aria-label={d.checks} className="rounded-md border border-border bg-surface p-3 text-sm">
-        <h3 className="mb-2 font-semibold text-ink">{d.checks}</h3>
+      <section data-testid="checks" aria-label={d.checks} className={`${GROUP} text-callout`}>
+        <h3 className={HEADER}>{d.checks}</h3>
         <table className="mb-3 w-full tabular-nums">
           <thead>
-            <tr className="text-left text-xs text-slate">
+            <tr className="text-left text-footnote text-ink-2">
               <th scope="col" className="font-medium">{d.set}</th>
               <th scope="col" className="font-medium">{d.file}</th>
               <th scope="col" className="font-medium">{d.pointLines}</th>
@@ -196,14 +204,14 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
           {d.corrections(checks.corrections.length)}
           {checks.corrections.length > 0 && <> {d.correctionLines(checks.corrections)}</>}
         </p>
-        <p className="text-slate">
+        <p className="text-ink-2">
           {d.events}{' '}
           {Object.entries(checks.eventCounts)
             .filter(([, n]) => n > 0)
             .map(([type, n]) => `${d.eventTypes[type as keyof typeof d.eventTypes]} ${n}`)
             .join(', ') || d.none}
         </p>
-        <p className="text-slate">{d.ignored(checks.ignoredLines)}</p>
+        <p className="text-ink-2">{d.ignored(checks.ignoredLines)}</p>
         {warnings.length > 0 && (
           <ul className="mt-2 list-disc pl-5 text-ink">
             {warnings.map((w, i) => (
@@ -214,9 +222,9 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
       </section>
 
       {scoresDiffer && (
-        <div className="rounded-md border border-orange bg-orange/10 px-3 py-2 text-sm text-ink">
-          <p className="mb-2 font-medium">{d.scoresDiffer}</p>
-          <label className="flex items-center gap-2">
+        <div className="rounded-lg bg-orange-tint px-3 py-2 text-callout text-ink">
+          <p className="mb-2 font-semibold">{d.scoresDiffer}</p>
+          <label className="flex min-h-11 items-center gap-2">
             <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
             {d.checkedScores}
           </label>
@@ -224,7 +232,7 @@ export function DvwReview({ teamId, file, fileName, players, appNames, duplicate
       )}
 
       {blocking.length > 0 && (
-        <ul data-testid="blocking-issues" className="flex flex-col gap-1 text-sm text-red-strong">
+        <ul data-testid="blocking-issues" className="flex flex-col gap-1 text-callout text-red-strong">
           {blocking.map((m, i) => (
             <li key={i} role="alert">{m}</li>
           ))}

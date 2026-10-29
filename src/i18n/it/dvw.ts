@@ -59,6 +59,7 @@ export const dvw = {
     checks: 'Controlli',
     set: 'Set',
     file: 'File',
+    matchGroup: 'Partita',
     pointLines: 'Righe punto',
     replayed: 'Ricostruito',
     setN: (n) => `Set ${n}`,

@@ -64,12 +64,12 @@ describe('branding', () => {
     const withLogo = recordingCtx();
     drawHeaderRow(withLogo.ctx, { clubLogo: img(300, 300), clubName: 'Demo VC', teamName: 'U17 Girls', right: 'Season 2026-27' }, colors, 1);
     expect(withLogo.calls.filter((c) => c.method === 'drawImage')).toHaveLength(1);
-    expect(withLogo.texts()).toEqual(['U17 GIRLS', 'SEASON 2026-27']);
+    expect(withLogo.texts()).toEqual(['U17 Girls', 'Season 2026-27']);
     const ys = withLogo.calls.filter((c) => c.method === 'fillText').map((c) => c.args[2]);
     expect(new Set(ys).size).toBe(1); // one row, not stacked
     const noLogo = recordingCtx();
     drawHeaderRow(noLogo.ctx, { clubLogo: null, clubName: 'Demo VC', teamName: 'U17 Girls', right: '' }, colors, 1);
-    expect(noLogo.texts()).toEqual(['DEMO VC · U17 GIRLS']);
+    expect(noLogo.texts()).toEqual(['Demo VC · U17 Girls']);
   });
 
   const rgba = (...p: number[][]) => new Uint8ClampedArray(p.flat());

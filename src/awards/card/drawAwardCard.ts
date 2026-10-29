@@ -3,6 +3,7 @@ import { contentBottom, drawHeaderRow, drawSponsorRow, type Branding, type Heade
 import { cardBeats, easeOutBack, easeOutCubic } from './cardTimeline';
 import { confettiAt, seedFrom } from './confetti';
 import { CARD_H, CARD_W, MARGIN } from './geometry';
+import { drawGlow } from './glow';
 import { fitBlock, textAt } from './wrapText';
 
 export { CARD_H, CARD_W } from './geometry';
@@ -38,17 +39,13 @@ export function cardHeader(card: Pick<CardModel, 'teamName' | 'clubName' | 'foot
   return { clubLogo: art.branding?.clubLogo ?? null, clubName: card.clubName, teamName: card.teamName, right: card.footer };
 }
 
-/** Flat slide colour, one soft accent disc, and the optional photo texture on top. */
+/** Flat slide colour, one soft accent glow, and the optional photo texture on top. */
 export function drawBackground(ctx: CanvasRenderingContext2D, colors: SlideColors, art: Pick<CardArt, 'background'>, alpha: number, seed = 0) {
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
-  ctx.globalAlpha = 0.18;
-  ctx.fillStyle = colors.accent;
-  ctx.beginPath();
-  ctx.arc(seed % 2 ? CARD_W * 0.85 : CARD_W * 0.15, CARD_H * (0.2 + (seed % 3) * 0.25), 520, 0, Math.PI * 2);
-  ctx.fill();
+  drawGlow(ctx, seed % 2 ? CARD_W * 0.85 : CARD_W * 0.15, CARD_H * (0.2 + (seed % 3) * 0.25), 620, colors.accent, 0.22);
   if (art.background) {
     ctx.globalAlpha = 0.35 * alpha;
     const s = Math.max(CARD_W / art.background.width, CARD_H / art.background.height);

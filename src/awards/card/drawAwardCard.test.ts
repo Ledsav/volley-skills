@@ -17,13 +17,13 @@ describe('drawAwardCard', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 1);
     const all = texts();
-    for (const s of ['DEMO VC · U17 GIRLS', 'VS RIVALS · 12 OCT 2026', 'MVP', 'Lena P.', '6.2 MVP pts']) expect(all).toContain(s);
+    for (const s of ['Demo VC · U17 Girls', 'vs Rivals · 12 Oct 2026', 'MVP', 'Lena P.', '6.2 MVP pts']) expect(all).toContain(s);
   });
 
   it('header shows only the team when the team has no club', () => {
     const { ctx, texts } = recordingCtx();
     drawAwardCard(ctx, { ...card, clubName: '  ' }, colors, { photo: null, cutout: null, background: null }, 1);
-    expect(texts()).toContain('U17 GIRLS');
+    expect(texts()).toContain('U17 Girls');
     expect(texts().some((t) => t.includes('·') && t.includes('U17'))).toBe(false);
   });
 
@@ -115,6 +115,13 @@ describe('drawAwardCard', () => {
     drawAwardCard(ctx, { ...card, statLine: null, note: 'Always cheering' }, colors, { photo: null, cutout: null, background: null }, 1);
     expect(texts()).toContain('Always cheering');
     expect(texts()).not.toContain('6.2 MVP pts');
+  });
+
+  it('the background glows softly in the accent instead of a solid disc', () => {
+    const { ctx, calls } = recordingCtx();
+    drawAwardCard(ctx, card, colors, { photo: null, cutout: null, background: null }, 0);
+    expect(calls.some((c) => c.method === 'createRadialGradient')).toBe(true);
+    expect(calls.some((c) => c.method === 'set:globalAlpha' && c.args[0] === 0.18)).toBe(false);
   });
 
   it('title card shows only the award title', () => {

@@ -23,6 +23,8 @@ interface CourtGridProps {
   disabled?: boolean;
   /** We hold serve: the P1 tile carries the serve marker. */
   servingUs?: boolean;
+  /** Tight height (action panel open on a phone, landscape phone): 56 px tiles and tighter gaps. */
+  compact?: boolean;
 }
 
 // Seen from behind our baseline: front row P4 P3 P2 (net side), back row P5 P6 P1.
@@ -31,7 +33,7 @@ const BACK_ZONES = [4, 5, 0];
 const LONG_PRESS_MS = 500;
 // 'serving' liberos come on when we serve, i.e. to defend (tile labels: t.scout.court.liberoTile).
 
-export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selectedId, autoSelected = false, form, onSelect, onLongPress, disabled = false, servingUs = false }: CourtGridProps) {
+export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selectedId, autoSelected = false, form, onSelect, onLongPress, disabled = false, servingUs = false, compact = false }: CourtGridProps) {
   const t = useT();
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
@@ -50,14 +52,14 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
     const entry = id ? roster.get(id) : undefined;
     const serves = servingUs && zone === 0;
     const zoneLabel = (muted: string) => (
-      <span className={`absolute left-1.5 top-1 flex items-center gap-1 text-[11px] font-medium leading-4 ${muted}`}>
+      <span className={`absolute ${compact ? 'bottom-1 right-1.5' : 'left-1.5 top-1'} flex items-center gap-1 text-[11px] font-medium leading-4 ${muted}`}>
         P{zone + 1}
         {serves && <Volleyball size={12} aria-hidden="true" />}
       </span>
     );
     if (!entry) {
       return (
-        <div key={zone} className="relative min-h-[72px] rounded-md border border-dashed border-separator md:min-h-20">
+        <div key={zone} className={`relative ${compact ? 'min-h-14' : 'min-h-[72px] md:min-h-20'} rounded-md border border-dashed border-separator`}>
           {zoneLabel('text-ink-2')}
         </div>
       );
@@ -93,7 +95,7 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
         onClick={() => {
           if (!disabled && !longPressed.current) onSelect(id);
         }}
-        className={`relative flex min-h-[72px] min-w-0 select-none flex-col items-start justify-center gap-1 rounded-md px-2.5 pb-1.5 pt-5 text-left text-ink disabled:opacity-60 md:min-h-20 ${
+        className={`relative flex ${compact ? 'min-h-14' : 'min-h-[72px] md:min-h-20'} min-w-0 select-none flex-col items-start justify-center ${compact ? 'gap-0' : 'gap-1'} rounded-md px-2.5 ${compact ? 'py-1' : 'pb-1.5 pt-5'} text-left text-ink disabled:opacity-60 ${
           isSelected ? 'bg-surface-3 ring-2 ring-ink' : isLibero ? 'bg-orange-tint' : 'bg-surface'
         } ${isServer && !isSelected ? 'ring-2 ring-inset ring-surface-3' : ''}`}
       >
@@ -123,14 +125,14 @@ export function CourtGrid({ court, roster, roles, liberos, activeLiberoId, selec
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-2 flex items-center gap-2" aria-hidden="true">
+      <div className={`${compact ? 'mb-1' : 'mb-2'} flex items-center gap-2`} aria-hidden="true">
         <span className="h-1 flex-1 rounded-full bg-ink" />
         <span className="text-caption text-ink-2">{t.scout.court.net}</span>
         <span className="h-1 flex-1 rounded-full bg-ink" />
       </div>
       <div className="grid flex-1 grid-cols-3 grid-rows-[1fr] gap-2">{FRONT_ZONES.map(tile)}</div>
       {/* The attack line: front row above, back row below. */}
-      <div className="my-2 border-t-2 border-dashed border-separator" aria-hidden="true" />
+      <div className={`${compact ? 'my-1' : 'my-2'} border-t-2 border-dashed border-separator`} aria-hidden="true" />
       <div className="grid flex-1 grid-cols-3 grid-rows-[1fr] gap-2">{BACK_ZONES.map(tile)}</div>
     </div>
   );

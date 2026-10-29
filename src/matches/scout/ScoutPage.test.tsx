@@ -177,7 +177,10 @@ describe('ScoutPage', () => {
     const corr: MatchEvent = { id: 'e2', order: 2, source: 'correction', chunkId: null, type: 'correction', score: { us: 25, them: 20 }, rotation: null, serving: null };
     renderPage([setStart, corr]);
     const prompt = await screen.findByRole('dialog', { name: 'Set point' });
-    expect(prompt).toHaveClass('top-32', 'md:top-36');
+    expect(prompt).toHaveClass('absolute', 'top-2');
+    // Inside the content region, which sits below the header and any status strip.
+    expect(prompt.parentElement).toHaveClass('relative');
+    expect(screen.getByRole('banner').contains(prompt)).toBe(false);
   });
 
   it('shows the Live tag from md and gives the court the main desktop column', async () => {
@@ -804,8 +807,36 @@ describe('ScoutPage', () => {
       expect(main.contains(panel)).toBe(false);
       expect(panel.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(main.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      // The pinned block does not shrink or scroll with the court.
-      expect(panel.parentElement).toHaveClass('shrink-0');
+      // The pinned block shrinks and scrolls, so the dock is never the thing that clips.
+      expect(panel.parentElement).toHaveClass('min-h-0', 'shrink', 'overflow-y-auto');
+      expect(panel.parentElement).not.toHaveClass('shrink-0');
+      expect(dock).toHaveClass('shrink-0');
+      // Six grades in one row, and the tiles go compact (56 px) while the panel is open.
+      expect(within(panel).getByRole('button', { name: '+ Good' }).parentElement).toHaveClass('grid-cols-6');
+      expect(screen.getByRole('button', { name: '#9 Lucía' })).toHaveClass('min-h-14');
+    });
+
+    it('reason chips stay in one scrolling row so the dock never grows', async () => {
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: /^Point them/ }));
+      expect(screen.getByRole('group', { name: /reason/i })).toHaveClass('flex-nowrap', 'overflow-x-auto');
+    });
+
+    it('on a landscape phone the panel sits beside the court and the dock is one row', async () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-height'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+      renderPage([setStart]);
+      fireEvent.click(await screen.findByRole('button', { name: '#7 Ana' }));
+      const panel = screen.getByRole('region', { name: /^Actions for/ });
+      expect(screen.getByRole('main').contains(panel)).toBe(true);
+      expect(screen.queryByTestId('pinned-panel')).not.toBeInTheDocument();
+      const dock = screen.getByRole('region', { name: 'Match events' });
+      expect(dock.querySelector('.grid')).toHaveClass("[grid-template-areas:'tu_pu_pt_tt']");
+      expect(within(dock).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)[0]).toMatch(/T\/O us/);
     });
 
     it('header budget: split-score row is 56 px and the Undo pill is at least 44 px wide', async () => {

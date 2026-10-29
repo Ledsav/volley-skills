@@ -65,7 +65,7 @@ export function ScoutHeader({ state, format, opponent, pending, onEditScore, onR
         <Menu label={t.tools} trigger={<MoreHorizontal size={20} aria-hidden="true" />} triggerClassName={`${CONTROL} w-11 shrink-0`} items={tools} />
       </div>
 
-      <div className="relative h-14 px-3 sm:px-4 md:h-[4.5rem]">
+      <div className="relative h-14 px-3 sm:px-4 md:[@media(min-height:561px)]:h-[4.5rem]">
         {/* Score: tap to correct. The middle spacer leaves room for the corrections laid over it. */}
         <button
           type="button"

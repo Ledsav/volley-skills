@@ -41,8 +41,8 @@ describe('ActionSheet', () => {
     expect(neutral).toHaveClass('bg-surface-2');
   });
 
-  it('lays grades out in 3 columns on phones and one row of six from md', () => {
+  it('lays grades out in one row of six on every screen', () => {
     render(<ActionSheet player={player} isLibero={false} skills={['A']} onGrade={vi.fn()} onSub={vi.fn()} onClose={vi.fn()} />);
-    expect(screen.getByRole('button', { name: /^= / }).parentElement).toHaveClass('grid-cols-3', 'md:grid-cols-6');
+    expect(screen.getByRole('button', { name: /^= / }).parentElement).toHaveClass('grid-cols-6');
   });
 });

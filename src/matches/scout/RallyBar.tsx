@@ -23,9 +23,11 @@ interface RallyBarProps {
   format: MatchFormat;
   /** `large` (quick score): taller point buttons with bigger type. */
   size?: 'normal' | 'large';
+  /** Short viewports (landscape phones): one row, T/O us · Point us · Point them · T/O them. */
+  oneRow?: boolean;
 }
 
-export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format, size = 'normal' }: RallyBarProps) {
+export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsUsed, format, size = 'normal', oneRow = false }: RallyBarProps) {
   const t = useT();
   const pointSize = size === 'large' ? 'min-h-24 text-title-2' : 'min-h-14 text-headline';
   const timeoutSize = size === 'large' ? 'min-h-20' : 'min-h-14';
@@ -66,16 +68,16 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
         <div
           role="group"
           aria-label={t.scout.rally.reasonGroup(t.matches.shared.side(reasonPrompt.winner))}
-          className="flex flex-wrap items-center gap-2 rounded-lg bg-surface p-2"
+          className="flex flex-nowrap items-center gap-2 overflow-x-auto rounded-lg bg-surface p-2 [scrollbar-width:none]"
         >
-          <span className="text-footnote text-ink-2">{t.scout.rally.why}</span>
+          <span className="shrink-0 text-footnote text-ink-2">{t.scout.rally.why}</span>
           {POINT_REASONS[reasonPrompt.winner].map((reason, i) => (
             <button
               key={reason}
               type="button"
               onPointerDown={flash}
               onClick={() => onReason(reasonPrompt.eventId, reason)}
-              className="inline-flex min-h-14 items-center gap-1.5 rounded-md bg-surface-2 px-4 text-callout font-medium text-ink"
+              className="inline-flex min-h-14 shrink-0 items-center gap-1.5 rounded-md bg-surface-2 px-4 text-callout font-medium text-ink"
             >
               {t.labels.pointReason[reason]}
               <Kbd>{i + 1}</Kbd>
@@ -85,7 +87,11 @@ export function RallyBar({ onPoint, onTimeout, onReason, reasonPrompt, timeoutsU
       )}
       {/* Mirrored: our side on the left, theirs on the right, each T/O under its point. The DOM order stays
           T/O us, Point us, Point them, T/O them (invariant 36); the grid areas do the layout. */}
-      <div className="grid grid-cols-2 gap-2 [grid-template-areas:'pu_pt'_'tu_tt']">
+      <div
+        className={`grid gap-2 ${
+          oneRow ? "grid-cols-[auto_1fr_1fr_auto] [grid-template-areas:'tu_pu_pt_tt']" : "grid-cols-2 [grid-template-areas:'pu_pt'_'tu_tt']"
+        }`}
+      >
         {timeout('us')}
         {point('us')}
         {point('them')}

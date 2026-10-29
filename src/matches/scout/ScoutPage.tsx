@@ -116,6 +116,8 @@ export function ScoutPage() {
   const { firebaseUser } = useAuth();
   const { aiEnabled } = useClubFeatures();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Landscape phones: too short for a stacked panel, so the panel sits beside the court and the dock is one row.
+  const isShort = useMediaQuery('(max-height: 560px)', false) && !isDesktop;
   const deviceId = useMemo(() => getDeviceId(), []);
 
   const [match, setMatch] = useState<Match | null>(null);
@@ -572,6 +574,7 @@ export function ScoutPage() {
             form={(id) => playerForm(state, id)}
             disabled={!state.inSet}
             servingUs={state.serving === 'us'}
+            compact={!isDesktop && (isShort || actionPanel !== null)}
             onSelect={(id) => select(id)}
             onLongPress={(id) => {
               if (!liberoIds.has(id)) setSubOutId(id);
@@ -643,39 +646,82 @@ export function ScoutPage() {
         }
       />
       {stripProps && <StatusStrip {...stripProps} />}
-      {isDesktop ? (
-        <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.4fr)_360px] gap-4 overflow-y-auto p-4">
-          {courtColumn}
-          <div className="flex min-w-0 flex-col gap-4">
-            {textPanel}
-            {!textVisible && live}
-            <div className="max-h-[50vh] overflow-y-auto rounded-lg">{timeline}</div>
-          </div>
-        </main>
-      ) : (
-        <>
-          <SegmentedControl
-            semantics="tabs"
-            label={sp.views}
-            options={[
-              { id: 'court', label: sp.tabCourt },
-              { id: 'live', label: sp.tabLive },
-              { id: 'timeline', label: sp.tabTimeline },
-              ...(aiEnabled ? [{ id: 'text' as const, label: sp.tabText }] : []),
-            ]}
-            value={phoneTab}
-            onChange={setPhoneTab}
-            className="mx-3 mt-2 shrink-0"
-          />
-          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
-            {phoneTab === 'court' && courtColumn}
-            {phoneTab === 'live' && live}
-            {phoneTab === 'timeline' && timeline}
-            {textPanel}
+      {/* The content region: the set-point prompt floats at its top, below the header and any status strip. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {isDesktop ? (
+          <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.4fr)_360px] gap-4 overflow-y-auto p-4">
+            {courtColumn}
+            <div className="flex min-w-0 flex-col gap-4">
+              {textPanel}
+              {!textVisible && live}
+              <div className="max-h-[50vh] overflow-y-auto rounded-lg">{timeline}</div>
+            </div>
           </main>
-          {phoneTab === 'court' && actionPanel && <div className="shrink-0 px-3 pb-2">{actionPanel}</div>}
-        </>
-      )}
+        ) : (
+          <>
+            <SegmentedControl
+              semantics="tabs"
+              label={sp.views}
+              options={[
+                { id: 'court', label: sp.tabCourt },
+                { id: 'live', label: sp.tabLive },
+                { id: 'timeline', label: sp.tabTimeline },
+                ...(aiEnabled ? [{ id: 'text' as const, label: sp.tabText }] : []),
+              ]}
+              value={phoneTab}
+              onChange={setPhoneTab}
+              className="mx-3 mt-2 shrink-0"
+            />
+            <main
+              className={`min-h-0 flex-1 overflow-y-auto ${actionPanel && !isShort ? 'p-2' : 'p-3'} ${
+                isShort && phoneTab === 'court' ? 'grid grid-cols-2 gap-3' : 'flex flex-col'
+              }`}
+            >
+              {phoneTab === 'court' && courtColumn}
+              {isShort && phoneTab === 'court' && <div className="min-w-0">{actionPanel}</div>}
+              {phoneTab === 'live' && live}
+              {phoneTab === 'timeline' && timeline}
+              {textPanel}
+            </main>
+            {/* Portrait phones: pinned above the dock but allowed to shrink and scroll, so the dock is never clipped. */}
+            {!isShort && phoneTab === 'court' && actionPanel && (
+              <div data-testid="pinned-panel" className="min-h-0 shrink overflow-y-auto px-2 pb-2">
+                {actionPanel}
+              </div>
+            )}
+          </>
+        )}
+        {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
+          <div
+            role="dialog"
+            aria-label={sp.setPoint}
+            className="absolute inset-x-3 top-2 z-40 rounded-xl bg-surface p-4 shadow-pop md:inset-x-auto md:left-1/2 md:w-[420px] md:-translate-x-1/2"
+          >
+            <p className="mb-3 text-headline text-ink">
+              {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onPointerDown={(e) => tapFlash(e.currentTarget)}
+                onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}
+                className="min-h-14 rounded-md bg-surface-2 px-4 text-headline text-ink"
+              >
+                {sp.notYet}
+              </button>
+              <button
+                type="button"
+                aria-label={sp.confirmSet}
+                onPointerDown={(e) => tapFlash(e.currentTarget)}
+                onClick={confirmSet}
+                className="min-h-14 rounded-md bg-ink px-4 text-headline text-on-ink"
+              >
+                {sp.confirmSet}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       {state.inSet && (
         <section
           aria-label={sp.events}
@@ -690,6 +736,7 @@ export function ScoutPage() {
               onPoint={recordPoint}
               onReason={amendReason}
               onTimeout={recordTimeout}
+              oneRow={isShort}
             />
           </div>
         </section>
@@ -742,37 +789,6 @@ export function ScoutPage() {
             setShowCorrection(false);
           }}
         />
-      )}
-
-      {state.setPointReached && dismissedSetPoint !== `${state.set}-${state.score.us}-${state.score.them}` && (
-        <div
-          role="dialog"
-          aria-label={sp.setPoint}
-          className="fixed inset-x-3 top-32 z-40 rounded-xl bg-surface p-4 shadow-pop md:inset-x-auto md:left-1/2 md:w-[420px] md:top-36 md:-translate-x-1/2"
-        >
-          <p className="mb-3 text-headline text-ink">
-            {sp.setResult(state.score.us > state.score.them, state.score.us, state.score.them)}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onPointerDown={(e) => tapFlash(e.currentTarget)}
-              onClick={() => setDismissedSetPoint(`${state.set}-${state.score.us}-${state.score.them}`)}
-              className="min-h-14 rounded-md bg-surface-2 px-4 text-headline text-ink"
-            >
-              {sp.notYet}
-            </button>
-            <button
-              type="button"
-              aria-label={sp.confirmSet}
-              onPointerDown={(e) => tapFlash(e.currentTarget)}
-              onClick={confirmSet}
-              className="min-h-14 rounded-md bg-ink px-4 text-headline text-on-ink"
-            >
-              {sp.confirmSet}
-            </button>
-          </div>
-        </div>
       )}
 
       {editing && (

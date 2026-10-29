@@ -26,6 +26,9 @@ interface MatchSetupFormProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
+const GROUP = 'rounded-lg bg-surface p-4';
+const LEGEND = 'mb-2 text-footnote text-ink-2';
+
 /** `role` = this match's role for the player (snapshot only; the profile is untouched). */
 type Picks = Record<string, { checked: boolean; number: number; role: PositionCategory }>;
 interface LiberoPick { playerId: string; mode: LiberoMode }
@@ -127,7 +130,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
     }
   }
 
-  if (!players) return <p className="text-slate">{error ?? m.loadingRoster}</p>;
+  if (!players) return <p className="text-ink-2">{error ?? m.loadingRoster}</p>;
   const checkedPlayers = players.filter((p) => picks[p.id]?.checked);
   const liberoIds = new Set(liberoPicks.map((l) => l.playerId).filter(Boolean));
   const numberCounts = new Map<number, number>();
@@ -135,6 +138,8 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
   const isDuplicate = (id: string) => !!picks[id]?.checked && (numberCounts.get(picks[id].number) ?? 0) > 1;
   const hasDuplicates = checkedPlayers.some((p) => isDuplicate(p.id));
   const tooMany = checkedPlayers.length > MAX_ROSTER;
+  // Fields sit on a surface-2 row inside a surface group, so they lift to surface.
+  const ON_ROW = '!bg-surface';
 
   return (
     <form
@@ -143,37 +148,40 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         setSaved(false);
         onDirtyChange?.(true);
       }}
-      className="flex flex-col gap-5">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.date}
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.opponent}
-          <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.competition}
-          <select className={FIELD_CLASS} value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
-            <option value="league">{t.labels.competition.league}</option>
-            <option value="cup">{t.labels.competition.cup}</option>
-            <option value="friendly">{t.labels.competition.friendly}</option>
-            <option value="tournament">{t.labels.competition.tournament}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-          {m.venue}
-          <select className={FIELD_CLASS} value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
-            <option value="home">{t.matches.shared.home}</option>
-            <option value="away">{t.matches.shared.away}</option>
-          </select>
-        </label>
-      </div>
+      className="flex flex-col gap-4">
+      <fieldset className={GROUP}>
+        <legend className={LEGEND}>{m.details}</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {m.date}
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {m.opponent}
+            <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
+          </label>
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {m.competition}
+            <select className={FIELD_CLASS} value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>
+              <option value="league">{t.labels.competition.league}</option>
+              <option value="cup">{t.labels.competition.cup}</option>
+              <option value="friendly">{t.labels.competition.friendly}</option>
+              <option value="tournament">{t.labels.competition.tournament}</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-callout font-semibold text-ink">
+            {m.venue}
+            <select className={FIELD_CLASS} value={homeAway} onChange={(e) => setHomeAway(e.target.value as HomeAway)}>
+              <option value="home">{t.matches.shared.home}</option>
+              <option value="away">{t.matches.shared.away}</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
 
-      <fieldset className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <legend className="mb-2 text-sm font-semibold text-ink">{m.format}</legend>
-        <label className="flex flex-col gap-1 text-xs text-slate">
+      <fieldset className={`${GROUP} grid grid-cols-2 gap-3 sm:grid-cols-5`}>
+        <legend className={LEGEND}>{m.format}</legend>
+        <label className="flex flex-col gap-1 text-footnote text-ink-2">
           {m.bestOf}
           <select className={FIELD_CLASS} value={format.bestOf} onChange={(e) => setNum('bestOf', Number(e.target.value) as 3 | 5)}>
             <option value={3}>3</option>
@@ -186,23 +194,23 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
           ['subsPerSet', m.subsPerSet],
           ['timeoutsPerSet', m.timeoutsPerSet],
         ] as const).map(([key, label]) => (
-          <label key={key} className="flex flex-col gap-1 text-xs text-slate">
+          <label key={key} className="flex flex-col gap-1 text-footnote text-ink-2">
             {label}
             <Input type="number" min={0} value={format[key]} onChange={(e) => setNum(key, Number(e.target.value))} />
           </label>
         ))}
       </fieldset>
 
-      <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-ink">{m.roster}</legend>
-        <p className={`mb-2 text-sm tabular-nums ${tooMany ? 'font-medium text-red-strong' : 'text-slate'}`}>
+      <fieldset className={GROUP}>
+        <legend className={LEGEND}>{m.roster}</legend>
+        <p className={`mb-2 text-callout tabular-nums ${tooMany ? 'font-semibold text-red-strong' : 'text-ink-2'}`}>
           {m.selected(checkedPlayers.length, MAX_ROSTER)}
         </p>
         <ul className="grid gap-2 sm:grid-cols-2">
           {players.map((p) => (
             <li
               key={p.id}
-              className={`flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 ${isDuplicate(p.id) ? 'border-red' : 'border-border'}`}>
+              className={`flex flex-wrap items-center gap-3 rounded-lg bg-surface-2 px-3 py-2 ${isDuplicate(p.id) ? 'ring-1 ring-red' : ''}`}>
               <input
                 type="checkbox"
                 aria-label={m.include(p.fullName)}
@@ -210,10 +218,10 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 checked={picks[p.id]?.checked ?? false}
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], checked: e.target.checked } }))}
               />
-              <span className="min-w-0 flex-1 truncate text-sm text-ink">#{p.number} {p.fullName}</span>
+              <span className="min-w-0 flex-1 truncate text-callout text-ink">#{p.number} {p.fullName}</span>
               <select
                 aria-label={m.roleFor(p.fullName)}
-                className={`${FIELD_CLASS} min-h-11 w-20 px-2 text-base sm:text-sm`}
+                className={`${FIELD_CLASS} ${ON_ROW} min-h-11 w-20 px-2 text-base sm:text-sm`}
                 value={picks[p.id]?.role ?? p.positionCategory}
                 onChange={(e) =>
                   setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], role: e.target.value as PositionCategory } }))
@@ -226,25 +234,25 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
               <Input
                 type="number"
                 aria-label={m.numberFor(p.fullName)}
-                className="w-16 tabular-nums"
+                className={`w-16 tabular-nums ${ON_ROW}`}
                 min={1}
                 max={99}
                 value={picks[p.id]?.number ?? p.number}
                 onChange={(e) => setPicks((cur) => ({ ...cur, [p.id]: { ...cur[p.id], number: Number(e.target.value) } }))}
               />
               {isDuplicate(p.id) && (
-                <span className="w-full text-xs font-medium text-red-strong">{m.duplicate(picks[p.id].number)}</span>
+                <span className="w-full text-footnote font-semibold text-red-strong">{m.duplicate(picks[p.id].number)}</span>
               )}
             </li>
           ))}
         </ul>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-semibold text-ink">{m.liberos}</legend>
+      <fieldset className={`${GROUP} flex flex-col gap-3`}>
+        <legend className={LEGEND}>{m.liberos}</legend>
         {[0, 1].map((i) => (
           <div key={i} className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1 text-xs text-slate">
+            <label className="flex flex-col gap-1 text-footnote text-ink-2">
               {m.libero(i + 1)}
               <select
                 aria-label={m.libero(i + 1)}
@@ -260,7 +268,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-xs text-slate">
+            <label className="flex flex-col gap-1 text-footnote text-ink-2">
               {m.onCourt}
               <select
                 aria-label={m.liberoMode(i + 1)}
@@ -279,10 +287,10 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         ))}
         {liberoIds.size > 0 && (
           <div>
-            <p className="mb-1 text-xs text-slate">{m.replaces}</p>
+            <p className="mb-1 text-footnote text-ink-2">{m.replaces}</p>
             <div className="flex flex-wrap gap-2">
               {checkedPlayers.filter((p) => !liberoIds.has(p.id)).map((p) => (
-                <label key={p.id} className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-sm">
+                <label key={p.id} className="flex min-h-11 items-center gap-1 rounded-md bg-surface-2 px-3 text-callout text-ink">
                   <input
                     type="checkbox"
                     checked={(replaces ?? []).includes(p.id)}
@@ -298,8 +306,8 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
         )}
       </fieldset>
 
-      {saved && !error && <p role="status" className="text-sm text-green-strong">{m.saved}</p>}
-      {error && <p role="alert" className="text-sm text-red-strong">{error}</p>}
+      {saved && !error && <p role="status" className="text-callout text-green-strong">{m.saved}</p>}
+      {error && <p role="alert" className="text-callout text-red-strong">{error}</p>}
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>{t.common.cancel}</Button>

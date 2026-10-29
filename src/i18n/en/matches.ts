@@ -69,6 +69,7 @@ export const matches = {
     opponentPlaceholder: 'Team name',
     competition: 'Competition',
     venue: 'Venue',
+    details: 'Details',
     format: 'Format',
     bestOf: 'Best of',
     setPoints: 'Set points',

@@ -17,7 +17,8 @@ export function goToItems(access: Access | null, isPlatformAdmin: boolean): Sear
 
 /** Where a team-scoped action lands once a team is chosen. */
 export function teamActionPath(action: PendingActionId, teamId: string): string {
-  return `/teams/${teamId}?tab=${action === 'add-player' ? 'roster' : 'matches'}`;
+  const tab = action === 'add-player' ? 'roster' : action === 'new-session' ? 'calendar' : 'matches';
+  return `/teams/${teamId}?tab=${tab}`;
 }
 
 /**

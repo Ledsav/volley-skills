@@ -1,11 +1,12 @@
 import type { FeedItem } from './homeFeed';
+import { Button } from '../components/Button';
 import { GroupedList, ListRow } from '../components/GroupedList';
 import { useT } from '../i18n/I18nProvider';
 import { formatDate } from '../i18n/format';
 
 const fmtDay = (iso: string) => formatDate(iso, 'weekday');
 
-export function NextUpBlock({ items, failed }: { items: FeedItem[]; failed: boolean }) {
+export function NextUpBlock({ items, failed, onPlan }: { items: FeedItem[]; failed: boolean; onPlan?: () => void }) {
   const t = useT().home;
   return (
     <section aria-labelledby="next-up">
@@ -14,6 +15,11 @@ export function NextUpBlock({ items, failed }: { items: FeedItem[]; failed: bool
       {items.length === 0 ? (
         <div className="rounded-lg bg-surface p-4 shadow-card">
           <p className="text-footnote text-ink-2">{t.nextUp.empty}</p>
+          {onPlan && (
+            <Button variant="secondary" onClick={onPlan} className="mt-3">
+              {t.planTraining}
+            </Button>
+          )}
         </div>
       ) : (
         <GroupedList>

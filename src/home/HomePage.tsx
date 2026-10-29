@@ -9,6 +9,7 @@ import { liveMatches, nextUp, recentResults } from './homeFeed';
 import { LiveNowBlock } from './LiveNowBlock';
 import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
+import { Shortcuts, useTeamAction } from './Shortcuts';
 import { useHomeFeed } from './useHomeFeed';
 import { useT } from '../i18n/I18nProvider';
 import { formatDateValue } from '../i18n/format';
@@ -23,6 +24,8 @@ export function HomePage() {
   const state = useHomeFeed(email, scope);
   const anySection = !!access && (access.sections.exercises || access.sections.trainings || access.sections.guides || access.isClubAdmin);
   const today = state.today;
+  const plan = useTeamAction(state.teams, 'new-session');
+  const canPlan = state.teams.length > 0 && !!access?.sections.trainings;
 
   return (
     <div className="w-full bg-bg p-4 sm:p-6 lg:p-8">
@@ -45,7 +48,7 @@ export function HomePage() {
           {/* grid-cols-1 (minmax(0,1fr)), not the implicit auto track: a long
               session name would otherwise widen the column past a phone's screen. */}
           <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <NextUpBlock items={nextUp(state.feed, today)} failed={state.errors.sessions} />
+            <NextUpBlock items={nextUp(state.feed, today)} failed={state.errors.sessions} onPlan={canPlan ? plan.start : undefined} />
             <RecentResultsBlock items={recentResults(state.feed)} failed={state.errors.matches} mvpFor={(fm) => matchMvpLabel(fm.match)} />
           </div>
           {state.teams.length > 0 && (
@@ -62,6 +65,8 @@ export function HomePage() {
               </ul>
             </section>
           )}
+          <Shortcuts teams={state.teams} access={access} />
+          {plan.picker}
         </>
       )}
     </div>

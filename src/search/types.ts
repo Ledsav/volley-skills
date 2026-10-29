@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 export type SearchGroupId = 'goto' | 'actions' | 'teams' | 'players' | 'matches' | 'exercises' | 'trainings' | 'recent';
 
 /** An action that the destination page performs on arrival (opens its create form). */
-export type PendingActionId = 'new-team' | 'new-training' | 'new-exercise' | 'new-match' | 'add-player';
+export type PendingActionId = 'new-team' | 'new-training' | 'new-exercise' | 'new-match' | 'new-session' | 'add-player';
 
 export interface SearchItem {
   /** Unique within its group. */

@@ -20,6 +20,9 @@ function pairs(): Pair[] {
   for (const k of ['home', 'teams', 'trainings', 'exercises', 'more'] as const) {
     out.push({ place: `layout.nav.${k}`, en: en.layout.nav[k], it: itCat.layout.nav[k] });
   }
+  for (const k of ['newMatch', 'newTraining', 'newExercise'] as const) {
+    out.push({ place: `home.shortcuts.${k}`, en: en.home.shortcuts[k], it: itCat.home.shortcuts[k] });
+  }
   for (const k of ['skillsRated', 'focusAreas', 'openObjectives', 'lastPhysicalTest'] as const) {
     out.push({ place: `players.kpi.${k}`, en: en.players.kpi[k], it: itCat.players.kpi[k] });
   }

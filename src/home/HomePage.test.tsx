@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue, clubAdminAccess } from '../test/authValue';
 import { DEFAULT_FORMAT, type Match } from '../types/match';
@@ -26,6 +26,12 @@ const live: Match = {
   id: 'm1', date: '2026-10-14', opponent: 'Rivals', competition: 'league', homeAway: 'home', format: DEFAULT_FORMAT, roster: [], liberos: [],
   status: 'live', result: { setsUs: 1, setsThem: 0, sets: [] }, summary: null, usageContribution: null, activeDevice: null, createdBy: '', createdAt: null, updatedAt: null,
 };
+
+function LocationProbe() {
+  const loc = useLocation();
+  const pending = (loc.state as { pendingAction?: string } | null)?.pendingAction ?? '';
+  return <p data-testid="loc">{`${loc.pathname}${loc.search}|${pending}`}</p>;
+}
 
 function renderHome() {
   render(<MemoryRouter><HomePage /></MemoryRouter>);
@@ -113,5 +119,20 @@ describe('HomePage', () => {
     const mvp = await screen.findByText('MVP: #1 Player a.');
     expect(mvp.closest('a')).toHaveAttribute('href', expect.stringMatching(/\/teams\/[^/]+\/matches\/m9\/awards$/));
     expect(mvp.closest('a')!.parentElement!.querySelectorAll('a a')).toHaveLength(0);
+  });
+
+  it('offers Plan a training on an empty week to a team admin with trainings access', async () => {
+    useAuthMock.mockReturnValue(authValue({ access: { isClubAdmin: false, sections: { exercises: false, trainings: true, guides: false } } }));
+    vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([]);
+    render(<MemoryRouter><HomePage /><LocationProbe /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Plan a training' }));
+    expect(screen.getByTestId('loc')).toHaveTextContent('/teams/t1?tab=calendar|new-session');
+  });
+
+  it('does not offer Plan a training without trainings access', async () => {
+    vi.mocked(matchesApi.listMatchesInRange).mockResolvedValue([]);
+    renderHome();
+    await screen.findByText('Nothing in the next 7 days.');
+    expect(screen.queryByRole('button', { name: 'Plan a training' })).not.toBeInTheDocument();
   });
 });

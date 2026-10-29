@@ -301,6 +301,15 @@ describe('SearchPalette', () => {
       expect(showMore).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps a server group reachable when its first page has no match but more exist', () => {
+      mocks.server.exercises = { ...idleGroup(), hasMore: true };
+      const { input } = setup();
+      type(input, 'ricezione zona');
+      expect(screen.queryByText(/No results/)).toBeNull();
+      expect(screen.getByText('Exercises')).toBeInTheDocument();
+      expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Show more']);
+    });
+
     it('shows the offline note', () => {
       mocks.server.offline = true;
       const { input } = setup();

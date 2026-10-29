@@ -127,6 +127,19 @@ describe('useServerSearch', () => {
     expect(result.current.exercises.hasMore).toBe(false);
   });
 
+  it('show more reaches a match on page 2 when page 1 has none', async () => {
+    const cursor = { id: 'c1' };
+    vi.mocked(searchExercises)
+      .mockResolvedValueOnce(page([ex('1', 'Ricezione uno')], true, cursor) as never)
+      .mockResolvedValueOnce(page([ex('2', 'Ricezione zona')], false, { id: 'c2' }) as never);
+    const { result } = renderHook(() => useServerSearch('ricezione zona', both));
+    await advance(300);
+    expect(result.current.exercises.items).toEqual([]);
+    expect(result.current.exercises.hasMore).toBe(true);
+    await act(async () => result.current.exercises.showMore());
+    expect(result.current.exercises.items.map((i) => i.id)).toEqual(['2']);
+  });
+
   it('sends nothing while offline and reports offline', async () => {
     setOnline(false);
     const { result } = renderHook(() => useServerSearch('pass', both));

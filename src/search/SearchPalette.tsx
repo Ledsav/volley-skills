@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { focusPageHeading } from '../layout/focusPageHeading';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -32,17 +33,6 @@ type Entry = SearchItem & { more?: true };
 interface Props {
   /** `restoreFocus` is false when the close is a navigation, whose new page owns focus. */
   onClose: (restoreFocus?: boolean) => void;
-}
-
-function focusPageHeading() {
-  const main = document.getElementById('main');
-  const heading = main?.querySelector<HTMLElement>('h1');
-  if (heading) {
-    if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
-    heading.focus({ preventScroll: true });
-  } else {
-    main?.focus({ preventScroll: true });
-  }
 }
 
 export function SearchPalette({ onClose }: Props) {
@@ -119,7 +109,7 @@ export function SearchPalette({ onClose }: Props) {
       ['trainings', 'trainings', server.trainings],
     ];
     for (const [id, name, s] of serverDefs) {
-      if (s.items.length > 0 || s.loading) out.push({ id, label: label(name), items: s.items, skeleton: s.loading && s.items.length === 0, server: s });
+      if (s.items.length > 0 || s.loading || s.hasMore) out.push({ id, label: label(name), items: s.items, skeleton: s.loading && s.items.length === 0, server: s });
     }
     if (out.length === 0) {
       return { groups: actions.length > 0 ? [{ id: 'actions' as const, label: label('actions'), items: actions, skeleton: false }] : [], noResults: true };
@@ -204,7 +194,7 @@ export function SearchPalette({ onClose }: Props) {
     else if (item.to) {
       navigate(item.to, item.action ? withPendingAction(item.action) : undefined);
       // The shell moves focus on a route change; a result for the page we are already on changes no route, so do it here.
-      if (item.to.split(/[?#]/)[0] === pathname) setTimeout(focusPageHeading, 0);
+      if (item.to.split(/[?#]/)[0] === pathname) setTimeout(() => focusPageHeading(document.getElementById('main')), 0);
     }
   }
 

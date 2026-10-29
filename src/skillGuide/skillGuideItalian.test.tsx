@@ -47,7 +47,8 @@ describe('skill guide in Italian', () => {
     mockGetDoc.mockResolvedValue({ exists: () => false });
     renderEditor();
 
-    const row = await screen.findByRole('button', { name: /Battuta/ });
+    // The row label comes from the catalog; the items reload after it, so wait for Italian item text.
+    const row = await screen.findByRole('button', { name: /Battuta.*Conta la percentuale/ });
     expect(document.querySelectorAll('li')).toHaveLength(9);
     fireEvent.click(row);
     expect(await screen.findByDisplayValue('Irregolare, molti errori.')).toBeInTheDocument();

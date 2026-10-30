@@ -64,7 +64,7 @@ export const upcoming = (doc: VersionedDoc, date: Date): LegalVersion | null => 
 export const needsReview = (legal: ClubLegal | null, date: Date): boolean => needsReviewIn(VERSIONS, legal, date);
 
 export const CURRENT_DOC_VERSION: Record<'privacy' | 'dpia-pack', string> = {
-  privacy: '2026-10-22',
+  privacy: '2026-10-30',
   'dpia-pack': '2026-10-22',
 };
 

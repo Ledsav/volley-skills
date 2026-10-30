@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import {
   BoxSelect,
   BringToFront,
@@ -32,6 +32,7 @@ import { cloneItemAt, createItem } from './sceneFactory';
 import { computeHandleTransform } from './transformMath';
 import type { EditorAction, EditorDiagram, EditorSaveStatus, EditorState } from './useDiagramEditor';
 import { useT } from '../i18n/I18nProvider';
+import { DiagramTip } from '../onboarding/DiagramTip';
 
 const SNAP = 2.5;
 
@@ -126,6 +127,29 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
   const [multiSelect, setMultiSelect] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [marqueeRect, setMarqueeRect] = useState<Rect | null>(null);
+
+  // Desktop: the tip is a card in a reserved band under the tabs; the court is fitted below it (never over it).
+  const tipBandRef = useRef<HTMLDivElement>(null);
+  const hasDiagram = activeDiagram !== null;
+  const [tipH, setTipH] = useState(0);
+  useLayoutEffect(() => {
+    const el = tipBandRef.current;
+    if (!el) {
+      setTipH(0);
+      return;
+    }
+    setTipH(el.offsetHeight);
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => setTipH(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isDesktop, hasDiagram]);
+  const desktopInsets = useMemo<StageInsets>(
+    () => ({ ...DESKTOP_INSETS, top: DESKTOP_INSETS.top + (tipH > 0 ? tipH + 8 : 0) }),
+    [tipH],
+  );
+
+  const totalItems = state.diagrams.reduce((sum, d) => sum + d.scene.items.length, 0);
 
   const handleStageReady = useCallback((api: StageApi) => {
     stageApi.current = api;
@@ -491,7 +515,7 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
     >
       <CanvasStage
         onReady={handleStageReady}
-        insets={isDesktop ? DESKTOP_INSETS : undefined}
+        insets={isDesktop ? desktopInsets : undefined}
         fitBox={stageFrame(activeDiagram.scene.court)}
       >
         <DiagramSvg
@@ -584,6 +608,15 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
             {tabs}
           </div>
           {activeDiagram && (
+            <div
+              ref={tipBandRef}
+              style={{ top: BELOW_TOOLBAR + TABS_H + 4, left: EDGE + ZOOM_W + 24, width: 340 }}
+              className="absolute z-10"
+            >
+              <DiagramTip itemCount={totalItems} className="mb-0 shadow-card" />
+            </div>
+          )}
+          {activeDiagram && (
             <aside
               aria-label={ed.properties}
               style={{ top: BELOW_TOOLBAR, width: INSPECTOR_W, maxHeight: `calc(100% - ${BELOW_TOOLBAR + EDGE}px)` }}
@@ -654,6 +687,9 @@ export function DiagramEditorView({ state, activeDiagram, dispatch, save, status
           {tabs}
           {activeDiagram ? (
             <div className="flex min-h-0 flex-1 flex-col">
+              <div className="shrink-0 px-3 pt-2 empty:hidden">
+                <DiagramTip itemCount={totalItems} className="mb-2" />
+              </div>
               {canvas}
               <nav
                 aria-label={ed.toolsNav}

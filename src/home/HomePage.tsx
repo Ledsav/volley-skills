@@ -11,6 +11,9 @@ import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
 import { Shortcuts, useTeamAction } from './Shortcuts';
 import { useHomeFeed } from './useHomeFeed';
+import { GetStartedCard } from '../onboarding/GetStartedCard';
+import { SearchTip } from '../onboarding/SearchTip';
+import { WelcomeSheet } from '../onboarding/WelcomeSheet';
 import { useT } from '../i18n/I18nProvider';
 import { formatDateValue } from '../i18n/format';
 import { PageContainer } from '../layout/PageContainer';
@@ -45,6 +48,8 @@ export function HomePage() {
         </div>
       ) : (
         <>
+          <GetStartedCard teams={state.teams} adminsAnyTeam={!!access?.isClubAdmin || state.teams.length > 0} />
+          <SearchTip />
           <LiveNowBlock items={liveMatches(state.feed)} />
           {/* grid-cols-1 (minmax(0,1fr)), not the implicit auto track: a long
               session name would otherwise widen the column past a phone's screen. */}
@@ -70,6 +75,7 @@ export function HomePage() {
           {plan.picker}
         </>
       )}
+      {!state.loading && !state.errors.teams && <WelcomeSheet adminsAnyTeam={!!access?.isClubAdmin || state.teams.length > 0} />}
     </PageContainer>
   );
 }

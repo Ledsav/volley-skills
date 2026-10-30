@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Pointer } from 'lucide-react';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -18,6 +18,9 @@ import { stickyTop } from '../layout/chromeMetrics';
 import type { Level, Player, PositionCategory } from '../types/player';
 import { formatDate, formatNumber } from '../i18n/format';
 import { useT } from '../i18n/I18nProvider';
+import { Tip } from '../onboarding/Tip';
+import { useTip } from '../onboarding/useTip';
+import { useMediaQuery } from '../components/useMediaQuery';
 import type { Gender } from '../i18n/catalog';
 
 const SORT_VALUES = ['lineup', 'position', 'skill', 'birthdate'] as const satisfies readonly RosterSort[];
@@ -74,10 +77,12 @@ interface RowProps {
   gender: Gender;
   onToggleStarting: (player: Player, starting: boolean) => void;
   onRemove: (player: Player) => void;
+  /** A row's menu or swipe actions opened (ends the quick-actions tip). */
+  onActionsOpen: () => void;
 }
 
 /** Open card, Starting and Remove: the same actions in the phone kebab, long-press, right-click and the desktop row. */
-function useRowActions({ teamId, player, onToggleStarting, onRemove }: RowProps) {
+function useRowActions({ teamId, player, onToggleStarting, onRemove, onActionsOpen }: RowProps) {
   const tr = useT().teams.roster;
   const navigate = useNavigate();
   const items: MenuItem[] = [
@@ -90,7 +95,12 @@ function useRowActions({ teamId, player, onToggleStarting, onRemove }: RowProps)
     { kind: 'divider' },
     { kind: 'action', label: tr.removeMenu, danger: true, onSelect: () => onRemove(player) },
   ];
-  return useContextMenu({ label: tr.rowMenu(player.fullName), items });
+  const menu = useContextMenu({ label: tr.rowMenu(player.fullName), items });
+  useEffect(() => {
+    if (menu.isOpen) onActionsOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menu.isOpen]);
+  return menu;
 }
 
 /** The row's ⋯ button: opens the same menu as long-press and right-click (a portal, so no list clip cuts it off). */
@@ -136,6 +146,7 @@ function RosterPhoneRow(props: RowProps) {
   return (
     <li data-testid="roster-mobile-card" className="group" {...targetProps}>
       <SwipeRow
+        onOpen={props.onActionsOpen}
         leading={{
           label: player.starting ? tr.unsetStarting : tr.setStarting,
           tone: 'neutral',
@@ -247,6 +258,10 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
   const [sort, setSort] = useState<RosterSort>('lineup');
   const [startingError, setStartingError] = useState<string | null>(null);
 
+  const rowTip = useTip('row-actions');
+  const touch = useMediaQuery('(pointer: coarse)', false);
+  const tip = t.onboarding.tips.rowActions;
+
   const visiblePlayers = useMemo(
     () => sortRoster(filterRoster(players, search), sort),
     [players, search, sort]
@@ -335,12 +350,14 @@ export function TeamRosterTable({ teamId, gender = 'mixed', onPlayersChange, onR
     gender,
     onToggleStarting: (p, starting) => void toggleStarting(p, starting),
     onRemove: setPendingDelete,
+    onActionsOpen: rowTip.dismiss,
   });
   const ariaSort = (value: RosterSort): 'ascending' | 'descending' | undefined =>
     sort === value ? (value === 'skill' ? 'descending' : 'ascending') : undefined;
 
   return (
     <div>
+      {players.length > 0 && <Tip id="row-actions" icon={Pointer} title={tip.title} line={touch ? tip.lineTouch : tip.linePointer} />}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <label className="flex-1">
           <span className="sr-only">{tr.searchLabel}</span>

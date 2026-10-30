@@ -11,6 +11,7 @@ import { NoticeProvider } from '../../components/Notice';
 import { WithChrome } from '../../test/chromeProbe';
 import { useMediaQuery } from '../../components/useMediaQuery';
 
+import { EMPTY_ONBOARDING } from '../../onboarding/onboardingState';
 vi.mock('../../access/accessApi');
 vi.mock('../../access/membersApi', async (orig) => ({
   ...(await orig<typeof import('../../access/membersApi')>()),
@@ -37,7 +38,7 @@ let members: Member[];
 function signInAs(ownerEmail: string) {
   vi.mocked(useAuth).mockReturnValue(authValue({
     access: clubAdminAccess, role: 'admin',
-    appUser: { uid: 'u-1', email: 'owner@example.com' },
+    appUser: { uid: 'u-1', email: 'owner@example.com', onboarding: EMPTY_ONBOARDING },
     club: testClub({ ownerEmail }),
   }));
 }
@@ -277,7 +278,7 @@ describe('PeopleTab', () => {
     signInAs('owner@example.com');
     vi.mocked(useAuth).mockReturnValue(authValue({
       access: clubAdminAccess, role: 'admin',
-      appUser: { uid: 'u-2', email: 'second@example.com' },
+      appUser: { uid: 'u-2', email: 'second@example.com', onboarding: EMPTY_ONBOARDING },
       club: testClub({ ownerEmail: 'owner@example.com' }),
     }));
     members = [...members, m('third@example.com', 'admin')];
@@ -306,7 +307,7 @@ describe('PeopleTab', () => {
     try {
       vi.mocked(useAuth).mockReturnValue(authValue({
         access: clubAdminAccess, role: 'admin',
-        appUser: { uid: 'u-2', email: 'second@example.com' },
+        appUser: { uid: 'u-2', email: 'second@example.com', onboarding: EMPTY_ONBOARDING },
         club: testClub({ ownerEmail: 'owner@example.com' }),
       }));
       renderTab();

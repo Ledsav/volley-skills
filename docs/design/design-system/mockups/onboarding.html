@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding tutorial</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Onboarding mockup: welcome sheet, Get started checklist, tips. Tokens mirror docs/design/design-system/README.md §2. Sample names are made up. */
+:root { --font: Inter, -apple-system, "SF Pro Text", system-ui, sans-serif; }
+.L { --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F2F2F7; --surface-3:#E5E5EA; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#8E8E93; --on-ink:#FFFFFF; --sep:rgba(60,60,67,.14); --glass:rgba(255,255,255,.72); --edge:rgba(0,0,0,.06); --side:#FFFFFF; --shadow:0 1px 2px rgba(0,0,0,.04); --float:0 8px 32px rgba(0,0,0,.12); --scrim:rgba(0,0,0,.28); --green:#34C759; --red:#FF3B30; color-scheme: light; }
+.D { --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --surface-3:#3A3A3C; --ink:#F5F5F7; --ink-2:#A1A1A6; --ink-3:#6E6E73; --on-ink:#000000; --sep:rgba(84,84,88,.48); --glass:rgba(28,28,30,.70); --edge:rgba(255,255,255,.08); --side:#0D0D0F; --shadow:none; --float:0 0 0 1px rgba(255,255,255,.08), 0 8px 32px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.5); --green:#30D158; --red:#FF453A; color-scheme: dark; }
+body { margin:0; font-family:var(--font); background:#F5F5F7; color:#1D1D1F; font-size:15px; line-height:22px; letter-spacing:-.005em; -webkit-font-smoothing:antialiased; }
+@media (prefers-color-scheme: dark) { body { background:#000; color:#F5F5F7; } .intro p, .cap-o { color:#A1A1A6 !important; } }
+* { box-sizing:border-box; }
+.page { max-width:1240px; margin:0 auto; padding:48px 16px 96px; display:flex; flex-direction:column; gap:56px; }
+.intro { max-width:760px; display:flex; flex-direction:column; gap:10px; }
+.intro h1 { margin:0; font-size:clamp(34px,6vw,52px); line-height:1.05; letter-spacing:-.035em; }
+.intro p { margin:0; color:#6E6E73; font-size:17px; line-height:26px; }
+section { display:flex; flex-direction:column; gap:16px; }
+section > h2 { margin:0; font-size:22px; line-height:28px; letter-spacing:-.017em; }
+.cap-o { margin:-8px 0 0; color:#6E6E73; font-size:14px; max-width:760px; }
+.row2 { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:16px; align-items:start; }
+@media (max-width: 960px) { .row2 { grid-template-columns:1fr; } }
+.tag { font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom:8px; }
+.num { font-variant-numeric:tabular-nums; }
+
+/* Desktop screen */
+.screen { border-radius:18px; overflow:hidden; background:var(--bg); color:var(--ink); display:flex; height:600px; outline:1px solid var(--sep); outline-offset:-1px; position:relative; }
+.sidebar { width:210px; flex:none; background:var(--side); border-right:1px solid var(--sep); padding:14px 10px; display:flex; flex-direction:column; gap:2px; }
+@media (max-width: 1100px) { .screen .sidebar { display:none; } }
+.club { display:flex; gap:10px; align-items:center; padding:4px 8px 14px; }
+.ct { width:30px; height:30px; border-radius:9px; background:var(--ink); color:var(--on-ink); display:grid; place-items:center; font-size:12px; font-weight:700; letter-spacing:-.02em; flex:none; }
+.club b { font-size:14px; display:block; } .club span { font-size:12px; color:var(--ink-2); }
+.nv { font-size:14px; padding:7px 10px; border-radius:9px; }
+.nv.on { background:var(--surface-3); font-weight:600; }
+.nl { font-size:12px; color:var(--ink-2); font-weight:500; padding:14px 10px 4px; }
+.content { flex:1; min-width:0; position:relative; overflow:hidden; }
+.toolbar { position:absolute; inset:0 0 auto; height:52px; display:flex; align-items:center; gap:10px; padding:0 16px; z-index:2; }
+.toolbar .tt { font-size:15px; font-weight:600; flex:1; }
+.search { display:flex; align-items:center; gap:8px; background:var(--surface-2); border-radius:9px; padding:5px 10px; font-size:13px; color:var(--ink-3); width:200px; }
+.search kbd { margin-left:auto; font-family:inherit; font-size:11px; border:1px solid var(--sep); border-radius:5px; padding:0 5px; }
+.scroll { position:absolute; inset:0; overflow:hidden; padding:60px 28px 20px; display:flex; flex-direction:column; gap:18px; }
+.eyebrow { font-size:13px; color:var(--ink-2); font-weight:500; }
+.lt { font-size:34px; line-height:40px; font-weight:700; letter-spacing:-.022em; margin:0; }
+.blocks { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.blk { background:var(--surface); border-radius:16px; padding:16px; box-shadow:var(--shadow); min-width:0; }
+.blk h3 { margin:0 0 6px; font-size:17px; font-weight:600; letter-spacing:-.01em; }
+.blk p { margin:0; font-size:13px; color:var(--ink-2); }
+.pill { font:inherit; font-size:14px; font-weight:600; border:0; border-radius:999px; padding:7px 14px; min-height:34px; background:var(--ink); color:var(--on-ink); margin-top:12px; }
+
+/* Get started card */
+.gs { background:var(--surface); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
+.gs-head { display:flex; align-items:center; gap:10px; padding:14px 16px 10px; }
+.gs-head h3 { margin:0; font-size:17px; font-weight:600; letter-spacing:-.01em; flex:1; }
+.gs-head .prog { font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.more { width:30px; height:30px; border-radius:50%; background:var(--surface-2); border:0; color:var(--ink); display:grid; place-items:center; font-size:15px; line-height:1; }
+.bar { height:4px; background:var(--surface-3); border-radius:2px; margin:0 16px 6px; overflow:hidden; }
+.bar i { display:block; height:100%; background:var(--ink); border-radius:2px; }
+.step { display:flex; align-items:center; gap:12px; padding:0 16px; min-height:56px; position:relative; }
+.step + .step::before { content:""; position:absolute; top:0; right:0; left:50px; border-top:1px solid var(--sep); }
+.dot { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--ink-3); flex:none; display:grid; place-items:center; }
+.step.done .dot { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
+.step .m { flex:1; min-width:0; display:flex; flex-direction:column; padding:8px 0; }
+.step .m b { font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.step .m span { font-size:13px; line-height:18px; color:var(--ink-2); }
+.step.done .m b { color:var(--ink-2); font-weight:500; }
+.chev { color:var(--ink-3); font-size:18px; }
+.ready { display:flex; align-items:center; gap:10px; background:var(--surface); border-radius:16px; padding:14px 16px; box-shadow:var(--shadow); font-weight:600; }
+.ready .dot { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
+
+/* Tip */
+.tip { display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border-radius:12px; padding:12px 6px 12px 14px; }
+.tip .ic { color:var(--ink-2); flex:none; margin-top:1px; }
+.tip .m { flex:1; min-width:0; }
+.tip b { display:block; font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.tip span { display:block; font-size:13px; line-height:18px; color:var(--ink-2); }
+.tip kbd { font-family:inherit; font-size:12px; border:1px solid var(--sep); border-radius:5px; padding:0 5px; background:var(--surface); color:var(--ink); }
+.x { width:44px; height:44px; margin:-10px 0 -10px; border:0; background:transparent; color:var(--ink-2); display:grid; place-items:center; border-radius:50%; flex:none; }
+
+/* Sheet */
+.scrim { position:absolute; inset:0; background:var(--scrim); z-index:5; display:grid; place-items:center; padding:16px; }
+.sheet { width:min(460px, 100%); background:var(--surface); border-radius:22px; box-shadow:var(--float); padding:36px 32px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px; }
+.big { width:64px; height:64px; border-radius:16px; background:var(--ink); color:var(--on-ink); display:grid; place-items:center; font-size:22px; font-weight:700; letter-spacing:-.03em; margin-bottom:14px; }
+.sheet h2 { margin:0; font-size:28px; line-height:34px; font-weight:700; letter-spacing:-.022em; text-wrap:balance; }
+.sheet .sub { color:var(--ink-2); font-size:15px; }
+.feats { display:flex; flex-direction:column; gap:18px; margin:26px 0 28px; text-align:left; width:100%; }
+.feat { display:flex; gap:16px; align-items:flex-start; }
+.feat .ic { color:var(--ink); flex:none; margin-top:2px; }
+.feat b { display:block; font-size:16px; font-weight:600; letter-spacing:-.01em; }
+.feat span { display:block; font-size:14px; line-height:20px; color:var(--ink-2); }
+.cta { font:inherit; font-size:16px; font-weight:600; width:100%; min-height:50px; border:0; border-radius:14px; background:var(--ink); color:var(--on-ink); }
+
+/* Phone */
+.phone { width:min(375px, 100%); height:760px; border-radius:44px; overflow:hidden; position:relative; background:var(--bg); color:var(--ink); outline:1px solid var(--sep); outline-offset:-1px; margin-inline:auto; }
+.ph-scroll { position:absolute; inset:0; padding:58px 16px 96px; display:flex; flex-direction:column; gap:14px; overflow:hidden; }
+.ph-top { display:flex; justify-content:space-between; align-items:center; }
+.ic-btn { width:34px; height:34px; border-radius:50%; background:var(--surface-2); display:grid; place-items:center; color:var(--ink); }
+.tabbar { position:absolute; inset:auto 0 0; height:82px; background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%); border-top:1px solid var(--edge); display:flex; justify-content:space-around; padding-top:8px; font-size:10px; font-weight:500; color:var(--ink-3); }
+.tabbar div { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.tabbar .on { color:var(--ink); }
+.bsheet { position:absolute; inset:auto 0 0; top:54px; background:var(--surface); border-radius:22px 22px 0 0; z-index:6; padding:10px 24px 34px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+.grab { width:36px; height:5px; border-radius:3px; background:var(--surface-3); margin-bottom:34px; }
+.bsheet .feats { margin:24px 0 auto; }
+.ph-scrim { position:absolute; inset:0; background:var(--scrim); z-index:5; }
+.dim { transform:scale(.94); transform-origin:50% 0; border-radius:12px; }
+
+/* Roster + scouting */
+.list { background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+.pr { display:flex; align-items:center; gap:12px; padding:0 16px; min-height:56px; position:relative; }
+.pr + .pr::before { content:""; position:absolute; top:0; right:0; left:60px; border-top:1px solid var(--sep); }
+.av { width:32px; height:32px; border-radius:50%; background:var(--surface-2); color:var(--ink-2); display:grid; place-items:center; font-size:12px; font-weight:600; flex:none; font-variant-numeric:tabular-nums; }
+.pr .m { flex:1; } .pr b { display:block; font-size:15px; font-weight:600; } .pr span { font-size:13px; color:var(--ink-2); }
+.seg { display:flex; background:var(--surface-2); border-radius:10px; padding:2px; font-size:13px; width:max-content; max-width:100%; }
+.seg div { padding:6px 14px; border-radius:8px; } .seg .on { background:var(--surface); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.14); }
+.D .seg .on { background:#636366; }
+.court { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.tile { background:var(--surface-2); border-radius:12px; padding:10px; min-height:74px; display:flex; flex-direction:column; gap:2px; position:relative; }
+.tile .rb { font-size:11px; font-weight:700; color:var(--ink-2); } .tile b { font-size:15px; } .tile i { position:absolute; right:8px; bottom:6px; font-style:normal; font-size:11px; color:var(--ink-3); }
+.score { display:flex; justify-content:center; align-items:baseline; gap:18px; font-size:40px; font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.score span { font-size:13px; font-weight:500; color:var(--ink-2); letter-spacing:0; }
+
+.toast { display:flex; align-items:center; gap:14px; background:var(--ink); color:var(--on-ink); border-radius:999px; padding:8px 8px 8px 18px; width:max-content; max-width:100%; box-shadow:var(--float); font-size:14px; }
+.toast button { font:inherit; font-weight:600; border:0; background:color-mix(in srgb, var(--on-ink) 16%, transparent); color:var(--on-ink); border-radius:999px; padding:6px 14px; }
+.grid3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; align-items:start; }
+@media (max-width: 1100px) { .grid3 { grid-template-columns:1fr; } }
+.panel { background:var(--bg); color:var(--ink); border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:14px; outline:1px solid var(--sep); outline-offset:-1px; min-width:0; }
+svg { display:block; }
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-userplus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></symbol>
+    <symbol id="i-act" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="i-dumb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6M18.66 21.51a2 2 0 1 1-2.83-2.83l-1.77 1.77a2 2 0 1 1-2.83-2.83l6.37-6.37a2 2 0 1 1 2.83 2.83l-1.77 1.77a2 2 0 1 1 2.83 2.83zM21.5 21.5l-1.4-1.4M3.9 3.9 2.5 2.5M6.4 12.77a2 2 0 1 1-2.83-2.83l1.77-1.77a2 2 0 1 1-2.83-2.83l2.83-2.83a2 2 0 1 1 2.83 2.83l1.77-1.77a2 2 0 1 1 2.83 2.83z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></symbol>
+    <symbol id="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="intro">
+    <span style="font-size:13px;font-weight:500;color:#6E6E73">Volley Skills · onboarding mockup · 2026-10-30</span>
+    <h1>Onboarding without a tour</h1>
+    <p>Three quiet layers. A welcome sheet shown once. A Get started checklist on Today that ticks itself off from real data. One tip in place the first time a screen hides something. Spec: <code>docs/superpowers/specs/2026-10-30-onboarding-tutorial-design.md</code></p>
+  </header>
+
+  <!-- 1. Welcome sheet -->
+  <section>
+    <h2>1 · Welcome sheet</h2>
+    <p class="cap-o">Shown once per user, on any device and in any club, the first time Today opens. The club's initials tile, not the app mark: the club owns the space. Rows depend on the person's role (a founder is shown here). Continue is the only action.</p>
+    <div class="row2">
+      <div class="L">
+        <div class="tag">Desktop · light · club admin (founder)</div>
+        <div class="screen">
+          <aside class="sidebar">
+            <div class="club"><div class="ct">PV</div><div><b>Pallavolo Verde</b><span>Admin</span></div></div>
+            <div class="nv on">Today</div><div class="nl">Coaching</div><div class="nv">Teams</div><div class="nv">Trainings</div><div class="nv">Exercises</div><div class="nl">Club</div><div class="nv">Skill guides</div><div class="nv">Members &amp; settings</div>
+          </aside>
+          <div class="content">
+            <div class="toolbar"><span class="tt"></span><div class="search"><svg width="14" height="14"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></div></div>
+            <div class="scroll">
+              <div><div class="eyebrow">Friday 30 October</div><h1 class="lt">Today</h1></div>
+              <div class="blocks"><div class="blk"><h3>Next 7 days</h3><p>Nothing planned.</p></div><div class="blk"><h3>Recent results</h3><p>No matches yet.</p></div></div>
+            </div>
+          </div>
+          <div class="scrim">
+            <div class="sheet" role="dialog" aria-label="Welcome">
+              <div class="big">PV</div>
+              <h2>Welcome to Pallavolo Verde</h2>
+              <div class="sub">Volley Skills</div>
+              <div class="feats">
+                <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-users"/></svg><div><b>Teams and players</b><span>Build your teams and keep a card for every player.</span></div></div>
+                <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-userplus"/></svg><div><b>Bring your coaches</b><span>Add coaches and choose what each one can see.</span></div></div>
+                <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-cal"/></svg><div><b>Plan every session</b><span>Put trainings on the calendar and share them as a PDF.</span></div></div>
+                <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-act"/></svg><div><b>Scout live</b><span>Record a match point by point and get the stats after.</span></div></div>
+              </div>
+              <button class="cta">Continue</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="D">
+        <div class="tag">Phone · dark · coach (team admin)</div>
+        <div class="phone">
+          <div class="ph-scroll dim">
+            <div class="eyebrow">Friday 30 October</div><h1 class="lt">Today</h1>
+          </div>
+          <div class="ph-scrim"></div>
+          <div class="bsheet" role="dialog" aria-label="Welcome">
+            <div class="grab"></div>
+            <div class="big">PV</div>
+            <h2 style="margin:0;font-size:28px;line-height:34px;letter-spacing:-.022em">Welcome to Pallavolo Verde</h2>
+            <div style="color:var(--ink-2)">Volley Skills</div>
+            <div class="feats">
+              <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-cal"/></svg><div><b>Plan every session</b><span>Put trainings on the calendar and share them as a PDF.</span></div></div>
+              <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-act"/></svg><div><b>Scout live</b><span>Record a match point by point and get the stats after.</span></div></div>
+              <div class="feat"><svg class="ic" width="28" height="28"><use href="#i-dumb"/></svg><div><b>One club library</b><span>Exercises with court diagrams, shared by every coach.</span></div></div>
+            </div>
+            <button class="cta">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Get started -->
+  <section>
+    <h2>2 · Get started on Today</h2>
+    <p class="cap-o">The first block on Today. Steps tick themselves off from real data (no "mark as done"), keep their order, and go straight to the action. Monochrome: progress is chrome, not data. "⋯" holds Hide, with Undo.</p>
+    <div class="row2">
+      <div class="L">
+        <div class="tag">Desktop · light · founder, 2 of 5 done</div>
+        <div class="screen">
+          <aside class="sidebar">
+            <div class="club"><div class="ct">PV</div><div><b>Pallavolo Verde</b><span>Admin</span></div></div>
+            <div class="nv on">Today</div><div class="nl">Coaching</div><div class="nv">Teams</div><div class="nv">Trainings</div><div class="nv">Exercises</div><div class="nl">Club</div><div class="nv">Skill guides</div><div class="nv">Members &amp; settings</div>
+          </aside>
+          <div class="content">
+            <div class="toolbar"><span class="tt"></span><div class="search"><svg width="14" height="14"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></div></div>
+            <div class="scroll">
+              <div><div class="eyebrow">Friday 30 October</div><h1 class="lt">Today</h1></div>
+              <div class="gs" style="max-width:640px">
+                <div class="gs-head"><h3>Get started</h3><span class="prog">2 of 5</span><button class="more" aria-label="More"><svg width="16" height="16"><use href="#i-more"/></svg></button></div>
+                <div class="bar"><i style="width:40%"></i></div>
+                <div class="step done"><span class="dot"><svg width="12" height="12"><use href="#i-check"/></svg></span><div class="m"><b>Create your first team</b></div><span class="chev">›</span></div>
+                <div class="step done"><span class="dot"><svg width="12" height="12"><use href="#i-check"/></svg></span><div class="m"><b>Add your players</b></div><span class="chev">›</span></div>
+                <div class="step"><span class="dot"></span><div class="m"><b>Add a coach</b><span>Give another coach access to a team.</span></div><span class="chev">›</span></div>
+                <div class="step"><span class="dot"></span><div class="m"><b>Plan a training</b><span>Put your next session on the calendar.</span></div><span class="chev">›</span></div>
+                <div class="step"><span class="dot"></span><div class="m"><b>Scout a match</b><span>Record it live or import a DataVolley file.</span></div><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="D">
+        <div class="tag">Phone · dark · coach: only their steps</div>
+        <div class="phone">
+          <div class="ph-scroll">
+            <div class="ph-top"><span class="eyebrow">Friday 30 October</span><span class="ic-btn"><svg width="16" height="16"><use href="#i-search"/></svg></span></div>
+            <h1 class="lt">Today</h1>
+            <div class="gs">
+              <div class="gs-head"><h3>Get started</h3><span class="prog">1 of 3</span><button class="more" aria-label="More"><svg width="16" height="16"><use href="#i-more"/></svg></button></div>
+              <div class="bar"><i style="width:33%"></i></div>
+              <div class="step done"><span class="dot"><svg width="12" height="12"><use href="#i-check"/></svg></span><div class="m"><b>Add your players</b></div><span class="chev">›</span></div>
+              <div class="step"><span class="dot"></span><div class="m"><b>Plan a training</b><span>Put your next session on the calendar.</span></div><span class="chev">›</span></div>
+              <div class="step"><span class="dot"></span><div class="m"><b>Scout a match</b><span>Record it live or import a DataVolley file.</span></div><span class="chev">›</span></div>
+            </div>
+            <div class="blk"><h3>Next 7 days</h3><p>Nothing planned.</p><button class="pill">Plan a training</button></div>
+          </div>
+          <div class="tabbar"><div class="on"><svg width="22" height="22"><use href="#i-home"/></svg>Today</div><div><svg width="22" height="22"><use href="#i-users"/></svg>Teams</div><div><svg width="22" height="22"><use href="#i-cal"/></svg>Trainings</div><div><svg width="22" height="22"><use href="#i-more"/></svg>More</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="panel L"><div class="tag">All done (that visit only, then gone)</div><div class="ready"><span class="dot" style="width:22px;height:22px;border-radius:50%;display:grid;place-items:center"><svg width="12" height="12"><use href="#i-check"/></svg></span>Your club is ready.</div></div>
+      <div class="panel D"><div class="tag">Hide, with Undo for 6 s</div><div class="toast">Get started hidden<button>Undo</button></div></div>
+      <div class="panel L"><div class="tag">Settings · bring it all back</div><div class="list"><div class="pr"><div class="m"><b>Show tips again</b><span>Welcome, Get started and tips, on all your devices</span></div><span class="chev">›</span></div></div></div>
+    </div>
+  </section>
+
+  <!-- 3. Tips -->
+  <section>
+    <h2>3 · Tips in place</h2>
+    <p class="cap-o">An inline card in the page flow, not a popover: <code>surface-2</code>, one line, × to dismiss. At most one per screen, shown once, gone for good when dismissed or when the person does the thing. Copy changes for touch and pointer.</p>
+    <div class="grid3">
+      <div class="panel L">
+        <div class="tag">Today · desktop</div>
+        <div class="tip"><svg class="ic" width="20" height="20"><use href="#i-search"/></svg><div class="m"><b>Find anything</b><span>Press <kbd>⌘K</kbd> to jump to any team, player, match or exercise.</span></div><button class="x" aria-label="Dismiss tip"><svg width="14" height="14"><use href="#i-x"/></svg></button></div>
+        <div class="blk"><h3>Next 7 days</h3><p>Tue · U17 Girls · Serve &amp; receive</p></div>
+      </div>
+      <div class="panel D">
+        <div class="tag">Team roster · phone</div>
+        <div class="seg"><div class="on">Roster</div><div>Calendar</div><div>Matches</div><div>Stats</div></div>
+        <div class="tip"><svg class="ic" width="20" height="20"><use href="#i-hand"/></svg><div class="m"><b>Quick actions</b><span>Long-press or swipe a player for quick actions.</span></div><button class="x" aria-label="Dismiss tip"><svg width="14" height="14"><use href="#i-x"/></svg></button></div>
+        <div class="list">
+          <div class="pr"><span class="av">7</span><div class="m"><b>Giulia Rossi</b><span>Outside hitter</span></div></div>
+          <div class="pr"><span class="av">12</span><div class="m"><b>Sara Bianchi</b><span>Middle blocker</span></div></div>
+          <div class="pr"><span class="av">3</span><div class="m"><b>Aïcha Diallo</b><span>Libero</span></div></div>
+        </div>
+      </div>
+      <div class="panel D">
+        <div class="tag">Live scouting · before the first rally only</div>
+        <div class="score">0<span>Set 1</span>0</div>
+        <div class="tip"><svg class="ic" width="20" height="20"><use href="#i-light"/></svg><div class="m"><b>How scouting works</b><span>Tap a player, then the skill and the grade. Undo fixes the last tap.</span></div><button class="x" aria-label="Dismiss tip"><svg width="14" height="14"><use href="#i-x"/></svg></button></div>
+        <div class="court">
+          <div class="tile"><span class="rb">OH · #7</span><b>Giulia</b><i>P4</i></div><div class="tile"><span class="rb">MB · #12</span><b>Sara</b><i>P3</i></div><div class="tile"><span class="rb">O · #9</span><b>Olga</b><i>P2</i></div>
+          <div class="tile"><span class="rb">OH · #5</span><b>Marta</b><i>P5</i></div><div class="tile"><span class="rb">L · #3</span><b>Aïcha</b><i>P6</i></div><div class="tile"><span class="rb">S · #1</span><b>Lucia</b><i>P1</i></div>
+        </div>
+        <p style="margin:0;font-size:12px;color:var(--ink-2)">Disappears on the first recorded tap, with no animation.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body></html>

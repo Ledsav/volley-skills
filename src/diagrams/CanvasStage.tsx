@@ -88,6 +88,11 @@ export function CanvasStage({ children, onReady, insets = NO_INSETS, fitBox }: P
     // fitKey stands for fitBox's value
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey]);
+  // A resting view re-frames when the insets change (a tip appearing above the court), a moved view stays put.
+  useLayoutEffect(() => {
+    if (resting.current) setT(restingView());
+  }, [insets.top, insets.right, insets.bottom, insets.left, restingView]);
+
   // Pinch starts from the live scale, so it stays in sync after the zoom
   // buttons / reset change it outside the gesture.
   const scaleRef = useRef(t.scale);

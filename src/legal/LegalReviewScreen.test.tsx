@@ -9,6 +9,7 @@ import { Timestamp } from 'firebase/firestore';
 import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 import * as clubAdminApi from '../clubs/clubAdminApi';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 const notify = vi.hoisted(() => vi.fn());
 vi.mock('../auth/AuthContext');
 vi.mock('../clubs/clubAdminApi');
@@ -26,7 +27,7 @@ describe('LegalReviewScreen', () => {
     vi.mocked(clubAdminApi.requestTermination).mockResolvedValue(undefined);
     vi.mocked(useAuth).mockReturnValue(authValue({
       role: 'admin', access: clubAdminAccess, club: testClub({ legal: null }),
-      appUser: { uid: 'u-1', email: 'Admin@Example.com' },
+      appUser: { uid: 'u-1', email: 'Admin@Example.com', onboarding: EMPTY_ONBOARDING },
     }));
   });
 

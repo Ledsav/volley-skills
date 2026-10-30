@@ -182,8 +182,8 @@ per-team (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
 The platform operator is an email in `platformAdmins/{email}` (readable only by that
 email; written by script/console, never the client); the operator sees only the club
 profile/lifecycle doc and leads — never members, teams, players or library — and can
-status-update club docs. `users/{uid}` holds only email and
-timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
+status-update club docs. `users/{uid}` holds only email,
+timestamps and the owner-writable `onboarding` map (shown-once flags) — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
 (`pending | active | suspended | terminating | deleted`) drives `ClubGate`. See
 `docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
 `2026-09-11-volley-skills-access-model.md` is superseded in part.
@@ -245,6 +245,17 @@ operator accepts for their own club like any club admin (never for a club they a
 need `player.photoConsent`; adults need none; a missing date of birth counts as a minor (`src/awards/photoGate.ts`, P12).
 Seed sign-ins: `president@example.com` (demo owner, accepted), `review@example.com` (blocking review screen), plus those
 in `scripts/seed/README.md`.
+
+**Onboarding** (`src/onboarding/`): everything shows once per *user*, across devices, from `users/{uid}.onboarding`
+(`{ welcomed, tips[], hiddenChecklists[] }`; the owner may update only that key, rules-tested in `users.rules.test.ts`).
+`AuthProvider` exposes `onboarding` and an optimistic `updateOnboarding(change)` (the write is not awaited); read
+visibility only from `useAuth().onboarding`, never the `appUser` sign-in snapshot. `parseOnboarding` turns a missing
+or malformed value into safe defaults. `WelcomeSheet` and `GetStartedCard` sit on Today; the checklist's steps tick
+from real data (`useStepFacts`: `count()` and `limit(1)` reads on the teams already loaded, a failed read counts as
+not done) and it hides itself after showing its completion line once. Tips are a `Tip` card plus `useTip(id)`
+(visible when welcomed and not in `tips`; `dismiss` also writes the id); placements live next to their screens
+(`SearchTip` on Today, `DiagramTip` in the diagram editor, `row-actions` in `TeamRosterTable`, `ScoutStartTip` in live scouting with no motion, `pdf-share`
+in the view-only `TrainingViewSheet`). Settings has "Show tips again", which resets the map.
 
 ### Firestore model shape (see spec §5 for the full contract)
 

@@ -9,6 +9,7 @@ import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 import { useNotify } from '../components/Notice';
 import { formatDateValue } from '../i18n/format';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 const mockSignOut = vi.fn();
 vi.mock('../firebase/signOut', () => ({ signOutAndClearLocalData: (...args: unknown[]) => mockSignOut(...args) }));
 vi.mock('../auth/AuthContext');
@@ -186,7 +187,7 @@ describe('AppShell', () => {
 
   it('caps the phone bottom bar at 5 items for a club admin, with no club pages on it', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ access: clubAdminAccess, isPlatformAdmin: true, appUser: { uid: 'u-1', email: 'user@example.com' } })
+      authValue({ access: clubAdminAccess, isPlatformAdmin: true, appUser: { uid: 'u-1', email: 'user@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });

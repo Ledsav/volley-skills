@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { sha256Hex } from './hash';
-import { legalText } from './legalDocs';
+import { legalText, rawLegalText } from './legalDocs';
 import { LEGAL_LANGS, type LegalDocId } from './versions';
 
 /**
@@ -39,21 +39,32 @@ const PUBLISHED: Record<string, Record<string, string>> = {
     'dpia-pack/de': '138df80cb19906efa38436280b7a321dd8b31a942fc7b0866c29d8208ed764e1',
     'dpia-pack/es': 'da170bf1c6077d863b961a9deb7c188eacdace7f1eb4f9b418437fbd7fe7c99d',
   },
+  // Privacy notice only: it gained one clause (onboarding progress on the account). The other
+  // documents have no 2026-10-30 text, so nothing else is pinned for this version.
+  '2026-10-30': {
+    'privacy/en': 'f6bd62edcb7537e937479a443d986cd99cca9e33928b4a8ebcc76535c5d16eb5',
+    'privacy/it': 'eba84e372884e98b37b4ab406eb1b533fe242cccb05ed02f437352dade3c248b',
+    'privacy/fr': 'd0071d10e8229f74d8dca3f08ff8514f5c58e500cba822be8f44cc3510c70dfe',
+    'privacy/de': '223d08d2a440bd9c0ec6a65ff0238ff0b099325a7aba15735b3c07970a2d83af',
+    'privacy/es': '357f5f986589db4da27b19e093dd3c94e461ae78bba51ccca94ce963e2d827fd',
+  },
 };
 
 const DOCS: LegalDocId[] = ['terms', 'dpa', 'subprocessors', 'privacy', 'dpia-pack'];
 
 describe('published legal texts', () => {
   for (const [version, hashes] of Object.entries(PUBLISHED)) {
-    it(`pins all ${DOCS.length * LEGAL_LANGS.length} texts of ${version}`, () => {
-      expect(Object.keys(hashes)).toHaveLength(DOCS.length * LEGAL_LANGS.length);
+    // Each version pins only the texts that exist for it.
+    const existing = DOCS.flatMap((doc) =>
+      LEGAL_LANGS.filter((lang) => rawLegalText(doc, version, lang) !== null).map((lang) => ({ doc, lang }))
+    );
+    it(`pins all ${existing.length} texts of ${version}`, () => {
+      expect(Object.keys(hashes).sort()).toEqual(existing.map(({ doc, lang }) => `${doc}/${lang}`).sort());
     });
-    for (const doc of DOCS) {
-      for (const lang of LEGAL_LANGS) {
-        it(`${doc} ${version} ${lang} is unchanged`, async () => {
-          expect(await sha256Hex(legalText(doc, version, lang))).toBe(hashes[`${doc}/${lang}`]);
-        });
-      }
+    for (const { doc, lang } of existing) {
+      it(`${doc} ${version} ${lang} is unchanged`, async () => {
+        expect(await sha256Hex(legalText(doc, version, lang))).toBe(hashes[`${doc}/${lang}`]);
+      });
     }
   }
 });

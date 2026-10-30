@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { listCalendarSessions, createCalendarSession, deleteCalendarSession, getCalendarSession } from './calendarApi';
+import { listCalendarSessions, createCalendarSession, deleteCalendarSession, getCalendarSession, hasAnySession } from './calendarApi';
 
 const { mockAddDoc, mockDeleteDoc, mockGetDoc, mockGetDocs, mockCollection, mockDoc, mockWhere } = vi.hoisted(() => ({
   mockGetDoc: vi.fn(),
@@ -82,5 +82,13 @@ describe('calendarApi', () => {
     expect(mockDoc).toHaveBeenCalledWith({}, 'clubs', 'club-1', 'teams', 'team-1', 'calendar', 's-1');
     mockGetDoc.mockResolvedValueOnce({ exists: () => false });
     expect(await getCalendarSession('team-1', 'gone')).toBeNull();
+  });
+
+  it('hasAnySession asks for one document of the whole calendar', async () => {
+    mockGetDocs.mockResolvedValueOnce({ empty: false });
+    expect(await hasAnySession('team-1')).toBe(true);
+    expect(mockGetDocs).toHaveBeenCalledWith([expect.anything(), { type: 'limit', args: [1] }]);
+    mockGetDocs.mockResolvedValueOnce({ empty: true });
+    expect(await hasAnySession('team-1')).toBe(false);
   });
 });

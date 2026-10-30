@@ -19,6 +19,7 @@ import { legal } from './legal';
 import { matches } from './matches';
 import { physicalSessions } from './physicalSessions';
 import { physicalTestGuide } from './physicalTestGuide';
+import { onboarding } from './onboarding';
 import { platform } from './platform';
 import { players } from './players';
 import { scout } from './scout';
@@ -30,4 +31,4 @@ import { teams } from './teams';
 import { textScout } from './textScout';
 import { trainings } from './trainings';
 
-export const en = { admin, ai, aiDraft, auth, awards, bulkImport, calendar, clubs, common, components, diagrams, dvw, exercises, home, interest, labels, legal, layout, matches, physicalSessions, physicalTestGuide, platform, players, scout, search, settings, signup, skillGuide, teams, textScout, trainings };
+export const en = { admin, ai, aiDraft, auth, awards, bulkImport, calendar, clubs, common, components, diagrams, dvw, exercises, home, interest, labels, legal, layout, matches, onboarding, physicalSessions, physicalTestGuide, platform, players, scout, search, settings, signup, skillGuide, teams, textScout, trainings };

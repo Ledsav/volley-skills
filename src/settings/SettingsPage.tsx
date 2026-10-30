@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePageMeta } from '../layout/usePageMeta';
+import { useAuth } from '../auth/AuthContext';
+import { useNotify } from '../components/Notice';
 import { useClubFeatures } from '../clubs/useClubFeatures';
 import { AiProviderSettings } from './AiProviderSettings';
 import { LanguageSettings } from './LanguageSettings';
@@ -17,8 +19,11 @@ import { PageContainer } from '../layout/PageContainer';
 /** Personal settings only. Pages live in the sidebar (phones: More); sign-out in the account menu. */
 export function SettingsPage() {
   const t = useT().settings;
+  const onb = useT().onboarding.settings;
   usePageMeta({ title: t.title });
   const { aiEnabled } = useClubFeatures();
+  const { activeClubId, updateOnboarding } = useAuth();
+  const notify = useNotify();
   const [pref, setPref] = useThemePreference();
   const [params] = useSearchParams();
   const view = params.get('view') === 'ai' && aiEnabled ? 'ai' : 'root';
@@ -70,6 +75,19 @@ export function SettingsPage() {
             </li>
           </GroupedList>
           <LanguageSettings />
+          {activeClubId && (
+            <GroupedList>
+              <ListRow
+                title={onb.showAgain}
+                subtitle={onb.showAgainHelp}
+                trailing={<ChevronRight size={18} aria-hidden="true" className="text-ink-3" />}
+                onClick={() => {
+                  void Promise.resolve(updateOnboarding({ kind: 'reset', clubId: activeClubId })).catch(() => {});
+                  notify(onb.shown);
+                }}
+              />
+            </GroupedList>
+          )}
           {aiEnabled && (
             <GroupedList header={t.ai.title} footer={t.ai.description}>
               <ListRow to="/settings?view=ai" title={t.ai.provider} trailing={providerName(readAiSettings().provider)} />

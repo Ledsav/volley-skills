@@ -11,6 +11,7 @@ import { NoticeProvider } from '../components/Notice';
 import { PageChromeProvider, usePageChromeState } from '../layout/PageChrome';
 import { WithChrome } from '../test/chromeProbe';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 const flag = vi.hoisted(() => ({ italian: false }));
 vi.mock('../i18n/locales', async (orig) => {
   const actual = await orig<typeof import('../i18n/locales')>();
@@ -76,7 +77,7 @@ describe('TeamPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -94,7 +95,7 @@ describe('TeamPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
       })
     );
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
@@ -132,7 +133,7 @@ describe('TeamPage', () => {
     unmount();
 
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'm' } as never, appUser: { uid: 'm', email: 'member@example.com' } })
+      authValue({ firebaseUser: { uid: 'm' } as never, appUser: { uid: 'm', email: 'member@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     vi.spyOn(teamsApi, 'getTeam').mockResolvedValue({ ...team, adminEmails: ['coach@example.com'] });
     renderTeamPage();

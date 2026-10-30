@@ -21,6 +21,7 @@ import { nextRotation, prevRotation, replay, resultFromState, rosterRoles, sameR
 import { playerForm } from '../scoutStats';
 import { POINT_REASONS, rallyOutcome } from '../skillGrades';
 import { useMatchEvents } from '../useMatchEvents';
+import { ScoutStartTip } from '../../onboarding/ScoutStartTip';
 import { ScoutRoot } from './ScoutRoot';
 import { ActionSheet } from './ActionSheet';
 import { BenchStrip } from './BenchStrip';
@@ -429,6 +430,8 @@ export function ScoutPage() {
   }
 
   const liberoIds = new Set(match.liberos.map((l) => l.playerId));
+  // Setup events do not count: the tip is about the first tap on a player or a point.
+  const hasTapped = (events ?? []).some((e) => e.type === 'action' || e.type === 'point');
   const selected = selectedId ? roster.get(selectedId) : undefined;
   const stripKind = pickStrip({
     error: writeError.error !== null,
@@ -563,6 +566,7 @@ export function ScoutPage() {
   // scroll. Phones keep their scrolling main.
   const courtColumn = (
     <div className={`flex flex-col gap-3 ${isDesktop ? 'h-full min-h-0' : 'min-h-full'}`}>
+      <ScoutStartTip tapped={hasTapped} hidden={quickScore || isShort || !state.inSet} />
       {!quickScore && (
         <>
           <CourtGrid

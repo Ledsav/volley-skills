@@ -25,6 +25,7 @@ import { DEFAULT_FORMAT, type Match } from '../types/match';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('../teams/teamsApi');
 vi.mock('../players/playersApi');
 vi.mock('../players/physicalTestsApi');
@@ -76,7 +77,7 @@ describe('Italian smoke: main screens render Italian and never print "undefined"
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'u1', email: 'coach@example.com' } as never,
-        appUser: { uid: 'u1', email: 'coach@example.com' },
+        appUser: { uid: 'u1', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       }),
     );

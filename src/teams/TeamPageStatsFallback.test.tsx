@@ -11,6 +11,7 @@ import { NoticeProvider } from '../components/Notice';
 import { usePageChromeState } from '../layout/PageChrome';
 import { WithChrome } from '../test/chromeProbe';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./teamsApi');
 vi.mock('../players/playersApi');
 vi.mock('../auth/AuthContext');
@@ -26,7 +27,7 @@ function Title() {
 
 describe('TeamPage Stats fallback', () => {
   beforeEach(() => {
-    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' }, access: clubAdminAccess }));
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING }, access: clubAdminAccess }));
   });
 
   it('keeps the toolbar title while the Stats chunk loads', async () => {

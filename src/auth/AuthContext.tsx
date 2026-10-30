@@ -1,11 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import type { Unsubscribe } from 'firebase/firestore';
 import { auth } from '../firebase/config';
 import { setActiveClubId } from '../firebase/activeClub';
 import { listMyMemberships, probePlatformAdmin, subscribeClub } from '../clubs/clubsApi';
 import { pickActiveClub, readStoredClub, storeClub } from '../clubs/activeClub';
-import { ensureUserDoc } from './usersApi';
+import { ensureUserDoc, writeOnboarding } from './usersApi';
+import { applyOnboarding, type OnboardingChange, type OnboardingState } from '../onboarding/onboardingState';
 import { resolveAccess } from './access';
 import type { Access } from './access';
 import type { AppUser } from '../types/auth';
@@ -26,6 +27,10 @@ export interface AuthContextValue {
   droppedClub: boolean;
   /** Stores the choice and reloads, so every subscription and cursor starts over in the new club. */
   switchClub: (clubId: string) => void;
+  /** The user's shown-once state; `null` until the user doc is read and when signed out. */
+  onboarding: OnboardingState | null;
+  /** Applies the change here at once, then writes it without waiting; a failed write is swallowed. */
+  updateOnboarding: (change: OnboardingChange) => void;
 }
 
 function switchClub(clubId: string): void {
@@ -46,6 +51,8 @@ const AuthContext = createContext<AuthContextValue>({
   isPlatformAdmin: false,
   droppedClub: false,
   switchClub,
+  onboarding: null,
+  updateOnboarding: () => {},
 });
 
 interface Session {
@@ -56,6 +63,7 @@ interface Session {
   role: MemberRole | null;
   isPlatformAdmin: boolean;
   droppedClub: boolean;
+  onboarding: OnboardingState | null;
 }
 
 const SIGNED_OUT: Session = {
@@ -66,6 +74,7 @@ const SIGNED_OUT: Session = {
   role: null,
   isPlatformAdmin: false,
   droppedClub: false,
+  onboarding: null,
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -74,6 +83,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const uidRef = useRef<string | null>(null);
+  uidRef.current = session.appUser?.uid ?? null;
+  const onboardingRef = useRef<OnboardingState | null>(null);
+  onboardingRef.current = session.onboarding;
+  const updateOnboarding = useCallback((change: OnboardingChange) => {
+    const uid = uidRef.current;
+    if (!uid) return;
+    const current = onboardingRef.current;
+    // A change that alters nothing makes no state update and no write.
+    if (current && applyOnboarding(current, change) === current) return;
+    setSession((s) => (s.onboarding ? { ...s, onboarding: applyOnboarding(s.onboarding, change) } : s));
+    if (current) onboardingRef.current = applyOnboarding(current, change);
+    writeOnboarding(uid, change).catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Each auth change bumps the generation so a slower, older sign-in never lands.
@@ -116,7 +140,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const access = role ? await resolveAccess(role) : null;
         if (current !== generation) return;
 
-        setSession({ appUser, access, memberships, activeClubId: clubId, role, isPlatformAdmin, droppedClub: dropped });
+        setSession({
+          appUser,
+          access,
+          memberships,
+          activeClubId: clubId,
+          role,
+          isPlatformAdmin,
+          droppedClub: dropped,
+          onboarding: appUser.onboarding,
+        });
         setAuthError(null);
         if (clubId) {
           // Section access depends on the club's status in the rules, so it is probed again
@@ -157,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ firebaseUser, ...session, club, loading, authError, switchClub }}>
+    <AuthContext.Provider value={{ firebaseUser, ...session, club, loading, authError, switchClub, updateOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

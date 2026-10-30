@@ -5,9 +5,11 @@ import { SettingsPage } from './SettingsPage';
 import { navGroups } from '../layout/navModel';
 import { clubAdminAccess } from '../test/authValue';
 
-const mockClub = vi.hoisted(() => ({ aiEnabled: true }));
+const mockClub = vi.hoisted(() => ({ aiEnabled: true, activeClubId: 'club-1' as string | null, update: vi.fn() }));
+const notifyMock = vi.hoisted(() => vi.fn());
+vi.mock('../components/Notice', () => ({ useNotify: () => notifyMock, useUndoable: () => vi.fn() }));
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ access: { isClubAdmin: true, sections: { guides: true } }, isPlatformAdmin: true, club: { aiEnabled: mockClub.aiEnabled } }),
+  useAuth: () => ({ access: { isClubAdmin: true, sections: { guides: true } }, isPlatformAdmin: true, club: { aiEnabled: mockClub.aiEnabled }, activeClubId: mockClub.activeClubId, updateOnboarding: mockClub.update }),
 }));
 
 function renderSettings(entry = '/settings') {
@@ -21,6 +23,21 @@ function renderSettings(entry = '/settings') {
 describe('SettingsPage', () => {
   beforeEach(() => {
     mockClub.aiEnabled = true;
+    mockClub.activeClubId = 'club-1';
+    vi.clearAllMocks();
+  });
+
+  it('Show tips again resets onboarding for the active club and confirms', () => {
+    renderSettings();
+    fireEvent.click(screen.getByRole('button', { name: /Show tips again/ }));
+    expect(mockClub.update).toHaveBeenCalledWith({ kind: 'reset', clubId: 'club-1' });
+    expect(notifyMock).toHaveBeenCalledWith('Tips will show again.');
+  });
+
+  it('hides Show tips again when there is no active club', () => {
+    mockClub.activeClubId = null;
+    renderSettings();
+    expect(screen.queryByRole('button', { name: /Show tips again/ })).toBeNull();
   });
 
   it('hides the AI provider settings when the club has AI off', () => {

@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { I18nProvider } from '../i18n/I18nProvider';
 import { authValue, clubAdminAccess, testClub } from '../test/authValue';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('../auth/AuthContext');
 vi.mock('../clubs/clubAdminApi');
 vi.mock('../auth/reauth', () => ({ sendSigningLink: vi.fn().mockResolvedValue(undefined) }));
@@ -19,7 +20,7 @@ describe('LegalReviewScreen in Italian', () => {
     window.localStorage.setItem('vcb.locale', 'it');
     vi.mocked(useAuth).mockReturnValue(authValue({
       role: 'admin', access: clubAdminAccess, club: testClub({ legal: null }),
-      appUser: { uid: 'u-1', email: 'admin@example.com' },
+      appUser: { uid: 'u-1', email: 'admin@example.com', onboarding: EMPTY_ONBOARDING },
     }));
   });
 

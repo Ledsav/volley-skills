@@ -206,3 +206,9 @@ export async function loadTeamRoster(teamId: string): Promise<Player[]> {
     cursor = page.lastDoc;
   }
 }
+
+/** Whether the team has any match at all: one document, no index. */
+export async function hasAnyMatch(teamId: string): Promise<boolean> {
+  const snap = await getDocs(query(clubCol('teams', teamId, 'matches'), limit(1)));
+  return !snap.empty;
+}

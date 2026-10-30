@@ -13,7 +13,7 @@ import { TeamPickerSheet } from './TeamPickerSheet';
  * several ask which team first (the picker is returned as `picker`; render it once).
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useTeamAction(teams: Team[], action: 'new-match' | 'new-session'): { start: () => void; picker: ReactNode } {
+export function useTeamAction(teams: Team[], action: 'new-match' | 'new-session' | 'add-player'): { start: () => void; picker: ReactNode } {
   const navigate = useNavigate();
   const t = useT().home;
   const [picking, setPicking] = useState(false);

@@ -54,3 +54,9 @@ export async function createCalendarSession(
 export async function deleteCalendarSession(teamId: string, sessionId: string): Promise<void> {
   await deleteDoc(clubDoc('teams', teamId, 'calendar', sessionId));
 }
+
+/** Whether the team has any session at all: one document, no index. */
+export async function hasAnySession(teamId: string): Promise<boolean> {
+  const snap = await getDocs(query(clubCol('teams', teamId, 'calendar'), limit(1)));
+  return !snap.empty;
+}

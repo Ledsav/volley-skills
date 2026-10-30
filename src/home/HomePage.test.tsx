@@ -10,11 +10,14 @@ import * as teamsApi from '../teams/teamsApi';
 import * as calendarApi from '../calendar/calendarApi';
 import * as matchesApi from '../matches/matchesApi';
 import { formatDateValue } from '../i18n/format';
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
 vi.mock('../teams/teamsApi');
 vi.mock('../calendar/calendarApi');
 vi.mock('../matches/matchesApi');
+const searchState = vi.hoisted(() => ({ isOpen: false }));
+vi.mock('../search/SearchProvider', () => ({ useSearch: () => ({ open: () => {}, close: () => {}, isOpen: searchState.isOpen }) }));
 const useAuthMock = vi.fn();
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => useAuthMock() }));
 
@@ -42,6 +45,7 @@ describe('HomePage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 14, 18, 0));
+    searchState.isOpen = false;
     useAuthMock.mockReturnValue(authValue());
     vi.mocked(teamsApi.listMyTeams).mockResolvedValue({ teams: [team], lastDoc: null, hasMore: false });
     vi.mocked(teamsApi.getTeamSummary).mockResolvedValue({ players: 0, avgScore: null });
@@ -57,6 +61,34 @@ describe('HomePage', () => {
     renderHome();
     const resume = await screen.findByRole('link', { name: /Resume scouting/ });
     expect(resume).toHaveAttribute('href', '/teams/t1/matches/m1/scout');
+  });
+
+  it('shows no welcome sheet while Today is loading, then shows it once loaded', async () => {
+    renderHome();
+    expect(screen.queryByRole('dialog', { name: /^Welcome to/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Welcome to Test Club' })).toBeInTheDocument();
+  });
+
+  describe('search tip', () => {
+    const welcomed = { ...EMPTY_ONBOARDING, welcomed: true };
+
+    it('shows below the checklist for a welcomed user and ends when the search opens', async () => {
+      const update = vi.fn();
+      useAuthMock.mockReturnValue(authValue({ onboarding: welcomed, updateOnboarding: update }));
+      const { rerender } = render(<MemoryRouter><HomePage /></MemoryRouter>);
+      expect(await screen.findByText('Find anything')).toBeInTheDocument();
+      expect(screen.getByText('Press Ctrl K to jump to any team, player, match or exercise.')).toBeInTheDocument();
+      expect(update).not.toHaveBeenCalled();
+      searchState.isOpen = true;
+      rerender(<MemoryRouter><HomePage /></MemoryRouter>);
+      expect(update).toHaveBeenCalledWith({ kind: 'tip', id: 'search' });
+    });
+
+    it('is absent before the welcome', async () => {
+      renderHome();
+      await screen.findByRole('link', { name: /Resume scouting/ });
+      expect(screen.queryByText('Find anything')).not.toBeInTheDocument();
+    });
   });
 
   it('is titled Today with the date as overline', async () => {
@@ -120,6 +152,7 @@ describe('HomePage', () => {
     expect(screen.queryByText('Next 7 days')).not.toBeInTheDocument();
     expect(screen.queryByText("You don't have access to any team yet")).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Resume scouting/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /^Welcome to/ })).not.toBeInTheDocument();
   });
 
   it('recent results date the match like Next 7 days, not as an ISO string', async () => {

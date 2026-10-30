@@ -1,6 +1,6 @@
 # Onboarding tutorial — design
 
-**Status:** draft for review, 2026-10-30. The user handed every decision to the designer ("just start, you decide"),
+**Status:** approved and built, 2026-10-30. The user handed every decision to the designer ("just start, you decide"),
 so every choice below is the designer's call unless marked otherwise. **User decision:** everything shows once per
 *user*, not per device (§4).
 **Mockup:** `docs/design/design-system/mockups/onboarding.html` (light and dark, phone and desktop).
@@ -112,22 +112,26 @@ a DataVolley file."
   Today (the first page), and are aggregations or `limit(1)` reads. There is no collection scan (spec §8). Any new
   query gets its index. A failed check counts as "not done", silently, with no error UI, because the checklist is
   optional help.
-- **Completion:** when every visible step is done, the card turns into one line, "Your club is ready." with a
-  check, for that visit only. It then never shows again. With reduced motion it simply swaps.
+- **Completion:** when every visible step is done, the card turns into one line with a check, for that visit
+  only: "Your club is ready." for a club admin and "You're all set." for everyone else. It is shown once: when the
+  facts first come back all done and the club is not yet in `hiddenChecklists`, the card shows the line and writes
+  `hideChecklist(clubId)`; on the next visit nothing renders. With reduced motion it simply swaps.
 - **Hide:** goes through `useNotify()` with **Undo** (6 s), following the undo-notice pattern. After that the card
   stays hidden until "Show tips again" (§3.4).
 
 ### 3.3 Tips in place
 
 A tip is an inline card that sits in the page's flow at the top of the relevant content. It is not a popover and
-not glass. It uses the `surface-2` fill, radius 12, a 20 px icon in `ink-2`, a `subhead` bold title, one `footnote`
+not glass. It uses the `surface-2` fill, radius 12, a 20 px icon in `ink-2`, a bold title, one `footnote`
 line and a 44 px "×" button labelled "Dismiss tip". It enters with the page-change motion (fade plus 6 px rise) and
 leaves with the list-delete motion (height collapse plus fade, 200 ms); with reduced motion it cross-fades.
+The type scale has no `subhead` role, so the title uses `text-callout` (semibold), as the rest of onboarding does.
 
 **Rules**
 - One tip per screen at most, and only after the welcome sheet has been closed.
 - It shows once. It is gone for good when dismissed, or when the person does the thing it explains.
-- Never over a sheet, never inside a sheet, and never on a screen that is loading or in an error state.
+- Never over a sheet; inside a sheet only in a read-only `variant="view"` sheet (the `pdf-share` tip sits in the
+  training view sheet). Never on a screen that is loading or in an error state.
 - **Scouting:** only before the first rally of the person's first scouted match, above the court. It disappears on
   the first recorded tap, with no animation (recording never animates).
 - Platform-aware copy: "right-click" on a fine pointer, "long-press" and "swipe" on touch (`useMediaQuery`).
@@ -142,10 +146,15 @@ whose behaviour has changed):
 | `scout-start` | Live scouting | How scouting works | Tap a player, then the skill and the grade. The likely next action is suggested; Undo fixes the last tap. | first recorded tap |
 | `pdf-share` | Training view | Sharing a PDF | Tap Share PDF to build it, then Share PDF ready to send it. | a PDF built |
 | `diagram` | Diagram editor | Draw a drill | Drag players, balls and arrows from the palette onto the court. | first element added |
-| `undo` | Today (after the first undoable delete) | Changed your mind? | Deletes wait a few seconds, so you can tap Undo. | (shows once) |
 
-`undo` is the one tip that follows an event rather than a first visit. It shows the next time Today opens after the
-person's first undoable delete, if `search` has already gone.
+The `undo` tip is dropped (ruling 1): the undo notice already carries its own Undo button, and tracking "the first
+undoable delete" would couple `Notice` to onboarding for little gain.
+
+**Built as:** `search`, `row-actions`, `scout-start` and `pdf-share`. `diagram` is **not placed**: the palette adds an
+element with a tap (there is no drag from the palette), so the copy would describe behaviour that does not exist. Its
+id and strings stay in place; the tip returns once the copy is reworded or palette drag exists. `scout-start` ends on
+the first recorded action or point (the set-start event does not count), is not shown in quick score or on a short
+landscape phone, and has no motion.
 
 ### 3.4 Replay
 

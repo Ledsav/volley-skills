@@ -1,13 +1,17 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamRosterTable } from './TeamRosterTable';
 import * as playersApi from '../players/playersApi';
 import { ageFromDob } from '../players/age';
 import type { Player, PositionCategory } from '../types/player';
+import { authValue } from '../test/authValue';
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 
 vi.mock('../players/playersApi');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
+const authMock = vi.hoisted(() => ({ value: null as unknown }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: () => authMock.value }));
 
 function makePlayer(
   id: string,
@@ -63,6 +67,36 @@ function renderRoster() {
 }
 
 describe('TeamRosterTable', () => {
+  beforeEach(() => {
+    authMock.value = authValue();
+  });
+
+  describe('row-actions tip', () => {
+    const update = vi.fn();
+    beforeEach(() => {
+      update.mockClear();
+      authMock.value = authValue({ onboarding: { ...EMPTY_ONBOARDING, welcomed: true }, updateOnboarding: update });
+      vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({ players: [makePlayer('p1', 1, 'Test Player')], lastDoc: null, hasMore: false });
+    });
+
+    it('shows above the list with the pointer wording and ends when a row menu opens', async () => {
+      renderRoster();
+      expect(await screen.findByText('Quick actions')).toBeInTheDocument();
+      expect(screen.getByText('Right-click a player for quick actions.')).toBeInTheDocument();
+      expect(update).not.toHaveBeenCalled();
+      fireEvent.contextMenu((await screen.findAllByTestId('roster-mobile-card'))[0], { clientX: 20, clientY: 20 });
+      await screen.findAllByRole('menuitem');
+      expect(update).toHaveBeenCalledWith({ kind: 'tip', id: 'row-actions' });
+    });
+
+    it('is absent before the welcome', async () => {
+      authMock.value = authValue();
+      renderRoster();
+      await screen.findAllByTestId('roster-mobile-card');
+      expect(screen.queryByText('Quick actions')).not.toBeInTheDocument();
+    });
+  });
+
   it('renders players in the desktop table with a single averaged skill column, not per-skill columns', async () => {
     vi.spyOn(playersApi, 'listPlayers').mockResolvedValue({
       players: [makePlayer('player-1', 1, 'Test Player')],

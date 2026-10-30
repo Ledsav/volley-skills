@@ -246,6 +246,17 @@ need `player.photoConsent`; adults need none; a missing date of birth counts as 
 Seed sign-ins: `president@example.com` (demo owner, accepted), `review@example.com` (blocking review screen), plus those
 in `scripts/seed/README.md`.
 
+**Onboarding** (`src/onboarding/`): everything shows once per *user*, across devices, from `users/{uid}.onboarding`
+(`{ welcomed, tips[], hiddenChecklists[] }`; the owner may update only that key, rules-tested in `users.rules.test.ts`).
+`AuthProvider` exposes `onboarding` and an optimistic `updateOnboarding(change)` (the write is not awaited); read
+visibility only from `useAuth().onboarding`, never the `appUser` sign-in snapshot. `parseOnboarding` turns a missing
+or malformed value into safe defaults. `WelcomeSheet` and `GetStartedCard` sit on Today; the checklist's steps tick
+from real data (`useStepFacts`: `count()` and `limit(1)` reads on the teams already loaded, a failed read counts as
+not done) and it hides itself after showing its completion line once. Tips are a `Tip` card plus `useTip(id)`
+(visible when welcomed and not in `tips`; `dismiss` also writes the id); placements live next to their screens
+(`SearchTip` on Today, `row-actions` in `TeamRosterTable`, `ScoutStartTip` in live scouting with no motion, `pdf-share`
+in the view-only `TrainingViewSheet`). Settings has "Show tips again", which resets the map.
+
 ### Firestore model shape (see spec §5 for the full contract)
 
 Everything is under `clubs/{clubId}` (`clubs/{id}` is the club profile and lifecycle doc),

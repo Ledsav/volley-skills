@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT, type Match, type MatchEvent } from '../../types/match';
 import * as api from '../matchesApi';
 import { ScoutPage } from './ScoutPage';
+import { EMPTY_ONBOARDING } from '../../onboarding/onboardingState';
 
 vi.mock('../matchesApi');
 vi.mock('../../firebase/config', () => ({ auth: {}, db: {} }));
@@ -39,8 +40,14 @@ vi.mock('../text/TextScoutPanel', async () => {
   };
 });
 const mockClub = vi.hoisted(() => ({ aiEnabled: true }));
+const mockOnboarding = vi.hoisted(() => ({ value: null as unknown, update: vi.fn() }));
 vi.mock('../../auth/AuthContext', () => ({
-  useAuth: () => ({ firebaseUser: { uid: 'u1' }, club: { aiEnabled: mockClub.aiEnabled } }),
+  useAuth: () => ({
+    firebaseUser: { uid: 'u1' },
+    club: { aiEnabled: mockClub.aiEnabled },
+    onboarding: mockOnboarding.value,
+    updateOnboarding: mockOnboarding.update,
+  }),
 }));
 
 const roster = [
@@ -102,6 +109,7 @@ describe('ScoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockClub.aiEnabled = true;
+    mockOnboarding.value = null;
     window.localStorage.clear();
     vi.mocked(api.getMatch).mockResolvedValue(match);
     vi.mocked(api.getUsageProfile).mockResolvedValue({ players: {} });
@@ -114,6 +122,28 @@ describe('ScoutPage', () => {
     vi.mocked(api.addEvent).mockReturnValue({ id: 'new', written: Promise.resolve() });
     vi.mocked(api.deleteEvents).mockResolvedValue();
     vi.mocked(api.updateEvent).mockResolvedValue();
+  });
+
+  describe('scout-start tip', () => {
+    beforeEach(() => {
+      mockOnboarding.value = { ...EMPTY_ONBOARDING, welcomed: true };
+    });
+
+    it('shows above the court before any tap and ends, without a write per tap, on the first recorded action', async () => {
+      renderPage([setStart]);
+      expect(await screen.findByText('How scouting works')).toBeInTheDocument();
+      expect(mockOnboarding.update).not.toHaveBeenCalled();
+      act(() => pushEvents([setStart, { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'point', winner: 'us', reason: null }]));
+      await waitFor(() => expect(mockOnboarding.update).toHaveBeenCalledWith({ kind: 'tip', id: 'scout-start' }));
+      expect(mockOnboarding.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('is absent before the welcome and once any tap exists', async () => {
+      mockOnboarding.value = EMPTY_ONBOARDING;
+      renderPage([setStart]);
+      await screen.findByRole('region', { name: 'Match events' });
+      expect(screen.queryByText('How scouting works')).not.toBeInTheDocument();
+    });
   });
 
   it('forces dark on its own root', async () => {

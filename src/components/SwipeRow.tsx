@@ -64,11 +64,14 @@ export function SwipeRow({
   trailing = [],
   leading,
   disabled = false,
+  onOpen,
 }: {
   children: ReactNode;
   trailing?: SwipeAction[];
   leading?: SwipeAction;
   disabled?: boolean;
+  /** Fired when a swipe settles open on its actions. */
+  onOpen?: () => void;
 }) {
   const coarse = useMediaQuery('(pointer: coarse)', false);
   const reduced = useReducedMotion();
@@ -173,6 +176,7 @@ export function SwipeRow({
         });
       } else if (verdict === 'open') {
         setState('open');
+        onOpen?.();
         moveTo(sign * actionsWidth, vx * dx * 1000);
       } else {
         setState('closed');

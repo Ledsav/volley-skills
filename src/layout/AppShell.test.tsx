@@ -157,12 +157,13 @@ describe('AppShell', () => {
     await waitFor(() => expect(mockSignOut).toHaveBeenLastCalledWith({ force: true, beforeSignOut: expect.any(Function) }));
   });
 
-  it('shows text labels in the phone bottom bar, with More for everything else', () => {
+  it('names every phone tab, with More for everything else, and shows the label of the current tab only', () => {
     const { container } = renderShell();
     const bottomBar = container.querySelector('nav.fixed') as HTMLElement;
     for (const label of ['Today', 'Teams', 'Trainings', 'Exercises', 'More']) {
-      expect(within(bottomBar).getByText(label)).not.toHaveClass('sr-only');
+      expect(within(bottomBar).getByRole('link', { name: label })).toBeInTheDocument();
     }
+    expect(bottomBar.querySelectorAll('a > span:not(.sr-only):not(.relative)')).toHaveLength(1);
     expect(within(bottomBar).getByRole('link', { name: 'More' })).toHaveAttribute('href', '/more');
   });
 
@@ -196,7 +197,7 @@ describe('AppShell', () => {
     expect(within(bottom).queryByText('Members & settings')).toBeNull();
   });
 
-  it('tab bar has at most 5 tabs with visible labels', () => {
+  it('tab bar has at most 5 tabs, each with an icon and a label', () => {
     vi.mocked(useAuth).mockReturnValue(authValue({ access: clubAdminAccess, isPlatformAdmin: true }));
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Main (phone)' });
@@ -205,7 +206,6 @@ describe('AppShell', () => {
     for (const tab of tabs) {
       expect(tab.querySelector('svg')).not.toBeNull();
       expect(tab.textContent?.trim()).not.toBe('');
-      expect(tab.querySelector('.sr-only')).toBeNull();
     }
   });
 

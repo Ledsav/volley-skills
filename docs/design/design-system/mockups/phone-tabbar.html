@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floating tab bar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Phone tab bar options: a floating glass capsule with an obvious selection. Tokens mirror docs/design/design-system/README.md §2. Sample names are made up. */
+:root { --font: Inter, -apple-system, "SF Pro Text", system-ui, sans-serif; }
+.L { --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F2F2F7; --surface-3:#E5E5EA; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#8E8E93; --on-ink:#FFFFFF; --sep:rgba(60,60,67,.14);
+  --glass:rgba(255,255,255,.68); --edge:rgba(255,255,255,.7); --edge-out:rgba(0,0,0,.08); --float:0 10px 30px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08);
+  --sel:rgba(0,0,0,.09); --shadow:0 1px 2px rgba(0,0,0,.04);
+  --red:#FF3B30; --orange:#FF9500; --blue:#007AFF; --green:#34C759; --red-t:#D70015; --orange-t:#C93400; --blue-t:#0040DD; --green-t:#248A3D; --tint:14%; color-scheme: light; }
+.D { --bg:#000000; --surface:#1C1C1E; --surface-2:#2C2C2E; --surface-3:#3A3A3C; --ink:#F5F5F7; --ink-2:#A1A1A6; --ink-3:#6E6E73; --on-ink:#000000; --sep:rgba(84,84,88,.48);
+  --glass:rgba(36,36,38,.62); --edge:rgba(255,255,255,.14); --edge-out:rgba(255,255,255,.06); --float:0 10px 30px rgba(0,0,0,.55), 0 0 0 .5px rgba(255,255,255,.08);
+  --sel:rgba(255,255,255,.17); --shadow:none;
+  --red:#FF453A; --orange:#FF9F0A; --blue:#0A84FF; --green:#30D158; --red-t:#FF6961; --orange-t:#FFB340; --blue-t:#409CFF; --green-t:#30DB5B; --tint:22%; color-scheme: dark; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:var(--font); background:#F5F5F7; color:#1D1D1F; font-size:15px; line-height:22px; letter-spacing:-.005em; -webkit-font-smoothing:antialiased; }
+@media (prefers-color-scheme: dark) { body { background:#000; color:#F5F5F7; } .muted { color:#A1A1A6 !important; } }
+.page { max-width:1260px; margin:0 auto; padding:48px 16px 96px; display:flex; flex-direction:column; gap:48px; }
+.intro { max-width:780px; display:flex; flex-direction:column; gap:10px; }
+.intro h1 { margin:0; font-size:clamp(34px,6vw,52px); line-height:1.05; letter-spacing:-.035em; }
+.muted { color:#6E6E73; }
+.intro p { margin:0; font-size:17px; line-height:26px; }
+section { display:flex; flex-direction:column; gap:14px; }
+section h2 { margin:0; font-size:22px; line-height:28px; letter-spacing:-.017em; }
+section > p { margin:0; font-size:14px; max-width:780px; }
+.row { display:flex; flex-wrap:wrap; gap:24px; justify-content:flex-start; }
+.cell { display:flex; flex-direction:column; gap:8px; align-items:center; }
+.tag { font-size:12px; font-weight:600; }
+
+/* phone */
+.phone { width:360px; max-width:calc(100vw - 32px); height:740px; border-radius:44px; overflow:hidden; position:relative; background:var(--bg); color:var(--ink); outline:1px solid var(--sep); outline-offset:-1px; }
+.content { position:absolute; inset:0; padding:56px 16px 0; display:flex; flex-direction:column; gap:12px; }
+.eyebrow { font-size:13px; color:var(--ink-2); font-weight:500; }
+.lt { margin:0; font-size:34px; line-height:40px; font-weight:700; letter-spacing:-.022em; }
+.card { background:var(--surface); border-radius:16px; padding:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; }
+.card b { font-size:17px; letter-spacing:-.01em; }
+.card span { font-size:13px; color:var(--ink-2); }
+.lv { align-self:flex-start; font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; font-variant-numeric:tabular-nums; }
+.lv.r { background:color-mix(in srgb, var(--red) var(--tint), transparent); color:var(--red-t); }
+.lv.o { background:color-mix(in srgb, var(--orange) var(--tint), transparent); color:var(--orange-t); }
+.lv.b { background:color-mix(in srgb, var(--blue) var(--tint), transparent); color:var(--blue-t); }
+.lv.g { background:color-mix(in srgb, var(--green) var(--tint), transparent); color:var(--green-t); }
+.photo { height:120px; border-radius:16px; background:linear-gradient(135deg, var(--blue), var(--green) 55%, var(--orange)); }
+.home-ind { position:absolute; left:50%; bottom:8px; width:134px; height:5px; border-radius:3px; background:var(--ink); opacity:.85; transform:translateX(-50%); z-index:4; }
+
+/* shared glass */
+.glass { background:var(--glass); -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%); box-shadow:var(--float), inset 0 .5px 0 var(--edge); outline:.5px solid var(--edge-out); }
+.tab { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:10px; font-weight:500; color:var(--ink-2); position:relative; z-index:1; }
+.tab svg { width:24px; height:24px; }
+.tab.on { color:var(--ink); font-weight:600; }
+
+/* A: capsule with a sliding selection pill */
+.barA { position:absolute; left:14px; right:14px; bottom:24px; height:62px; border-radius:31px; display:flex; padding:5px; z-index:3; }
+.barA .pill { position:absolute; top:5px; bottom:5px; left:5px; width:calc((100% - 10px) / 5); border-radius:26px; background:var(--sel); transition:transform 320ms cubic-bezier(.32,.72,0,1); }
+
+/* B: icons only; the current tab grows into an ink capsule with its label */
+.barB { position:absolute; left:14px; right:14px; bottom:24px; height:60px; border-radius:30px; display:flex; align-items:center; gap:2px; padding:6px; z-index:3; }
+.barB .tab { flex:0 0 48px; height:48px; border-radius:24px; flex-direction:row; gap:6px; font-size:13px; }
+.barB .tab span { display:none; }
+.barB .tab.on { flex:1 1 auto; background:var(--ink); color:var(--on-ink); padding:0 14px; }
+.barB .tab.on span { display:inline; white-space:nowrap; }
+.barB .tab svg { width:22px; height:22px; }
+.barB { justify-content:space-between; }
+
+/* C: capsule (4 tabs) + a separate round search button, iOS-style */
+.barC { position:absolute; left:14px; right:84px; bottom:24px; height:62px; border-radius:31px; display:flex; padding:5px; z-index:3; }
+.barC .pill { position:absolute; top:5px; bottom:5px; left:5px; width:calc((100% - 10px) / 4); border-radius:26px; background:var(--sel); }
+.fab { position:absolute; right:14px; bottom:24px; width:62px; height:62px; border-radius:50%; display:grid; place-items:center; color:var(--ink); z-index:3; }
+.fab svg { width:24px; height:24px; }
+
+/* reduced transparency */
+.solid .glass { background:var(--surface); -webkit-backdrop-filter:none; backdrop-filter:none; }
+
+.notes { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+.note { border-radius:18px; padding:18px; outline:1px solid rgba(128,128,128,.25); outline-offset:-1px; font-size:14px; line-height:21px; }
+.note b { display:block; font-size:16px; margin-bottom:6px; }
+.note ul { margin:6px 0 0; padding-left:18px; }
+.rec { outline:2px solid #34C759; }
+button.demo { font:inherit; font-size:14px; font-weight:600; border:0; border-radius:999px; padding:8px 16px; background:#1D1D1F; color:#fff; cursor:pointer; }
+@media (prefers-color-scheme: dark) { button.demo { background:#F5F5F7; color:#000; } }
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
+    <symbol id="i-dumb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6M18.66 21.51a2 2 0 1 1-2.83-2.83l-1.77 1.77a2 2 0 1 1-2.83-2.83l6.37-6.37a2 2 0 1 1 2.83 2.83l-1.77 1.77a2 2 0 1 1 2.83 2.83zM21.5 21.5l-1.4-1.4M3.9 3.9 2.5 2.5M6.4 12.77a2 2 0 1 1-2.83-2.83l1.77-1.77a2 2 0 1 1-2.83-2.83l2.83-2.83a2 2 0 1 1 2.83 2.83l1.77-1.77a2 2 0 1 1 2.83 2.83z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.3-4.3"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="intro">
+    <span class="muted" style="font-size:13px;font-weight:500">Volley Skills · phone tab bar · 2026-10-30</span>
+    <h1>A floating glass tab bar</h1>
+    <p class="muted">Today the bar is a full-width glass strip, and the current page is shown only by darker text. Each option below floats as a capsule above the home indicator, lets content scroll under it, and marks the current page with a shape, not just a colour. Content is the U17 team list, so you can see the glass over colour.</p>
+  </header>
+
+  <section>
+    <h2>A · Capsule with a selection pill <span style="font-size:13px;color:#34C759;font-weight:600">recommended</span></h2>
+    <p class="muted">Five tabs, icon and label, as today. A soft pill sits behind the current tab and slides to the next one with a spring when you switch. Closest to iOS 26 and the least change for coaches who already know the bar.</p>
+    <div class="row" id="rowA"></div>
+    <div><button class="demo" id="cycle">Switch tab (watch the pill slide)</button></div>
+  </section>
+
+  <section>
+    <h2>B · Icons, with the current tab as an ink capsule</h2>
+    <p class="muted">Only the current tab shows its label, inside a filled ink capsule. It's the most obvious, but the other tabs lose their labels, which is harder for coaches who open the app once a week.</p>
+    <div class="row" id="rowB"></div>
+  </section>
+
+  <section>
+    <h2>C · Capsule plus a separate search button</h2>
+    <p class="muted">Like A, with search pulled out into its own round glass button (iOS 26's Music and Photos pattern). Exercises moves to More to make room. Search is one tap from every page, but it's a bigger change.</p>
+    <div class="row" id="rowC"></div>
+  </section>
+
+  <section>
+    <h2>Details that apply to all three</h2>
+    <div class="notes">
+      <div class="note rec"><b>Placement</b>14 px from the sides and 24 px above the bottom edge (plus the safe area), radius = half its height. Page content gets bottom padding so the last row can scroll clear of the bar.</div>
+      <div class="note"><b>Material</b>The design-system glass recipe (blur 24, saturate 180%) with a hairline light edge on top and a soft floating shadow. With <i>Reduce transparency</i> it turns into a solid <code>surface</code> capsule and keeps its shape.</div>
+      <div class="note"><b>Selection</b>The pill (A, C) or ink capsule (B) is chrome, so it's monochrome, never blue. The current tab also gets <code>aria-current="page"</code> and a semibold label. Press feedback: scale .97 on touch-down.</div>
+      <div class="note"><b>Motion</b>The pill slides with the segmented-control spring (response .3, no bounce). With reduced motion it just moves. The bar never hides while you scroll (that would hide navigation from slow readers), and it stays out of full-screen scouting, awards and the diagram editor as it does today.</div>
+    </div>
+    <div class="row solid L" id="rowSolid"></div>
+  </section>
+</div>
+
+<script>
+const TABS = [['i-home','Today'],['i-users','Teams'],['i-clip','Trainings'],['i-dumb','Exercises'],['i-menu','More']];
+const content = () => `
+  <div class="content">
+    <div class="eyebrow">Pallavolo Verde</div>
+    <h1 class="lt">Teams</h1>
+    <div class="card"><b>U17 Girls</b><span>2026–27 · 14 players</span><span class="lv b">Advanced 6.8</span></div>
+    <div class="card"><b>U15 Boys</b><span>2026–27 · 12 players</span><span class="lv o">Developing 5.1</span></div>
+    <div class="photo"></div>
+    <div class="card"><b>Serie D Women</b><span>2026–27 · 16 players</span><span class="lv g">Elite 8.2</span></div>
+    <div class="card"><b>U13 Mixed</b><span>2026–27 · 18 players</span><span class="lv r">Beginner 3.4</span></div>
+  </div><div class="home-ind"></div>`;
+function barA(active, cls = 'barA', tabs = TABS) {
+  return `<nav class="${cls} glass" aria-label="Main"><span class="pill" style="transform:translateX(${active * 100}%)"></span>${tabs.map(([i, l], k) =>
+    `<div class="tab${k === active ? ' on' : ''}"${k === active ? ' aria-current="page"' : ''}><svg><use href="#${i}"/></svg>${l}</div>`).join('')}</nav>`;
+}
+function barB(active) {
+  return `<nav class="barB glass" aria-label="Main">${TABS.map(([i, l], k) =>
+    `<div class="tab${k === active ? ' on' : ''}"><svg><use href="#${i}"/></svg><span>${l}</span></div>`).join('')}</nav>`;
+}
+function barC(active) {
+  const four = [TABS[0], TABS[1], TABS[2], TABS[4]];
+  return barA(active, 'barC', four) + `<div class="fab glass" aria-label="Search"><svg><use href="#i-search"/></svg></div>`;
+}
+function phone(theme, bar, label) {
+  return `<div class="cell"><div class="phone ${theme}">${content()}${bar}</div><span class="tag muted">${label}</span></div>`;
+}
+document.getElementById('rowA').innerHTML = phone('L', barA(1), 'Light · Teams') + phone('D', barA(1), 'Dark · Teams') + phone('L', barA(0), 'Light · Today');
+document.getElementById('rowB').innerHTML = phone('L', barB(1), 'Light · Teams') + phone('D', barB(2), 'Dark · Trainings');
+document.getElementById('rowC').innerHTML = phone('L', barC(1), 'Light · Teams') + phone('D', barC(1), 'Dark · Teams');
+document.getElementById('rowSolid').innerHTML = phone('', barA(1), 'Reduce transparency · solid capsule');
+let k = 1;
+document.getElementById('cycle').addEventListener('click', () => {
+  k = (k + 1) % 5;
+  document.querySelectorAll('#rowA .barA').forEach((bar) => {
+    bar.querySelector('.pill').style.transform = `translateX(${k * 100}%)`;
+    bar.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('on', i === k));
+  });
+});
+</script>
+</body></html>

@@ -305,6 +305,17 @@ describe('v2 look', () => {
     expect(cover).toContain('Service');
   });
 
+  it('sets everything in Inter and never asks for italics (the font has no italic files)', () => {
+    const def = build({
+      teamNotes: { teamName: 'U17', gender: 'mixed', general: '', players: [{ name: 'A', position: '', level: null, note: '' }] },
+    });
+    expect(def.defaultStyle).toMatchObject({ font: 'Inter' });
+    expect(JSON.stringify(def)).not.toContain('italics');
+    const nodes = walk(def.content);
+    expect(nodes.find((n) => n.text === 'Deleted exercise')).toMatchObject({ color: '#8E8E93' });
+    expect(nodes.find((n) => n.text === 'Not rated')).toMatchObject({ color: '#8E8E93' });
+  });
+
   it('colours level labels with the v2 band text colours', () => {
     const def = build({
       teamNotes: { teamName: 'U17', gender: 'mixed', general: '', players: [{ name: 'A', position: '', level: 'Advanced', note: '' }] },

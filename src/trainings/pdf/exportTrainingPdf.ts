@@ -5,6 +5,7 @@ import type { Diagram } from '../../types/diagram';
 import type { Training } from '../../types/training';
 import { buildTrainingDocDefinition, trainingPdfFileName, type TeamNotes } from './buildTrainingPdf';
 import { diagramToPdfSvg } from './diagramToPdfSvg';
+import { PDF_FONT, PDF_FONT_FILES, browserTextMeasure, loadPdfFonts } from './pdfFonts';
 
 /** The UMD builds come through as either the namespace itself or its `default`. */
 function interop<T>(mod: T): T {
@@ -17,17 +18,21 @@ function interop<T>(mod: T): T {
  */
 export async function generateTrainingPdf(training: Training, teamNotes?: TeamNotes): Promise<File> {
   const ids = [...new Set(training.exercises.map((e) => e.exerciseId))];
-  const [exercises, pdfMakeModule, vfsModule] = await Promise.all([
+  const [exercises, pdfMakeModule, fonts] = await Promise.all([
     getExercisesByIds(ids),
     import('pdfmake/build/pdfmake'),
-    import('pdfmake/build/vfs_fonts'),
+    loadPdfFonts(),
   ]);
   const exercisesById = new Map(exercises.map((ex) => [ex.id, ex]));
-  const diagramLists = await Promise.all(exercises.map((ex) => listDiagrams(ex.id)));
+  const [diagramLists, measure] = await Promise.all([
+    Promise.all(exercises.map((ex) => listDiagrams(ex.id))),
+    browserTextMeasure(fonts.bytes[PDF_FONT_FILES.normal]),
+  ]);
   const diagramsById = new Map<string, Diagram[]>(exercises.map((ex, i) => [ex.id, diagramLists[i]]));
 
   const pdfMake = interop(pdfMakeModule);
-  pdfMake.addVirtualFileSystem(vfsModule.default);
+  pdfMake.addVirtualFileSystem(fonts.vfs);
+  pdfMake.addFonts({ [PDF_FONT]: PDF_FONT_FILES });
   pdfMake.setUrlAccessPolicy(() => false); // everything is inline: no remote fonts or images
   const definition = buildTrainingDocDefinition({
     t: getT(),
@@ -36,6 +41,7 @@ export async function generateTrainingPdf(training: Training, teamNotes?: TeamNo
     exercisesById,
     diagramsById,
     svgFor: (d) => diagramToPdfSvg(d.scene),
+    measure,
   });
   const blob = await pdfMake.createPdf(definition).getBlob();
   return new File([blob], trainingPdfFileName(training, teamNotes?.date), { type: 'application/pdf' });

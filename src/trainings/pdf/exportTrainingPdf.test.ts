@@ -3,18 +3,22 @@ import * as diagramsApi from '../../diagrams/diagramsApi';
 import * as exercisesApi from '../../exercises/exercisesApi';
 import type { Training } from '../../types/training';
 import { generateTrainingPdf } from './exportTrainingPdf';
+import { loadPdfFonts, PDF_FONT_FILES } from './pdfFonts';
 
 vi.mock('../../exercises/exercisesApi');
 vi.mock('../../diagrams/diagramsApi');
 vi.mock('../../firebase/config', () => ({ auth: {}, db: {} }));
 
-const { createPdf, addVirtualFileSystem, setUrlAccessPolicy } = vi.hoisted(() => ({
+const { createPdf, addVirtualFileSystem, addFonts, setUrlAccessPolicy } = vi.hoisted(() => ({
   createPdf: vi.fn(),
   addVirtualFileSystem: vi.fn(),
+  addFonts: vi.fn(),
   setUrlAccessPolicy: vi.fn(),
 }));
-vi.mock('pdfmake/build/pdfmake', () => ({ default: { createPdf, addVirtualFileSystem, setUrlAccessPolicy } }));
-vi.mock('pdfmake/build/vfs_fonts', () => ({ default: { 'Roboto-Regular.ttf': 'x' } }));
+vi.mock('pdfmake/build/pdfmake', () => ({ default: { createPdf, addVirtualFileSystem, addFonts, setUrlAccessPolicy } }));
+vi.mock('./pdfFonts', async (orig) => ({ ...(await orig<typeof import('./pdfFonts')>()), loadPdfFonts: vi.fn() }));
+
+const fontVfs = { 'Inter-Regular.ttf': 'r', 'Inter-SemiBold.ttf': 's' };
 
 const training = {
   id: 't-1',
@@ -39,6 +43,7 @@ describe('generateTrainingPdf', () => {
       { id: 'a', name: 'Float serve', description: '', category: 'service', createdBy: 'x', createdAt: null },
     ]);
     vi.mocked(diagramsApi.listDiagrams).mockResolvedValue([]);
+    vi.mocked(loadPdfFonts).mockResolvedValue({ vfs: fontVfs, bytes: { 'Inter-Regular.ttf': new ArrayBuffer(1), 'Inter-SemiBold.ttf': new ArrayBuffer(1) } });
     createPdf.mockReturnValue({ getBlob: () => Promise.resolve(new Blob(['%PDF'], { type: 'application/pdf' })) });
   });
 
@@ -51,6 +56,19 @@ describe('generateTrainingPdf', () => {
     expect(createPdf).toHaveBeenCalledTimes(1);
     expect(file.name).toBe('TR-0007-Serve-day.pdf');
     expect(file.type).toBe('application/pdf');
+  });
+
+  it('embeds Inter from the bundled font files', async () => {
+    await generateTrainingPdf(training);
+    expect(addVirtualFileSystem).toHaveBeenCalledWith(fontVfs);
+    expect(addFonts).toHaveBeenCalledWith({ Inter: PDF_FONT_FILES });
+    expect(createPdf.mock.calls[0][0].defaultStyle.font).toBe('Inter');
+  });
+
+  it('a font that fails to load rejects and builds nothing', async () => {
+    vi.mocked(loadPdfFonts).mockRejectedValue(new Error('Could not load the PDF font (404)'));
+    await expect(generateTrainingPdf(training)).rejects.toThrow('404');
+    expect(createPdf).not.toHaveBeenCalled();
   });
 
   it('never lets pdfmake fetch anything from a URL', async () => {

@@ -6,6 +6,7 @@ import { type Exercise, type ExerciseCategory } from '../../types/exercise';
 import type { Level } from '../../types/player';
 import type { Training } from '../../types/training';
 import { needsMorePlayers } from '../suggestions';
+import { PDF_FONT } from './pdfFonts';
 
 // Light-theme design tokens (src/index.css): a PDF is always printed light.
 const INK = '#1D1D1F';
@@ -22,7 +23,8 @@ const LEVEL_COLOR: Record<Level, string> = {
   Elite: '#1E7D37',
 };
 
-// The embedded font (Roboto) has no arrow glyphs; coaches type them in names and descriptions.
+// Coaches type arrows in names and descriptions. The PDF font once had no arrow glyphs; Inter has
+// most of them, but this stays as a safety net so a missing glyph never prints as a blank box.
 const MISSING_GLYPHS: [RegExp, string][] = [
   [/↔/g, '‹›'],
   [/[→⇒➔]/g, '›'],
@@ -68,12 +70,12 @@ interface TrainingPdfInput {
   diagramsById: Map<string, Diagram[]>;
   /** Turns a saved diagram into an SVG string (injected so this module stays pure). */
   svgFor: (d: Diagram) => string;
-  /** Width in pt of regular-weight text, for sizing category pills. The default is an estimate of Roboto, the PDF's font (0.56 em per character); a few labels measure wider, so pillMetrics.test.ts pins every catalog label against the real font. */
+  /** Width in pt of regular-weight text, for sizing category pills. The export passes the real Inter metrics; the default is a conservative estimate (0.7 em per character, wider than every catalog label in Inter Regular, which pillMetrics.test.ts pins). */
   measure?: (text: string, fontSize: number) => number;
 }
 
 type Measure = NonNullable<TrainingPdfInput['measure']>;
-const defaultMeasure: Measure = (s, size) => s.length * size * 0.56;
+const defaultMeasure: Measure = (s, size) => s.length * size * 0.7;
 
 /** Shared table look: hairline rows, no fills. */
 const HAIRLINE = {
@@ -185,7 +187,7 @@ function coverPage(training: Training, lineup: LineupEntry[], t: Catalog, measur
   );
   const rows = lineup.map((e): TableCell[] => [
     { text: String(e.number), color: INK_2 },
-    e.name === null ? { text: p.deletedExercise, color: WARN, italics: true } : { text: e.name, bold: true },
+    e.name === null ? { text: p.deletedExercise, color: INK_3 } : { text: e.name, bold: true },
     e.category ? chip(t.labels.exerciseCategory[e.category], measure, 72) : { text: '' },
     { text: e.minPlayers !== undefined ? String(e.minPlayers) : '', alignment: 'right' },
     { text: String(e.minutes), alignment: 'right' },
@@ -222,7 +224,7 @@ function teamNotesPage(notes: TeamNotes, t: Catalog): Content {
     const rows = notes.players.map((pl): TableCell[] => [
       { text: pl.name, bold: true },
       { text: pl.position, color: INK_2 },
-      pl.level ? { text: t.labels.level[pl.level](notes.gender), color: LEVEL_COLOR[pl.level], bold: true } : { text: p.team.notRated, color: INK_2, italics: true },
+      pl.level ? { text: t.labels.level[pl.level](notes.gender), color: LEVEL_COLOR[pl.level], bold: true } : { text: p.team.notRated, color: INK_3 },
       { text: pl.note },
     ]);
     stack.push({
@@ -319,7 +321,7 @@ export function buildTrainingDocDefinition(input: TrainingPdfInput): TDocumentDe
       margin: [PAGE_MARGINS[0], 16, PAGE_MARGINS[2], 0],
     }),
     content: fontSafeTree([...coverPage(training, lineup, t, input.measure ?? defaultMeasure), ...(teamNotes ? [teamNotesPage(teamNotes, t)] : []), ...pages]),
-    defaultStyle: { fontSize: 10, color: INK, lineHeight: 1.25 },
+    defaultStyle: { font: PDF_FONT, fontSize: 10, color: INK, lineHeight: 1.25 },
     styles: {
       label: { fontSize: 9, bold: true, color: INK_2 },
       title: { fontSize: 24, bold: true, characterSpacing: -0.48, margin: [0, 2, 0, 6] },

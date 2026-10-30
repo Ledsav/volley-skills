@@ -1,8 +1,9 @@
 import {
-  collectionGroup, doc, getDoc, getDocs, onSnapshot, query, where,
+  collectionGroup, doc, getCountFromServer, getDoc, getDocs, onSnapshot, query, where,
   type FirestoreError, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { clubCol } from '../firebase/clubPaths';
 import type { Club, MemberRole, Membership } from '../types/club';
 
 /** Every club the email belongs to; clubs that are gone or denied are skipped, other errors throw. */
@@ -45,4 +46,10 @@ export function subscribeClub(clubId: string, onClub: (club: Club | null) => voi
     (snap) => onClub(snap.exists() ? ({ id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) } as Club) : null),
     () => onClub(null),
   );
+}
+
+/** How many members the active club has, counted on the server without reading them. */
+export async function countClubMembers(): Promise<number> {
+  const snap = await getCountFromServer(clubCol('members'));
+  return snap.data().count;
 }

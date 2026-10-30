@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { listMyMemberships, probePlatformAdmin, subscribeClub } from './clubsApi';
+import { countClubMembers, listMyMemberships, probePlatformAdmin, subscribeClub } from './clubsApi';
 
 const m = vi.hoisted(() => ({
   collectionGroup: vi.fn((_db: unknown, id: string) => `group:${id}`),
@@ -9,6 +9,7 @@ const m = vi.hoisted(() => ({
   getDocs: vi.fn(),
   getDoc: vi.fn(),
   onSnapshot: vi.fn(),
+  getCountFromServer: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -19,7 +20,9 @@ vi.mock('firebase/firestore', () => ({
   getDocs: m.getDocs,
   getDoc: m.getDoc,
   onSnapshot: m.onSnapshot,
+  getCountFromServer: m.getCountFromServer,
 }));
+vi.mock('../firebase/clubPaths', () => ({ clubCol: (...p: string[]) => `club:${p.join('/')}` }));
 const db = vi.hoisted(() => ({ name: 'db' }));
 vi.mock('../firebase/config', () => ({ db }));
 
@@ -125,5 +128,13 @@ describe('subscribeClub', () => {
     const snap = clubSnap('c1', { name: 'One' });
     next(snap);
     expect(snap.data).toHaveBeenCalledWith({ serverTimestamps: 'estimate' });
+  });
+});
+
+describe('countClubMembers', () => {
+  it('counts the members collection on the server', async () => {
+    m.getCountFromServer.mockResolvedValueOnce({ data: () => ({ count: 3 }) });
+    expect(await countClubMembers()).toBe(3);
+    expect(m.getCountFromServer).toHaveBeenCalledWith('club:members');
   });
 });

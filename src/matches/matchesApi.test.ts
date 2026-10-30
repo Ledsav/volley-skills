@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FORMAT } from '../types/match';
-import { addEvent, createMatch, listFinishedMatches, listMatchesInRange, loadTeamRoster, subscribeEvents, subscribeMatch } from './matchesApi';
+import { addEvent, createMatch, hasAnyMatch, listFinishedMatches, listMatchesInRange, loadTeamRoster, subscribeEvents, subscribeMatch } from './matchesApi';
 import * as playersApi from '../players/playersApi';
 
 const m = vi.hoisted(() => ({
@@ -105,5 +105,13 @@ describe('matchesApi', () => {
       .mockResolvedValueOnce({ players: [{ id: 'a' }] as never, lastDoc: 'cursor' as never, hasMore: true })
       .mockResolvedValueOnce({ players: [{ id: 'b' }] as never, lastDoc: null, hasMore: false });
     expect((await loadTeamRoster('team-1')).map((p) => p.id)).toEqual(['a', 'b']);
+  });
+
+  it('hasAnyMatch asks for one document of the whole matches collection', async () => {
+    m.getDocs.mockResolvedValueOnce({ empty: false });
+    expect(await hasAnyMatch('team-1')).toBe(true);
+    expect(m.getDocs).toHaveBeenCalledWith(['col', { type: 'limit', args: [1] }]);
+    m.getDocs.mockResolvedValueOnce({ empty: true });
+    expect(await hasAnyMatch('team-1')).toBe(false);
   });
 });

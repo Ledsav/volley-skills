@@ -271,6 +271,11 @@ lexicographic range queries — not `Timestamp`.
 Any rules change must be covered by a test in `tests/rules/` — those tests are the
 real verification of the security boundary.
 
+Field size caps live in `src/types/limits.ts` (`LIMITS`): forms take `maxLength` from it, the JSON
+import reports rows over it, and `firestore.rules` repeats the numbers (`limits.test.ts` checks they
+match). Rules evaluate at most 1000 expressions per document, so the caps there are inline and cheap;
+`tests/rules/limits.rules.test.ts` saves the largest allowed docs to prove they still fit.
+
 ### Design system
 
 The rules live in `docs/design/design-system/README.md` and the logo kit in `docs/design/brand/README.md`.

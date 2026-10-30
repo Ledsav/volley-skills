@@ -337,9 +337,11 @@ service cloud.firestore {
         allow create: if activeMember() && isClubAdmin()
                       && request.resource.data.createdBy == request.auth.uid
                       && request.resource.data.adminEmails is list
-                      && validGender();
+                      && validGender()
+                      && teamSized(request.resource.data);
         allow update: if activeMember()
                       && genderAbsentOrValid()
+                      && teamSized(request.resource.data)
                       && ((email() in resource.data.adminEmails
                            && request.resource.data.adminEmails == resource.data.adminEmails)
                           || isClubAdmin());
@@ -350,16 +352,38 @@ service cloud.firestore {
             return score == null || (score is number && score >= 1 && score <= 10);
           }
 
+          // A skill's score, and its notes capped as long text.
+          function validSkill(s) {
+            return validScore(s.score) && string(s.get('notes', '')).size() <= 10000;
+          }
+
           function validSkills(skills) {
-            return validScore(skills.serve.score) &&
-              validScore(skills.attack.score) &&
-              validScore(skills.block.score) &&
-              validScore(skills.set.score) &&
-              validScore(skills.defence.score) &&
-              validScore(skills.reception.score) &&
-              validScore(skills.jump.score) &&
-              validScore(skills.speed.score) &&
-              validScore(skills.iq.score);
+            return validSkill(skills.serve) &&
+              validSkill(skills.attack) &&
+              validSkill(skills.block) &&
+              validSkill(skills.set) &&
+              validSkill(skills.defence) &&
+              validSkill(skills.reception) &&
+              validSkill(skills.jump) &&
+              validSkill(skills.speed) &&
+              validSkill(skills.iq);
+          }
+
+          // Size caps (LIMITS): short text, viewer emails, guardians (10 rows, 10000
+          // characters), the development plan, the denormalised latest tests (one per
+          // test type) and the consent record.
+          function playerSized(d) {
+            let v = d.get('viewerEmails', []);
+            let g = d.get('guardians', []);
+            return string(d.get('fullName', '')).size() <= 200 && string(d.get('dob', '')).size() <= 200
+              && string(d.get('nationality', '')).size() <= 200 && string(d.get('licenseNumber', '')).size() <= 200
+              && string(d.get('playerPhone', '')).size() <= 200 && string(d.get('teamName', '')).size() <= 200
+              && string(d.get('ageGroup', '')).size() <= 200 && string(d.get('season', '')).size() <= 200
+              && v.size() <= 100 && v.join('').size() <= 25400
+              && g.size() <= 10 && rows10(g).join('').size() <= 10000
+              && planOk(d.get('developmentPlan', {}))
+              && d.get('latestTests', {}).size() <= 8
+              && (d.get('consent', null) == null || d.consent.values().join('').size() <= 600);
           }
 
           // Photo consent (minors' award photos): a bool; giving it names the recorder and
@@ -381,8 +405,10 @@ service cloud.firestore {
 
           allow read: if (activeMember() && (teamAdmin() || email() in resource.data.viewerEmails))
                       || exporter();
-          allow create: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(true);
-          allow update: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(false);
+          allow create: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(true)
+                        && playerSized(request.resource.data);
+          allow update: if activeMember() && teamAdmin() && validSkills(request.resource.data.skills) && photoConsentOk(false)
+                        && playerSized(request.resource.data);
           allow delete: if activeMember() && teamAdmin();
 
           match /physicalTests/{testId} {
@@ -390,8 +416,10 @@ service cloud.firestore {
                 email() in
                   get(/databases/$(database)/documents/clubs/$(clubId)/teams/$(teamId)/players/$(playerId)).data.viewerEmails))
               || exporter();
-            allow create: if activeMember() && teamAdmin() && growthAllowed();
-            allow update: if activeMember() && teamAdmin() && growthUpdateAllowed();
+            allow create: if activeMember() && teamAdmin() && growthAllowed()
+                          && string(request.resource.data.get('notes', '')).size() <= 10000;
+            allow update: if activeMember() && teamAdmin() && growthUpdateAllowed()
+                          && string(request.resource.data.get('notes', '')).size() <= 10000;
             // Team admins can delete a single entry from the history view, and this
             // also lets a player's own hard-delete clean up their test history
             // (GDPR erasure, see docs/.../volley-skills-app-design.md §10).
@@ -403,7 +431,12 @@ service cloud.firestore {
           allow read: if (activeMember() && teamAdmin() && canTrainings()) || exporter();
           allow create: if activeMember() && teamAdmin() && canTrainings()
             && request.resource.data.createdBy == request.auth.uid
-            && request.resource.data.date is string;
+            && request.resource.data.date is string
+            && request.resource.data.date.size() <= 200
+            && string(request.resource.data.get('trainingId', '')).size() <= 200
+            && string(request.resource.data.get('trainingBusinessId', '')).size() <= 200
+            && string(request.resource.data.get('trainingName', '')).size() <= 200
+            && string(request.resource.data.get('notes', '')).size() <= 10000;
           allow update: if false;
           allow delete: if activeMember() && teamAdmin() && canTrainings();
         }
@@ -444,6 +477,15 @@ service cloud.firestore {
               && i.importedBy == request.auth.uid
               && i.warnings is int && i.warnings >= 0;
           }
+          // Size caps (LIMITS): setup text, the roster (30 rows, 10000 characters), the
+          // liberos and the coach's award choices. Summary and report are derived, uncapped.
+          function matchSized(d) {
+            let r = d.get('roster', []);
+            return d.date.size() <= 200 && string(d.get('opponent', '')).size() <= 200
+              && r.size() <= 30 && rows30(r).join('').size() <= 10000
+              && d.get('liberos', []).size() <= 4
+              && (d.get('awards', null) == null || awardsSized(d.awards));
+          }
           // The import provenance is written once, at creation, and never changes.
           function importUnchanged() {
             return 'import' in resource.data
@@ -456,10 +498,12 @@ service cloud.firestore {
             && request.resource.data.createdBy == request.auth.uid
             && request.resource.data.date is string
             && validStatus(request.resource.data)
+            && matchSized(request.resource.data)
             && (!('import' in request.resource.data) || validImport(request.resource.data.import));
           allow update: if activeMember() && teamAdmin()
             && request.resource.data.date is string
             && validStatus(request.resource.data)
+            && matchSized(request.resource.data)
             && importUnchanged();
 
           match /events/{eventId} {
@@ -469,7 +513,12 @@ service cloud.firestore {
                 && d.source in ['tap', 'text', 'correction', 'import']
                 && (d.type != 'action'
                     || (d.skill in ['S', 'R', 'A', 'B', 'D', 'E', 'F']
-                        && d.grade in ['#', '+', '!', '-', '/', '=']));
+                        && d.grade in ['#', '+', '!', '-', '/', '=']))
+                // A cheap size cap: field count, ids, the lineup and the per-set roles.
+                && d.size() <= 20
+                && string(d.get('chunkId', '')).size() <= 200 && string(d.get('playerId', '')).size() <= 200
+                && d.get('lineup', []).size() <= 12 && d.get('lineup', []).join('').size() <= 3000
+                && (d.get('roles', null) == null || d.roles.size() <= 30);
             }
             allow read: if (activeMember() && teamAdmin()) || exporter();
             allow delete: if activeMember() && teamAdmin();
@@ -485,12 +534,18 @@ service cloud.firestore {
             && request.resource.data.picks is map
             && request.resource.data.custom is list
             && request.resource.data.custom.size() <= 5
-            && request.resource.data.order is list;
+            && request.resource.data.order is list
+            && awardsSized(request.resource.data);
         }
 
         match /scoutProfile/{docId} {
           allow read: if (activeMember() && teamAdmin()) || exporter();
-          allow write: if activeMember() && teamAdmin();
+          // The usage profile: one map of per-player counts, at most 500 players.
+          allow create, update: if activeMember() && teamAdmin()
+            && request.resource.data.keys().hasOnly(['players'])
+            && request.resource.data.players is map
+            && request.resource.data.players.size() <= 500;
+          allow delete: if activeMember() && teamAdmin();
         }
       }
 
@@ -500,7 +555,12 @@ service cloud.firestore {
       match /config/{doc} {
         allow read:  if doc in ['skillGuide', 'physicalTestGuide']
                       && (activeMember() || exporter());
-        allow write: if activeMember() && canGuides()
+        // The shape the guide editors write (src/skillGuide, src/physicalTestGuide), so a
+        // malformed or oversized guide cannot break the guide pages for the whole club.
+        allow create, update: if activeMember() && canGuides()
+                      && ((doc == 'skillGuide' && skillGuideOk(request.resource.data))
+                          || (doc == 'physicalTestGuide' && testGuideOk(request.resource.data)));
+        allow delete: if activeMember() && canGuides()
                       && doc in ['skillGuide', 'physicalTestGuide'];
       }
 
@@ -509,7 +569,9 @@ service cloud.firestore {
                       || exporter();
         allow write: if activeAdmin()
                       && request.resource.data.adminEmails is list
-                      && request.resource.data.keys().hasOnly(['adminEmails']);
+                      && request.resource.data.keys().hasOnly(['adminEmails'])
+                      && request.resource.data.adminEmails.size() <= 500
+                      && request.resource.data.adminEmails.join('').size() <= 127000;
       }
 
       match /exercises/{exerciseId} {
@@ -520,13 +582,15 @@ service cloud.firestore {
           && request.resource.data.name.size() > 0
           && request.resource.data.category in
              ['warmup','physical','service','setting','defense','reception','attack','compound','game']
-          && optIntIn(request.resource.data, 'minPlayers', 1, 30);
+          && optIntIn(request.resource.data, 'minPlayers', 1, 30)
+          && exerciseSized(request.resource.data);
         allow update: if activeMember() && canWriteExercises()
           && request.resource.data.name is string
           && request.resource.data.name.size() > 0
           && request.resource.data.category in
              ['warmup','physical','service','setting','defense','reception','attack','compound','game']
-          && optIntIn(request.resource.data, 'minPlayers', 1, 30);
+          && optIntIn(request.resource.data, 'minPlayers', 1, 30)
+          && exerciseSized(request.resource.data);
         allow delete: if activeMember() && canWriteExercises();
 
         match /diagrams/{diagramId} {
@@ -555,7 +619,8 @@ service cloud.firestore {
           && request.resource.data.exercises is list
           && request.resource.data.exerciseIds is list
           && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
-          && optTargets(request.resource.data);
+          && optTargets(request.resource.data)
+          && trainingSized(request.resource.data);
         allow update: if activeMember() && canTrainings()
           && request.resource.data.name is string
           && request.resource.data.name.size() > 0
@@ -563,7 +628,8 @@ service cloud.firestore {
           && request.resource.data.exerciseIds is list
           && request.resource.data.businessId == resource.data.businessId
           && optIntIn(request.resource.data, 'suggestedPlayers', 1, 60)
-          && optTargets(request.resource.data);
+          && optTargets(request.resource.data)
+          && trainingSized(request.resource.data);
         allow delete: if activeMember() && canTrainings();
       }
 
@@ -585,6 +651,110 @@ service cloud.firestore {
     function optTargets(d) {
       return !('targets' in d) || (d.targets is list && d.targets.size() >= 1 && d.targets.size() <= 9
         && d.targets.toSet().difference(['warmup','physical','service','setting','defense','reception','attack','compound','game'].toSet()).size() == 0);
+    }
+
+    // ---- Size caps ---------------------------------------------------------------
+    // The numbers mirror LIMITS in src/types/limits.ts (change both together): 200 short
+    // text, 10000 long text, 254 per email. Rules evaluate at most 1000 expressions per
+    // document, so the caps are inline and cheap rather than generic helpers:
+    // - string(d.get(f, '')).size() <= n caps a field that is absent, null or a scalar;
+    //   string() refuses a list or a map, so nothing big hides in a "text" field.
+    // - a list of strings is capped by its length and by join('').size().
+    // - a list of flat maps (guardians, objectives, roster rows, ...) cannot be looped
+    //   over, so it is capped by its length and by the characters of all its values
+    //   together: the rows below collect those values (join() refuses a nested value).
+    function v5(p) {
+      return p[0].values().concat(p[1].values()).concat(p[2].values()).concat(p[3].values()).concat(p[4].values());
+    }
+    // The values of every row of a list of at most 5 / 10 / 30 / 50 flat maps (the caller
+    // caps the length). Padding makes every index exist, so no per-row guard is needed.
+    function rows5(l) { return v5(l.concat([{}, {}, {}, {}, {}])); }
+    function rows10(l) {
+      let p = l.concat([{}, {}, {}, {}, {}]);
+      return v5(p).concat(l.size() <= 5 ? [] : v5(p[5:10]));
+    }
+    function rows30(l) {
+      let p = l.concat([{}, {}, {}, {}, {}]);
+      return v5(p).concat(l.size() <= 5 ? [] : v5(p[5:10])).concat(l.size() <= 10 ? [] : v5(p[10:15]))
+        .concat(l.size() <= 15 ? [] : v5(p[15:20])).concat(l.size() <= 20 ? [] : v5(p[20:25]))
+        .concat(l.size() <= 25 ? [] : v5(p[25:30]));
+    }
+    function rows50(l) {
+      let p = l.concat([{}, {}, {}, {}, {}]);
+      return rows30(l).concat(l.size() <= 30 ? [] : v5(p[30:35])).concat(l.size() <= 35 ? [] : v5(p[35:40]))
+        .concat(l.size() <= 40 ? [] : v5(p[40:45])).concat(l.size() <= 45 ? [] : v5(p[45:50]));
+    }
+    // A development plan (team or player): notes, and two lists of at most 10 objectives
+    // whose text totals at most 100000 characters each.
+    function planOk(p) {
+      let s = p.get('shortTermObjectives', []);
+      let n = p.get('seasonObjectives', []);
+      return string(p.get('generalNotes', '')).size() <= 10000
+        && s.size() <= 10 && rows10(s).join('').size() <= 100000
+        && n.size() <= 10 && rows10(n).join('').size() <= 100000;
+    }
+    function teamSized(d) {
+      let a = d.get('adminEmails', []);
+      return string(d.get('name', '')).size() <= 200 && string(d.get('ageGroup', '')).size() <= 200
+        && string(d.get('season', '')).size() <= 200
+        && string(d.get('description', '')).size() <= 10000 && string(d.get('notes', '')).size() <= 10000
+        && a.size() <= 100 && a.join('').size() <= 25400
+        && planOk(d.get('developmentPlan', {}));
+    }
+    function exerciseSized(d) {
+      let t = d.get('searchTokens', []);
+      return string(d.get('name', '')).size() <= 200 && string(d.get('description', '')).size() <= 10000
+        && t.size() <= 120 && t.join('').size() <= 5000;
+    }
+    function trainingSized(d) {
+      let t = d.get('searchTokens', []);
+      let x = d.get('exercises', []);
+      let i = d.get('exerciseIds', []);
+      return string(d.get('name', '')).size() <= 200 && string(d.get('description', '')).size() <= 10000
+        && string(d.get('ageGroupTarget', '')).size() <= 200 && string(d.get('businessId', '')).size() <= 200
+        && t.size() <= 120 && t.join('').size() <= 5000
+        && x.size() <= 50 && rows50(x).join('').size() <= 10000
+        && i.size() <= 50 && i.join('').size() <= 10000;
+    }
+    // Coach award choices (the season doc, or a match's awards field): at most 10 picks,
+    // 5 custom awards (2000 characters together) and 15 ids in the reveal order.
+    function awardsSized(a) {
+      let c = a.get('custom', []);
+      let o = a.get('order', []);
+      return a.get('picks', {}).size() <= 10
+        && c.size() <= 5 && rows5(c).join('').size() <= 2000
+        && o.size() <= 15 && o.join('').size() <= 3000;
+    }
+    // config/skillGuide: at most the nine skills, each exactly {key, label, ranges,
+    // howToEvaluate} with at most 5 score ranges (all their values 50100 characters).
+    function skillOk(e) {
+      return e.size() <= 4
+        && string(e.key).size() <= 200 && string(e.label).size() <= 200
+        && string(e.howToEvaluate).size() <= 10000
+        && e.ranges.size() <= 5 && rows5(e.ranges).join('').size() <= 50100;
+    }
+    function skillGuideOk(d) {
+      let l = d.skills;
+      return d.keys().hasOnly(['skills', 'updatedBy', 'updatedAt'])
+        && l is list && l.size() <= 9
+        && (l.size() <= 0 || skillOk(l[0])) && (l.size() <= 1 || skillOk(l[1])) && (l.size() <= 2 || skillOk(l[2]))
+        && (l.size() <= 3 || skillOk(l[3])) && (l.size() <= 4 || skillOk(l[4])) && (l.size() <= 5 || skillOk(l[5]))
+        && (l.size() <= 6 || skillOk(l[6])) && (l.size() <= 7 || skillOk(l[7])) && (l.size() <= 8 || skillOk(l[8]))
+        && string(d.get('updatedBy', '')).size() <= 254;
+    }
+    // config/physicalTestGuide: at most the eight tests, each exactly {key, label, protocol}.
+    function testOk(e) {
+      return e.size() <= 3
+        && string(e.key).size() <= 200 && string(e.label).size() <= 200 && string(e.protocol).size() <= 10000;
+    }
+    function testGuideOk(d) {
+      let l = d.tests;
+      return d.keys().hasOnly(['tests', 'updatedBy', 'updatedAt'])
+        && l is list && l.size() <= 8
+        && (l.size() <= 0 || testOk(l[0])) && (l.size() <= 1 || testOk(l[1])) && (l.size() <= 2 || testOk(l[2]))
+        && (l.size() <= 3 || testOk(l[3])) && (l.size() <= 4 || testOk(l[4])) && (l.size() <= 5 || testOk(l[5]))
+        && (l.size() <= 6 || testOk(l[6])) && (l.size() <= 7 || testOk(l[7]))
+        && string(d.get('updatedBy', '')).size() <= 254;
     }
 
     // The operator's lead list: anyone may leave interest, only the operator reads it.

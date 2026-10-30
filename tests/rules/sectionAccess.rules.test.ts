@@ -101,12 +101,12 @@ describe('sectionAccess + section-gated libraries', () => {
       c.firestore().doc('clubs/club-a/sectionAccess/guides').set({ adminEmails: ['ex@example.com'] })
     );
     const gdb = await as('ex@example.com');
-    await assertSucceeds(gdb.doc('clubs/club-a/config/skillGuide').set({ skills: {}, updatedBy: 'uid-ex@example.com' }));
-    await assertSucceeds(gdb.doc('clubs/club-a/config/physicalTestGuide').set({ tests: {}, updatedBy: 'uid-ex@example.com' }));
+    await assertSucceeds(gdb.doc('clubs/club-a/config/skillGuide').set({ skills: [], updatedBy: 'uid-ex@example.com' }));
+    await assertSucceeds(gdb.doc('clubs/club-a/config/physicalTestGuide').set({ tests: [], updatedBy: 'uid-ex@example.com' }));
 
     const ndb = await as('none@example.com');
     await assertSucceeds(ndb.doc('clubs/club-a/config/skillGuide').get());
-    await assertFails(ndb.doc('clubs/club-a/config/skillGuide').set({ skills: {} }));
+    await assertFails(ndb.doc('clubs/club-a/config/skillGuide').set({ skills: [] }));
   });
 
   it('suspended club: library, counter and section writes fail, admin export reads still work', async () => {

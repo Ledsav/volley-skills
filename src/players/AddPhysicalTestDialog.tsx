@@ -14,6 +14,7 @@ import { usePlayerSync } from './playerSync';
 import { getInitials } from './nameFormat';
 import { formatPhysicalTestSummary } from './physicalTestFormat';
 import type { PhysicalTest } from '../types/physicalTest';
+import { LIMITS } from '../types/limits';
 
 interface AddPhysicalTestDialogProps {
   teamId: string;
@@ -373,7 +374,7 @@ export function AddPhysicalTestDialog({
           <label htmlFor="physical-test-notes" className={FIELD_LABEL_CLASS}>
             {a.notes}
           </label>
-          <Textarea id="physical-test-notes" aria-describedby="physical-test-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" />
+          <Textarea id="physical-test-notes" aria-describedby="physical-test-notes-hint" maxLength={LIMITS.longText} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full" />
           <HealthHint id="physical-test-notes-hint" />
         </div>
 

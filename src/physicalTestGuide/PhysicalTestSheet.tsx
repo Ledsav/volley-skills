@@ -3,6 +3,7 @@ import { Sheet } from '../components/Sheet';
 import { Textarea } from '../components/Input';
 import { useT } from '../i18n/I18nProvider';
 import type { PhysicalTestGuideEntry } from '../types/physicalTestGuide';
+import { LIMITS } from '../types/limits';
 
 /** One physical test's protocol in a sheet. Done hands the edit back to the page draft; Save stays in the toolbar. */
 export function PhysicalTestSheet({
@@ -38,6 +39,7 @@ export function PhysicalTestSheet({
       </label>
       <Textarea
         id={`${test.key}-protocol`}
+        maxLength={LIMITS.longText}
         value={local.protocol}
         onChange={(e) => setLocal((cur) => ({ ...cur, protocol: e.target.value }))}
         className="min-h-[160px] w-full"

@@ -15,6 +15,7 @@ import { todayIso } from '../calendar/monthGrid';
 import { loadTeamRoster } from './matchesApi';
 import { getT, useT } from '../i18n/I18nProvider';
 import { MAX_ROSTER, buildRoster, defaultRosterIds, validateSetup, setupProblemMessage } from './matchSetup';
+import { LIMITS } from '../types/limits';
 
 interface MatchSetupFormProps {
   teamId: string;
@@ -162,7 +163,7 @@ export function MatchSetupForm({ teamId, initial, defaultDate, submitLabel, onSu
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label={m.opponent}>
-            <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
+            <Input maxLength={LIMITS.shortText} value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder={m.opponentPlaceholder} />
           </Field>
           <Field label={m.competition}>
             <Select value={competition} onChange={(e) => setCompetition(e.target.value as Competition)}>

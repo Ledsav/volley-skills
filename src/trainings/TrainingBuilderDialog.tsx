@@ -20,6 +20,7 @@ import { coveredTargets, needsMorePlayers, sortByFit } from './suggestions';
 import { createTraining, updateTraining } from './trainingsApi';
 import { trainingNameExample, trainingNameHint } from './naming';
 import { useT } from '../i18n/I18nProvider';
+import { LIMITS } from '../types/limits';
 
 const FORM_ID = 'training-form';
 
@@ -150,7 +151,8 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
 
   function addExercise(exercise: Exercise) {
     setTouched(true);
-    setRows((current) => [
+    // The rules cap a training at LIMITS.trainingExercises steps.
+    setRows((current) => current.length >= LIMITS.trainingExercises ? current : [
       ...current,
       {
         exerciseId: exercise.id,
@@ -348,6 +350,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         </label>
         <Input
           id="training-name"
+          maxLength={LIMITS.shortText}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={trainingNameExample()}
@@ -362,7 +365,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
             <label htmlFor="training-age" className={fieldLabel}>
               {m.ageGroupTarget}
             </label>
-            <Input id="training-age" value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
+            <Input id="training-age" maxLength={LIMITS.shortText} value={ageGroupTarget} onChange={(e) => setAgeGroupTarget(e.target.value)} />
           </div>
           <div>
             <label htmlFor="training-suggested-players" className={fieldLabel}>
@@ -409,6 +412,7 @@ export function TrainingBuilderDialog({ training, initial, onClose, onSaved }: T
         </label>
         <Textarea
           id="training-description"
+          maxLength={LIMITS.longText}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}

@@ -4,6 +4,7 @@ import { Textarea } from '../components/Input';
 import { bandBorderClass } from './bandColor';
 import { useT } from '../i18n/I18nProvider';
 import type { SkillGuideEntry } from '../types/skillGuide';
+import { LIMITS } from '../types/limits';
 
 /** One skill's guide text in a sheet. Done hands the edit back to the page draft; Save stays in the toolbar. */
 export function SkillGuideSheet({
@@ -46,6 +47,7 @@ export function SkillGuideSheet({
             </label>
             <Textarea
               id={`${skill.key}-range-${index}`}
+              maxLength={LIMITS.longText}
               value={range.description}
               onChange={(e) => updateRange(index, e.target.value)}
               className="w-full bg-surface"
@@ -59,6 +61,7 @@ export function SkillGuideSheet({
         </label>
         <Textarea
           id={`${skill.key}-how-to-evaluate`}
+          maxLength={LIMITS.longText}
           value={local.howToEvaluate}
           onChange={(e) => setLocal((cur) => ({ ...cur, howToEvaluate: e.target.value }))}
         />

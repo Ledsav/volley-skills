@@ -7,6 +7,7 @@ import { updatePlayerGuardians } from './playersApi';
 import { usePlayerSync } from './playerSync';
 import type { Guardian, Player } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
+import { LIMITS } from '../types/limits';
 
 interface GuardiansSectionProps {
   teamId: string;
@@ -139,6 +140,7 @@ export function GuardiansSection({
                 </label>
                 <Input
                   id={`edit-guardian-name-${index}`}
+                  maxLength={LIMITS.shortText}
                   value={guardian.name}
                   onChange={(e) => updateGuardian(index, { name: e.target.value })}
                   required
@@ -150,6 +152,7 @@ export function GuardiansSection({
                 </label>
                 <Input
                   id={`edit-guardian-phone-${index}`}
+                  maxLength={LIMITS.shortText}
                   value={guardian.phone}
                   onChange={(e) => updateGuardian(index, { phone: e.target.value })}
                   className="mb-3 w-full"
@@ -161,6 +164,7 @@ export function GuardiansSection({
                 <Input
                   id={`edit-guardian-email-${index}`}
                   type="email"
+                  maxLength={LIMITS.email}
                   value={guardian.email}
                   onChange={(e) => updateGuardian(index, { email: e.target.value })}
                   className="mb-3 w-full"
@@ -173,7 +177,7 @@ export function GuardiansSection({
                 )}
               </div>
             ))}
-            <Button variant="secondary" size="sm" onClick={addGuardian} className="mb-4">
+            <Button variant="secondary" size="sm" onClick={addGuardian} disabled={guardians.length >= LIMITS.guardians} className="mb-4">
               {p.shared.addGuardian}
             </Button>
 

@@ -12,6 +12,7 @@ import {
   type Side,
   type Skill,
 } from '../../types/match';
+import { LIMITS } from '../../types/limits';
 import type { Player, PositionCategory } from '../../types/player';
 import { replay, type EngineMatch } from '../scoutEngine';
 import { POINT_REASONS, rallyOutcome, validGrades } from '../skillGrades';
@@ -205,7 +206,8 @@ function buildSetup(file: DvwFile, us: DvwSide, mapping: PlayerMapping, players:
   const them = us === '*' ? 'a' : '*';
   return {
     date: file.date ?? '',
-    opponent: file.teams[them].name,
+    // The rules cap the opponent at LIMITS.shortText; a file's team name is cut to fit.
+    opponent: file.teams[them].name.slice(0, LIMITS.shortText),
     competition: 'league',
     homeAway: us === '*' ? 'home' : 'away',
     format: { ...DEFAULT_FORMAT, ...(Math.max(file.teams['*'].setsWon, file.teams.a.setsWon) === 2 ? { bestOf: 3 } : {}) },

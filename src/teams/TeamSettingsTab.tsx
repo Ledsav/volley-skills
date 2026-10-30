@@ -12,6 +12,7 @@ import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
 import { GENDERS, isGender } from './teamGender';
 import type { Team } from '../types/team';
+import { LIMITS } from '../types/limits';
 
 interface TeamSettingsTabProps {
   team: Team;
@@ -82,7 +83,7 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
               {t.teams.settings.teamName}
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+              <Input maxLength={LIMITS.shortText} value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
             <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
               {t.teams.gender.label}
@@ -104,11 +105,11 @@ export function TeamSettingsTab({ team, onTeamUpdated }: TeamSettingsTabProps) {
             </label>
             <label className="flex flex-col gap-1.5 text-footnote text-ink-2">
               {t.teams.settings.description}
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full resize-none" />
+              <Textarea maxLength={LIMITS.longText} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full resize-none" />
             </label>
             <div className="flex flex-col gap-1.5 text-footnote text-ink-2">
               <label htmlFor="team-info-notes">{t.teams.settings.notes}</label>
-              <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} className="w-full resize-none" />
+              <Textarea id="team-info-notes" aria-describedby="team-info-notes-hint" maxLength={LIMITS.longText} value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} className="w-full resize-none" />
               <HealthHint id="team-info-notes-hint" />
             </div>
           </div>

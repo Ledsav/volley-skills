@@ -13,6 +13,7 @@ import { useT } from '../i18n/I18nProvider';
 import { formatDecimal } from '../i18n/format';
 import type { BodyweightExercise, PhysicalTestType, WeightedExercise } from '../types/physicalTest';
 import type { TestingSessionEntry } from '../types/testingSession';
+import { LIMITS } from '../types/limits';
 
 const DEFAULT_FIELDS: PhysicalTestFields = {
   heightCm: '',
@@ -355,7 +356,7 @@ export function SessionQualityPanel({
 
         <div className="mb-4">
           <label htmlFor="notes" className="mb-1 block text-footnote text-ink-2">{s.notes}</label>
-          <Textarea id="notes" aria-describedby="notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => persist(fields)} />
+          <Textarea id="notes" aria-describedby="notes-hint" maxLength={LIMITS.longText} value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => persist(fields)} />
           <HealthHint id="notes-hint" />
         </div>
 

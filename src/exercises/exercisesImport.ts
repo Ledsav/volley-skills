@@ -1,5 +1,6 @@
-import { isPlainObject } from '../bulkImport/parseJsonArray';
-import type { ValidationResult } from '../bulkImport/types';
+import { isPlainObject, textTooLong } from '../bulkImport/parseJsonArray';
+import type { SizeIssue, ValidationResult } from '../bulkImport/types';
+import { LIMITS } from '../types/limits';
 import { parseScene, type SceneIssue } from '../diagrams/parseScene';
 import { SCENE_LIMITS, type Scene } from '../types/diagram';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type NewExerciseInput } from '../types/exercise';
@@ -29,7 +30,8 @@ export type ExerciseImportIssue =
   | { code: 'tooManyDiagrams'; row: number; max: number }
   | { code: 'diagramNotObject'; row: number; diagram: number }
   | { code: 'diagramTitle'; row: number; diagram: number; max: number }
-  | { code: 'diagramScene'; row: number; diagram: number; scene: SceneIssue };
+  | { code: 'diagramScene'; row: number; diagram: number; scene: SceneIssue }
+  | SizeIssue;
 
 export const EXERCISE_IMPORT_EXAMPLE = `[
   {
@@ -82,6 +84,9 @@ export function validateExerciseRows(rows: unknown[]): ValidationResult<Exercise
     if (row.description !== undefined) {
       if (typeof row.description === 'string') description = row.description;
       else errors.push({ code: 'descriptionText', row: n });
+    }
+    for (const issue of [textTooLong(n, 'name', name, LIMITS.shortText), textTooLong(n, 'description', description, LIMITS.longText)]) {
+      if (issue) errors.push(issue);
     }
 
     const { min, max } = PLAYER_LIMITS.minPlayers;

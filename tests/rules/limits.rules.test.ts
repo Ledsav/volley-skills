@@ -1,5 +1,6 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { afterAll, beforeEach, describe, it } from 'vitest';
+import firebase from 'firebase/compat/app';
 import { LIMITS } from '../../src/types/limits';
 import { skillGuide as enSkillGuide } from '../../src/i18n/en/skillGuide';
 import { skillGuide as itSkillGuide } from '../../src/i18n/it/skillGuide';
@@ -213,6 +214,23 @@ describe('size caps', () => {
       await assertFails(coach.collection(`${TEAM}/players`).add({ ...maxPlayer(), nationality: s(LIMITS.shortText + 1) }));
     });
 
+    it('accepts a consent record with null values (a bulk-imported player)', async () => {
+      await assertSucceeds(coach.doc(PLAYER).set({ ...maxPlayer(), consent: { given: false, date: null, confirmedBy: null } }));
+      await assertSucceeds(coach.doc(PLAYER).update({ consent: { given: false, date: null, confirmedBy: null } }));
+    });
+
+    it('keeps an at-cap player within the budget through the photo-consent path', async () => {
+      await assertSucceeds(coach.doc(PLAYER).set(maxPlayer()));
+      // give
+      await assertSucceeds(coach.doc(PLAYER).update({ photoConsent: true, photoConsentAt: serverTimestamp(), photoConsentBy: COACH }));
+      // keep: another save leaves the consent fields as they are
+      await assertSucceeds(coach.doc(PLAYER).update({ fullName: s(LIMITS.shortText), updatedAt: serverTimestamp() }));
+      // withdraw
+      await assertSucceeds(coach.doc(PLAYER).update({ photoConsent: false, photoConsentAt: null, photoConsentBy: null }));
+      // and an over-cap field is still refused on that path
+      await assertFails(coach.doc(PLAYER).update({ photoConsent: true, photoConsentAt: serverTimestamp(), photoConsentBy: COACH, fullName: s(LIMITS.shortText + 1) }));
+    });
+
     it('caps physical test notes', async () => {
       const test = { testType: 'cmj', attemptsCm: [30], bestCm: 30, date: '2026-10-30', recordedBy: `uid-${COACH}` };
       await assertSucceeds(coach.collection(`${PLAYER}/physicalTests`).add({ ...test, notes: s(LIMITS.longText) }));
@@ -331,6 +349,15 @@ describe('size caps', () => {
       await assertFails(doc.set(awards({ order: order(LIMITS.awardOrder + 1) })));
       await assertFails(doc.set(awards({ custom: custom(2, s(LIMITS.awardCustomText)) })));
       await assertFails(doc.set(awards({ picks: Object.fromEntries(order(11).map((k) => [k, { playerId: null, hidden: true }])) })));
+    });
+
+    it('lets player erasure merge-delete from a usage doc that does not exist yet', async () => {
+      // erasePlayerFootprint (src/players/playerFootprintApi.ts) on a team that never scouted.
+      const doc = coach.doc(`${TEAM}/scoutProfile/usage`);
+      const erase = { players: { p1: firebase.firestore.FieldValue.delete() } };
+      await assertSucceeds(doc.set(erase, { merge: true }));
+      await assertSucceeds(doc.set({ players: { p1: { matches: 1, totals: {} }, p2: { matches: 2, totals: {} } } }));
+      await assertSucceeds(doc.set(erase, { merge: true }));
     });
 
     it('caps the usage profile at 500 players and refuses other keys', async () => {

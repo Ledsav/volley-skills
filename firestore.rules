@@ -543,8 +543,10 @@ service cloud.firestore {
           // The usage profile: one map of per-player counts, at most 500 players.
           allow create, update: if activeMember() && teamAdmin()
             && request.resource.data.keys().hasOnly(['players'])
-            && request.resource.data.players is map
-            && request.resource.data.players.size() <= 500;
+            // get(): a merge that deletes a player from a usage doc that does not exist yet
+            // (GDPR erasure, playerFootprintApi) writes an empty doc, which must still pass.
+            && request.resource.data.get('players', {}) is map
+            && request.resource.data.get('players', {}).size() <= 500;
           allow delete: if activeMember() && teamAdmin();
         }
       }

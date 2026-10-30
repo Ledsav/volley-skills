@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CanvasStage, fitTransform, startedOnItem, type StageApi } from './CanvasStage';
 
 // NB: @use-gesture's native pointer pipeline (pointer capture + document-level
@@ -100,5 +100,19 @@ describe('fitTransform', () => {
     expect(c.y).toBeCloseTo(450);
     // as wide as the area allows (84 units fill 600 px), never past the cap
     expect(t.scale).toBeCloseTo(600 / (84 * 6));
+  });
+});
+
+describe('CanvasStage insets', () => {
+  it('re-frames a resting view when the top inset grows (a tip above the court)', () => {
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 800, width: 1000, height: 800, toJSON: () => ({}) });
+    const fitBox = { x: 20, y: 20, w: 50, h: 50 };
+    const insets = (top: number) => ({ top, right: 0, bottom: 0, left: 0 });
+    const { container, rerender } = render(<CanvasStage insets={insets(100)} fitBox={fitBox}><svg /></CanvasStage>);
+    const tf = () => (container.querySelector('[style*="transform-origin"]') as HTMLElement).style.transform;
+    const before = tf();
+    rerender(<CanvasStage insets={insets(200)} fitBox={fitBox}><svg /></CanvasStage>);
+    expect(tf()).not.toBe(before);
+    rect.mockRestore();
   });
 });

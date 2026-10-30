@@ -10,6 +10,7 @@ import { I18nProvider } from '../i18n/I18nProvider';
 import { authValue } from '../test/authValue';
 import type { Player } from '../types/player';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./teamsApi');
 vi.mock('../players/playersApi');
 vi.mock('../auth/AuthContext');
@@ -22,7 +23,7 @@ describe('teams in Italian', () => {
   beforeEach(() => {
     window.localStorage.setItem('vcb.locale', 'it');
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'u1', email: 'c@example.com' } as never, appUser: { uid: 'u1', email: 'c@example.com' } }),
+      authValue({ firebaseUser: { uid: 'u1', email: 'c@example.com' } as never, appUser: { uid: 'u1', email: 'c@example.com', onboarding: EMPTY_ONBOARDING } }),
     );
   });
 

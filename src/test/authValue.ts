@@ -4,6 +4,7 @@ import type { Timestamp } from 'firebase/firestore';
 import type { Access } from '../auth/access';
 import type { AuthContextValue } from '../auth/AuthContext';
 import type { Club } from '../types/club';
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 
 const MEMBER_ACCESS: Access = {
   isClubAdmin: false,
@@ -41,7 +42,7 @@ export function testClub(over: Partial<Club> = {}): Club {
 export function authValue(over: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
     firebaseUser: { uid: 'u-1', email: 'user@example.com' } as User,
-    appUser: { uid: 'u-1', email: 'user@example.com' },
+    appUser: { uid: 'u-1', email: 'user@example.com', onboarding: EMPTY_ONBOARDING },
     access: MEMBER_ACCESS,
     loading: false,
     authError: null,
@@ -52,6 +53,8 @@ export function authValue(over: Partial<AuthContextValue> = {}): AuthContextValu
     isPlatformAdmin: false,
     droppedClub: false,
     switchClub: vi.fn(),
+    onboarding: EMPTY_ONBOARDING,
+    updateOnboarding: vi.fn(),
     ...over,
   };
 }

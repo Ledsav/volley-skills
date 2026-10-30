@@ -10,6 +10,7 @@ import { authValue, clubAdminAccess, testClub } from '../../test/authValue';
 import type { Club } from '../../types/club';
 import { formatDateValue } from '../../i18n/format';
 
+import { EMPTY_ONBOARDING } from '../../onboarding/onboardingState';
 const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 const notify = vi.hoisted(() => vi.fn());
 const operator = vi.hoisted(() => ({ OPERATOR_CONTACT_EMAIL: null as string | null }));
@@ -27,7 +28,7 @@ const T2 = new Date('2026-12-15T10:00:00Z');
 function signIn(over: Partial<Club> = {}) {
   vi.mocked(useAuth).mockReturnValue(authValue({
     access: clubAdminAccess, role: 'admin',
-    appUser: { uid: 'u-1', email: 'Admin@Example.com' },
+    appUser: { uid: 'u-1', email: 'Admin@Example.com', onboarding: EMPTY_ONBOARDING },
     club: testClub(over),
   }));
 }

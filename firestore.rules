@@ -609,7 +609,21 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['email', 'createdAt'])
         && request.resource.data.email == email()
         && request.resource.data.createdAt == request.time;
-      allow update, delete: if false;
+      // The owner may change only the `onboarding` map (shown-once tips and welcome state).
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && validOnboardingUpdate();
+      allow delete: if false;
+
+      function validOnboardingUpdate() {
+        let o = request.resource.data.onboarding;
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onboarding'])
+          && o is map
+          && o.keys().hasOnly(['welcomed', 'tips', 'hiddenChecklists'])
+          && (!('welcomed' in o) || o.welcomed is bool)
+          && (!('tips' in o) || (o.tips is list && o.tips.size() <= 32))
+          && (!('hiddenChecklists' in o) || (o.hiddenChecklists is list && o.hiddenChecklists.size() <= 64));
+      }
     }
   }
 }

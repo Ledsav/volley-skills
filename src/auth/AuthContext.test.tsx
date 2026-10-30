@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 import { setActiveClubId } from '../firebase/activeClub';
 import type { Club, Membership } from '../types/club';
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 
 const h = vi.hoisted(() => ({
   user: { uid: 'coach-uid', email: 'coach@example.com' } as { uid: string; email: string } | null,
@@ -10,6 +11,7 @@ const h = vi.hoisted(() => ({
   clubCallback: null as null | ((club: unknown) => void),
   unsubscribeClub: vi.fn(),
   ensureUserDoc: vi.fn(),
+  writeOnboarding: vi.fn(),
   resolveAccess: vi.fn(),
   listMyMemberships: vi.fn(),
   probePlatformAdmin: vi.fn(),
@@ -28,7 +30,10 @@ vi.mock('../firebase/activeClub', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../firebase/activeClub')>()),
   setActiveClubId: vi.fn(),
 }));
-vi.mock('./usersApi', () => ({ ensureUserDoc: (...a: unknown[]) => h.ensureUserDoc(...a) }));
+vi.mock('./usersApi', () => ({
+  ensureUserDoc: (...a: unknown[]) => h.ensureUserDoc(...a),
+  writeOnboarding: (...a: unknown[]) => h.writeOnboarding(...a),
+}));
 vi.mock('./access', () => ({
   resolveAccess: (...a: unknown[]) => h.resolveAccess(...a),
   SECTION_KEYS: ['exercises', 'trainings', 'guides'],
@@ -45,7 +50,7 @@ const membership = (clubId: string, role: Membership['role'] = 'member'): Member
 const club = (id: string, status: Club['status'] = 'active') => ({ id, name: `Club ${id}`, status }) as Club;
 
 function Probe() {
-  const { loading, appUser, access, authError, activeClubId, club, role, isPlatformAdmin, memberships } = useAuth();
+  const { loading, appUser, access, authError, activeClubId, club, role, isPlatformAdmin, memberships, onboarding, updateOnboarding } = useAuth();
   return (
     <div>
       <p>loading: {String(loading)}</p>
@@ -57,6 +62,8 @@ function Probe() {
       <p>role: {role ?? 'none'}</p>
       <p>platformAdmin: {String(isPlatformAdmin)}</p>
       <p>memberships: {memberships.length}</p>
+      <p>onboarding: {onboarding ? JSON.stringify(onboarding) : 'none'}</p>
+      <button onClick={() => updateOnboarding({ kind: 'welcomed' })}>welcome</button>
     </div>
   );
 }
@@ -67,7 +74,8 @@ beforeEach(() => {
   h.user = { uid: 'coach-uid', email: 'coach@example.com' };
   h.clubCallback = null;
   h.unsubscribeClub.mockReset();
-  h.ensureUserDoc.mockReset().mockImplementation(async (uid: string, email: string) => ({ uid, email }));
+  h.ensureUserDoc.mockReset().mockImplementation(async (uid: string, email: string) => ({ uid, email, onboarding: EMPTY_ONBOARDING }));
+  h.writeOnboarding.mockReset().mockResolvedValue(undefined);
   h.resolveAccess.mockReset().mockResolvedValue({
     isClubAdmin: false, sections: { exercises: true, trainings: false, guides: false },
   });
@@ -209,5 +217,34 @@ describe('AuthProvider', () => {
     expect(screen.getByText('activeClub: none')).toBeInTheDocument();
     expect(screen.getByText('club: none')).toBeInTheDocument();
     expect(screen.getByText('appUser: none')).toBeInTheDocument();
+  });
+
+  it('exposes onboarding from the user doc, and null before it and when signed out', async () => {
+    renderProvider();
+    await waitFor(() => expect(screen.getByText(`onboarding: ${JSON.stringify(EMPTY_ONBOARDING)}`)).toBeInTheDocument());
+
+    await act(async () => h.authCallback!(null));
+    expect(screen.getByText('onboarding: none')).toBeInTheDocument();
+  });
+
+  it('updateOnboarding changes the session at once and writes without waiting', async () => {
+    h.writeOnboarding.mockReturnValue(new Promise(() => {}));
+    renderProvider();
+    await waitFor(() => expect(screen.getByText(/onboarding: \{/)).toBeInTheDocument());
+
+    act(() => screen.getByText('welcome').click());
+
+    expect(screen.getByText(/"welcomed":true/)).toBeInTheDocument();
+    expect(h.writeOnboarding).toHaveBeenCalledWith('coach-uid', { kind: 'welcomed' });
+  });
+
+  it('keeps the local change when the write is rejected', async () => {
+    h.writeOnboarding.mockRejectedValue({ code: 'permission-denied' });
+    renderProvider();
+    await waitFor(() => expect(screen.getByText(/onboarding: \{/)).toBeInTheDocument());
+
+    await act(async () => screen.getByText('welcome').click());
+
+    expect(screen.getByText(/"welcomed":true/)).toBeInTheDocument();
   });
 });

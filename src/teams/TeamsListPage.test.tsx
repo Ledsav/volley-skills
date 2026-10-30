@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { authValue, clubAdminAccess } from '../test/authValue';
 import type { Team } from '../types/team';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./teamsApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
@@ -32,7 +33,7 @@ function asClubAdmin() {
   vi.mocked(useAuth).mockReturnValue(
     authValue({
       firebaseUser: { email: 'coach@example.com' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
       access: clubAdminAccess,
     })
   );
@@ -59,7 +60,7 @@ describe('TeamsListPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -79,7 +80,7 @@ describe('TeamsListPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -105,7 +106,7 @@ describe('TeamsListPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -125,7 +126,7 @@ describe('TeamsListPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -145,7 +146,7 @@ describe('TeamsListPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );

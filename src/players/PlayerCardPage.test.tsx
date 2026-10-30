@@ -18,6 +18,7 @@ import type { Team } from '../types/team';
 import * as matchesApi from '../matches/matchesApi';
 import type { Match } from '../types/match';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 const mockNavigate = vi.fn();
 
 vi.mock('./playersApi');
@@ -119,7 +120,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -194,7 +195,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -217,7 +218,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -243,7 +244,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -282,7 +283,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -311,7 +312,7 @@ describe('PlayerCardPage', () => {
       vi.mocked(useAuth).mockReturnValue(
         authValue({
           firebaseUser: { email: 'coach@example.com' } as never,
-          appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+          appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
           access: clubAdminAccess,
         })
       );
@@ -348,7 +349,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -373,7 +374,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -397,7 +398,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -429,7 +430,7 @@ describe('PlayerCardPage', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -523,7 +524,7 @@ describe('PlayerCardPage offline saves', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { email: 'coach@example.com' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );

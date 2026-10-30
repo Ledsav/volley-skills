@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { TrainingsPage } from './TrainingsPage';
 import * as trainingsApi from './trainingsApi';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./trainingsApi');
 vi.mock('./TrainingBuilderDialog', () => ({
   TrainingBuilderDialog: ({ onSaved, onClose, initial }: { onSaved: () => void; onClose: () => void; initial?: { name: string } }) => (
@@ -48,7 +49,7 @@ vi.mock('../auth/AuthContext', async () => {
     useAuth: () =>
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
         club: testClub({ aiEnabled: clubOver.aiEnabled }),
       }),

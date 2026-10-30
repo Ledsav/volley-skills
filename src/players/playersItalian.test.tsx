@@ -18,6 +18,7 @@ import type { DevelopmentPlan } from '../types/developmentPlan';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./playersApi');
 vi.mock('../skillGuide/skillGuideApi', () => ({ getSkillGuide: vi.fn().mockResolvedValue({ skills: [] }) }));
 vi.mock('../auth/AuthContext');
@@ -64,7 +65,7 @@ describe('players in Italian', () => {
   beforeEach(() => {
     window.localStorage.setItem('vcb.locale', 'it');
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'coach@example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
   });
 

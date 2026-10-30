@@ -8,6 +8,7 @@ import { authValue, clubAdminAccess } from '../test/authValue';
 import { NoticeProvider } from '../components/Notice';
 import { WithChrome } from '../test/chromeProbe';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./physicalTestGuideApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
@@ -28,7 +29,7 @@ function signIn() {
   vi.mocked(useAuth).mockReturnValue(
     authValue({
       firebaseUser: { uid: 'coach-uid' } as never,
-      appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+      appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
       access: clubAdminAccess,
     })
   );
@@ -39,7 +40,7 @@ describe('PhysicalTestGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );
@@ -107,7 +108,7 @@ describe('PhysicalTestGuideEditor', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );

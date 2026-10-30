@@ -58,7 +58,7 @@ describe('users rules', () => {
     await assertFails(env.unauthenticatedContext().firestore().doc(`users/${UID}`).set({ email: PARENT, createdAt: serverTimestamp() }));
   });
 
-  it('refuses updates', async () => {
+  it('refuses updates outside onboarding', async () => {
     const env = await getTestEnv();
     await env.withSecurityRulesDisabled(async (context) => {
       await context.firestore().doc(`users/${UID}`).set({ email: PARENT, createdAt: new Date() });
@@ -67,6 +67,51 @@ describe('users rules', () => {
     await assertFails(db.doc(`users/${UID}`).update({ role: 'superadmin' }));
     await assertFails(db.doc(`users/${UID}`).update({ email: PARENT, createdAt: serverTimestamp() }));
     await assertFails(db.doc(`users/${UID}`).delete());
+  });
+
+  async function seedUser() {
+    const env = await getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`users/${UID}`).set({ email: PARENT, createdAt: new Date() });
+    });
+    return env;
+  }
+
+  it('lets the owner set onboarding on a doc that has none', async () => {
+    const env = await seedUser();
+    const doc = dbAs(env, PARENT).doc(`users/${UID}`);
+    await assertSucceeds(doc.update({ 'onboarding.welcomed': true }));
+    await assertSucceeds(doc.update({ 'onboarding.tips': ['search'] }));
+    await assertSucceeds(doc.update({ 'onboarding.hiddenChecklists': ['club-a'] }));
+  });
+
+  it('refuses onboarding writes from another user', async () => {
+    const env = await seedUser();
+    await assertFails(dbAs(env, 'other@example.com').doc(`users/${UID}`).update({ 'onboarding.welcomed': true }));
+  });
+
+  it('refuses changing email or createdAt alongside onboarding', async () => {
+    const env = await seedUser();
+    const doc = dbAs(env, PARENT).doc(`users/${UID}`);
+    await assertFails(doc.update({ 'onboarding.welcomed': true, email: 'x@example.com' }));
+    await assertFails(doc.update({ 'onboarding.welcomed': true, createdAt: serverTimestamp() }));
+  });
+
+  it('refuses unknown keys, wrong types and oversized lists', async () => {
+    const env = await seedUser();
+    const doc = dbAs(env, PARENT).doc(`users/${UID}`);
+    await assertFails(doc.update({ 'onboarding.role': 'admin' }));
+    await assertFails(doc.update({ 'onboarding.welcomed': 'yes' }));
+    await assertFails(doc.update({ 'onboarding.tips': 'search' }));
+    await assertFails(doc.update({ 'onboarding.tips': Array(33).fill('t') }));
+    await assertFails(doc.update({ 'onboarding.hiddenChecklists': Array(65).fill('c') }));
+    await assertFails(doc.update({ onboarding: 'x' }));
+  });
+
+  it('gives an unverified email nothing', async () => {
+    const env = await seedUser();
+    const db = env.authenticatedContext(UID, { email: PARENT, email_verified: false }).firestore();
+    await assertFails(db.doc(`users/${UID}`).update({ 'onboarding.welcomed': true }));
   });
 
   it("denies reading another user's doc", async () => {

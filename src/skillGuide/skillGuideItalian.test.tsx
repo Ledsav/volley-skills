@@ -7,6 +7,7 @@ import { authValue, clubAdminAccess } from '../test/authValue';
 import { NoticeProvider } from '../components/Notice';
 import { WithChrome } from '../test/chromeProbe';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 const mockGetDoc = vi.fn();
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(() => 'doc-ref'),
@@ -37,7 +38,7 @@ describe('skill guide in Italian', () => {
     vi.mocked(useAuth).mockReturnValue(
       authValue({
         firebaseUser: { uid: 'coach-uid' } as never,
-        appUser: { uid: 'coach-uid', email: 'coach@example.com' },
+        appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING },
         access: clubAdminAccess,
       })
     );

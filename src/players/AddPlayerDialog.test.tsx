@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { authValue } from '../test/authValue';
 import type { Team } from '../types/team';
 
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 vi.mock('./playersApi');
 vi.mock('../auth/AuthContext');
 vi.mock('../firebase/config', () => ({ auth: {}, db: {} }));
@@ -26,7 +27,7 @@ const team: Team = {
 describe('AddPlayerDialog', () => {
   it('submits the form with guardians and confirmed consent', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockResolvedValue('player-1');
     const onCreated = vi.fn();
@@ -61,7 +62,7 @@ describe('AddPlayerDialog', () => {
 
   it('submits the chosen position category, defaulting to TBD', async () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockResolvedValue('player-1');
     const onCreated = vi.fn();
@@ -99,7 +100,7 @@ describe('AddPlayerDialog', () => {
 
   it('does not submit when consent is not confirmed', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockResolvedValue('player-1');
 
@@ -115,7 +116,7 @@ describe('AddPlayerDialog', () => {
 
   it('does not submit when every other required field is filled but consent is unchecked', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockResolvedValue('player-1');
 
@@ -133,7 +134,7 @@ describe('AddPlayerDialog', () => {
 
   it('adds a second guardian row', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
 
     render(<AddPlayerDialog teamId="team-1" team={team} onClose={vi.fn()} onCreated={vi.fn()} />);
@@ -145,7 +146,7 @@ describe('AddPlayerDialog', () => {
 
   it('creates the player once even when Create is clicked twice', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     const createPlayerSpy = vi.spyOn(playersApi, 'createPlayer').mockReturnValue(new Promise(() => undefined));
     render(<AddPlayerDialog teamId="team-1" team={team} onClose={vi.fn()} onCreated={vi.fn()} />);
@@ -165,7 +166,7 @@ describe('AddPlayerDialog', () => {
   });
 
   it('is a modal dialog: Escape closes it untouched, and asks before discarding typed changes', async () => {
-    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } }));
+    vi.mocked(useAuth).mockReturnValue(authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } }));
     const onClose = vi.fn();
     const { unmount } = render(<AddPlayerDialog teamId="team-1" team={team} onClose={onClose} onCreated={vi.fn()} />);
     expect(await screen.findByRole('dialog', { name: 'Add player' })).toBeInTheDocument();
@@ -192,7 +193,7 @@ describe('AddPlayerDialog', () => {
 
   it('Cancel after typing asks to discard', () => {
     vi.mocked(useAuth).mockReturnValue(
-      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com' } })
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'Coach@Example.com' } as never, appUser: { uid: 'coach-uid', email: 'coach@example.com', onboarding: EMPTY_ONBOARDING } })
     );
     const onClose = vi.fn();
     render(<AddPlayerDialog teamId="team-1" team={team} onClose={onClose} onCreated={vi.fn()} />);

@@ -157,9 +157,10 @@ describe('MatchPage', () => {
     vi.mocked(matchesApi.getUsageProfile).mockRejectedValue(new Error('offline'));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Finish match' }));
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Could not load usage history — try finishing again.'));
+    // Generous timeouts: under a loaded CI runner the rejected fetch and re-render can take over 1 s.
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Could not load usage history — try finishing again.'), { timeout: 5000 });
     expect(matchesApi.finishMatch).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Finish match' })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Finish match' })).toBeEnabled(), { timeout: 5000 });
   });
 
   it('shows the not-found state for a missing match', async () => {

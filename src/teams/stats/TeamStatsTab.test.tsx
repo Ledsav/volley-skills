@@ -53,9 +53,10 @@ describe('TeamStatsTab', () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
     render(<MemoryRouter><WithChrome><TeamStatsTab team={team} /></WithChrome></MemoryRouter>);
     await screen.findByText(/Based on 1 scouted match/);
-    fireEvent.click(screen.getByRole('button', { name: 'Print / PDF' }));
+    // The toolbar is published by an effect after the content renders; wait for it, don't race it.
+    fireEvent.click(await screen.findByRole('button', { name: 'Print / PDF' }));
     expect(print).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'CSV · Excel (Belgium/EU)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'CSV · Excel (Belgium/EU)' }));
     expect(downloadText).toHaveBeenCalledWith(expect.stringMatching(/U17-Girls-stats/), expect.any(String), 'text/csv;charset=utf-8');
   });
 
@@ -76,7 +77,7 @@ describe('TeamStatsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /Competition/ }));
     fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Cup' }));
     await screen.findByText(/Showing 1 of 2 matches/);
-    fireEvent.click(screen.getByRole('button', { name: 'CSV · Excel (Belgium/EU)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'CSV · Excel (Belgium/EU)' }));
     expect(downloadText).toHaveBeenCalledWith(expect.stringMatching(/stats-2026-09-01-2026-09-01\.csv$/), expect.any(String), 'text/csv;charset=utf-8');
   });
 

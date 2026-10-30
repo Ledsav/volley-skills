@@ -1,0 +1,53 @@
+export const onboarding = {
+  welcome: {
+    title: (club: string) => `Welcome to ${club}`,
+    subtitle: 'Volley Skills',
+    continue: 'Continue',
+    teams: { title: 'Teams and players', line: 'Build your teams and keep a card for every player.' },
+    coaches: { title: 'Bring your coaches', line: 'Add coaches and choose what each one can see.' },
+    sessions: { title: 'Plan every session', line: 'Put trainings on the calendar and share them as a PDF.' },
+    scouting: { title: 'Scout live', line: 'Record a match point by point and get the stats after.' },
+    library: { title: 'One club library', line: 'Exercises with court diagrams, shared by every coach.' },
+    view: { title: 'See your teams', line: "Follow the teams and players you've been given access to." },
+  },
+  checklist: {
+    title: 'Get started',
+    progress: (done: number, total: number) => `${done} of ${total}`,
+    more: 'More',
+    hide: 'Hide',
+    hidden: 'Get started hidden',
+    readyClub: 'Your club is ready.',
+    readyYou: "You're all set.",
+    stepDone: (title: string) => `${title}, done`,
+    team: { title: 'Create your first team', help: 'Start with the team you coach.' },
+    players: { title: 'Add your players', help: 'Add them one by one or import a list.' },
+    coach: { title: 'Add a coach', help: 'Give another coach access to a team.' },
+    session: { title: 'Plan a training', help: 'Put your next session on the calendar.' },
+    match: { title: 'Scout a match', help: 'Record it live or import a DataVolley file.' },
+  },
+  tips: {
+    search: {
+      title: 'Find anything',
+      lineMac: 'Press ⌘K to jump to any team, player, match or exercise.',
+      lineOther: 'Press Ctrl K to jump to any team, player, match or exercise.',
+      linePhone: 'Tap the search icon to jump to any team, player, match or exercise.',
+    },
+    rowActions: {
+      title: 'Quick actions',
+      lineTouch: 'Long-press or swipe a player for quick actions.',
+      linePointer: 'Right-click a player for quick actions.',
+    },
+    scoutStart: {
+      title: 'How scouting works',
+      line: 'Tap a player, then the skill and the grade. The likely next action is suggested; Undo fixes the last tap.',
+    },
+    pdfShare: { title: 'Sharing a PDF', line: 'Tap Share PDF to build it, then Share PDF ready to send it.' },
+    diagram: { title: 'Draw a drill', line: 'Drag players, balls and arrows from the palette onto the court.' },
+  },
+  dismiss: 'Dismiss tip',
+  settings: {
+    showAgain: 'Show tips again',
+    showAgainHelp: 'Welcome, Get started and tips, on all your devices',
+    shown: 'Tips will show again.',
+  },
+};

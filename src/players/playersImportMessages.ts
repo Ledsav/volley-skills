@@ -1,10 +1,14 @@
 import type { Catalog } from '../i18n/catalog';
+import { sizeIssueText } from '../bulkImport/importMessages';
 import type { PlayerImportIssue } from './playersImport';
 
 /** The text for one player-import problem in the active language. */
 export function playerImportIssueText(issue: PlayerImportIssue, t: Catalog): string {
   const m = t.players.import;
   switch (issue.code) {
+    case 'tooLong':
+    case 'listTooLong':
+      return sizeIssueText(issue, t);
     case 'notObject':
       return m.notObject(issue.row);
     case 'numberRequired':

@@ -9,3 +9,8 @@ export interface ValidationResult<TInput, TIssue = string> {
   /** One issue per problem, 1-indexed rows. Empty on success. */
   errors: TIssue[];
 }
+
+/** A row's text field or list over its size cap (src/types/limits.ts); shared by every import. */
+export type SizeIssue =
+  | { code: 'tooLong'; row: number; field: string; max: number }
+  | { code: 'listTooLong'; row: number; field: string; max: number };

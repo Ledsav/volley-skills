@@ -1,5 +1,6 @@
-import { isPlainObject } from '../bulkImport/parseJsonArray';
-import type { ValidationResult } from '../bulkImport/types';
+import { isPlainObject, textTooLong } from '../bulkImport/parseJsonArray';
+import type { SizeIssue, ValidationResult } from '../bulkImport/types';
+import { LIMITS } from '../types/limits';
 import { EXERCISE_CATEGORIES, PLAYER_LIMITS, type ExerciseCategory } from '../types/exercise';
 import type { NewTrainingInput, TrainingExercise } from '../types/training';
 
@@ -20,9 +21,10 @@ export type TrainingImportIssue =
   | { code: 'exerciseDuration'; row: number; exercise: number }
   | { code: 'exerciseNotFound'; row: number; name: string }
   | { code: 'exerciseAmbiguous'; row: number; name: string; count: number }
-  | { code: 'tooManyNames'; max: number };
+  | { code: 'tooManyNames'; max: number }
+  | SizeIssue;
 
-export const MAX_EXERCISES_PER_TRAINING = 50;
+export const MAX_EXERCISES_PER_TRAINING = LIMITS.trainingExercises;
 export const MAX_IMPORT_EXERCISE_NAMES = 500;
 
 export const TRAINING_IMPORT_EXAMPLE = `[
@@ -83,6 +85,14 @@ export function validateTrainingRows(
     if (row.ageGroupTarget !== undefined) {
       if (typeof row.ageGroupTarget === 'string') ageGroupTarget = row.ageGroupTarget;
       else fail({ code: 'ageGroupText', row: n });
+    }
+
+    for (const issue of [
+      textTooLong(n, 'name', name, LIMITS.shortText),
+      textTooLong(n, 'description', description, LIMITS.longText),
+      textTooLong(n, 'ageGroupTarget', ageGroupTarget, LIMITS.shortText),
+    ]) {
+      if (issue) fail(issue);
     }
 
     const { min, max } = PLAYER_LIMITS.suggestedPlayers;

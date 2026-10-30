@@ -7,6 +7,10 @@ import { useT } from '../i18n/I18nProvider';
 import { parseIssueText } from './importMessages';
 import { parseJsonArray } from './parseJsonArray';
 import type { ValidationResult } from './types';
+import { LIMITS } from '../types/limits';
+
+/** The largest upload read at all (the pasted-text cap in UTF-8's worst case); parseJsonArray checks the text. */
+const MAX_IMPORT_FILE_BYTES = LIMITS.importText * 4;
 
 function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return (
@@ -70,6 +74,14 @@ export function BulkImportDialog<TInput, TIssue = string>({
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    // Refuse an oversized file before reading it: UTF-8 takes at most 4 bytes a character,
+    // so a file over this many bytes may hold more than LIMITS.importText characters.
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      resetResults();
+      setText('');
+      setParseError(parseIssueText({ code: 'tooLarge', max: LIMITS.importText }, t));
+      return;
+    }
     setText(await file.text());
     resetResults();
   }

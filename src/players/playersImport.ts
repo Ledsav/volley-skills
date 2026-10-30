@@ -1,5 +1,6 @@
-import { isPlainObject } from '../bulkImport/parseJsonArray';
-import type { ValidationResult } from '../bulkImport/types';
+import { isPlainObject, textTooLong } from '../bulkImport/parseJsonArray';
+import type { SizeIssue, ValidationResult } from '../bulkImport/types';
+import { LIMITS } from '../types/limits';
 import {
   POSITION_CATEGORIES,
   SHIRT_SIZES,
@@ -38,7 +39,8 @@ export type PlayerImportIssue =
   | { code: 'guardianNameRequired'; row: number; guardian: number }
   | { code: 'skillsNotObject'; row: number }
   | { code: 'skillsUnknownKey'; row: number; key: string }
-  | { code: 'skillRange'; row: number; key: string };
+  | { code: 'skillRange'; row: number; key: string }
+  | SizeIssue;
 
 const RELATIONS: Guardian['relation'][] = ['mother', 'father', 'other'];
 const POSITION_CATEGORY_VALUES = POSITION_CATEGORIES.map((c) => c.value);
@@ -94,6 +96,11 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
 
     const fullName = typeof row.fullName === 'string' ? row.fullName.trim() : '';
     if (fullName === '') fail({ code: 'fullNameRequired', row: n });
+    const long = (field: string, value: unknown, max: number) => {
+      const issue = textTooLong(n, field, value, max);
+      if (issue) fail(issue);
+    };
+    long('fullName', fullName, LIMITS.shortText);
 
     let dob = '';
     if (row.dob !== undefined) {
@@ -106,6 +113,7 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
       if (row[field] === undefined) text[field] = '';
       else if (typeof row[field] === 'string') text[field] = row[field] as string;
       else fail({ code: 'mustBeText', row: n, field });
+      long(field, row[field], LIMITS.shortText);
     }
 
     let positionCategory: PositionCategory = 'TBD';
@@ -130,6 +138,8 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
     if (row.guardians !== undefined) {
       if (!Array.isArray(row.guardians)) {
         fail({ code: 'guardiansNotArray', row: n });
+      } else if (row.guardians.length > LIMITS.guardians) {
+        fail({ code: 'listTooLong', row: n, field: 'guardians', max: LIMITS.guardians });
       } else {
         row.guardians.forEach((g, j) => {
           const gn = j + 1;
@@ -144,6 +154,9 @@ export function validatePlayerRows(rows: unknown[]): ValidationResult<PlayerImpo
           if (gName === '') fail({ code: 'guardianNameRequired', row: n, guardian: gn });
           const gPhone = typeof g.phone === 'string' ? g.phone : '';
           const gEmail = typeof g.email === 'string' ? g.email : '';
+          long(`guardians[${gn}].name`, gName, LIMITS.shortText);
+          long(`guardians[${gn}].phone`, gPhone, LIMITS.shortText);
+          long(`guardians[${gn}].email`, gEmail, LIMITS.email);
           if (rowOk) {
             guardians.push({ relation: g.relation as Guardian['relation'], name: gName, phone: gPhone, email: gEmail });
           }

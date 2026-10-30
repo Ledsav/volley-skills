@@ -9,6 +9,7 @@ import { POSITION_CATEGORIES, SHIRT_SIZES, type Guardian, type PositionCategory,
 import type { Team } from '../types/team';
 import { useT } from '../i18n/I18nProvider';
 import { teamGender } from '../teams/teamGender';
+import { LIMITS } from '../types/limits';
 
 interface AddPlayerDialogProps {
   teamId: string;
@@ -102,7 +103,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           <label htmlFor="player-full-name" className={labelClass}>
             {p.addPlayer.fullName}
           </label>
-          <Input id="player-full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          <Input id="player-full-name" maxLength={LIMITS.shortText} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         </div>
         {/* Short fields share a row: the number needs two digits, not a full-width field. */}
         <div className="mb-4 grid grid-cols-[6.5rem_1fr] gap-3">
@@ -161,13 +162,13 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             <label htmlFor="player-nationality" className={labelClass}>
               {p.shared.nationality}
             </label>
-            <Input id="player-nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+            <Input id="player-nationality" maxLength={LIMITS.shortText} value={nationality} onChange={(e) => setNationality(e.target.value)} />
           </div>
           <div className="min-w-0">
             <label htmlFor="player-license" className={labelClass}>
               {p.addPlayer.licenseNumber}
             </label>
-            <Input id="player-license" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
+            <Input id="player-license" maxLength={LIMITS.shortText} value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
           </div>
         </div>
 
@@ -175,7 +176,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
           <label htmlFor="player-phone" className={labelClass}>
             {p.shared.phone}
           </label>
-          <Input id="player-phone" value={playerPhone} onChange={(e) => setPlayerPhone(e.target.value)} />
+          <Input id="player-phone" maxLength={LIMITS.shortText} value={playerPhone} onChange={(e) => setPlayerPhone(e.target.value)} />
         </div>
 
         <h3 className="mb-2 mt-6 text-headline text-ink">{p.addPlayer.guardians}</h3>
@@ -202,6 +203,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
               </label>
               <Input
                 id={`guardian-name-${index}`}
+                maxLength={LIMITS.shortText}
                 value={guardian.name}
                 onChange={(e) => updateGuardian(index, { name: e.target.value })}
                 required
@@ -213,6 +215,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
               </label>
               <Input
                 id={`guardian-phone-${index}`}
+                maxLength={LIMITS.shortText}
                 value={guardian.phone}
                 onChange={(e) => updateGuardian(index, { phone: e.target.value })}
               />
@@ -224,6 +227,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
               <Input
                 id={`guardian-email-${index}`}
                 type="email"
+                maxLength={LIMITS.email}
                 value={guardian.email}
                 onChange={(e) => updateGuardian(index, { email: e.target.value })}
               />
@@ -235,7 +239,7 @@ export function AddPlayerDialog({ teamId, team, onClose, onCreated }: AddPlayerD
             )}
           </div>
         ))}
-        <Button variant="secondary" size="sm" onClick={addGuardian} className="mb-4">
+        <Button variant="secondary" size="sm" onClick={addGuardian} disabled={guardians.length >= LIMITS.guardians} className="mb-4">
           {p.shared.addGuardian}
         </Button>
 

@@ -182,6 +182,11 @@ for the detailed steps.
       domain, load each page, run one bulk import, check the browser console for
       CSP violations.
 
+- [ ] **Size caps (feature/input-limits): pre-check production before merging** — run
+      `node scripts/ops/checkLimits.mjs --prod` (read only; exit 0 = every stored document is
+      within the caps, see `scripts/ops/README.md`) before merging `feature/input-limits`; after
+      deploy, watch for permission-denied saves (a document over a cap refuses every later save).
+
 ## C. Ongoing / when it makes sense
 
 - [ ] **Player `shirtSize` backfill** (after the branch adding shirt size is

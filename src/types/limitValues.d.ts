@@ -1,0 +1,36 @@
+/** Types for limitValues.js (see the doc comments there). limits.test.ts checks the keys match. */
+export declare const LIMITS: {
+  readonly shortText: 200;
+  readonly longText: 10000;
+  readonly email: 254;
+  readonly emailList: 100;
+  readonly sectionEmailList: 500;
+  readonly guardians: 10;
+  readonly guardiansText: 10000;
+  readonly objectives: 10;
+  readonly objectivesText: 100000;
+  readonly trainingExercises: 50;
+  readonly trainingExercisesText: 10000;
+  readonly matchRoster: 30;
+  readonly matchRosterText: 10000;
+  readonly matchLiberos: 4;
+  readonly searchTokens: 120;
+  readonly searchTokensText: 5000;
+  readonly guideSkills: 9;
+  readonly guideRanges: 5;
+  readonly guideRangesText: 50100;
+  readonly guideTests: 8;
+  readonly scoutProfilePlayers: 500;
+  readonly awardPicks: 10;
+  readonly awardCustom: 5;
+  readonly awardOrder: 15;
+  readonly awardOrderText: 3000;
+  readonly awardCustomText: 2000;
+  readonly eventFields: 20;
+  readonly eventLineup: 12;
+  readonly eventLineupText: 3000;
+  readonly eventRoles: 30;
+  readonly latestTests: 8;
+  readonly consentText: 600;
+  readonly importText: 1000000;
+};

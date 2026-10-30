@@ -7,6 +7,7 @@ import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
 import { GENDERS, isGender } from './teamGender';
 import { createTeam } from './teamsApi';
+import { LIMITS } from '../types/limits';
 
 interface CreateTeamDialogProps {
   onClose: () => void;
@@ -57,21 +58,21 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           <label htmlFor="team-name" className={labelClass}>
             {t.teams.create.name}
           </label>
-          <Input id="team-name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input id="team-name" maxLength={LIMITS.shortText} value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-age-group" className={labelClass}>
             {t.teams.create.ageGroup}
           </label>
-          <Input id="team-age-group" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} required />
+          <Input id="team-age-group" maxLength={LIMITS.shortText} value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
           <label htmlFor="team-season" className={labelClass}>
             {t.teams.create.season}
           </label>
-          <Input id="team-season" value={season} onChange={(e) => setSeason(e.target.value)} required />
+          <Input id="team-season" maxLength={LIMITS.shortText} value={season} onChange={(e) => setSeason(e.target.value)} required />
         </div>
 
         <div className={fieldClass}>
@@ -102,6 +103,7 @@ export function CreateTeamDialog({ onClose, onCreated }: CreateTeamDialogProps) 
           </label>
           <Textarea
             id="team-description"
+            maxLength={LIMITS.longText}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full min-h-[80px] resize-y"

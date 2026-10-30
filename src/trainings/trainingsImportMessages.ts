@@ -1,10 +1,14 @@
 import type { Catalog } from '../i18n/catalog';
+import { sizeIssueText } from '../bulkImport/importMessages';
 import type { TrainingImportIssue } from './trainingsImport';
 
 /** The text for one training-import problem in the active language. */
 export function trainingImportIssueText(issue: TrainingImportIssue, t: Catalog): string {
   const m = t.trainings.import;
   switch (issue.code) {
+    case 'tooLong':
+    case 'listTooLong':
+      return sizeIssueText(issue, t);
     case 'notObject':
       return m.notObject(issue.row);
     case 'nameRequired':

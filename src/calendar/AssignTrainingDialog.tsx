@@ -13,6 +13,7 @@ import type { Training } from '../types/training';
 import { createCalendarSession } from './calendarApi';
 import { HealthHint } from '../components/HealthHint';
 import { useT } from '../i18n/I18nProvider';
+import { LIMITS } from '../types/limits';
 
 interface ExerciseRow {
   exerciseId: string;
@@ -297,7 +298,7 @@ export function AssignTrainingDialog({ teamId, date, onClose, onSaved }: AssignT
         <FieldLabel htmlFor="session-notes" className="mt-5">
           {t.calendar.assign.notes}
         </FieldLabel>
-        <Textarea id="session-notes" aria-describedby="session-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <Textarea id="session-notes" aria-describedby="session-notes-hint" maxLength={LIMITS.longText} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         <HealthHint id="session-notes-hint" />
 
         {error && (

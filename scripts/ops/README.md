@@ -123,3 +123,30 @@ npm run backup:restore -- --file <f> --key <private key> --prod
 See `scripts/migrate/README.md`, Purging an ended club. Backups taken before the purge
 expire within 35 days, as the DPA says, provided the weekly routine (backup and prune)
 keeps running. If you stop taking backups, delete the old files by hand.
+
+## Checking stored data against the size caps
+
+The size caps (`src/types/limitValues.js`, repeated in `firestore.rules`) refuse a save of any
+document with a field over its cap, even a save that does not touch that field. Before the caps
+are deployed (merging `feature/input-limits`), check that no production document is already over
+one:
+
+```bash
+node scripts/ops/checkLimits.mjs --prod
+```
+
+- It asks for the service-account key passphrase, like the other production scripts, and
+  refuses while `FIRESTORE_EMULATOR_HOST` is set.
+- It only reads: every team, player, physical test, calendar session, match, award, scouting
+  usage profile, exercise, training, guide and section-access document of every club, once
+  each (about one read per document; `--max-reads`, default 20,000, stops it before more).
+  It never reads match events, members or club profiles. `--club <id>` checks one club.
+- It prints, per club, each cap with the largest value found and, for a cap that is exceeded,
+  how many documents are over it and their paths (at most 20 per cap). It never prints a field
+  value or a name.
+- Exit code 0: everything is within the caps. Exit code 1: something is over a cap (or the run
+  failed; the message says which). Fix those documents in the app, or raise the cap in
+  `limitValues.js` and `firestore.rules` together, before deploying.
+- `--emulator` runs the same check against the local emulator.
+
+Match events are not checked: the app writes them with ids and enums only, far below their caps.

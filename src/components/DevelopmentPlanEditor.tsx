@@ -13,6 +13,7 @@ import type {
   ShortTermObjective,
 } from '../types/developmentPlan';
 import { useT } from '../i18n/I18nProvider';
+import { LIMITS } from '../types/limits';
 
 interface DevelopmentPlanEditorProps {
   plan: DevelopmentPlan;
@@ -224,6 +225,7 @@ export function DevelopmentPlanEditor({
                 </label>
                 <Input
                   id={`short-term-objective-${i}`}
+                  maxLength={LIMITS.longText}
                   value={o.objective}
                   onChange={(e) => updateShortTerm(i, { objective: e.target.value })}
                   className="mb-3 w-full"
@@ -235,6 +237,7 @@ export function DevelopmentPlanEditor({
                 <Input
                   id={`short-term-date-${i}`}
                   type="date"
+                  maxLength={LIMITS.shortText}
                   value={o.targetDate}
                   onChange={(e) => updateShortTerm(i, { targetDate: e.target.value })}
                   className="mb-3 w-full"
@@ -262,6 +265,7 @@ export function DevelopmentPlanEditor({
                 <Textarea
                   id={`short-term-comment-${i}`}
                   aria-describedby={`short-term-comment-${i}-hint`}
+                  maxLength={LIMITS.longText}
                   value={o.coachComment}
                   onChange={(e) => updateShortTerm(i, { coachComment: e.target.value })}
                   className="w-full"
@@ -273,7 +277,7 @@ export function DevelopmentPlanEditor({
                 </Button>
               </div>
             ))}
-            <Button variant="secondary" size="sm" onClick={addShortTerm} className="mt-3">
+            <Button variant="secondary" size="sm" onClick={addShortTerm} disabled={shortTermObjectives.length >= LIMITS.objectives} className="mt-3">
               {t.addShortTerm}
             </Button>
 
@@ -285,6 +289,7 @@ export function DevelopmentPlanEditor({
                 </label>
                 <Input
                   id={`season-objective-${i}`}
+                  maxLength={LIMITS.longText}
                   value={o.objective}
                   onChange={(e) => updateSeason(i, { objective: e.target.value })}
                   className="mb-3 w-full"
@@ -295,6 +300,7 @@ export function DevelopmentPlanEditor({
                 </label>
                 <Input
                   id={`season-target-${i}`}
+                  maxLength={LIMITS.shortText}
                   value={o.target}
                   onChange={(e) => updateSeason(i, { target: e.target.value })}
                   className="mb-3 w-full"
@@ -322,6 +328,7 @@ export function DevelopmentPlanEditor({
                 <Textarea
                   id={`season-comment-${i}`}
                   aria-describedby={`season-comment-${i}-hint`}
+                  maxLength={LIMITS.longText}
                   value={o.coachComment}
                   onChange={(e) => updateSeason(i, { coachComment: e.target.value })}
                   className="w-full"
@@ -333,13 +340,14 @@ export function DevelopmentPlanEditor({
                 </Button>
               </div>
             ))}
-            <Button variant="secondary" size="sm" onClick={addSeason} className="mt-3">
+            <Button variant="secondary" size="sm" onClick={addSeason} disabled={seasonObjectives.length >= LIMITS.objectives} className="mt-3">
               {t.addSeason}
             </Button>
 
             <h3 className="mt-6 text-headline text-ink">{t.generalNotes}</h3>
             <Textarea
               aria-describedby="general-notes-hint"
+              maxLength={LIMITS.longText}
               value={generalNotes}
               onChange={(e) => setGeneralNotes(e.target.value)}
               className="mt-2 min-h-[100px] w-full"

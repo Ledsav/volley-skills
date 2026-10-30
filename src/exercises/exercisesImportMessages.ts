@@ -1,4 +1,5 @@
 import type { Catalog } from '../i18n/catalog';
+import { sizeIssueText } from '../bulkImport/importMessages';
 import { sceneIssueText } from '../diagrams/sceneIssueText';
 import type { ExerciseImportIssue } from './exercisesImport';
 
@@ -6,6 +7,9 @@ import type { ExerciseImportIssue } from './exercisesImport';
 export function exerciseImportIssueText(issue: ExerciseImportIssue, t: Catalog): string {
   const m = t.exercises.import;
   switch (issue.code) {
+    case 'tooLong':
+    case 'listTooLong':
+      return sizeIssueText(issue, t);
     case 'notObject':
       return m.notObject(issue.row);
     case 'nameRequired':

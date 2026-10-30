@@ -16,6 +16,7 @@ import type { Diagram } from '../types/diagram';
 import { createExercise, updateExercise } from './exercisesApi';
 import { exerciseFocusLabels, exerciseNameExample } from '../trainings/naming';
 import { useT } from '../i18n/I18nProvider';
+import { LIMITS } from '../types/limits';
 
 const FORM_ID = 'exercise-form';
 
@@ -120,6 +121,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         </FieldLabel>
         <Input
           id="exercise-name"
+          maxLength={LIMITS.shortText}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={exerciseNameExample()}
@@ -167,6 +169,7 @@ export function ExerciseFormDialog({ exercise, onClose, onSaved }: ExerciseFormD
         </FieldLabel>
         <Textarea
           id="exercise-description"
+          maxLength={LIMITS.longText}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}

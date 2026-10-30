@@ -8,6 +8,7 @@ import { usePlayerSync } from './playerSync';
 import { POSITION_CATEGORIES, SHIRT_SIZES, type Player, type PositionCategory, type ShirtSize } from '../types/player';
 import { useT } from '../i18n/I18nProvider';
 import type { Gender } from '../i18n/catalog';
+import { LIMITS } from '../types/limits';
 
 interface PlayerContactSectionProps {
   teamId: string;
@@ -153,6 +154,7 @@ export function PlayerContactSection({
             </label>
             <Input
               id="player-name"
+              maxLength={LIMITS.shortText}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -211,6 +213,7 @@ export function PlayerContactSection({
             </label>
             <Input
               id="player-phone"
+              maxLength={LIMITS.shortText}
               value={playerPhone}
               onChange={(e) => setPlayerPhone(e.target.value)}
               className="mb-3 w-full"

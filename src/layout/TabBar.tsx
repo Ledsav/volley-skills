@@ -26,8 +26,8 @@ function TabLabel({ active, children }: { active: boolean; children: string }) {
 
 /**
  * The phone's floating tab bar: a glass capsule (at most 5 tabs, More last for everything else). Icon-only
- * circles, and the current page grows into an ink capsule with its label. Sits 24 px above the bottom edge
- * (plus the safe area), 60 px tall: AppShell and the notice region keep that space clear.
+ * circles, and the current page grows into an ink capsule with its label. Sits 8 px above the bottom edge, or
+ * on the home-indicator safe area when that is larger; 60 px tall: AppShell and the notice region keep that space clear.
  */
 export function TabBar({ pendingSignups = 0 }: { pendingSignups?: number }) {
   const { access, isPlatformAdmin } = useAuth();
@@ -37,7 +37,7 @@ export function TabBar({ pendingSignups = 0 }: { pendingSignups?: number }) {
   return (
     <nav
       aria-label={t.appShell.phoneNav}
-      className="glass glass-pop fixed inset-x-3.5 bottom-[calc(24px+env(safe-area-inset-bottom))] z-30 flex h-[60px] items-center justify-between gap-0.5 rounded-full p-1.5 md:hidden print:hidden"
+      className="glass glass-pop fixed inset-x-3.5 bottom-[max(8px,env(safe-area-inset-bottom))] z-30 flex h-[60px] items-center justify-between gap-0.5 rounded-full p-1.5 md:hidden print:hidden"
     >
       {tabs.map(({ to, label, Icon, end }) => (
         <NavLink key={to} to={to} end={end} className={tabClass}>

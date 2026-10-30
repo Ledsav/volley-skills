@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* min-w-0: as a flex item beside the sidebar, wide content (tables)
           would otherwise stretch the whole page past the viewport. */}
-      <div className="min-w-0 flex-1 pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="min-w-0 flex-1 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-0">
         <ContractEndingBanner />
         <LegalNoticeBanner />
         {/* A direct child of this tall column, so its `position: sticky` holds while the page scrolls (a wrapper

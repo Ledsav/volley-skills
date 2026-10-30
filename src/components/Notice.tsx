@@ -223,7 +223,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 md:bottom-6 print:hidden"
+          className="pointer-events-none fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 md:bottom-6 print:hidden"
         >
           {notice && !notice.undo && (
             <div

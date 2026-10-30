@@ -44,7 +44,7 @@ describe('firestore.rules mirrors LIMITS', () => {
     `d.size() <= ${L.eventFields}`,
     `d.get('lineup', []).size() <= ${L.eventLineup} && d.get('lineup', []).join('').size() <= ${L.eventLineupText}`,
     `d.roles.size() <= ${L.eventRoles}`,
-    `players.size() <= ${L.scoutProfilePlayers}`,
+    `get('players', {}).size() <= ${L.scoutProfilePlayers}`,
     // guides
     `l is list && l.size() <= ${L.guideSkills}`,
     `e.ranges.size() <= ${L.guideRanges} && rows5(e.ranges).join('').size() <= ${L.guideRangesText}`,
@@ -58,9 +58,18 @@ describe('firestore.rules mirrors LIMITS', () => {
   });
 });
 
+describe('limitValues.d.ts matches limitValues.js', () => {
+  it('declares every cap with its value', () => {
+    const dts = readFileSync(join(process.cwd(), 'src/types/limitValues.d.ts'), 'utf8');
+    const declared = Object.fromEntries([...dts.matchAll(/readonly (\w+): (\d+);/g)].map((m) => [m[1], Number(m[2])]));
+    expect(declared).toEqual({ ...L });
+  });
+});
+
 describe('LIMITS fit the shapes the app and the rules assume', () => {
   it('matches the hardcoded sets and the older caps', () => {
     expect(L.searchTokens).toBe(MAX_TOKENS);
+    expect(L.awardCustom).toBe(MAX_CUSTOM_AWARDS);
     expect(L.guideSkills).toBe(SKILL_KEYS.length);
     expect(L.guideTests).toBe(PHYSICAL_TEST_ORDER.length);
     expect(L.matchRoster).toBeGreaterThanOrEqual(MAX_ROSTER);

@@ -11,6 +11,7 @@ import { NextUpBlock } from './NextUpBlock';
 import { RecentResultsBlock } from './RecentResultsBlock';
 import { Shortcuts, useTeamAction } from './Shortcuts';
 import { useHomeFeed } from './useHomeFeed';
+import { WelcomeSheet } from '../onboarding/WelcomeSheet';
 import { useT } from '../i18n/I18nProvider';
 import { formatDateValue } from '../i18n/format';
 import { PageContainer } from '../layout/PageContainer';
@@ -70,6 +71,7 @@ export function HomePage() {
           {plan.picker}
         </>
       )}
+      {!state.loading && <WelcomeSheet adminsAnyTeam={!!access?.isClubAdmin || state.teams.length > 0} />}
     </PageContainer>
   );
 }

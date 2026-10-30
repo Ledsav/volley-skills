@@ -7,20 +7,10 @@ import { otherUsableClubs } from '../clubs/activeClub';
 import { useT } from '../i18n/I18nProvider';
 import { animateSpring, SPRING_DEFAULT } from '../motion/spring';
 import { useReducedMotion } from '../motion/useReducedMotion';
+import { clubInitials } from './clubInitials';
 import { navGroups, type NavGroup, type NavItem } from './navModel';
 
 const PANEL_WIDTH = 248;
-
-/** First letters of the first two words of the club name, upper-cased. */
-function clubInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => Array.from(w)[0])
-    .join('')
-    .toUpperCase();
-}
 
 /** Overlay rows are 44 px for touch; the desktop column stays at 36 px. */
 const linkClass = (variant: 'solid' | 'glass') => ({ isActive }: { isActive: boolean }): string => {

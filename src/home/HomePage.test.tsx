@@ -59,6 +59,12 @@ describe('HomePage', () => {
     expect(resume).toHaveAttribute('href', '/teams/t1/matches/m1/scout');
   });
 
+  it('shows no welcome sheet while Today is loading, then shows it once loaded', async () => {
+    renderHome();
+    expect(screen.queryByRole('dialog', { name: /^Welcome to/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Welcome to Test Club' })).toBeInTheDocument();
+  });
+
   it('is titled Today with the date as overline', async () => {
     renderHome();
     expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();

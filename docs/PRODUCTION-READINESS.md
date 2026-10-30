@@ -18,8 +18,9 @@ Last reviewed: 2026-10-26
   `volley-skills-prod`.
 - **Custom domain** — `volley.albertovaldesrey.com` (apex stays on GitHub Pages).
 - **CI/CD** — GitHub Actions. `ci.yml` on every PR (lint / build / unit tests /
-  rules tests); `deploy.yml` on merge to `main` (build + `firebase deploy --only
-  hosting,firestore:rules,firestore:indexes`).
+  rules tests); `deploy.yml` on merge to `main` (lint, build, unit and rules tests in a `verify` job,
+  then `firebase deploy --only hosting,firestore:rules,firestore:indexes`; token
+  permissions are `contents: read`).
 - **Firebase web config is committed** (`.env.production`) rather than held as six
   GitHub secrets — not secret per spec §11, repo is public by design. The only
   real CI secret is `FIREBASE_SERVICE_ACCOUNT`.
@@ -106,6 +107,13 @@ Last reviewed: 2026-10-26
 Need a real URL to exist. See `docs/superpowers/runbooks/2026-09-09-quota-protection-setup.md`
 for the detailed steps.
 
+- [x] **CSP allows reCAPTCHA** (2026-10-30, `feature/security-hardening`): `script-src` and `frame-src`
+      include `https://www.google.com/recaptcha/` (plus `https://recaptcha.google.com/recaptcha/` in
+      `frame-src`); `gstatic.com` and `*.googleapis.com` were already allowed. Confirm in a real browser
+      with the key set, in monitor mode, before enforcing.
+- [x] **Hosting caching** (2026-10-30): extension-less SPA routes are `no-cache`; `/assets/**` stays
+      immutable and is excluded from the SPA rewrite, so a missing asset is a 404, not `index.html`.
+      Verify with `curl -I` after deploy (a route, a real asset, a missing asset).
 - [ ] **reCAPTCHA v3 key pair** for the real domain(s) — site key + secret key.
 - [ ] **Register App Check** in the Firebase console (paste the **secret** key).
 - [ ] **`VITE_APPCHECK_RECAPTCHA_KEY`** (the **site** key) → GitHub Actions

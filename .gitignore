@@ -17,3 +17,6 @@ reference/
 
 # Copied from node_modules/@mediapipe/tasks-vision/wasm by vite.config.ts
 public/mediapipe/
+
+# Production player data (real minors). Never commit; kept locally for seeding only.
+scripts/seed/skillsSnapshot.json

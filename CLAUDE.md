@@ -300,4 +300,4 @@ four data colors (`red`/`orange`/`blue`/`green`) reused everywhere a level appea
   (skill math, `businessId` sequencing, physical-test computations), then component
   tests for the critical forms (player card edit, skill guide edit, training builder).
 - No third-party analytics or tracking scripts — minors' data.
-- Never commit `serviceAccountKey.json` (or its `.enc`), backups (`*.vsbackup`), private keys, `.env.local`, or `reference/` (all gitignored).
+- Never commit `serviceAccountKey.json` (or its `.enc`), backups (`*.vsbackup`), private keys, `.env.local`, `reference/`, or `scripts/seed/skillsSnapshot.json` (real players' scores; all gitignored). No real player, guardian or club-member names in code, tests, docs or fixtures — use invented ones.

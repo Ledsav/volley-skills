@@ -247,4 +247,15 @@ describe('AuthProvider', () => {
 
     expect(screen.getByText(/"welcomed":true/)).toBeInTheDocument();
   });
+
+  it('a change that alters nothing makes no second write', async () => {
+    h.writeOnboarding.mockReturnValue(new Promise(() => {}));
+    renderProvider();
+    await waitFor(() => expect(screen.getByText(/onboarding: \{/)).toBeInTheDocument());
+
+    act(() => screen.getByText('welcome').click());
+    act(() => screen.getByText('welcome').click());
+
+    expect(h.writeOnboarding).toHaveBeenCalledTimes(1);
+  });
 });

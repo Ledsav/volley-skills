@@ -73,7 +73,7 @@ clubs/{clubId}/counters/trainings
 clubs/{clubId}/config/skillGuide            (was skillGuide/config)
 clubs/{clubId}/config/physicalTestGuide     (was physicalTestGuide/config)
 clubs/{clubId}/sectionAccess/{section}
-users/{uid}                                 { email, createdAt }  (role removed — roles are per club)
+users/{uid}                                 { email, createdAt, onboarding? }  (owner-writable shown-once flags; role removed — roles are per club)
 platformAdmins/{email}                      operator allowlist; readable only by that email
 interestSignups/{id}                        operator's lead list (unchanged shape; read by platform admin)
 ```

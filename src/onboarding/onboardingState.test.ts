@@ -72,3 +72,14 @@ describe('applyOnboarding', () => {
     expect(parsed.tips[31]).toBe('t39');
   });
 });
+
+describe('applyOnboarding no-ops', () => {
+  it('returns the same object when nothing changes', () => {
+    const state = { welcomed: true, tips: ['search'], hiddenChecklists: ['c1'] };
+    expect(applyOnboarding(state, { kind: 'welcomed' })).toBe(state);
+    expect(applyOnboarding(state, { kind: 'tip', id: 'search' })).toBe(state);
+    expect(applyOnboarding(state, { kind: 'hideChecklist', clubId: 'c1' })).toBe(state);
+    expect(applyOnboarding(state, { kind: 'showChecklist', clubId: 'other' })).toBe(state);
+    expect(applyOnboarding(state, { kind: 'tip', id: 'diagram' })).not.toBe(state);
+  });
+});

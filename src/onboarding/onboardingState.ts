@@ -39,19 +39,22 @@ function withValue(list: string[], value: string, max: number): string[] {
   return [...list.filter((v) => v !== value), value].slice(-max);
 }
 
-/** Pure and non-mutating. Lists are capped to the rule limits, keeping the newest entries. */
+/** Pure and non-mutating. Lists are capped to the rule limits, keeping the newest entries.
+ *  A change that alters nothing returns `state` itself, so callers can skip the update with `===`. */
 export function applyOnboarding(state: OnboardingState, change: OnboardingChange): OnboardingState {
   switch (change.kind) {
     case 'welcomed':
-      return { ...state, welcomed: true };
+      return state.welcomed ? state : { ...state, welcomed: true };
     case 'tip':
-      return state.tips.includes(change.id) ? { ...state } : { ...state, tips: withValue(state.tips, change.id, MAX_TIPS) };
+      return state.tips.includes(change.id) ? state : { ...state, tips: withValue(state.tips, change.id, MAX_TIPS) };
     case 'hideChecklist':
       return state.hiddenChecklists.includes(change.clubId)
-        ? { ...state }
+        ? state
         : { ...state, hiddenChecklists: withValue(state.hiddenChecklists, change.clubId, MAX_HIDDEN_CHECKLISTS) };
     case 'showChecklist':
-      return { ...state, hiddenChecklists: state.hiddenChecklists.filter((c) => c !== change.clubId) };
+      return state.hiddenChecklists.includes(change.clubId)
+        ? { ...state, hiddenChecklists: state.hiddenChecklists.filter((c) => c !== change.clubId) }
+        : state;
     case 'reset':
       return { welcomed: false, tips: [], hiddenChecklists: state.hiddenChecklists.filter((c) => c !== change.clubId) };
   }

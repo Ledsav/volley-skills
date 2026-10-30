@@ -16,6 +16,10 @@ describe('welcomeRows', () => {
   it('shows a coach sessions, scouting and the library', () => {
     expect(welcomeRows(who({ trainings: true }, true))).toEqual(['sessions', 'scouting', 'library']);
   });
+  it('leaves out sessions for a coach without Trainings access', () => {
+    expect(welcomeRows(who({ exercises: true }, true))).toEqual(['scouting', 'library']);
+    expect(welcomeRows(who({}, true))).toEqual(['scouting']);
+  });
   it('shows a member with nothing the view row', () => {
     expect(welcomeRows(who({}, false))).toEqual(['view']);
   });
@@ -32,11 +36,15 @@ describe('checklistSteps', () => {
     expect(checklistSteps(admin, null)).toEqual(['team', 'players', 'coach', 'session', 'match']);
   });
   it('hides players for a coach whose teams all have players', () => {
-    expect(checklistSteps(who({}, true), { anyPlayers: true })).toEqual(['session', 'match']);
+    expect(checklistSteps(who({ trainings: true }, true), { anyPlayers: true })).toEqual(['session', 'match']);
+  });
+  it('gives a coach without Trainings access no session step', () => {
+    expect(checklistSteps(who({}, true), { anyPlayers: true })).toEqual(['match']);
+    expect(checklistSteps(who({}, true), null)).toEqual(['players', 'match']);
   });
   it('keeps players for a coach while unknown or empty', () => {
-    expect(checklistSteps(who({}, true), { anyPlayers: false })).toEqual(['players', 'session', 'match']);
-    expect(checklistSteps(who({}, true), null)).toEqual(['players', 'session', 'match']);
+    expect(checklistSteps(who({ trainings: true }, true), { anyPlayers: false })).toEqual(['players', 'session', 'match']);
+    expect(checklistSteps(who({ trainings: true }, true), null)).toEqual(['players', 'session', 'match']);
   });
   it('gives nothing to someone who admins no team', () => {
     expect(checklistSteps(who({ exercises: true }, false), null)).toEqual([]);

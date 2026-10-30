@@ -50,7 +50,7 @@ export function WelcomeSheet({ adminsAnyTeam }: { adminsAnyTeam: boolean }) {
   const rows = welcomeRows({ access, adminsAnyTeam });
 
   return (
-    <Sheet variant="view" detent="large" title={t.title(club.name)} onClose={finish} footer={<ContinueButton label={t.continue} />}>
+    <Sheet variant="view" detent="large" header={false} title={t.title(club.name)} onClose={finish} footer={<ContinueButton label={t.continue} />}>
       <div className="flex flex-col items-center px-2 pb-2 pt-4 text-center">
         <span aria-hidden="true" className="flex h-16 w-16 items-center justify-center rounded-lg bg-ink text-title-1 font-semibold text-on-ink">
           {clubInitials(club.name)}

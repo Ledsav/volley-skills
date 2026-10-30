@@ -422,3 +422,52 @@ describe('Sheet (desktop dialog)', () => {
     expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeInTheDocument();
   });
 });
+
+describe('Sheet without a header', () => {
+  it('desktop: no title row or close button, but the accessible name, Escape and focus return stay', () => {
+    const onClose = vi.fn();
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          {open && (
+            <Sheet title="Welcome" header={false} onClose={() => { onClose(); setOpen(false); }}>
+              <p>Body</p>
+            </Sheet>
+          )}
+        </>
+      );
+    }
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    fireEvent.click(opener);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAccessibleName('Welcome');
+    expect(dialog).toHaveFocus();
+    expect(screen.queryByRole('heading', { name: 'Welcome' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(opener).toHaveFocus();
+  });
+
+  it('phone: keeps the grabber and scrim close, drops the title, Done and the hidden Close', () => {
+    mockPhone();
+    const onClose = vi.fn();
+    render(
+      <Sheet title="Welcome" header={false} variant="view" onClose={onClose}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAccessibleName('Welcome');
+    expect(dialog.querySelector('.rounded-full')).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Welcome' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

@@ -70,7 +70,7 @@ three quiet layers.
 |---|---|---|---|
 | club admin | `Users` | Teams and players | Build your teams and keep a card for every player. |
 | club admin | `UserPlus` | Bring your coaches | Add coaches and choose what each one can see. |
-| team admin (any team) | `CalendarDays` | Plan every session | Put trainings on the calendar and share them as a PDF. |
+| team admin (any team) with `sections.trainings` (club admins have it) | `CalendarDays` | Plan every session | Put trainings on the calendar and share them as a PDF. |
 | team admin (any team) | `Activity` | Scout live | Record a match point by point and get the stats after. |
 | `sections.exercises` or `sections.trainings` | `Dumbbell` | One club library | Exercises with court diagrams, shared by every coach. |
 | none of the above | `Eye` | See your teams | Follow the teams and players you've been given access to. |
@@ -103,10 +103,10 @@ a DataVolley file."
 | 1 | Create your first team | club admin | `/teams` + `new-team` | at least one team in the Today feed |
 | 2 | Add your players | team admin | team roster + `add-player` (bulk import is offered there) | some loaded team has ≥ 1 player (`getTeamSummary`) |
 | 3 | Add a coach | club admin | `/club?tab=people` (opens the add form if the tab gets a pending action) | the club has ≥ 2 member docs (one `count()` on `members`) |
-| 4 | Plan a training | team admin | team calendar + `new-session` | some loaded team has a calendar session (a `limit(1)` query per team) |
+| 4 | Plan a training | team admin with `sections.trainings` (the calendar tab and its rules need it) | team calendar + `new-session` | some loaded team has a calendar session (a `limit(1)` query per team) |
 | 5 | Scout a match | team admin | team matches + `new-match` | some loaded team has a match (a `limit(1)` query per team) |
 
-- A coach who is not a club admin sees steps 2, 4 and 5. Step 2 shows only if one of their teams has no players. A
+- A coach who is not a club admin sees steps 2, 4 and 5 (step 4 only with Trainings access; without it, steps 2 and 5). Step 2 shows only if one of their teams has no players. A
   person with no team admin rights sees no checklist.
 - **Fetching:** the done checks run only while the checklist is visible, cover only the teams already loaded on
   Today (the first page), and are aggregations or `limit(1)` reads. There is no collection scan (spec §8). Any new

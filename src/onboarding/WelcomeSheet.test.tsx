@@ -38,6 +38,23 @@ describe('WelcomeSheet', () => {
     await waitFor(() => expect(button).toHaveFocus());
   });
 
+  it('shows the title once, with no header buttons, and Continue as the only action', () => {
+    render(<WelcomeSheet adminsAnyTeam />);
+    expect(screen.getAllByText('Welcome to Pallavolo Verde')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('leaves out the sessions row for a coach without Trainings access', () => {
+    useAuthMock.mockReturnValue(
+      admin({ role: 'member', access: { isClubAdmin: false, sections: { exercises: false, trainings: false, guides: false } } }),
+    );
+    render(<WelcomeSheet adminsAnyTeam />);
+    const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(titles).toEqual(['Scout live']);
+  });
+
   it('Continue writes once and the sheet stays gone even if the write rejects', async () => {
     update.mockRejectedValue(new Error('offline'));
     const { rerender } = render(<WelcomeSheet adminsAnyTeam />);

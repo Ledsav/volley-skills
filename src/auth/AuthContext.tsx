@@ -86,10 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const uidRef = useRef<string | null>(null);
   uidRef.current = session.appUser?.uid ?? null;
+  const onboardingRef = useRef<OnboardingState | null>(null);
+  onboardingRef.current = session.onboarding;
   const updateOnboarding = useCallback((change: OnboardingChange) => {
     const uid = uidRef.current;
     if (!uid) return;
+    const current = onboardingRef.current;
+    // A change that alters nothing makes no state update and no write.
+    if (current && applyOnboarding(current, change) === current) return;
     setSession((s) => (s.onboarding ? { ...s, onboarding: applyOnboarding(s.onboarding, change) } : s));
+    if (current) onboardingRef.current = applyOnboarding(current, change);
     writeOnboarding(uid, change).catch(() => {});
   }, []);
 

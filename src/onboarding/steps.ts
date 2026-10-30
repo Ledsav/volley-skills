@@ -21,7 +21,8 @@ export interface StepFacts {
 export function welcomeRows({ access, adminsAnyTeam }: Who): WelcomeRowId[] {
   const rows: WelcomeRowId[] = [];
   if (access.isClubAdmin) rows.push('teams', 'coaches');
-  if (access.isClubAdmin || adminsAnyTeam) rows.push('sessions', 'scouting');
+  if (access.isClubAdmin || (adminsAnyTeam && access.sections.trainings)) rows.push('sessions');
+  if (access.isClubAdmin || adminsAnyTeam) rows.push('scouting');
   if (access.isClubAdmin || access.sections.exercises || access.sections.trainings) rows.push('library');
   const picked = rows.slice(0, 4);
   return picked.length > 0 ? picked : ['view'];
@@ -31,7 +32,11 @@ export function welcomeRows({ access, adminsAnyTeam }: Who): WelcomeRowId[] {
 export function checklistSteps({ access, adminsAnyTeam }: Who, facts: Pick<StepFacts, 'anyPlayers'> | null): StepId[] {
   if (access.isClubAdmin) return ['team', 'players', 'coach', 'session', 'match'];
   if (!adminsAnyTeam) return [];
-  return facts?.anyPlayers ? ['session', 'match'] : ['players', 'session', 'match'];
+  // The calendar needs Trainings access, so a coach without it is never asked to plan a session.
+  const steps: StepId[] = facts?.anyPlayers ? [] : ['players'];
+  if (access.sections.trainings) steps.push('session');
+  steps.push('match');
+  return steps;
 }
 
 export function stepDone(id: StepId, facts: StepFacts): boolean {

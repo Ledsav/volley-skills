@@ -75,7 +75,7 @@ export function HomePage() {
           {plan.picker}
         </>
       )}
-      {!state.loading && <WelcomeSheet adminsAnyTeam={!!access?.isClubAdmin || state.teams.length > 0} />}
+      {!state.loading && !state.errors.teams && <WelcomeSheet adminsAnyTeam={!!access?.isClubAdmin || state.teams.length > 0} />}
     </PageContainer>
   );
 }

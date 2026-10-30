@@ -152,6 +152,7 @@ describe('HomePage', () => {
     expect(screen.queryByText('Next 7 days')).not.toBeInTheDocument();
     expect(screen.queryByText("You don't have access to any team yet")).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Resume scouting/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /^Welcome to/ })).not.toBeInTheDocument();
   });
 
   it('recent results date the match like Next 7 days, not as an ISO string', async () => {

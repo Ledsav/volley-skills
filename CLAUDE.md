@@ -182,8 +182,8 @@ per-team (email ∈ `teams/{id}.adminEmails`) and per-section (email ∈
 The platform operator is an email in `platformAdmins/{email}` (readable only by that
 email; written by script/console, never the client); the operator sees only the club
 profile/lifecycle doc and leads — never members, teams, players or library — and can
-status-update club docs. `users/{uid}` holds only email and
-timestamps — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
+status-update club docs. `users/{uid}` holds only email,
+timestamps and the owner-writable `onboarding` map (shown-once flags) — no role. `superadmin` and `adminAllowlist` no longer exist. Club status
 (`pending | active | suspended | terminating | deleted`) drives `ClubGate`. See
 `docs/superpowers/specs/2026-10-20-volley-skills-club-platform-design.md` (§3, §5, §8);
 `2026-09-11-volley-skills-access-model.md` is superseded in part.

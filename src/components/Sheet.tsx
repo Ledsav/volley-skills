@@ -38,6 +38,9 @@ export interface SheetProps {
   detent?: 'content' | 'large';
   /** `view` sheets (read-only) show Done in the phone header and never a leading Cancel. */
   variant?: 'form' | 'view';
+  /** `false` drops the title row and its side buttons (the content carries its own title). The accessible name, the phone
+   *  grabber and drag, Escape and scrim close, and focus handling stay. */
+  header?: boolean;
 }
 
 const PHONE_QUERY = '(max-width: 767px)';
@@ -76,7 +79,7 @@ function SidePlaceholder({ label }: { label: string }) {
 }
 
 export function Sheet(props: SheetProps) {
-  const { title, onClose, children, size = 'md', footer, confirm, dirty = false, guardUnsaved = false, detent = 'content', variant = 'form' } = props;
+  const { title, onClose, children, size = 'md', footer, confirm, dirty = false, guardUnsaved = false, detent = 'content', variant = 'form', header = true } = props;
   const t = useT().components;
   const phone = useMediaQuery(PHONE_QUERY, false);
   const reduced = useReducedMotion();
@@ -315,8 +318,9 @@ export function Sheet(props: SheetProps) {
             style={{ height: 'calc(100dvh - 2.75rem)' }}
             className="absolute inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-xl bg-surface shadow-sheet focus:outline-none"
           >
-            <div ref={headerRef} {...bindDrag()} className="shrink-0 touch-none select-none border-b border-separator">
+            <div ref={headerRef} {...bindDrag()} className={`shrink-0 touch-none select-none ${header ? 'border-b border-separator' : 'pb-2'}`}>
               <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-ink-3/40" aria-hidden="true" />
+              {header && (<>
               {/* Both sides take the wider of the two labels (an invisible copy fills an empty side), so the title
                   stays centred when only Cancel or only Done is shown. */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
@@ -337,6 +341,7 @@ export function Sheet(props: SheetProps) {
               <button type="button" onClick={requestClose} aria-label={t.close} className="sr-only">
                 {t.close}
               </button>
+              </>)}
             </div>
             {body}
             {bottomBar}
@@ -366,6 +371,7 @@ export function Sheet(props: SheetProps) {
           onClick={(event) => event.stopPropagation()}
           className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-surface shadow-pop focus:outline-none ${DESKTOP_WIDTH[size]}`}
         >
+          {header && (
           <header className="flex shrink-0 items-center justify-between gap-4 border-b border-separator px-6 py-4">
             <h2 className="min-w-0 truncate text-title-2 text-ink">{title}</h2>
             <button
@@ -377,6 +383,7 @@ export function Sheet(props: SheetProps) {
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </header>
+          )}
           {body}
           {bottomBar}
         </div>

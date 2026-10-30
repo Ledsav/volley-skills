@@ -223,5 +223,5 @@ The inventory's minor open questions are settled as follows. All of these are pa
 - **Legal review:** each of the 13 specific-approval clauses has its own checkbox. Approve stays disabled until all are ticked. Ticks reset on a language or version change and are never stored. AI settings live at `/settings?view=ai`.
 - **Shared outputs:** Night is the default palette for coaches with nothing stored, and canvas text is no longer uppercased.
 - **Scouting:** one row of six grades on phones. Substitution stays on long-press, not in the dock.
-- **Training PDF (open deviation):** it keeps Roboto until the user approves downloading Inter. `fontSafe` stays.
+- **Training PDF:** set in Inter (vendored static TTFs, approved 2026-10-30); the Roboto deviation is closed. `fontSafe` stays.
 

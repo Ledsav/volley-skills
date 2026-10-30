@@ -603,9 +603,10 @@ run by the user on a phone, as well as tests.
     hairline separators, and category chips as outlined pills.
   - Diagrams are vector, as today, with light colours inlined.
   - If Inter is embedded, `fontSafe` is kept anyway: a harmless safety net.
-  - **Open deviation:** the PDF still uses Roboto (pdfmake's bundled `vfs_fonts`). Embedding Inter means downloading the
-    Inter release from GitHub, which needs the user's approval, and that is still pending. Until then the PDF keeps
-    Roboto and `fontSafe`.
+  - **Deviation closed (2026-10-30):** with the user's approval, the Inter 4.1 static TTFs (Regular and SemiBold, SIL
+    OFL) are vendored in `src/trainings/pdf/fonts/` and fetched only in the lazy PDF import; pdfmake's Roboto
+    `vfs_fonts` is gone. Bold is SemiBold, the two italic uses are colour-only (`ink-3`), and pills measure with the
+    real Inter metrics. `fontSafe` stays.
 
 ## 10. Testing and acceptance
 

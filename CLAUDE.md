@@ -108,8 +108,13 @@ opens the share sheet) because browsers only allow `navigator.share` right after
 Opened from a team calendar session (`/trainings?businessId=…&team=…&session=…`), the
 export first asks for team notes (`TeamNotesDialog`): expected players with name,
 position, level and a per-player note go on a "Team notes" page. That is the only
-player data the PDF carries, by club decision. Roboto lacks arrow glyphs, so
-`fontSafe` swaps them for ›/‹ in every printed string.
+player data the PDF carries, by club decision. The PDF is set in Inter 4.1: the static
+Regular and SemiBold TTFs (SIL OFL) are vendored in `src/trainings/pdf/fonts/` and fetched
+by `pdfFonts.ts` only inside the lazy PDF import (hashed same-origin assets; pdfmake's
+Roboto `vfs_fonts` is gone). Bold is SemiBold; there are no italic files, so the PDF never
+uses italics. Category pills measure with the real Inter metrics in the browser (FontFace +
+canvas) and a conservative 0.7 em estimate elsewhere; `fonts/coverage.test.ts` pins the
+glyph coverage. `fontSafe` still swaps arrows for ›/‹ in every printed string, as a safety net.
 
 **DataVolley import** (`src/matches/dvw/`): `decodeDvw` → `parseDvw` → `parseScoutCode` is a
 pure in-browser parser; the file's contents are never uploaded or stored. The match keeps only a

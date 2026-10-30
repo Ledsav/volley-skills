@@ -42,11 +42,11 @@ const PUBLISHED: Record<string, Record<string, string>> = {
   // Privacy notice only: it gained one clause (onboarding progress on the account). The other
   // documents have no 2026-10-30 text, so nothing else is pinned for this version.
   '2026-10-30': {
-    'privacy/en': '43a1b41ac0ca89a7362e780111cad96206edd40ecfa908557b764213983b44d3',
-    'privacy/it': '08f727839da8727edede50517d6b15b9a1ddd2b18fe383d0025725c3fa123014',
-    'privacy/fr': '1f6b68fe3a7789c8e5d19fe3eb3540b89c05849f9fcec14779147d51285ea188',
-    'privacy/de': '9b0268db99218f4aa762cd4ef2f459bfb173527ecadf4591498c89e05a4c22d4',
-    'privacy/es': '24bf3b4658fc74c4334b7044308b480362fd0379418d9789026b997014df1b68',
+    'privacy/en': 'f6bd62edcb7537e937479a443d986cd99cca9e33928b4a8ebcc76535c5d16eb5',
+    'privacy/it': 'eba84e372884e98b37b4ab406eb1b533fe242cccb05ed02f437352dade3c248b',
+    'privacy/fr': 'd0071d10e8229f74d8dca3f08ff8514f5c58e500cba822be8f44cc3510c70dfe',
+    'privacy/de': '223d08d2a440bd9c0ec6a65ff0238ff0b099325a7aba15735b3c07970a2d83af',
+    'privacy/es': '357f5f986589db4da27b19e093dd3c94e461ae78bba51ccca94ce963e2d827fd',
   },
 };
 

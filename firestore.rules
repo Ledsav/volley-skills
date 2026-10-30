@@ -621,7 +621,9 @@ service cloud.firestore {
           && o is map
           && o.keys().hasOnly(['welcomed', 'tips', 'hiddenChecklists'])
           && (!('welcomed' in o) || o.welcomed is bool)
-          && (!('tips' in o) || (o.tips is list && o.tips.size() <= 32))
+          && (!('tips' in o) || (o.tips is list && o.tips.size() <= 32
+            && o.tips.hasOnly(['search', 'row-actions', 'scout-start', 'pdf-share', 'diagram'])))
+          // Rules cannot type-check each list element, so hiddenChecklists (club ids) keeps only the size cap.
           && (!('hiddenChecklists' in o) || (o.hiddenChecklists is list && o.hiddenChecklists.size() <= 64));
       }
     }

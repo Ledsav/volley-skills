@@ -104,6 +104,9 @@ describe('users rules', () => {
     await assertFails(doc.update({ 'onboarding.welcomed': 'yes' }));
     await assertFails(doc.update({ 'onboarding.tips': 'search' }));
     await assertFails(doc.update({ 'onboarding.tips': Array(33).fill('t') }));
+    await assertFails(doc.update({ 'onboarding.tips': ['unknown-tip'] }));
+    await assertFails(doc.update({ 'onboarding.tips': ['search', 5] }));
+    await assertSucceeds(doc.update({ 'onboarding.tips': ['search', 'row-actions', 'scout-start', 'pdf-share', 'diagram'] }));
     await assertFails(doc.update({ 'onboarding.hiddenChecklists': Array(65).fill('c') }));
     await assertFails(doc.update({ onboarding: 'x' }));
   });

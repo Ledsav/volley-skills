@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Search } from 'lucide-react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authValue } from '../test/authValue';
 import { EMPTY_ONBOARDING } from './onboardingState';
 import { Tip } from './Tip';
@@ -59,5 +59,59 @@ describe('Tip', () => {
     useAuthMock.mockReturnValue(authValue({ onboarding: { ...welcomed, tips: ['search'] }, updateOnboarding: update }));
     rerender(tip());
     expect(screen.queryByText('Find anything')).toBeNull();
+  });
+
+  describe('motion', () => {
+    let animate: ReturnType<typeof vi.fn>;
+    let finish: (() => void) | null;
+    beforeEach(() => {
+      finish = null;
+      animate = vi.fn(() => ({
+        addEventListener: (type: string, fn: () => void) => {
+          if (type === 'finish') finish = fn;
+        },
+      }));
+      Object.defineProperty(Element.prototype, 'animate', { configurable: true, writable: true, value: animate });
+    });
+    afterEach(() => {
+      delete (Element.prototype as { animate?: unknown }).animate;
+      vi.unstubAllGlobals();
+    });
+
+    it('enters when it becomes visible later, and collapses before it unmounts', () => {
+      useAuthMock.mockReturnValue(authValue({ onboarding: EMPTY_ONBOARDING, updateOnboarding: update }));
+      const { rerender } = render(tip());
+      expect(animate).not.toHaveBeenCalled();
+      useAuthMock.mockReturnValue(authValue({ onboarding: welcomed, updateOnboarding: update }));
+      rerender(tip());
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect((animate.mock.calls[0] as unknown[][])[0]).toEqual([
+        { opacity: 0, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ]);
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss tip' }));
+      expect(animate).toHaveBeenCalledTimes(2);
+      const frames = (animate.mock.calls[1] as unknown[][])[0] as Record<string, unknown>[];
+      expect(frames[1]).toMatchObject({ opacity: 0, height: '0px' });
+      expect((animate.mock.calls[1] as unknown[][])[1]).toMatchObject({ duration: 200 });
+      expect(screen.getByText('Find anything')).toBeInTheDocument();
+      act(() => finish?.());
+      expect(screen.queryByText('Find anything')).toBeNull();
+    });
+
+    it('cross-fades with reduced motion', () => {
+      vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), addEventListener: () => {}, removeEventListener: () => {} }));
+      render(tip());
+      expect((animate.mock.calls[0] as unknown[][])[0]).toEqual([{ opacity: 0 }, { opacity: 1 }]);
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss tip' }));
+      expect((animate.mock.calls[1] as unknown[][])[0]).toEqual([{ opacity: 1 }, { opacity: 0 }]);
+    });
+
+    it('animated={false} never animates and disappears at once', () => {
+      render(<Tip id="scout-start" icon={Search} title="How" line="x" animated={false} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss tip' }));
+      expect(animate).not.toHaveBeenCalled();
+      expect(screen.queryByText('How')).toBeNull();
+    });
   });
 });

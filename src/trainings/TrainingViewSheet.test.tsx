@@ -114,11 +114,30 @@ describe('TrainingViewSheet', () => {
       authMock.value = welcomedAuth();
       vi.mocked(exportTrainingPdf.generateTrainingPdf).mockResolvedValue(pdf);
       render(<NoticeProvider><TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} /></NoticeProvider>);
-      expect(screen.getByText('Sharing a PDF')).toBeInTheDocument();
+      expect(screen.queryByText('Sharing a PDF')).not.toBeInTheDocument(); // still loading
+      expect(await screen.findByText('Sharing a PDF')).toBeInTheDocument();
       expect(update).not.toHaveBeenCalled();
       fireEvent.click(screen.getByRole('button', { name: 'Share PDF' }));
       await screen.findByRole('button', { name: 'Share PDF ready' });
       expect(update).toHaveBeenCalledWith({ kind: 'tip', id: 'pdf-share' });
+    });
+
+    it('is absent after a load failure', async () => {
+      authMock.value = welcomedAuth();
+      vi.mocked(exercisesApi.getExercisesByIds).mockRejectedValue(new Error('x'));
+      render(<NoticeProvider><TrainingViewSheet training={training} onClose={vi.fn()} onEdit={vi.fn()} /></NoticeProvider>);
+      await screen.findByRole('alert');
+      expect(screen.queryByText('Sharing a PDF')).not.toBeInTheDocument();
+    });
+
+    it('with autoBuildPdf it is neither shown nor consumed', async () => {
+      authMock.value = welcomedAuth();
+      vi.mocked(exportTrainingPdf.generateTrainingPdf).mockResolvedValue(pdf);
+      render(<NoticeProvider><TrainingViewSheet training={training} autoBuildPdf onClose={vi.fn()} onEdit={vi.fn()} /></NoticeProvider>);
+      await screen.findByRole('button', { name: 'Share PDF ready' });
+      await screen.findByRole('list', { name: 'Training plan' });
+      expect(screen.queryByText('Sharing a PDF')).not.toBeInTheDocument();
+      expect(update).not.toHaveBeenCalled();
     });
 
     it('is absent before the welcome', async () => {

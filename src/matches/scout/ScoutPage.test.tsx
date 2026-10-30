@@ -138,6 +138,16 @@ describe('ScoutPage', () => {
       expect(mockOnboarding.update).toHaveBeenCalledTimes(1);
     });
 
+    it('is consumed by the first tap even when not shown (quick score)', async () => {
+      window.localStorage.setItem('vcb.scout.quickScore', 'on');
+      renderPage([setStart]);
+      await screen.findByRole('region', { name: 'Match events' });
+      expect(screen.queryByText('How scouting works')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Point us/ }));
+      act(() => pushEvents([setStart, { id: 'e2', order: 2, source: 'tap', chunkId: null, type: 'point', winner: 'us', reason: null }]));
+      await waitFor(() => expect(mockOnboarding.update).toHaveBeenCalledWith({ kind: 'tip', id: 'scout-start' }));
+    });
+
     it('is absent before the welcome and once any tap exists', async () => {
       mockOnboarding.value = EMPTY_ONBOARDING;
       renderPage([setStart]);

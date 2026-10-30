@@ -254,7 +254,7 @@ or malformed value into safe defaults. `WelcomeSheet` and `GetStartedCard` sit o
 from real data (`useStepFacts`: `count()` and `limit(1)` reads on the teams already loaded, a failed read counts as
 not done) and it hides itself after showing its completion line once. Tips are a `Tip` card plus `useTip(id)`
 (visible when welcomed and not in `tips`; `dismiss` also writes the id); placements live next to their screens
-(`SearchTip` on Today, `row-actions` in `TeamRosterTable`, `ScoutStartTip` in live scouting with no motion, `pdf-share`
+(`SearchTip` on Today, `DiagramTip` in the diagram editor, `row-actions` in `TeamRosterTable`, `ScoutStartTip` in live scouting with no motion, `pdf-share`
 in the view-only `TrainingViewSheet`). Settings has "Show tips again", which resets the map.
 
 ### Firestore model shape (see spec §5 for the full contract)

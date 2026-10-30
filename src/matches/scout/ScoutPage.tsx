@@ -566,7 +566,7 @@ export function ScoutPage() {
   // scroll. Phones keep their scrolling main.
   const courtColumn = (
     <div className={`flex flex-col gap-3 ${isDesktop ? 'h-full min-h-0' : 'min-h-full'}`}>
-      {!quickScore && !isShort && state.inSet && <ScoutStartTip tapped={hasTapped} />}
+      <ScoutStartTip tapped={hasTapped} hidden={quickScore || isShort || !state.inSet} />
       {!quickScore && (
         <>
           <CourtGrid

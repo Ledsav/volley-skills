@@ -6,6 +6,7 @@ import { authValue } from '../test/authValue';
 import { clearDiagramClipboard } from './diagramClipboard';
 import { DiagramEditorPage } from './DiagramEditorPage';
 import * as diagramsApi from './diagramsApi';
+import { EMPTY_ONBOARDING } from '../onboarding/onboardingState';
 
 vi.mock('./diagramsApi');
 vi.mock('../auth/AuthContext');
@@ -36,6 +37,25 @@ describe('DiagramEditorPage', () => {
       { id: 'd1', title: 'Setup', order: 0, scene: { v: 1, court: 'full', showZones: false, items: [] }, updatedBy: 'x', updatedAt: null },
     ]);
     vi.mocked(diagramsApi.saveDiagramSet).mockResolvedValue({ idMap: {} });
+  });
+
+  it('shows the diagram tip to a welcomed user and ends it on the first element added', async () => {
+    const update = vi.fn();
+    vi.mocked(useAuth).mockReturnValue(
+      authValue({ firebaseUser: { uid: 'coach-uid', email: 'c@e.com' } as never, onboarding: { ...EMPTY_ONBOARDING, welcomed: true }, updateOnboarding: update }),
+    );
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    expect(screen.getByText('Tap a player, ball or arrow in the palette to add it to the court.')).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cone' }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith({ kind: 'tip', id: 'diagram' }));
+  });
+
+  it('shows no diagram tip before the welcome', async () => {
+    renderPage();
+    await screen.findByDisplayValue('Setup');
+    expect(screen.queryByText('Draw a drill')).not.toBeInTheDocument();
   });
 
   it('loads the diagram set and shows its tab', async () => {

@@ -44,7 +44,7 @@ export const onboarding = {
       line: "Tocca un giocatore, poi il fondamentale e il voto. Ti suggeriamo la prossima azione probabile; Annulla corregge l'ultimo tocco.",
     },
     pdfShare: { title: 'Condividere un PDF', line: 'Tocca Condividi PDF per crearlo, poi Condividi PDF pronto per inviarlo.' },
-    diagram: { title: 'Disegna un esercizio', line: 'Trascina giocatori, palloni e frecce dalla palette sul campo.' },
+    diagram: { title: 'Disegna un esercizio', line: 'Tocca un giocatore, un pallone o una freccia nella palette per aggiungerlo al campo.' },
   },
   dismiss: 'Chiudi il suggerimento',
   settings: {

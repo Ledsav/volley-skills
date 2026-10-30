@@ -45,7 +45,12 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
   const [askingNotes, setAskingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState<TeamNotesDraft | undefined>(undefined);
 
+  // The pdf-share tip is for a loaded sheet that the person opened to look at, not an automatic export.
+  const tipEligible = !!entries && !loadFailed && !autoBuildPdf;
+  const tipSeenAtBuild = useRef(false);
+
   async function buildPdf(teamNotes?: TeamNotes) {
+    tipSeenAtBuild.current = tipEligible && pdfTipVisible;
     setPdf('building');
     setPdfError(null);
     try {
@@ -96,7 +101,7 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
   // The tip ends once a PDF has been built.
   const pdfBuilt = pdf instanceof File;
   useEffect(() => {
-    if (pdfBuilt && pdfTipVisible) dismissPdfTip();
+    if (pdfBuilt && pdfTipVisible && tipSeenAtBuild.current) dismissPdfTip();
   }, [pdfBuilt, pdfTipVisible, dismissPdfTip]);
 
   // Declared after the effect above, which resets the PDF on mount.
@@ -158,7 +163,7 @@ export function TrainingViewSheet({ training, teamContext, autoBuildPdf, onClose
       }
     >
       <div className="flex flex-col gap-4">
-        <Tip id="pdf-share" icon={Share2} title={pdfTipText.title} line={pdfTipText.line} className="" />
+        {tipEligible && <Tip id="pdf-share" icon={Share2} title={pdfTipText.title} line={pdfTipText.line} className="" />}
         <div className="flex flex-wrap items-center gap-2 text-footnote text-ink-2">
           {training.ageGroupTarget && (
             <span className="rounded-full bg-surface-3 px-2.5 text-caption text-ink-2">

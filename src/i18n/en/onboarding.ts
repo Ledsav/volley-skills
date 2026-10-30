@@ -42,7 +42,7 @@ export const onboarding = {
       line: 'Tap a player, then the skill and the grade. The likely next action is suggested; Undo fixes the last tap.',
     },
     pdfShare: { title: 'Sharing a PDF', line: 'Tap Share PDF to build it, then Share PDF ready to send it.' },
-    diagram: { title: 'Draw a drill', line: 'Drag players, balls and arrows from the palette onto the court.' },
+    diagram: { title: 'Draw a drill', line: 'Tap a player, ball or arrow in the palette to add it to the court.' },
   },
   dismiss: 'Dismiss tip',
   settings: {

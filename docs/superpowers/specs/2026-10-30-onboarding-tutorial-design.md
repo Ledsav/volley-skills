@@ -145,16 +145,18 @@ whose behaviour has changed):
 | `row-actions` | Team roster | Quick actions | Long-press or swipe a player for quick actions. (Fine pointer: "Right-click a player…") | a context menu or swipe opened on a roster row |
 | `scout-start` | Live scouting | How scouting works | Tap a player, then the skill and the grade. The likely next action is suggested; Undo fixes the last tap. | first recorded tap |
 | `pdf-share` | Training view | Sharing a PDF | Tap Share PDF to build it, then Share PDF ready to send it. | a PDF built |
-| `diagram` | Diagram editor | Draw a drill | Drag players, balls and arrows from the palette onto the court. | first element added |
+| `diagram` | Diagram editor | Draw a drill | Tap a player, ball or arrow in the palette to add it to the court. | first element added |
 
 The `undo` tip is dropped (ruling 1): the undo notice already carries its own Undo button, and tracking "the first
 undoable delete" would couple `Notice` to onboarding for little gain.
 
-**Built as:** `search`, `row-actions`, `scout-start` and `pdf-share`. `diagram` is **not placed**: the palette adds an
-element with a tap (there is no drag from the palette), so the copy would describe behaviour that does not exist. Its
-id and strings stay in place; the tip returns once the copy is reworded or palette drag exists. `scout-start` ends on
-the first recorded action or point (the set-start event does not count), is not shown in quick score or on a short
-landscape phone, and has no motion.
+**Built as:** all five tips. The `diagram` copy was corrected from "Drag ..." to a tap, because the palette adds an
+element with a tap and has no drag. In the editor it sits above the canvas (a floating card under the tabs on desktop,
+a strip above the canvas on a phone) and ends when the total element count rises above what it was on open.
+`pdf-share` shows only on a loaded sheet with no load error, and not when `autoBuildPdf` builds the PDF on open; a PDF
+built before the tip was ever shown does not consume it. `scout-start` ends on the first recorded action or point (the
+set-start event does not count), is not shown in quick score or on a short landscape phone (a first tap there still
+consumes it), and has no motion.
 
 ### 3.4 Replay
 

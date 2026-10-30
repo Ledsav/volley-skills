@@ -18,32 +18,31 @@ export function Tip({ id, icon: Icon, title, line, animated = true, className = 
   const dismissLabel = useT().onboarding.dismiss;
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  // Stays mounted while the leave animation runs.
-  const [leaving, setLeaving] = useState(false);
-  const wasVisible = useRef(visible);
+  // `present` keeps the node mounted through the exit animation.
+  const [present, setPresent] = useState(visible);
+  if (visible && !present) setPresent(true);
+  const leaving = present && !visible;
 
+  // Enter: whenever the tip becomes visible (including mounting hidden and showing later).
   useLayoutEffect(() => {
     const el = ref.current;
-    if (visible && el && animated && typeof el.animate === 'function') {
-      el.animate(reduced ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], {
-        duration: reduced ? 150 : 180,
-        easing: EASE,
-      });
-    }
-    // Only when it first appears.
+    if (!visible || !el || !animated || typeof el.animate !== 'function') return;
+    el.animate(reduced ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], {
+      duration: reduced ? 150 : 180,
+      easing: EASE,
+    });
+    // Reduced motion changing mid-flight should not replay it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [visible]);
 
+  // Exit: collapse the height and fade (reduced motion: cross-fade), then unmount.
   useLayoutEffect(() => {
-    if (visible) {
-      wasVisible.current = true;
+    if (!leaving) return;
+    const el = ref.current;
+    if (!animated || !el || typeof el.animate !== 'function') {
+      setPresent(false);
       return;
     }
-    if (!wasVisible.current) return;
-    wasVisible.current = false;
-    const el = ref.current;
-    if (!animated || !el || typeof el.animate !== 'function') return;
-    setLeaving(true);
     const h = el.offsetHeight;
     const mb = getComputedStyle(el).marginBottom;
     const anim = el.animate(
@@ -55,14 +54,15 @@ export function Tip({ id, icon: Icon, title, line, animated = true, className = 
           ],
       { duration: reduced ? 150 : 200, easing: EASE, fill: 'forwards' },
     );
-    const done = () => setLeaving(false);
+    const done = () => setPresent(false);
     anim.addEventListener('finish', done);
     anim.addEventListener('cancel', done);
-  }, [visible, animated, reduced]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaving]);
 
-  if (!visible && !leaving) return null;
+  if (!present) return null;
   return (
-    <div ref={ref} role="note" className={`${className} flex items-start gap-3 rounded-lg bg-surface-2 py-3 pl-4 pr-1 ${leaving ? 'overflow-hidden' : ''}`}>
+    <div ref={ref} role="note" className={`${className} flex items-start gap-3 rounded-lg bg-surface-2 py-3 pl-4 pr-1 ${leaving ? 'pointer-events-none overflow-hidden' : ''}`}>
       <Icon size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-2" />
       <div className="min-w-0 flex-1 pt-0.5">
         <p className="text-callout font-semibold text-ink">{title}</p>

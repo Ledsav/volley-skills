@@ -1,5 +1,7 @@
 # Quota protection — one-time console setup
 
+> **Update 2026-10-30:** classic reCAPTCHA v3 is deprecated. Production uses **Fraud Defense (formerly reCAPTCHA Enterprise)**: the app registers with `ReCaptchaEnterpriseProvider` and the Firebase console App Check entry holds only the **site key** (no secret key). Steps 1–2 below describe the old classic flow.
+
 Date: 2026-09-09
 Owner: club admin (whoever holds the Firebase project)
 

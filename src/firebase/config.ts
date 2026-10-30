@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import {
   connectFirestoreEmulator,
@@ -21,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 
 const useEmulator = import.meta.env.DEV && import.meta.env.VITE_USE_EMULATOR === 'true';
 
-// App Check (reCAPTCHA v3) rejects Firestore/Auth traffic that does not come
+// App Check (Fraud Defense, formerly reCAPTCHA Enterprise) rejects Firestore/Auth traffic that does not come
 // from this app, which is the practical defence against someone hitting the
 // project directly with the public web API key. Skipped without a site key and
 // against the emulator, so dev, tests, and CI need no extra setup. See
@@ -29,7 +29,7 @@ const useEmulator = import.meta.env.DEV && import.meta.env.VITE_USE_EMULATOR ===
 const appCheckKey = import.meta.env.VITE_APPCHECK_RECAPTCHA_KEY;
 if (appCheckKey && !useEmulator) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(appCheckKey),
+    provider: new ReCaptchaEnterpriseProvider(appCheckKey),
     isTokenAutoRefreshEnabled: true,
   });
 }

@@ -114,9 +114,11 @@ for the detailed steps.
 - [x] **Hosting caching** (2026-10-30): extension-less SPA routes are `no-cache`; `/assets/**` stays
       immutable and is excluded from the SPA rewrite, so a missing asset is a 404, not `index.html`.
       Verify with `curl -I` after deploy (a route, a real asset, a missing asset).
-- [x] **reCAPTCHA v3 key pair** for the real domain(s) — site key + secret key (2026-10-30; domains
+- [x] **Fraud Defense (reCAPTCHA Enterprise) score-based site key** for the real domain(s) — the app uses
+      `ReCaptchaEnterpriseProvider`; there is no secret key (classic reCAPTCHA is deprecated) (2026-10-30; domains
       `volley.albertovaldesrey.com`, `volley-skills.web.app`, `volley-skills.firebaseapp.com`).
-- [ ] **Register App Check** in the Firebase console (paste the **secret** key).
+- [x] **Register App Check** in the Firebase console with the Fraud Defense provider and the site key,
+      token TTL 1 day (2026-10-30).
 - [x] **`VITE_APPCHECK_RECAPTCHA_KEY`** (the **site** key) set in `.env.production` (2026-10-30). The
       site key is public by design (it ships in the bundle), so it is committed rather than a secret;
       the deploy build reads `.env.production`. The **secret** key never enters the repo.

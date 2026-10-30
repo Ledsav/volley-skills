@@ -8,7 +8,7 @@ const mockMultiTab = vi.fn(() => 'multi-tab');
 const mockConnectAuthEmulator = vi.fn();
 const mockConnectFirestoreEmulator = vi.fn();
 const mockInitializeAppCheck = vi.fn(() => 'appcheck-instance');
-const mockReCaptchaV3Provider = vi.fn((key: string) => ({ provider: 'recaptcha-v3', key }));
+const mockReCaptchaEnterpriseProvider = vi.fn((key: string) => ({ provider: 'recaptcha-enterprise', key }));
 
 vi.mock('firebase/app', () => ({ initializeApp: mockInitializeApp }));
 vi.mock('firebase/auth', () => ({
@@ -23,7 +23,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('firebase/app-check', () => ({
   initializeAppCheck: mockInitializeAppCheck,
-  ReCaptchaV3Provider: mockReCaptchaV3Provider,
+  ReCaptchaEnterpriseProvider: mockReCaptchaEnterpriseProvider,
 }));
 
 describe('firebase config', () => {
@@ -33,7 +33,7 @@ describe('firebase config', () => {
     mockConnectAuthEmulator.mockClear();
     mockConnectFirestoreEmulator.mockClear();
     mockInitializeAppCheck.mockClear();
-    mockReCaptchaV3Provider.mockClear();
+    mockReCaptchaEnterpriseProvider.mockClear();
   });
 
   it('initializes the firebase app and exports auth/firestore instances', async () => {
@@ -57,14 +57,14 @@ describe('firebase config', () => {
     expect(mockInitializeAppCheck).not.toHaveBeenCalled();
   });
 
-  it('initializes App Check with reCAPTCHA v3 when a key is configured', async () => {
+  it('initializes App Check with Fraud Defense (reCAPTCHA Enterprise) when a key is configured', async () => {
     vi.stubEnv('VITE_APPCHECK_RECAPTCHA_KEY', 'site-key-123');
 
     await import('./config');
 
-    expect(mockReCaptchaV3Provider).toHaveBeenCalledWith('site-key-123');
+    expect(mockReCaptchaEnterpriseProvider).toHaveBeenCalledWith('site-key-123');
     expect(mockInitializeAppCheck).toHaveBeenCalledWith('app-instance', {
-      provider: { provider: 'recaptcha-v3', key: 'site-key-123' },
+      provider: { provider: 'recaptcha-enterprise', key: 'site-key-123' },
       isTokenAutoRefreshEnabled: true,
     });
   });

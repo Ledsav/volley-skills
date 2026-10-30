@@ -4,17 +4,24 @@ import { useAuth } from '../auth/AuthContext';
 import { useT } from '../i18n/I18nProvider';
 import { phoneTabs } from './navModel';
 
-/** Inactive tabs are 48 px icon circles; the current one is an ink capsule that takes the remaining width. */
+/**
+ * Inactive tabs are 48 px icon circles; the current one is an ink capsule that takes the remaining width.
+ * Narrow phones: below 360 px the circles shrink to 44 px (the minimum target) so the label has room; below
+ * 340 px the label is hidden and the current tab is an icon-only ink circle (its name stays for screen readers
+ * through the sr-only class the label takes there).
+ */
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `pressable flex h-12 min-w-0 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-    isActive ? 'flex-1 gap-1.5 bg-ink px-3.5 text-on-ink' : 'w-12 flex-none text-ink-2'
+    isActive
+      ? 'flex-1 gap-1 bg-ink px-3 text-on-ink max-[339px]:w-11 max-[339px]:flex-none max-[339px]:px-0'
+      : 'w-12 flex-none text-ink-2 max-[359px]:w-11'
   }`;
 }
 
 /** The tab's label: shown (and faded in, opacity only) on the current tab, read aloud but not shown on the others. */
 function TabLabel({ active, children }: { active: boolean; children: string }) {
   if (!active) return <span className="sr-only">{children}</span>;
-  return <span className="tab-label-in min-w-0 truncate text-[13px] font-semibold leading-none">{children}</span>;
+  return <span className="tab-label-in min-w-0 truncate text-[13px] font-semibold leading-none max-[339px]:sr-only">{children}</span>;
 }
 
 /**
@@ -49,7 +56,7 @@ export function TabBar({ pendingSignups = 0 }: { pendingSignups?: number }) {
             <span className="relative shrink-0">
               <MenuIcon size={22} strokeWidth={1.75} aria-hidden="true" />
               {pendingSignups > 0 && (
-                <span className="absolute -right-2 -top-2 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-on-ink">
+                <span className="absolute -right-1.5 -top-2 rounded-full bg-orange-strong px-1.5 text-[11px] font-semibold text-on-ink">
                   {pendingSignups}
                 </span>
               )}

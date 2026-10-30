@@ -44,6 +44,16 @@ describe('TabBar', () => {
     }
   });
 
+  it('pins the narrow-phone behaviour: smaller circles under 360 px, label kept for screen readers only under 340 px', () => {
+    renderBar('/more');
+    const nav = screen.getByRole('navigation');
+    const current = within(nav).getByRole('link', { name: 'More' });
+    expect(current.className).toContain('max-[339px]:w-11');
+    expect(within(current).getByText('More').className).toContain('max-[339px]:sr-only');
+    const inactive = within(nav).getAllByRole('link').find((l) => l !== current)!;
+    expect(inactive.className).toContain('max-[359px]:w-11');
+  });
+
   it('shows the pending sign-ups count on More only when there are some', () => {
     const { unmount } = renderBar('/', 3);
     expect(screen.getByRole('link', { name: /More/ })).toHaveTextContent('3');
